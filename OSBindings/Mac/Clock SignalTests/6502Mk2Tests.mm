@@ -120,7 +120,7 @@ void testExecution(NSDictionary *test, BusHandler &handler) {
 				instruction.operation == CPU::MOS6502Mk2::Operation::SBC
 			) &&
 			instruction.mode == CPU::MOS6502Mk2::AddressingMode::Immediate &&
-			processor.registers().flags.decimal;
+			processor.registers().flags.template get<CPU::MOS6502Mk2::Flag::Decimal>();
 		ignore_addresses[3] = instruction.mode == CPU::MOS6502Mk2::AddressingMode::JMPAbsoluteIndexedIndirect;
 	}
 
@@ -169,7 +169,7 @@ void testExecution(NSDictionary *test, BusHandler &handler) {
 		auto repeat_processor = make_processor<model>(test, handler);
 		const bool should_interrupt =
 			instruction.operation != CPU::MOS6502Mk2::Operation::BRK &&
-			repeat_processor.registers().flags.inverse_interrupt;
+			!repeat_processor.registers().flags.template get<CPU::MOS6502Mk2::Flag::Interrupt>();
 
 		try {
 			repeat_processor.run_for(Cycles(last_length - 1));
