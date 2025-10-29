@@ -170,7 +170,7 @@ public:
 	void preauthorise_stack_read(const uint32_t size, const uint32_t granularity) {
 		const auto &descriptor = segments_.descriptors[InstructionSet::x86::Source::SS];
 
-		const auto trailing_distance = 65536 - registers_.sp();
+		const uint32_t trailing_distance = 65536 - registers_.sp();
 		if(trailing_distance >= size) {
 			descriptor.template authorise<InstructionSet::x86::AccessType::Read, uint16_t>(
 				uint16_t(registers_.sp()),
@@ -189,7 +189,7 @@ public:
 				0	// i.e. 65536
 			);
 
-			const auto remainder = size - trailing_distance;
+			const uint32_t remainder = size - trailing_distance;
 			descriptor.template authorise<InstructionSet::x86::AccessType::Read, uint16_t>(
 				0,
 				uint16_t(remainder)
@@ -198,10 +198,12 @@ public:
 	}
 
 	void preauthorise_read(const InstructionSet::x86::Source descriptor, const uint16_t offset, const uint32_t size) {
-		segments_.descriptors[descriptor].template authorise<InstructionSet::x86::AccessType::Read, uint16_t>(offset, offset + size);
+		segments_.descriptors[descriptor]
+			.template authorise<InstructionSet::x86::AccessType::Read, uint16_t>(offset, uint16_t(offset + size));
 	}
 	void preauthorise_write(const InstructionSet::x86::Source descriptor, const uint16_t offset, const uint32_t size) {
-		segments_.descriptors[descriptor].template authorise<InstructionSet::x86::AccessType::Write, uint16_t>(offset, offset + size);
+		segments_.descriptors[descriptor]
+			.template authorise<InstructionSet::x86::AccessType::Write, uint16_t>(offset, uint16_t(offset + size));
 	}
 
 	// TODO: perform authorisation checks.
