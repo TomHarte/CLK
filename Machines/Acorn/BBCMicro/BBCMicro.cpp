@@ -662,6 +662,7 @@ using CRTC = Motorola::CRTC::CRTC6845<
 template <bool has_1770>
 class ConcreteMachine:
 	public Activity::Source,
+	public Configurable::Device,
 	public Machine,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::JoystickMachine,
@@ -1149,6 +1150,17 @@ private:
 	std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 	const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 		return joysticks_;
+	}
+
+	// MARK: - Configuration options.
+	std::unique_ptr<Reflection::Struct> get_options() const final {
+		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+		return options;
+	}
+
+	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+		const auto options = dynamic_cast<Options *>(str.get());
+		(void)options;
 	}
 };
 
