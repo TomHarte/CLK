@@ -178,7 +178,12 @@ public:
 
 		switch(line) {
 			// Fictitious.
-			case Line::PowerOn:		level_sample(Inputs::InterruptRequest::PowerOn);					break;
+			case Line::PowerOn:
+				level_sample(Inputs::InterruptRequest::PowerOn);
+				captured_interrupt_requests_ =
+					(captured_interrupt_requests_ & ~Inputs::InterruptRequest::PowerOn) |
+					(inputs_.interrupt_requests & Inputs::InterruptRequest::PowerOn);
+			break;
 
 			// Level triggered.
 			case Line::Reset:		level_sample(Inputs::InterruptRequest::Reset);						break;
@@ -241,7 +246,7 @@ protected:
 		};
 		uint8_t interrupt_requests = InterruptRequest::PowerOn;
 	} inputs_;
-	uint8_t captured_interrupt_requests_ = 0;
+	uint8_t captured_interrupt_requests_ = Inputs::InterruptRequest::PowerOn;
 };
 
 // MARK: - Base.
