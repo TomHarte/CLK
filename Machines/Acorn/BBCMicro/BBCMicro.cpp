@@ -609,7 +609,7 @@ private:
 
 	OutputMode previous_output_mode_ = OutputMode::Sync;
 	int cycles_ = 0;
-	int cycles_into_hsync_ = 0;
+//	int cycles_into_hsync_ = 0;
 
 	Outputs::CRT::CRT crt_;
 
