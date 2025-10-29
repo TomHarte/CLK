@@ -45,7 +45,9 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 			Storage::inputs_.interrupt_requests & Storage::registers_.flags.interrupt_mask();
 	};
 
-	#define restore_point()	(__COUNTER__ + int(ResumePoint::Max) + int(AddressingMode::Max))
+	// This is a header file, so exclusive use of the counter can't be guaranteed; adjust for that via FirstCounter.
+	static constexpr auto FirstCounter = __COUNTER__;
+	#define restore_point()	(__COUNTER__ - FirstCounter + int(ResumePoint::Max) + int(AddressingMode::Max))
 
 	#define join(a, b)			a##b
 	#define attach(a, b)		join(a, b)
