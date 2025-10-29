@@ -769,7 +769,7 @@ public:
 	template <CPU::MOS6502Mk2::BusOperation operation, typename AddressT>
 	Cycles perform(const AddressT address, CPU::MOS6502Mk2::data_t<operation> value) {
 		// Returns @c true if @c address is a device on the 1Mhz bus; @c false otherwise.
-		static constexpr auto is_1mhz = [](const uint16_t address) {
+		const auto is_1mhz = [&] {
 			// Fast exit if outside the IO space.
 			if(address < 0xfc00) return false;
 			if(address >= 0xff00) return false;
@@ -788,10 +788,10 @@ public:
 
 			// Otherwise: in IO space, but not a 1Mhz device.
 			return false;
-		};
+		}();
 
 		// Determine whether this access hits the 1Mhz bus; if so then apply appropriate penalty, and update phase.
-		const auto duration = Cycles(is_1mhz(address) ? 2 + (phase_&1) : 1);
+		const auto duration = Cycles(is_1mhz ? 2 + (phase_&1) : 1);
 		if(typer_) typer_->run_for(duration);
 		phase_ += duration.as<int>();
 

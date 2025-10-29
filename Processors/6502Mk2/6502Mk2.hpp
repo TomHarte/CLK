@@ -126,6 +126,7 @@ public:
 
 private:
 	uint8_t result_;
+
 	#ifndef NDEBUG
 	bool did_write_ = false;
 	#endif
