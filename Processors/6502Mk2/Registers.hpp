@@ -8,6 +8,7 @@
 
 #include "Numeric/RegisterSizes.hpp"
 
+#include <cassert>
 #include <compare>
 
 #pragma once
@@ -112,7 +113,10 @@ struct Flags {
 			case Flag::Interrupt:			inverse_interrupt = uint8_t(~Flag::Interrupt) | uint8_t(~result);	break;
 			case Flag::InverseInterrupt:	inverse_interrupt = uint8_t(~Flag::Interrupt) | result;				break;
 			case Flag::Zero:				zero_result = result;												break;
-			case Flag::Carry:				carry = result & Flag::Carry;										break;
+			case Flag::Carry:
+				assert(!(result & ~Flag::Carry));
+				carry = result;
+			break;
 			case Flag::NegativeZero:		zero_result = negative_result = result;								break;
 		}
 	}
@@ -120,7 +124,7 @@ struct Flags {
 	template <Flag flag>
 	requires(is_settable(flag))
 	void set(const bool result) {
-		set_per<flag>(result ? 0xff : 0x00);
+		set_per<flag>(result ? flag : 0x00);
 	}
 
 	uint8_t carry_value() const {
@@ -151,7 +155,7 @@ struct Flags {
 	}
 
 	Flags(const uint8_t flags) {
-		set_per<Flag::Carry>(flags);
+		set_per<Flag::Carry>(flags & Flag::Carry);
 		set_per<Flag::Negative>(flags);
 		set_per<Flag::Zero>((~flags) & Flag::Zero);
 		set_per<Flag::Overflow>(flags);
@@ -165,9 +169,9 @@ struct Flags {
 		return static_cast<uint8_t>(*this) <=> static_cast<uint8_t>(rhs);
 	}
 
-	uint8_t carry = 0;				/// Contains Flag::Carry.
 	uint8_t overflow = 0;			/// Contains Flag::Overflow.
 private:
+	uint8_t carry = 0;				/// Contains Flag::Carry.
 	uint8_t negative_result = 0;	/// Bit 7 = the negative flag.
 	uint8_t zero_result = 0;		/// Non-zero if the zero flag is clear, zero if it is set.
 	uint8_t decimal = 0;			/// Contains Flag::Decimal.

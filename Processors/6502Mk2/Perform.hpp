@@ -28,17 +28,18 @@ template <typename RegistersT>
 void anc(RegistersT &registers, const uint8_t operand) {
 	registers.a &= operand;
 	registers.flags.template set_per<Flag::NegativeZero>(registers.a);
-	registers.flags.carry = registers.a >> 7;
+	registers.flags.template set_per<Flag::Carry>(registers.a >> 7);
 }
 
 template <Model model, typename RegistersT>
 void adc(RegistersT &registers, const uint8_t operand) {
-	uint8_t result = registers.a + operand + registers.flags.carry;
-	registers.flags.carry = result < registers.a + registers.flags.carry;
+	uint8_t result = registers.a + operand + registers.flags.carry_value();
+	uint8_t carry = result < registers.a + registers.flags.carry_value();
 
 	if(!has_decimal_mode(model) || !registers.flags.template get<Flag::Decimal>()) {
 		registers.flags.set_overflow(result, registers.a, operand);
 		registers.flags.template set_per<Flag::NegativeZero>(registers.a = result);
+		registers.flags.template set_per<Flag::Carry>(carry);
 		return;
 	}
 
@@ -60,7 +61,7 @@ void adc(RegistersT &registers, const uint8_t operand) {
 	if(Numeric::carried_in<4>(registers.a, operand, result)) {
 		result = (result & 0xf0) | ((result + 0x06) & 0x0f);
 	} else if((result & 0xf) > 0x9) {
-		registers.flags.carry |= result >= 0x100 - 0x6;
+		carry |= result >= 0x100 - 0x6;
 		result += 0x06;
 	}
 
@@ -73,12 +74,13 @@ void adc(RegistersT &registers, const uint8_t operand) {
 
 	// i.e. fix high nibble if there was carry out of bit 7 already, or if the
 	// top nibble is too large (in which case there will be carry after the fix-up).
-	registers.flags.carry |= result >= 0xa0;
-	if(registers.flags.carry) {
+	carry |= result >= 0xa0;
+	if(carry) {
 		result += 0x60;
 	}
 
 	registers.a = result;
+	registers.flags.template set_per<Flag::Carry>(carry);
 	if constexpr (is_65c02(model)) {
 		registers.flags.template set_per<Flag::NegativeZero>(registers.a);
 	}
@@ -92,10 +94,10 @@ void sbc(RegistersT &registers, const uint8_t operand) {
 	}
 
 	const uint8_t operand_complement = ~operand;
-	uint8_t result = registers.a + operand_complement + registers.flags.carry;
+	uint8_t result = registers.a + operand_complement + registers.flags.carry_value();
 
 	// All flags are set based only on the decimal result.
-	registers.flags.carry = result < registers.a + registers.flags.carry;
+	uint8_t carry = result < registers.a + registers.flags.carry_value();
 	if constexpr (!is_65c02(model)) {
 		registers.flags.template set_per<Flag::NegativeZero>(result);
 	}
@@ -122,11 +124,12 @@ void sbc(RegistersT &registers, const uint8_t operand) {
 	}
 
 	// The top nibble is adjusted only if there was borrow out of the whole byte.
-	if(!registers.flags.carry) {
+	if(!carry) {
 		result += 0xa0;
 	}
 
 	registers.a = result;
+	registers.flags.template set_per<Flag::Carry>(carry);
 	if constexpr (is_65c02(model)) {
 		registers.flags.template set_per<Flag::NegativeZero>(registers.a);
 	}
@@ -136,37 +139,38 @@ template <Model model, typename RegistersT>
 void arr(RegistersT &registers, const uint8_t operand) {
 	registers.a &= operand;
 	const uint8_t unshifted_a = registers.a;
-	registers.a = uint8_t((registers.a >> 1) | (registers.flags.carry << 7));
+	registers.a = uint8_t((registers.a >> 1) | (registers.flags.carry_value() << 7));
 	registers.flags.template set_per<Flag::NegativeZero>(registers.a);
 	registers.flags.overflow = (registers.a^(registers.a << 1))&Flag::Overflow;
 
 	if(registers.flags.template get<Flag::Decimal>() && has_decimal_mode(model)) {
 		if((unshifted_a&0xf) + (unshifted_a&0x1) > 5) registers.a = ((registers.a + 6)&0xf) | (registers.a & 0xf0);
-		registers.flags.carry = ((unshifted_a&0xf0) + (unshifted_a&0x10) > 0x50) ? 1 : 0;
-		if(registers.flags.carry) registers.a += 0x60;
+		const uint8_t carry = ((unshifted_a&0xf0) + (unshifted_a&0x10) > 0x50) ? 1 : 0;
+		if(carry) registers.a += 0x60;
+		registers.flags.template set_per<Flag::Carry>(carry);
 	} else {
-		registers.flags.carry = (registers.a >> 6)&1;
+		registers.flags.template set_per<Flag::Carry>((registers.a >> 6)&1);
 	}
 }
 
 template <typename RegistersT>
 void sbx(RegistersT &registers, const uint8_t operand) {
 	registers.x &= registers.a;
-	registers.flags.carry = operand <= registers.x;
+	registers.flags.template set_per<Flag::Carry>(operand <= registers.x);
 	registers.x -= operand;
 	registers.flags.template set_per<Flag::NegativeZero>(registers.x);
 }
 
 template <typename RegistersT>
 void asl(RegistersT &registers, uint8_t &operand) {
-	registers.flags.carry = operand >> 7;
+	registers.flags.template set_per<Flag::Carry>(operand >> 7);
 	operand <<= 1;
 	registers.flags.template set_per<Flag::NegativeZero>(operand);
 }
 
 template <typename RegistersT>
 void aso(RegistersT &registers, uint8_t &operand) {
-	registers.flags.carry = operand >> 7;
+	registers.flags.template set_per<Flag::Carry>(operand >> 7);
 	operand <<= 1;
 	registers.a |= operand;
 	registers.flags.template set_per<Flag::NegativeZero>(registers.a);
@@ -174,15 +178,15 @@ void aso(RegistersT &registers, uint8_t &operand) {
 
 template <typename RegistersT>
 void rol(RegistersT &registers, uint8_t &operand) {
-	const uint8_t temp8 = uint8_t((operand << 1) | registers.flags.carry);
-	registers.flags.carry = operand >> 7;
+	const uint8_t temp8 = uint8_t((operand << 1) | registers.flags.carry_value());
+	registers.flags.template set_per<Flag::Carry>(operand >> 7);
 	registers.flags.template set_per<Flag::NegativeZero>(operand = temp8);
 }
 
 template <typename RegistersT>
 void rla(RegistersT &registers, uint8_t &operand) {
-	const uint8_t temp8 = uint8_t((operand << 1) | registers.flags.carry);
-	registers.flags.carry = operand >> 7;
+	const uint8_t temp8 = uint8_t((operand << 1) | registers.flags.carry_value());
+	registers.flags.template set_per<Flag::Carry>(operand >> 7);
 	operand = temp8;
 	registers.a &= operand;
 	registers.flags.template set_per<Flag::NegativeZero>(registers.a);
@@ -190,14 +194,14 @@ void rla(RegistersT &registers, uint8_t &operand) {
 
 template <typename RegistersT>
 void lsr(RegistersT &registers, uint8_t &operand) {
-	registers.flags.carry = operand & 1;
+	registers.flags.template set_per<Flag::Carry>(operand & 1);
 	operand >>= 1;
 	registers.flags.template set_per<Flag::NegativeZero>(operand);
 }
 
 template <typename RegistersT>
 void lse(RegistersT &registers, uint8_t &operand) {
-	registers.flags.carry = operand & 1;
+	registers.flags.template set_per<Flag::Carry>(operand & 1);
 	operand >>= 1;
 	registers.a ^= operand;
 	registers.flags.template set_per<Flag::NegativeZero>(registers.a);
@@ -206,29 +210,29 @@ void lse(RegistersT &registers, uint8_t &operand) {
 template <typename RegistersT>
 void asr(RegistersT &registers, uint8_t &operand) {
 	registers.a &= operand;
-	registers.flags.carry = registers.a & 1;
+	registers.flags.template set_per<Flag::Carry>(registers.a & 1);
 	registers.a >>= 1;
 	registers.flags.template set_per<Flag::NegativeZero>(registers.a);
 }
 
 template <typename RegistersT>
 void ror(RegistersT &registers, uint8_t &operand) {
-	const uint8_t temp8 = uint8_t((operand >> 1) | (registers.flags.carry << 7));
-	registers.flags.carry = operand & 1;
+	const uint8_t temp8 = uint8_t((operand >> 1) | (registers.flags.carry_value() << 7));
+	registers.flags.template set_per<Flag::Carry>(operand & 1);
 	registers.flags.template set_per<Flag::NegativeZero>(operand = temp8);
 }
 
 template <Model model, typename RegistersT>
 void rra(RegistersT &registers, uint8_t &operand) {
-	const uint8_t temp8 = uint8_t((operand >> 1) | (registers.flags.carry << 7));
-	registers.flags.carry = operand & 1;
+	const uint8_t temp8 = uint8_t((operand >> 1) | (registers.flags.carry_value() << 7));
+	registers.flags.template set_per<Flag::Carry>(operand & 1);
 	Operations::adc<model>(registers, temp8);
 	operand = temp8;
 }
 
 template <typename RegistersT>
 void compare(RegistersT &registers, const uint8_t lhs, const uint8_t rhs) {
-	registers.flags.carry = rhs <= lhs;
+	registers.flags.template set_per<Flag::Carry>(rhs <= lhs);
 	registers.flags.template set_per<Flag::NegativeZero>(lhs - rhs);
 }
 
@@ -313,8 +317,8 @@ bool test(const Operation operation, RegistersT &registers) {
 		case Operation::BMI: return registers.flags.template get<Flag::Negative>();
 		case Operation::BVC: return !registers.flags.overflow;
 		case Operation::BVS: return registers.flags.overflow;
-		case Operation::BCC: return !registers.flags.carry;
-		case Operation::BCS: return registers.flags.carry;
+		case Operation::BCC: return !registers.flags.template get<Flag::Carry>();
+		case Operation::BCS: return registers.flags.template get<Flag::Carry>();
 		case Operation::BNE: return !registers.flags.template get<Flag::Zero>();
 		case Operation::BEQ: return registers.flags.template get<Flag::Zero>();
 		case Operation::BRA: return true;
@@ -365,11 +369,11 @@ void perform(
 		case Operation::SAX:	operand = registers.a & registers.x;							break;
 		case Operation::PHP:	operand = static_cast<uint8_t>(registers.flags) | Flag::Break;	break;
 
-		case Operation::CLC:	registers.flags.carry = 0;											break;
+		case Operation::CLC:	registers.flags.template set_per<Flag::Carry>(0);					break;
 		case Operation::CLI:	registers.flags.template set_per<Flag::Interrupt>(0);				break;
 		case Operation::CLV:	registers.flags.overflow = 0;										break;
 		case Operation::CLD:	registers.flags.template set_per<Flag::Decimal>(0);					break;
-		case Operation::SEC:	registers.flags.carry = Flag::Carry;								break;
+		case Operation::SEC:	registers.flags.template set_per<Flag::Carry>(Flag::Carry);			break;
 		case Operation::SEI:	registers.flags.template set_per<Flag::Interrupt>(Flag::Interrupt);	break;
 		case Operation::SED:	registers.flags.template set_per<Flag::Decimal>(Flag::Decimal);		break;
 
