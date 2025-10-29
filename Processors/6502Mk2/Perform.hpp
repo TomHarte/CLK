@@ -141,7 +141,7 @@ void arr(RegistersT &registers, const uint8_t operand) {
 	const uint8_t unshifted_a = registers.a;
 	registers.a = uint8_t((registers.a >> 1) | (registers.flags.carry_value() << 7));
 	registers.flags.template set_per<Flag::NegativeZero>(registers.a);
-	registers.flags.overflow = (registers.a^(registers.a << 1))&Flag::Overflow;
+	registers.flags.template set_per<Flag::Overflow>(registers.a ^ (registers.a << 1));
 
 	if(registers.flags.template get<Flag::Decimal>() && has_decimal_mode(model)) {
 		if((unshifted_a&0xf) + (unshifted_a&0x1) > 5) registers.a = ((registers.a + 6)&0xf) | (registers.a & 0xf0);
@@ -240,7 +240,7 @@ template <typename RegistersT>
 void bit(RegistersT &registers, const uint8_t operand) {
 	registers.flags.template set_per<Flag::Zero>(operand & registers.a);
 	registers.flags.template set_per<Flag::Negative>(operand);
-	registers.flags.overflow = operand & Flag::Overflow;
+	registers.flags.template set_per<Flag::Overflow>(operand);
 }
 
 template <typename RegistersT>
@@ -315,8 +315,8 @@ bool test(const Operation operation, RegistersT &registers) {
 
 		case Operation::BPL: return !registers.flags.template get<Flag::Negative>();
 		case Operation::BMI: return registers.flags.template get<Flag::Negative>();
-		case Operation::BVC: return !registers.flags.overflow;
-		case Operation::BVS: return registers.flags.overflow;
+		case Operation::BVC: return !registers.flags.template get<Flag::Overflow>();
+		case Operation::BVS: return registers.flags.template get<Flag::Overflow>();
 		case Operation::BCC: return !registers.flags.template get<Flag::Carry>();
 		case Operation::BCS: return registers.flags.template get<Flag::Carry>();
 		case Operation::BNE: return !registers.flags.template get<Flag::Zero>();
@@ -371,7 +371,7 @@ void perform(
 
 		case Operation::CLC:	registers.flags.template set_per<Flag::Carry>(0);					break;
 		case Operation::CLI:	registers.flags.template set_per<Flag::Interrupt>(0);				break;
-		case Operation::CLV:	registers.flags.overflow = 0;										break;
+		case Operation::CLV:	registers.flags.template set_per<Flag::Overflow>(0);				break;
 		case Operation::CLD:	registers.flags.template set_per<Flag::Decimal>(0);					break;
 		case Operation::SEC:	registers.flags.template set_per<Flag::Carry>(Flag::Carry);			break;
 		case Operation::SEI:	registers.flags.template set_per<Flag::Interrupt>(Flag::Interrupt);	break;
