@@ -746,7 +746,7 @@ requires is_context<ContextT>
 void perform(
 	const Instruction<type> &instruction,
 	ContextT &context,
-	uint32_t source_ip
+	const ip_size_t<ContextT> source_ip
 ) {
 	if constexpr (uses_8086_exceptions(ContextT::model)) {
 		InstructionSet::x86::perform(
@@ -843,7 +843,7 @@ requires is_context<ContextT>
 void fault(
 	const Exception exception,
 	ContextT &context,
-	const uint32_t source_ip
+	const ip_size_t<ContextT> source_ip
 ) {
 	if constexpr (uses_8086_exceptions(ContextT::model)) {
 		InstructionSet::x86::interrupt(
