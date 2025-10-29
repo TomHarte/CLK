@@ -8,9 +8,9 @@
 
 #pragma once
 
+#include "Analyser/Static/StaticAnalyser.hpp"
 #include "Configurable/Configurable.hpp"
 #include "Configurable/StandardOptions.hpp"
-#include "Analyser/Static/StaticAnalyser.hpp"
 #include "Machines/ROMMachine.hpp"
 
 #include <memory>
@@ -58,6 +58,7 @@ struct Machine {
 		}
 	};
 
+	// Provided for running the SHAKER test suite.
 	struct SSMDelegate {
 		virtual void perform(uint16_t) = 0;
 	};

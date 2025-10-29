@@ -1195,7 +1195,7 @@ public:
 		return options;
 	}
 
-	void set_options(const std::unique_ptr<Reflection::Struct> &str) {
+	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
 		const auto options = dynamic_cast<Options *>(str.get());
 		set_video_signal_configurable(options->output);
 		allow_fast_tape_hack_ = options->quick_load;
