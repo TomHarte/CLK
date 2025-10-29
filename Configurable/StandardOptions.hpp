@@ -67,7 +67,7 @@ public:
 	DynamicCrop(const bool dynamic_crop) noexcept : dynamic_crop(dynamic_crop) {}
 
 protected:
-	void declare_quickboot_option() {
+	void declare_dynamic_crop_option() {
 		static_cast<Owner *>(this)->declare(&dynamic_crop, "dynamiccrop");
 	}
 };

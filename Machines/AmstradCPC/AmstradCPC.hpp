@@ -33,16 +33,19 @@ struct Machine {
 	class Options:
 		public Reflection::StructImpl<Options>,
 		public Configurable::Options::Display<Options>,
-		public Configurable::Options::QuickLoad<Options>
+		public Configurable::Options::QuickLoad<Options>,
+		public Configurable::Options::DynamicCrop<Options>
 	{
 	public:
 		Options(const Configurable::OptionsType type) :
 			Configurable::Options::Display<Options>(Configurable::Display::RGB),
-			Configurable::Options::QuickLoad<Options>(type == Configurable::OptionsType::UserFriendly) {}
+			Configurable::Options::QuickLoad<Options>(type == Configurable::OptionsType::UserFriendly),
+			Configurable::Options::DynamicCrop<Options>(type == Configurable::OptionsType::UserFriendly) {}
 
 	private:
 		friend Configurable::Options::Display<Options>;
 		friend Configurable::Options::QuickLoad<Options>;
+		friend Configurable::Options::DynamicCrop<Options>;
 
 		Options() : Options( Configurable::OptionsType::UserFriendly) {}
 
@@ -50,6 +53,7 @@ struct Machine {
 		void declare_fields() {
 			declare_display_option();
 			declare_quickload_option();
+			declare_dynamic_crop_option();
 			limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, -1);
 		}
 	};
