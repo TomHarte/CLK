@@ -44,7 +44,7 @@ public:
 
 private:
 	void set_data(std::vector<uint8_t> &&data, CompressionType type);
-	std::unique_ptr<FormatSerialiser> format_serialiser() const override;	
+	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
 	struct Serialiser: public FormatSerialiser {
 		Serialiser(const std::vector<uint8_t> &data, Pulse);

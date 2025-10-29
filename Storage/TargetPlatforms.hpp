@@ -58,7 +58,7 @@ enum Type: IntType {
 	AllDisk			=	Acorn | Commodore | AmstradCPC | C64 | Oric | MSX | ZXSpectrum | Macintosh | AtariST | DiskII | PCCompatible | FAT12,
 	AllTape			=	Acorn | AmstradCPC | Commodore8bit | Oric | ZX8081 | MSX | ZXSpectrum,
 
-	All 			=	~IntType(0),
+	All				=	~IntType(0),
 };
 
 class Distinguisher {

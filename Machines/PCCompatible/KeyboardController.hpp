@@ -266,7 +266,7 @@ public:
 				// Status:
 				//	b7 = 1 => parity error on transmission;
 				//	b6 = 1 => receive timeout;
-				// 	b5 = 1 => transmit timeout;
+				//	b5 = 1 => transmit timeout;
 				//	b4 = 1 => keyboard enabled via physical key;
 				//	b3 = 1 = data at 0060 is command, 0 = data;
 				//	b2 = 1 = selftest OK; 0 = just powered up or reset;
@@ -328,7 +328,7 @@ private:
 
 		switch(command) {
 			case Command::SelfTest:	return 15;
-			default: 				return 0;
+			default:				return 0;
 		}
 	}
 
@@ -448,11 +448,11 @@ private:
 	bool has_input_ = false;
 	bool has_command_ = false;
 
-	//	bit 7	  = 0  keyboard inhibited
-	//	bit 6	  = 0  CGA, else MDA
-	//	bit 5	  = 0  manufacturing jumper installed
-	//	bit 4	  = 0  system RAM 512K, else 640K
-	//	bit 3-0      reserved
+	//	bit 7		= 0  keyboard inhibited
+	//	bit 6		= 0  CGA, else MDA
+	//	bit 5		= 0  manufacturing jumper installed
+	//	bit 4		= 0  system RAM 512K, else 640K
+	//	bit 3-0		reserved
 	uint8_t switches_ = 0b1011'0000;
 
 	int perform_delay_ = 0;

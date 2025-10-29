@@ -150,22 +150,22 @@ void i8272::posit_event(const int event_type) {
 
 #define WAIT_FOR_EVENT(mask)	{							\
 	static constexpr int location = __COUNTER__ + 1;		\
-	resume_point_ = location; 								\
-	interesting_event_mask_ = int(mask); 					\
-	return; 												\
+	resume_point_ = location;								\
+	interesting_event_mask_ = int(mask);					\
+	return;													\
 	case location:											\
 		(void)0;											\
 }
 
 #define WAIT_FOR_TIME(ms)	{								\
 	static constexpr int location = __COUNTER__ + 1;		\
-	interesting_event_mask_ = int(Event8272::Timer); 		\
-	delay_time_ = ms_to_cycles(ms); 						\
+	interesting_event_mask_ = int(Event8272::Timer);		\
+	delay_time_ = ms_to_cycles(ms);							\
 	is_sleeping_ = false;									\
-	update_clocking_observer(); 							\
+	update_clocking_observer();								\
 	resume_point_ = location;								\
-	[[fallthrough]]; 										\
-	case location: 											\
+	[[fallthrough]];										\
+	case location:											\
 	if(delay_time_) return;									\
 }
 

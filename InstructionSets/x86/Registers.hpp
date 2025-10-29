@@ -127,8 +127,8 @@ public:
 	template <DescriptorTable table>
 	void set(const DescriptorTablePointer location) {
 		switch(table) {
-			case DescriptorTable::Local:		local_ = location; 		break;
-			case DescriptorTable::Global:		global_ = location; 	break;
+			case DescriptorTable::Local:		local_ = location;		break;
+			case DescriptorTable::Global:		global_ = location;		break;
 			case DescriptorTable::Interrupt:	interrupt_ = location;	break;
 		}
 	}

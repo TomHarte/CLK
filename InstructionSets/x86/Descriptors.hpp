@@ -204,7 +204,7 @@ struct SegmentDescriptor {
 	/// Accesses must be `>= bounds().begin` and `<= bounds().end`.
 	DescriptorBounds bounds() const {	return bounds_;	}
 
-	bool present() const 			{	return type_ & 0x80;		}
+	bool present() const			{	return type_ & 0x80;		}
 	int privilege_level() const		{	return (type_ >> 5) & 3;	}
 	uint8_t access_rights() const	{	return uint8_t(type_);		}
 

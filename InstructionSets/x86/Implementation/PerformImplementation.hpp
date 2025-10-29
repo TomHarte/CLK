@@ -450,8 +450,12 @@ template <
 			}
 		return;
 
-		case Operation::OUT: Primitive::out<IntT>(port(instruction.destination().source()), pair_low(), context);	return;
-		case Operation::IN:	 Primitive::in<IntT>(port(instruction.source().source()), pair_low(), context);			return;
+		case Operation::OUT:
+			Primitive::out<IntT>(port(instruction.destination().source()), pair_low(), context);
+		return;
+		case Operation::IN:
+			Primitive::in<IntT>(port(instruction.source().source()), pair_low(), context);
+		return;
 
 		case Operation::XLAT:	Primitive::xlat<AddressT>(instruction, context);		return;
 

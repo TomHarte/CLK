@@ -49,7 +49,7 @@ WOZ::WOZ(const std::string &file_name) :
 	// Test the CRC.
 	const uint32_t computed_crc = CRC::CRC32::crc_of(post_crc_contents_);
 	if(crc != computed_crc) {
-		 throw Error::InvalidFormat;
+		throw Error::InvalidFormat;
 	}
 
 	// Retreat to the first byte after the CRC.

@@ -46,7 +46,7 @@ NSSet *const allowList = [NSSet setWithArray:@[
 // "Known bad" test hashes.
 NSSet<NSString *> *knownBad = [NSSet setWithArray:@[
 	// Things that ostensibly push an SS to the stack rather than CS, likely due to a recording error:
-		@"7df1d2a948c416f5a4416e2f747d2d357d497570", 	// ce.json; INTO
+		@"7df1d2a948c416f5a4416e2f747d2d357d497570",	// ce.json; INTO
 		@"ab0cea0f2b89ae469a98eaf20dedc9ff2ca08c91",	// ff.3.json; far CALL
 		@"ba5bb16b5a4306333a359c3abd2169b871ffa42c",	// cd.json; int 3bh
 
