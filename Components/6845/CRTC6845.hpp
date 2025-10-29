@@ -120,7 +120,6 @@ public:
 			case 6:	layout_.vertical.displayed = value;		break;
 			case 7:	layout_.vertical.start_sync = value;	break;
 			case 8:
-				printf("Interlace mode: %d", value & 3);
 				switch(value & 3) {
 					default:	layout_.interlace_mode_ = InterlaceMode::Off;			break;
 					case 0b01:	layout_.interlace_mode_ = InterlaceMode::Sync;			break;

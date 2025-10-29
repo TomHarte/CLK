@@ -234,6 +234,7 @@ void Processor<model, Traits>::run_for(const Cycles cycles) {
 				goto interrupt;
 			}
 
+			Storage::operation_pc_ = registers.pc.full;
 			access(BusOperation::ReadOpcode, Literal(registers.pc.full), Storage::opcode_, ++registers.pc.full);
 			Storage::decoded_ = Decoder<model>::decode(Storage::opcode_);
 

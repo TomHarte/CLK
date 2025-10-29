@@ -763,20 +763,13 @@ public:
 		if(!target.loading_command.empty()) {
 			type_string(target.loading_command);
 		}
-
-		// Prime the display and then reset.
-//		run_for(Cycles(100'000'000));
-//		m6502_.set_power_on(true);
 	}
 
 	// MARK: - 6502 bus.
-	Cycles perform_bus_operation(
-		const CPU::MOS6502::BusOperation operation,
-		const uint16_t address,
-		uint8_t *const value
-	) {
+	template <CPU::MOS6502Mk2::BusOperation operation, typename AddressT>
+	Cycles perform(const AddressT address, CPU::MOS6502Mk2::data_t<operation> value) {
 		// Returns @c true if @c address is a device on the 1Mhz bus; @c false otherwise.
-		static constexpr auto is_1mhz = [](const uint16_t address) {
+		const auto is_1mhz = [&] {
 			// Fast exit if outside the IO space.
 			if(address < 0xfc00) return false;
 			if(address >= 0xff00) return false;
@@ -795,10 +788,10 @@ public:
 
 			// Otherwise: in IO space, but not a 1Mhz device.
 			return false;
-		};
+		}();
 
 		// Determine whether this access hits the 1Mhz bus; if so then apply appropriate penalty, and update phase.
-		const auto duration = Cycles(is_1mhz(address) ? 2 + (phase_&1) : 1);
+		const auto duration = Cycles(is_1mhz ? 2 + (phase_&1) : 1);
 		if(typer_) typer_->run_for(duration);
 		phase_ += duration.as<int>();
 
@@ -842,92 +835,97 @@ public:
 		//
 		if(address >= 0xfc00 && address < 0xff00) {
 			if(address >= 0xfe40 && address < 0xfe60) {
-				if(is_read(operation)) {
-					*value = system_via_.read(address);
+				if constexpr (is_read(operation)) {
+					value = system_via_.read(address);
 				} else {
-					system_via_.write(address, *value);
+					system_via_.write(address, value);
 				}
 			} else if(address >= 0xfe60 && address < 0xfe80) {
-				if(is_read(operation)) {
-					*value = user_via_.read(address);
+				if constexpr (is_read(operation)) {
+					value = user_via_.read(address);
 				} else {
-					user_via_.write(address, *value);
+					user_via_.write(address, value);
 				}
 			} else if(address == 0xfe30) {
-				if(is_read(operation)) {
-					*value = 0xfe;
+				if constexpr (is_read(operation)) {
+					value = 0xfe;
 				} else {
-					page_sideways(*value & 0xf);
+					page_sideways(value & 0xf);
 				}
 			} else if(address >= 0xfe00 && address < 0xfe08) {
-				if(is_read(operation)) {
+				if constexpr (is_read(operation)) {
 					if(address & 1) {
-						*value = crtc_.get_register();
+						value = crtc_.get_register();
 					} else {
-						*value = crtc_.get_status();
+						value = crtc_.get_status();
 					}
 				} else {
 					if(address & 1) {
-						crtc_.set_register(*value);
+						crtc_.set_register(value);
 					} else {
-						crtc_.select_register(*value);
+						crtc_.select_register(value);
 					}
 				}
 			} else if(address >= 0xfe20 && address < 0xfe30) {
-				if(is_read(operation)) {
-					*value = 0xfe;
+				if constexpr (is_read(operation)) {
+					value = 0xfe;
 				} else {
 					switch(address) {
 						case 0xfe20:
-							crtc_bus_handler_.set_control(*value);
-							crtc_2mhz_ = *value & 0x10;
+							crtc_bus_handler_.set_control(value);
+							crtc_2mhz_ = value & 0x10;
 						break;
 						case 0xfe21:
-							crtc_bus_handler_.set_palette(*value);
+							crtc_bus_handler_.set_palette(value);
 						break;
 					}
 				}
 			} else if(address == 0xfee0) {
-				if(is_read(operation)) {
+				if constexpr (is_read(operation)) {
 					Logger::info().append("Read tube status: 0");
-					*value = 0;
+					value = 0;
 				} else {
-					Logger::info().append("Wrote tube: %02x", *value);
+					Logger::info().append("Wrote tube: %02x", value);
 				}
 			} else if(address >= 0xfe08 && address < 0xfe10) {
-				if(is_read(operation)) {
+				if constexpr (is_read(operation)) {
 //					Logger::info().append("ACIA read");
-					*value = acia_.read(address);
+					value = acia_.read(address);
 				} else {
 //					Logger::info().append("ACIA write: %02x", *value);
-					acia_.write(address, *value);
+					acia_.write(address, value);
 				}
 			} else if(address >= 0xfec0 && address < 0xfee0) {
-				if(is_read(operation)) {
-					*value = adc_.read(address);
+				if constexpr (is_read(operation)) {
+					value = adc_.read(address);
 				} else {
-					adc_.write(address, *value);
+					adc_.write(address, value);
 				}
 			} else if(has_1770 && address >= 0xfe80 && address < 0xfe88) {
 				switch(address) {
 					case 0xfe80:
-						if(!is_read(operation)) {
-							wd1770_.set_control_register(*value);
+						if constexpr (!is_read(operation)) {
+							wd1770_.set_control_register(value);
+						} else {
+							value = 0xff;
 						}
 					break;
 					default:
-						if(is_read(operation)) {
-							*value = wd1770_.read(address);
+						if constexpr (is_read(operation)) {
+							value = wd1770_.read(address);
 						} else {
-							wd1770_.write(address, *value);
+							wd1770_.write(address, value);
 						}
 					break;
 				}
-			}
-			else {
+			} else {
 				Logger::error()
 					.append("Unhandled IO %s at %04x", is_read(operation) ? "read" : "write", address)
-					.append_if(!is_read(operation), ": %02x", *value);
+					.append_if(!is_read(operation), ": %02x", value);
+
+				if constexpr (is_read(operation)) {
+					value = 0xff;
+				}
 			}
 			return duration;
 		}
@@ -935,16 +933,16 @@ public:
 		//
 		// ROM or RAM access.
 		//
-		if(is_read(operation)) {
+		if constexpr (is_read(operation)) {
 			// TODO: probably don't do this with this condition? See how it compiles. If it's a CMOV somehow, no problem.
 			if((address >> 14) == 2 && !sideways_read_mask_) {
-				*value = 0xff;
+				value = 0xff;
 			} else {
-				*value = memory_[address >> 14][address];
+				value = memory_[address >> 14][address];
 			}
 		} else {
 			if(memory_write_masks_[address >> 14]) {
-				memory_[address >> 14][address] = *value;
+				memory_[address >> 14][address] = value;
 			}
 		}
 
@@ -1005,7 +1003,7 @@ private:
 			break;
 
 			case Key::Break:
-				m6502_.set_reset_line(is_pressed);
+				m6502_.template set<CPU::MOS6502Mk2::Line::Reset>(is_pressed);
 			break;
 
 			default:
@@ -1016,12 +1014,12 @@ private:
 	bool was_caps_ = false;
 
 	void clear_all_keys() final {
-		m6502_.set_reset_line(false);
+		m6502_.template set<CPU::MOS6502Mk2::Line::Reset>(false);
 		system_via_port_handler_.clear_all_keys();
 	}
 
 	HalfCycles get_typer_delay(const std::string &text) const final {
-		if(!m6502_.get_is_resetting()) {
+		if(!m6502_.is_resetting()) {
 			return Cycles(0);
 		}
 
@@ -1109,7 +1107,13 @@ private:
 	}
 
 	// MARK: - Components.
-	CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
+
+	struct M6502Traits {
+		static constexpr auto uses_ready_line = false;
+		static constexpr auto pause_precision = CPU::MOS6502Mk2::PausePrecision::BetweenInstructions;
+		using BusHandlerT = ConcreteMachine;
+	};
+	CPU::MOS6502Mk2::Processor<CPU::MOS6502Mk2::Model::M6502, M6502Traits> m6502_;
 
 	UserVIAPortHandler user_via_port_handler_;
 	SystemVIAPortHandler system_via_port_handler_;
@@ -1117,7 +1121,7 @@ private:
 	SystemVIA system_via_;
 
 	void update_irq_line() {
-		m6502_.set_irq_line(
+		m6502_.template set<CPU::MOS6502Mk2::Line::IRQ>(
 			user_via_.get_interrupt_line() ||
 			system_via_.get_interrupt_line()
 		);
@@ -1136,7 +1140,9 @@ private:
 	// MARK: - WD1770.
 	Electron::Plus3 wd1770_;
 	void wd1770_did_change_output(WD::WD1770 &) override {
-		m6502_.set_nmi_line(wd1770_.get_interrupt_request_line() || wd1770_.get_data_request_line());
+		m6502_.template set<CPU::MOS6502Mk2::Line::NMI>(
+			wd1770_.get_interrupt_request_line() || wd1770_.get_data_request_line()
+		);
 	}
 
 	// MARK: - Joysticks
@@ -1150,44 +1156,10 @@ private:
 
 using namespace BBCMicro;
 
-namespace {
-
-struct Handler {
-	uint8_t memory_[65536];
-
-	template <CPU::MOS6502Mk2::BusOperation operation, typename AddressT>
-	Cycles perform(const AddressT address, CPU::MOS6502Mk2::data_t<operation> data) {
-		if constexpr (!is_dataless(operation)) {
-			if constexpr (is_read(operation)) {
-				data = memory_[address];
-			} else {
-				memory_[address] = data;
-			}
-		}
-		return Cycles(1);
-	}
-};
-
-struct Traits {
-	static constexpr auto uses_ready_line = false;
-	static constexpr auto pause_precision = CPU::MOS6502Mk2::PausePrecision::AnyCycle;
-	using BusHandlerT = Handler;
-};
-
-void test_it() {
-	Handler handler;
-	CPU::MOS6502Mk2::Processor<CPU::MOS6502Mk2::Model::M6502, Traits> processor(handler);
-	processor.run_for(Cycles(1000));
-}
-
-}
-
 std::unique_ptr<Machine> Machine::BBCMicro(
 	const Analyser::Static::Target *target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	test_it();
-
 	using Target = Analyser::Static::Acorn::BBCMicroTarget;
 	const Target *const acorn_target = dynamic_cast<const Target *>(target);
 	if(acorn_target->has_1770dfs || acorn_target->has_adfs) {
