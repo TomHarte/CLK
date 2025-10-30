@@ -505,6 +505,12 @@ void CRT::posit(Display::Rect rect) {
 			Logger::info().append("First reading is (%0.5ff, %0.5ff, %0.5ff, %0.5ff)",
 				posted_rect_.origin.x, posted_rect_.origin.y,
 				posted_rect_.size.width, posted_rect_.size.height);
+
+			auto frame = border_rect_;
+			frame.scale(0.90f, 0.90f);
+			Logger::info().append("90%% of whole frame was (%0.5ff, %0.5ff, %0.5ff, %0.5ff)",
+				frame.origin.x, frame.origin.y,
+				frame.size.width, frame.size.height);
 		}
 		return;
 	}

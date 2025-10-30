@@ -669,6 +669,20 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
+- (void)setUseDynamicCropping:(BOOL)useDynamicCropping {
+	Configurable::Device *configurable_device = _machine->configurable_device();
+	if(!configurable_device) return;
+
+	@synchronized(self) {
+		_useDynamicCropping = useDynamicCropping;
+
+		auto options = configurable_device->get_options();
+		Reflection::set(*options, "dynamiccrop", useDynamicCropping ? true : false);
+		configurable_device->set_options(options);
+	}
+
+}
+
 - (NSString *)userDefaultsPrefix {
 	// Assumes that the first machine in the targets list is the source of user defaults.
 	std::string name = Machine::ShortNameForTargetMachine(_analyser.targets.front()->machine);
