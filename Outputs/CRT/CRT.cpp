@@ -135,8 +135,14 @@ void CRT::set_fixed_framing(const std::function<void()> &advance) {
 
 void CRT::set_fixed_framing(const Display::Rect frame) {
 	framing_ = Framing::Static;
-	scan_target_modals_.visible_area = frame;
-	scan_target_->set_modals(scan_target_modals_);
+	if(!has_first_reading_) {
+		scan_target_modals_.visible_area = frame;
+		scan_target_->set_modals(scan_target_modals_);
+	} else {
+		previous_posted_rect_ = posted_rect_;
+		posted_rect_ = frame;
+		animation_step_ = 0;
+	}
 }
 
 void CRT::set_new_display_type(const int cycles_per_line, const Outputs::Display::Type displayType) {
@@ -460,14 +466,31 @@ void CRT::posit(Display::Rect rect) {
 			posted_rect_ * animation_time;
 	};
 
+	// Continue with any ongoing animation.
+	if(animation_step_ < AnimationSteps) {
+		set_rect(current_rect());
+		++animation_step_;
+
+		if(animation_step_ == AnimationSteps) {
+			previous_posted_rect_ = posted_rect_;
+
+			if(framing_ == Framing::CalibratingAutomaticFixed) {
+				framing_ =
+					border_rect_ != active_rect_ ?
+						Framing::BorderReactive : Framing::Static;
+				return;
+			}
+		}
+	}
+
+	// Static framing: don't further evaluate.
+	if(framing_ == Framing::Static) {
+		return;
+	}
+
 	// Zoom out very slightly if there's space; this avoids a cramped tight crop.
 	if(rect.size.width < 0.95 && rect.size.height < 0.95) {
 		rect.scale(1.02f, 1.02f);
-	}
-
-	// Static framing: don't evaluate.
-	if(framing_ == Framing::Static) {
-		return;
 	}
 
 	// Border reactive: take frame as gospel.
@@ -476,21 +499,6 @@ void CRT::posit(Display::Rect rect) {
 			previous_posted_rect_ = current_rect();
 			posted_rect_ = rect;
 			animation_step_ = 0;
-		}
-	}
-
-	// Continue with any ongoing animation.
-	if(animation_step_ < AnimationSteps) {
-		set_rect(current_rect());
-		++animation_step_;
-
-		if(animation_step_ == AnimationSteps) {
-			if(framing_ == Framing::CalibratingAutomaticFixed) {
-				framing_ =
-					border_rect_ != active_rect_ ?
-						Framing::BorderReactive : Framing::Static;
-				return;
-			}
 		}
 	}
 
