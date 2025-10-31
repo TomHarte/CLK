@@ -113,14 +113,16 @@ void CRT::set_dynamic_framing(
 	float minimum_scale
 ) {
 	framing_ = Framing::Dynamic;
-	framing_bounds_ = initial;
 
-	framing_bounds_ = initial;
-	framing_bounds_.scale(maximum_scale / framing_bounds_.size.width, maximum_scale / framing_bounds_.size.height);
+	dynamic_framer_.framing_bounds = initial;
+	dynamic_framer_.framing_bounds.scale(
+		maximum_scale / dynamic_framer_.framing_bounds.size.width,
+		maximum_scale / dynamic_framer_.framing_bounds.size.height
+	);
 
-	minimum_scale_ = minimum_scale;
-	max_offsets_[0] = max_centre_offset_x;
-	max_offsets_[1] = max_centre_offset_y;
+	dynamic_framer_.minimum_scale = minimum_scale;
+	dynamic_framer_.max_offsets[0] = max_centre_offset_x;
+	dynamic_framer_.max_offsets[1] = max_centre_offset_y;
 
 	posted_rect_ = scan_target_modals_.visible_area = initial;
 	has_first_reading_ = true;
@@ -135,6 +137,7 @@ void CRT::set_fixed_framing(const std::function<void()> &advance) {
 
 void CRT::set_fixed_framing(const Display::Rect frame) {
 	framing_ = Framing::Static;
+	static_frame_ = frame;
 	if(!has_first_reading_) {
 		scan_target_modals_.visible_area = frame;
 		scan_target_->set_modals(scan_target_modals_);
@@ -293,7 +296,7 @@ void CRT::advance_cycles(
 		if(next_scan) {
 			next_scan->end_points[0] = end_point();
 			next_scan->composite_amplitude = colour_burst_amplitude_;
-		} else if(is_output_segment && is_calibrating(framing_)) {
+		} else if(is_output_segment /* && is_calibrating(framing_) */) {
 			start_point = end_point();
 		}
 
@@ -313,7 +316,7 @@ void CRT::advance_cycles(
 		vertical_flywheel_.apply_event(next_run_length, active_vertical_event);
 
 		if(active_vertical_event == Flywheel::SyncEvent::StartRetrace) {
-			if(is_calibrating(framing_)) {
+			/* if(is_calibrating(framing_)) */ {
 				active_rect_.origin.x /= scan_target_modals_.output_scale.x;
 				active_rect_.size.width /= scan_target_modals_.output_scale.x;
 				active_rect_.origin.y /= scan_target_modals_.output_scale.y;
@@ -341,7 +344,7 @@ void CRT::advance_cycles(
 			}
 			level_changes_in_frame_ = 0;
 
-			if(is_calibrating(framing_)) {
+			/* if(is_calibrating(framing_)) */ {
 				border_rect_ = active_rect_ = Display::Rect(65536.0f, 65536.0f, 0.0f, 0.0f);
 				captures_in_rect_ = 0;
 			}
@@ -358,9 +361,9 @@ void CRT::advance_cycles(
 
 		if(next_scan) {
 			next_scan->end_points[1] = end_point();
-			if(is_calibrating(framing_)) posit_scan(next_scan->end_points[0], next_scan->end_points[1]);
+			posit_scan(next_scan->end_points[0], next_scan->end_points[1]);
 			scan_target_->end_scan();
-		} else if(is_output_segment && is_calibrating(framing_)) {
+		} else if(is_output_segment) {
 			posit_scan(start_point, end_point());
 		}
 
@@ -473,19 +476,7 @@ void CRT::posit(Display::Rect rect) {
 
 		if(animation_step_ == AnimationSteps) {
 			previous_posted_rect_ = posted_rect_;
-
-			if(framing_ == Framing::CalibratingAutomaticFixed) {
-				framing_ =
-					border_rect_ != active_rect_ ?
-						Framing::BorderReactive : Framing::Static;
-				return;
-			}
 		}
-	}
-
-	// Static framing: don't further evaluate.
-	if(framing_ == Framing::Static) {
-		return;
 	}
 
 	// Zoom out very slightly if there's space; this avoids a cramped tight crop.
@@ -493,23 +484,12 @@ void CRT::posit(Display::Rect rect) {
 		rect.scale(1.02f, 1.02f);
 	}
 
-	// Border reactive: take frame as gospel.
-	if(framing_ == Framing::BorderReactive) {
-		if(rect != posted_rect_) {
-			previous_posted_rect_ = current_rect();
-			posted_rect_ = rect;
-			animation_step_ = 0;
-		}
-	}
-
+	std::optional<Display::Rect> first_reading;
 	if(!has_first_reading_) {
 		rect_accumulator_.posit(rect);
-
-		if(const auto reading = rect_accumulator_.first_reading(); reading.has_value()) {
-			previous_posted_rect_ = posted_rect_;
-			posted_rect_ = *reading;
-			animation_step_ = 0;
+		if(first_reading = rect_accumulator_.first_reading(); first_reading.has_value()) {
 			has_first_reading_ = true;
+#ifndef NDEBUG
 			Logger::info().append("First reading is (%0.5ff, %0.5ff, %0.5ff, %0.5ff)",
 				posted_rect_.origin.x, posted_rect_.origin.y,
 				posted_rect_.size.width, posted_rect_.size.height);
@@ -519,23 +499,34 @@ void CRT::posit(Display::Rect rect) {
 			Logger::info().append("90%% of whole frame was (%0.5ff, %0.5ff, %0.5ff, %0.5ff)",
 				frame.origin.x, frame.origin.y,
 				frame.size.width, frame.size.height);
+#endif
+
+			if(framing_ == Framing::CalibratingAutomaticFixed) {
+				static_frame_ = previous_posted_rect_ = *first_reading;
+				framing_ =
+					border_rect_ != active_rect_ ?
+						Framing::BorderReactive : Framing::Static;
+				return;
+			}
 		}
-		return;
 	}
 
-	// Constrain to permitted bounds.
-	framing_bounds_.constrain(rect, max_offsets_[0], max_offsets_[1]);
-
-	// Constrain to minimum scale.
-	rect.scale(
-		rect.size.width > minimum_scale_ ? 1.0f : minimum_scale_ / rect.size.width,
-		rect.size.height > minimum_scale_ ? 1.0f : minimum_scale_ / rect.size.height
-	);
 
 	const auto output_frame = rect_accumulator_.posit(rect);
-	if(output_frame && *output_frame != posted_rect_) {
+	dynamic_framer_.update(rect, output_frame, first_reading);
+
+	const auto selected_rect = [&]() -> std::optional<Display::Rect> {
+		switch(framing_) {
+			default:						return rect;
+			case Framing::Static:			return static_frame_;
+			case Framing::Dynamic:			return dynamic_framer_.selection;
+		}
+	} ();
+
+	// TODO: tolerance needed here.
+	if(selected_rect && *selected_rect != posted_rect_) {
 		previous_posted_rect_ = current_rect();
-		posted_rect_ = *output_frame;
+		posted_rect_ = *selected_rect;
 		animation_step_ = 0;
 	}
 }
