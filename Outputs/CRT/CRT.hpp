@@ -404,7 +404,8 @@ private:
 	Numeric::CubicCurve animation_curve_;
 
 	static constexpr int AnimationSteps = 100;
-	int animation_step_ = AnimationSteps;
+	static constexpr int NoFrameYet = AnimationSteps + 1;
+	int animation_step_ = NoFrameYet;
 
 	// Configured cropping options.
 	enum class Framing {

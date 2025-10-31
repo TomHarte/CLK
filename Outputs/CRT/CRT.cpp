@@ -124,7 +124,9 @@ void CRT::set_dynamic_framing(
 	dynamic_framer_.max_offsets[0] = max_centre_offset_x;
 	dynamic_framer_.max_offsets[1] = max_centre_offset_y;
 
-	posted_rect_ = scan_target_modals_.visible_area = initial;
+	if(!has_first_reading_) {
+		previous_posted_rect_ = posted_rect_ = scan_target_modals_.visible_area = initial;
+	}
 	has_first_reading_ = true;
 }
 
@@ -141,10 +143,6 @@ void CRT::set_fixed_framing(const Display::Rect frame) {
 	if(!has_first_reading_) {
 		scan_target_modals_.visible_area = frame;
 		scan_target_->set_modals(scan_target_modals_);
-	} else {
-		previous_posted_rect_ = posted_rect_;
-		posted_rect_ = frame;
-		animation_step_ = 0;
 	}
 }
 
@@ -473,7 +471,6 @@ void CRT::posit(Display::Rect rect) {
 	if(animation_step_ < AnimationSteps) {
 		set_rect(current_rect());
 		++animation_step_;
-
 		if(animation_step_ == AnimationSteps) {
 			previous_posted_rect_ = posted_rect_;
 		}
@@ -502,7 +499,7 @@ void CRT::posit(Display::Rect rect) {
 #endif
 
 			if(framing_ == Framing::CalibratingAutomaticFixed) {
-				static_frame_ = previous_posted_rect_ = *first_reading;
+				static_frame_ = *first_reading;
 				framing_ =
 					border_rect_ != active_rect_ ?
 						Framing::BorderReactive : Framing::Static;
@@ -523,11 +520,16 @@ void CRT::posit(Display::Rect rect) {
 		}
 	} ();
 
-	// TODO: tolerance needed here.
 	if(selected_rect && *selected_rect != posted_rect_) {
-		previous_posted_rect_ = current_rect();
-		posted_rect_ = *selected_rect;
-		animation_step_ = 0;
+		if(animation_step_ == NoFrameYet) {
+			animation_step_ = AnimationSteps;
+			previous_posted_rect_ = posted_rect_ = *selected_rect;
+			set_rect(posted_rect_);
+		} else {
+			previous_posted_rect_ = current_rect();
+			posted_rect_ = *selected_rect;
+			animation_step_ = 0;
+		}
 	}
 }
 
