@@ -175,12 +175,24 @@ public:
 		interrupt_timer_(interrupt_timer) {
 			establish_palette_hits();
 			build_mode_table();
-			crt_.set_dynamic_framing(
-				Outputs::Display::Rect(0.16842f, 0.19909f, 0.71579f, 0.67197f),
-				0.0f, 0.1f);
 			crt_.set_brightness(3.0f / 2.0f);	// As only the values 0, 1 and 2 will be used in each channel,
 												// whereas Red2Green2Blue2 defines a range of 0-3.
 		}
+
+	void set_dynamic_framing(const bool enable) {
+		dynamic_framing_ = enable;
+		if(enable) {
+			crt_.set_dynamic_framing(
+				Outputs::Display::Rect(0.16842f, 0.19909f, 0.71579f, 0.67197f),
+				0.0f, 0.1f);
+		} else {
+			crt_.set_fixed_framing(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
+		}
+	}
+
+	bool dynamic_framing() const {
+		return dynamic_framing_;
+	}
 
 	/*!
 		The CRTC entry function for the main part of each clock cycle; takes the current
@@ -543,6 +555,7 @@ private:
 	int cycles_into_hsync_ = 0;
 
 	Outputs::CRT::CRT crt_;
+	bool dynamic_framing_ = false;
 	uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
 
 	const uint8_t *const ram_ = nullptr;
@@ -1191,15 +1204,17 @@ public:
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 		options->output = get_video_signal_configurable();
-		options->quickload = allow_fast_tape_hack_;
+		options->quick_load = allow_fast_tape_hack_;
+		options->dynamic_crop = crtc_bus_handler_.dynamic_framing();
 		return options;
 	}
 
-	void set_options(const std::unique_ptr<Reflection::Struct> &str) {
+	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
 		const auto options = dynamic_cast<Options *>(str.get());
 		set_video_signal_configurable(options->output);
-		allow_fast_tape_hack_ = options->quickload;
+		allow_fast_tape_hack_ = options->quick_load;
 		set_use_fast_tape_hack();
+		crtc_bus_handler_.set_dynamic_framing(options->dynamic_crop);
 	}
 
 	// MARK: - Joysticks

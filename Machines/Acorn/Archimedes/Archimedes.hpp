@@ -24,13 +24,13 @@ struct Machine {
 		const ROMMachine::ROMFetcher &rom_fetcher
 	);
 
-	class Options: public Reflection::StructImpl<Options>, public Configurable::QuickloadOption<Options> {
-		friend Configurable::QuickloadOption<Options>;
+	class Options: public Reflection::StructImpl<Options>, public Configurable::Options::QuickLoad<Options> {
+		friend Configurable::Options::QuickLoad<Options>;
 	public:
-		Options(Configurable::OptionsType type) :
-			Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {}
+		Options(const Configurable::OptionsType type) :
+			Configurable::Options::QuickLoad<Options>(type == Configurable::OptionsType::UserFriendly) {}
 	private:
-		Options() : Options(Configurable::OptionsType::UserFriendly) {}
+		Options() : Options( Configurable::OptionsType::UserFriendly) {}
 		friend Reflection::StructImpl<Options>;
 		void declare_fields() {
 			declare_quickload_option();

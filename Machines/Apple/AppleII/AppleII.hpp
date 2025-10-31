@@ -24,15 +24,15 @@ struct Machine {
 	static std::unique_ptr<Machine> AppleII(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
 
 	/// Defines the runtime options available for an Apple II.
-	class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
-		friend Configurable::DisplayOption<Options>;
+	class Options: public Reflection::StructImpl<Options>, public Configurable::Options::Display<Options> {
+		friend Configurable::Options::Display<Options>;
 	public:
 		bool use_square_pixels = false;
 
-		Options(Configurable::OptionsType) :
-			Configurable::DisplayOption<Options>(Configurable::Display::CompositeColour) {}
+		Options(const Configurable::OptionsType) :
+			Configurable::Options::Display<Options>(Configurable::Display::CompositeColour) {}
 	private:
-		Options() : Options(Configurable::OptionsType::UserFriendly) {}
+		Options() : Options( Configurable::OptionsType::UserFriendly) {}
 
 		friend Reflection::StructImpl<Options>;
 		void declare_fields() {

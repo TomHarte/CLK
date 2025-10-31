@@ -379,10 +379,21 @@ public:
 		crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red1Green1Blue1),
 		ram_(ram),
 		system_via_(system_via)
-	{
-		crt_.set_dynamic_framing(
-			Outputs::Display::Rect(0.13333f, 0.06507f, 0.71579f, 0.86069f),
-			0.0f, 0.05f);
+	{}
+
+	void set_dynamic_framing(const bool enable) {
+		dynamic_framing_ = enable;
+		if(enable) {
+			crt_.set_dynamic_framing(
+				Outputs::Display::Rect(0.13333f, 0.06507f, 0.71579f, 0.86069f),
+				0.0f, 0.05f);
+		} else {
+			crt_.set_fixed_framing(crt_.get_rect_for_area(30, 256, 160, 800));
+		}
+	}
+
+	bool dynamic_framing() const {
+		return dynamic_framing_;
 	}
 
 	void set_palette(const uint8_t value) {
@@ -612,6 +623,7 @@ private:
 //	int cycles_into_hsync_ = 0;
 
 	Outputs::CRT::CRT crt_;
+	bool dynamic_framing_ = true;
 
 	uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
 	size_t pixels_collected() const {
@@ -662,6 +674,7 @@ using CRTC = Motorola::CRTC::CRTC6845<
 template <bool has_1770>
 class ConcreteMachine:
 	public Activity::Source,
+	public Configurable::Device,
 	public Machine,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::JoystickMachine,
@@ -1149,6 +1162,18 @@ private:
 	std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 	const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 		return joysticks_;
+	}
+
+	// MARK: - Configuration options.
+	std::unique_ptr<Reflection::Struct> get_options() const final {
+		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+		options->dynamic_crop = crtc_bus_handler_.dynamic_framing();
+		return options;
+	}
+
+	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+		const auto options = dynamic_cast<Options *>(str.get());
+		crtc_bus_handler_.set_dynamic_framing(options->dynamic_crop);
 	}
 };
 

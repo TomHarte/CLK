@@ -386,14 +386,14 @@ public:
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);	// OptionsType is arbitrary, but not optional.
 		options->automatic_tape_motor_control = use_automatic_tape_motor_control_;
-		options->quickload = allow_fast_tape_hack_;
+		options->quick_load = allow_fast_tape_hack_;
 		return options;
 	}
 
 	void set_options(const std::unique_ptr<Reflection::Struct> &str) {
 		const auto options = dynamic_cast<Options *>(str.get());
 		set_use_automatic_tape_motor_control(options->automatic_tape_motor_control);
-		allow_fast_tape_hack_ = options->quickload;
+		allow_fast_tape_hack_ = options->quick_load;
 		set_use_fast_tape();
 	}
 

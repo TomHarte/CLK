@@ -26,17 +26,17 @@ struct Machine {
 	virtual bool get_tape_is_playing() = 0;
 
 	/// Defines the runtime options available for a ZX80/81.
-	class Options: public Reflection::StructImpl<Options>, public Configurable::QuickloadOption<Options> {
-		friend Configurable::QuickloadOption<Options>;
+	class Options: public Reflection::StructImpl<Options>, public Configurable::Options::QuickLoad<Options> {
+		friend Configurable::Options::QuickLoad<Options>;
 	public:
 		bool automatic_tape_motor_control = true;
 
-		Options(Configurable::OptionsType type):
-			Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly),
+		Options(const Configurable::OptionsType type):
+			Configurable::Options::QuickLoad<Options>(type == Configurable::OptionsType::UserFriendly),
 			automatic_tape_motor_control(type == Configurable::OptionsType::UserFriendly) {}
 
 	private:
-		Options() : Options(Configurable::OptionsType::UserFriendly) {}
+		Options() : Options( Configurable::OptionsType::UserFriendly) {}
 
 		friend Reflection::StructImpl<Options>;
 		void declare_fields() {

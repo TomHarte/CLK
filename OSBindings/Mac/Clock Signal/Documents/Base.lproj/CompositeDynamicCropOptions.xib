@@ -15,7 +15,7 @@
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <visualEffectView hidden="YES" wantsLayer="YES" appearanceType="vibrantDark" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="tpZ-0B-QQu">
-            <rect key="frame" x="0.0" y="0.0" width="200" height="44"/>
+            <rect key="frame" x="0.0" y="0.0" width="200" height="68"/>
             <subviews>
                 <popUpButton wantsLayer="YES" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rh8-km-57n">
                     <rect key="frame" x="9" y="8" width="183" height="25"/>
@@ -34,18 +34,32 @@
                         <action selector="setDisplayType:" target="MXS-dG-Doo" id="5Vp-mv-kZU"/>
                     </connections>
                 </popUpButton>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lCr-xK-y7V">
+                    <rect key="frame" x="10" y="39" width="178" height="18"/>
+                    <buttonCell key="cell" type="check" title="Crop Dynamically" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="xvl-A3-tob">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="setDynamicCrop:" target="MXS-dG-Doo" id="kiQ-GJ-a6G"/>
+                    </connections>
+                </button>
             </subviews>
             <constraints>
-                <constraint firstItem="rh8-km-57n" firstAttribute="top" secondItem="tpZ-0B-QQu" secondAttribute="top" constant="12" id="B6L-VS-2cN"/>
+                <constraint firstItem="rh8-km-57n" firstAttribute="top" secondItem="lCr-xK-y7V" secondAttribute="bottom" constant="8" id="E1E-iG-Wry"/>
+                <constraint firstItem="lCr-xK-y7V" firstAttribute="top" secondItem="tpZ-0B-QQu" secondAttribute="top" constant="12" id="FTU-FS-P3d"/>
                 <constraint firstItem="rh8-km-57n" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="12" id="VRo-6R-IKd"/>
+                <constraint firstItem="lCr-xK-y7V" firstAttribute="leading" secondItem="tpZ-0B-QQu" secondAttribute="leading" constant="12" id="evE-Ha-9FB"/>
                 <constraint firstAttribute="bottom" secondItem="rh8-km-57n" secondAttribute="bottom" constant="12" id="jHA-lf-e7V"/>
                 <constraint firstAttribute="trailing" secondItem="rh8-km-57n" secondAttribute="trailing" constant="12" id="urO-Ac-aqK"/>
+                <constraint firstAttribute="trailing" secondItem="lCr-xK-y7V" secondAttribute="trailing" constant="12" id="z74-4d-WAn"/>
             </constraints>
-            <point key="canvasLocation" x="-118" y="120"/>
+            <point key="canvasLocation" x="-118" y="97.5"/>
         </visualEffectView>
         <customObject id="MXS-dG-Doo" customClass="MachineController" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
                 <outlet property="displayTypeButton" destination="rh8-km-57n" id="3ln-Pl-G3k"/>
+                <outlet property="dynamicCropButton" destination="lCr-xK-y7V" id="JcY-qe-Xvu"/>
             </connections>
         </customObject>
     </objects>

@@ -506,7 +506,7 @@ public:
 	// MARK: - Configuration options.
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
-		options->quickboot = quickboot_;
+		options->quick_boot = quickboot_;
 		return options;
 	}
 
@@ -515,7 +515,7 @@ public:
 		// It should probably be a construction option.
 
 		const auto options = dynamic_cast<Options *>(str.get());
-		quickboot_ = options->quickboot;
+		quickboot_ = options->quick_boot;
 
 		using Model = Analyser::Static::Macintosh::Target::Model;
 		const bool is_plus_rom = model == Model::Mac512ke || model == Model::MacPlus;
