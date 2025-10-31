@@ -1612,6 +1612,7 @@
 		4B49F0A823346F7A0045E6A6 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/MacintoshOptions.xib"; sourceTree = SOURCE_ROOT; };
 		4B4A75BC2EB2C55100EA398F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/CompositeDynamicCropOptions.xib; sourceTree = "<group>"; };
 		4B4A75BF2EB399D700EA398F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/DynamicCropOptions.xib; sourceTree = "<group>"; };
+		4B4A75C22EB43F1C00EA398F /* FIFO.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FIFO.hpp; sourceTree = "<group>"; };
 		4B4A762E1DB1A3FA007AAE2E /* AY38910.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AY38910.cpp; sourceTree = "<group>"; };
 		4B4A762F1DB1A3FA007AAE2E /* AY38910.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AY38910.hpp; sourceTree = "<group>"; };
 		4B4B1A3A200198C900A0F866 /* KonamiSCC.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = KonamiSCC.cpp; sourceTree = "<group>"; };
@@ -3354,6 +3355,14 @@
 			path = uPD7002;
 			sourceTree = "<group>";
 		};
+		4B4A75C32EB43F1C00EA398F /* Tube */ = {
+			isa = PBXGroup;
+			children = (
+				4B4A75C22EB43F1C00EA398F /* FIFO.hpp */,
+			);
+			path = Tube;
+			sourceTree = "<group>";
+		};
 		4B4A762D1DB1A35C007AAE2E /* AY38910 */ = {
 			isa = PBXGroup;
 			children = (
@@ -4673,6 +4682,7 @@
 		4BB505682B962DDF0031C43C /* Acorn */ = {
 			isa = PBXGroup;
 			children = (
+				4B4A75C32EB43F1C00EA398F /* Tube */,
 				4BB505692B962DDF0031C43C /* Archimedes */,
 				4B710C8C2E77A3B20056BDF4 /* BBCMicro */,
 				4BB5056A2B962DDF0031C43C /* Electron */,
