@@ -404,30 +404,55 @@ private:
 	Numeric::CubicCurve animation_curve_;
 
 	static constexpr int AnimationSteps = 100;
-	int animation_step_ = AnimationSteps;
+	static constexpr int NoFrameYet = AnimationSteps + 1;
+	int animation_step_ = NoFrameYet;
 
 	// Configured cropping options.
 	enum class Framing {
-		CalibratingAutomaticFixed,
 		Dynamic,
-
 		Static,
 		BorderReactive,
+
+		CalibratingAutomaticFixed,
 	};
-	static constexpr bool is_calibrating(const Framing framing) {
-		return framing < Framing::Static;
-	}
 
 	RectAccumulator rect_accumulator_;
+	struct DynamicFramer {
+		// Constraints.
+		Display::Rect framing_bounds;
+		float max_offsets[2]{};
+		float minimum_scale = 0.85f;
+
+		// Output.
+		std::optional<Display::Rect> selection;
+
+		// Logic.
+		void update(
+			Display::Rect rect,
+			const std::optional<Display::Rect> accumulated,
+			const std::optional<Display::Rect> first_reading
+		) {
+			// Constrain to permitted bounds.
+			framing_bounds.constrain(rect, max_offsets[0], max_offsets[1]);
+
+			// Constrain to minimum scale.
+			rect.scale(
+				rect.size.width > minimum_scale ? 1.0f : minimum_scale / rect.size.width,
+				rect.size.height > minimum_scale ? 1.0f : minimum_scale / rect.size.height
+			);
+
+			if(accumulated.has_value()) {
+				selection = accumulated;
+			} else if(first_reading.has_value()) {
+				selection = first_reading;
+			}
+		}
+	} dynamic_framer_;
+	std::optional<Display::Rect> static_frame_;
 
 	Framing framing_ = Framing::CalibratingAutomaticFixed;
 	bool has_first_reading_ = false;
 	void posit(Display::Rect);
-
-	// Affecting dynamic framing.
-	Outputs::Display::Rect framing_bounds_;
-	float minimum_scale_ = 0.85f;
-	float max_offsets_[2]{};
 
 #ifndef NDEBUG
 	size_t allocated_data_length_ = std::numeric_limits<size_t>::min();
