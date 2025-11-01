@@ -453,6 +453,14 @@ const std::vector<Description> &Description::all_roms() {
 			16_kb,
 			0x8314fed0u
 		},
+		{
+			BBCMicroTube110,
+			"BBCMicro",
+			"the Tube 1.10 Boot ROM",
+			"TUBE110.rom",
+			2_kb,
+			0x9ec2dbd0u
+		},
 
 	//
 	// ColecoVision.

@@ -85,6 +85,7 @@ enum Name {
 	BBCMicroDFS226,
 	BBCMicroADFS130,
 	BBCMicroAdvancedDiscToolkit140,
+	BBCMicroTube110,
 
 	// ColecoVision.
 	ColecoVisionBIOS,

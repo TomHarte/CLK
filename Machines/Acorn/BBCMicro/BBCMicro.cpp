@@ -831,11 +831,11 @@ public:
 		}
 		adc_.run_for(duration);
 
-
 		if constexpr (has_1770) {
 			// The WD1770 is nominally clocked at 8Mhz.
 			wd1770_.run_for(duration * 4);
 		}
+
 
 		//
 		// Questionably-clocked devices.
@@ -942,6 +942,7 @@ public:
 			}
 			return duration;
 		}
+
 
 		//
 		// ROM or RAM access.
