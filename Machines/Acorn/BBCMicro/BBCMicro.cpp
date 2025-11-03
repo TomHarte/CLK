@@ -14,8 +14,10 @@
 #include "Machines/Utility/MemoryFuzzer.hpp"
 #include "Machines/Utility/Typer.hpp"
 
-#include "Processors/6502/6502.hpp"
 #include "Processors/6502Mk2/6502Mk2.hpp"
+
+#include "Machines/Acorn/Tube/ULA.hpp"
+#include "Machines/Acorn/Tube/Tube6502.hpp"
 
 #include "Components/6522/6522.hpp"
 #include "Components/6845/CRTC6845.hpp"
@@ -672,7 +674,7 @@ using CRTC = Motorola::CRTC::CRTC6845<
 	Motorola::CRTC::CursorType::Native>;
 }
 
-template <TubeProcessor processor, bool has_1770>
+template <TubeProcessor tube_processor, bool has_1770>
 class ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
@@ -836,6 +838,9 @@ public:
 			// The WD1770 is nominally clocked at 8Mhz.
 			wd1770_.run_for(duration * 4);
 		}
+		if constexpr (tube_processor == TubeProcessor::MOS6502) {
+			tube6502_.run_for(duration);
+		}
 
 
 		//
@@ -894,12 +899,13 @@ public:
 						break;
 					}
 				}
-			} else if(address == 0xfee0) {
+			} else if(address >= 0xfee0 && address < 0xfee8) {
 				if constexpr (is_read(operation)) {
-					Logger::info().append("Read tube status: 0");
-					value = 0;
+					Logger::info().append("Read tube status: %02x", tube_ula_.status());
+					value = tube_ula_.status();
 				} else {
 					Logger::info().append("Wrote tube: %02x", value);
+					tube_ula_.set_status(value);
 				}
 			} else if(address >= 0xfe08 && address < 0xfe10) {
 				if constexpr (is_read(operation)) {
@@ -1177,6 +1183,12 @@ private:
 		const auto options = dynamic_cast<Options *>(str.get());
 		crtc_bus_handler_.set_dynamic_framing(options->dynamic_crop);
 	}
+
+	// MARK: - Tube.
+
+	// TODO: use templated coprocessor type, if any, optionally to include this storage.
+	Acorn::Tube::ULA tube_ula_;
+	Acorn::Tube::Tube6502 tube6502_;
 };
 
 }
@@ -1202,7 +1214,7 @@ std::unique_ptr<Machine> Machine::BBCMicro(
 ) {
 	const Target *const acorn_target = dynamic_cast<const Target *>(target);
 	switch(acorn_target->tube_processor) {
-		case TubeProcessor::None:		return machine<TubeProcessor::None>(*acorn_target, rom_fetcher);
+		case TubeProcessor::None:		/* return machine<TubeProcessor::None>(*acorn_target, rom_fetcher); */
 		case TubeProcessor::MOS6502:	return machine<TubeProcessor::MOS6502>(*acorn_target, rom_fetcher);
 		default:	return nil;
 	}

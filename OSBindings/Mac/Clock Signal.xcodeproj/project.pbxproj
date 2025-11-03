@@ -1562,6 +1562,7 @@
 		4B3FE75C1F3CF68B00448EE4 /* CPM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CPM.cpp; path = Parsers/CPM.cpp; sourceTree = "<group>"; };
 		4B3FE75D1F3CF68B00448EE4 /* CPM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CPM.hpp; path = Parsers/CPM.hpp; sourceTree = "<group>"; };
 		4B4195F42EB8F061001C966D /* ULA.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ULA.hpp; sourceTree = "<group>"; };
+		4B4195F52EB92630001C966D /* Tube6502.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Tube6502.hpp; sourceTree = "<group>"; };
 		4B43983829620FB1006B0BFC /* 9918.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 9918.cpp; sourceTree = "<group>"; };
 		4B43983C29621024006B0BFC /* ClockConverter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ClockConverter.hpp; sourceTree = "<group>"; };
 		4B43983E29628538006B0BFC /* Fetch.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Fetch.hpp; sourceTree = "<group>"; };
@@ -3361,6 +3362,7 @@
 			children = (
 				4B4A75C22EB43F1C00EA398F /* FIFO.hpp */,
 				4B4195F42EB8F061001C966D /* ULA.hpp */,
+				4B4195F52EB92630001C966D /* Tube6502.hpp */,
 			);
 			path = Tube;
 			sourceTree = "<group>";
