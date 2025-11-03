@@ -727,6 +727,13 @@ public:
 			request = request && Request(Name::BBCMicroADFS130);
 		}
 
+		switch(tube_processor) {
+			default: break;
+			case TubeProcessor::MOS6502:
+				request = request && Request(Name::BBCMicroTube110);
+			break;
+		}
+
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
 			throw ROMMachine::Error::MissingROMs;
@@ -745,6 +752,14 @@ public:
 		}
 		if(target.has_adfs) {
 			install_sideways(fs_slot--, roms.find(Name::BBCMicroADFS130)->second, false);
+		}
+
+		// Throw the tube ROM to its target.
+		switch(tube_processor) {
+			default: break;
+			case TubeProcessor::MOS6502:
+				tube6502_.set_rom(roms.find(Name::BBCMicroTube110)->second);
+			break;
 		}
 
 		// Install the ADT ROM if available, but don't error if it's missing. It's very optional.
