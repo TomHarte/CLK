@@ -19,8 +19,10 @@ public:
 	Tube6502() : m6502_(*this) {}
 
 	// By convention, these are cycles relative to the host's 2Mhz bus.
+	// Multiply by 3/2 to turn that into the tube 6502's usual 3Mhz bus.
 	void run_for(const Cycles cycles) {
-		m6502_.run_for(cycles);	// TODO: multiply by 1.5. Or more.
+		cycles_modulo_ += cycles * 3;
+		m6502_.run_for(cycles_modulo_.divide(Cycles(2)));
 	}
 
 	template <CPU::MOS6502Mk2::BusOperation operation, typename AddressT>
@@ -45,6 +47,7 @@ public:
 
 private:
 	uint8_t ram_[65536];
+	Cycles cycles_modulo_;
 
 	struct M6502Traits {
 		static constexpr auto uses_ready_line = false;
