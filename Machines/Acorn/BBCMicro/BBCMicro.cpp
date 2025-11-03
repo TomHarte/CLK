@@ -46,6 +46,7 @@ namespace BBCMicro {
 
 namespace {
 using Logger = Log::Logger<Log::Source::BBCMicro>;
+using TubeProcessor = Analyser::Static::Acorn::BBCMicroTarget::TubeProcessor;
 
 /*!
 	Provides an analogue joystick with a single fire button.
@@ -671,7 +672,7 @@ using CRTC = Motorola::CRTC::CRTC6845<
 	Motorola::CRTC::CursorType::Native>;
 }
 
-template <bool has_1770>
+template <TubeProcessor processor, bool has_1770>
 class ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
@@ -1182,15 +1183,27 @@ private:
 
 using namespace BBCMicro;
 
+namespace {
+using Target = Analyser::Static::Acorn::BBCMicroTarget;
+
+template <Target::TubeProcessor processor>
+std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	if(target.has_1770dfs || target.has_adfs) {
+		return std::make_unique<BBCMicro::ConcreteMachine<processor, true>>(target, rom_fetcher);
+	} else {
+		return std::make_unique<BBCMicro::ConcreteMachine<processor, false>>(target, rom_fetcher);
+	}
+}
+}
+
 std::unique_ptr<Machine> Machine::BBCMicro(
 	const Analyser::Static::Target *target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	using Target = Analyser::Static::Acorn::BBCMicroTarget;
 	const Target *const acorn_target = dynamic_cast<const Target *>(target);
-	if(acorn_target->has_1770dfs || acorn_target->has_adfs) {
-		return std::make_unique<BBCMicro::ConcreteMachine<true>>(*acorn_target, rom_fetcher);
-	} else {
-		return std::make_unique<BBCMicro::ConcreteMachine<false>>(*acorn_target, rom_fetcher);
+	switch(acorn_target->tube_processor) {
+		case TubeProcessor::None:		return machine<TubeProcessor::None>(*acorn_target, rom_fetcher);
+		case TubeProcessor::MOS6502:	return machine<TubeProcessor::MOS6502>(*acorn_target, rom_fetcher);
+		default:	return nil;
 	}
 }
