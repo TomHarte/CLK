@@ -915,12 +915,18 @@ public:
 					}
 				}
 			} else if(address >= 0xfee0 && address < 0xfee8) {
-				if constexpr (is_read(operation)) {
-					Logger::info().append("Read tube status: %02x", tube_ula_.status());
-					value = tube_ula_.status();
+				if(tube_processor == TubeProcessor::None) {
+					if constexpr (is_read(operation)) {
+						value = address == 0xfee0 ? 0xfe : 0xff;
+					}
 				} else {
-					Logger::info().append("Wrote tube: %02x", value);
-					tube_ula_.set_status(value);
+					if constexpr (is_read(operation)) {
+						Logger::info().append("Read tube status %04x: %02x", +address, tube_ula_.status());
+						value = tube_ula_.status();
+					} else {
+						Logger::info().append("Wrote tube %04x: %02x", +address, value);
+						tube_ula_.set_status(value);
+					}
 				}
 			} else if(address >= 0xfe08 && address < 0xfe10) {
 				if constexpr (is_read(operation)) {

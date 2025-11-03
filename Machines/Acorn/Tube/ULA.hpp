@@ -20,7 +20,7 @@ struct ULA {
 
 	void set_status(const uint8_t value) {
 		const uint8_t bits = value & 0x3f;
-		if(!(value & 0x80)) {
+		if(value & 0x80) {
 			flags_ |= bits;
 		} else {
 			flags_ &= ~bits;
@@ -28,7 +28,7 @@ struct ULA {
 	}
 
 private:
-	uint8_t flags_ = 0x0f;
+	uint8_t flags_ = 0x3f;
 };
 
 }
