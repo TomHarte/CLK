@@ -1157,8 +1157,8 @@ int main(int argc, char *argv[]) {
 						const auto index = [&] {
 							switch(event.button.button) {
 								default:				return 0;
-								case SDL_BUTTON_MIDDLE:	return 1;
-								case SDL_BUTTON_RIGHT:	return 2;
+								case SDL_BUTTON_RIGHT:	return 1;
+								case SDL_BUTTON_MIDDLE:	return 2;
 							}
 						} ();
 						mouse_machine->get_mouse().set_button_pressed(
