@@ -396,13 +396,19 @@ private:
 		//
 		// Mouse scripting; tick at a minimum of frame length.
 		//
-		static constexpr int TickFrequency = 24'000'000 / 50;
+		static constexpr int TickFrequency = ClockRate / 50;	// i.e. 480,000
+		Cycles subtractor = cursor_action_subcycle_;
 		cursor_action_subcycle_ += cycles;
 		auto segments = cursor_action_subcycle_.divide(Cycles(TickFrequency)).as<int>();
 		while(segments--) {
-			Cycles next = Cycles(TickFrequency);
+			//
+			// Run up until end of next window.
+			//
+			Cycles next = Cycles(TickFrequency) - subtractor;
+			subtractor = Cycles(0);
 			if(next > cycles) next = cycles;
 			cycles -= next;
+			run(next);
 
 			if(!cursor_actions_.empty()) {
 				const auto move_to_next = [&]() {
@@ -413,7 +419,7 @@ private:
 				const auto &action = cursor_actions_.front();
 				switch(action.type) {
 					case CursorAction::Type::MoveTo: {
-						// A measure of where within the tip lies within
+						// A measure of where the tip lies within
 						// the default RISC OS cursor.
 						static constexpr int ActionPointOffset = 20;
 						static constexpr int MaxStep = 24;
@@ -457,12 +463,12 @@ private:
 					break;
 				}
 			}
-
-			//
-			// Execution proper.
-			//
-			run(next);
 		}
+
+		//
+		// Discharge residue.
+		//
+		run(cycles);
 	}
 
 	template <bool original_speed>
