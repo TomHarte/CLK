@@ -703,7 +703,8 @@ public:
 		crtc_bus_handler_(ram_.data(), system_via_),
 		crtc_(crtc_bus_handler_),
 		acia_(HalfCycles(2'000'000)), // TODO: look up real ACIA clock rate.
-		adc_(HalfCycles(2'000'000))
+		adc_(HalfCycles(2'000'000)),
+		tube_ula_(*this, tube6502_)
 	{
 		set_clock_rate(2'000'000);
 
@@ -1165,7 +1166,11 @@ private:
 	void update_irq_line() {
 		m6502_.template set<CPU::MOS6502Mk2::Line::IRQ>(
 			user_via_.get_interrupt_line() ||
-			system_via_.get_interrupt_line()
+			system_via_.get_interrupt_line() ||
+			(
+				tube_processor != TubeProcessor::None &&
+				tube_ula_.has_host_irq()
+			)
 		);
 	}
 
@@ -1208,8 +1213,13 @@ private:
 	// MARK: - Tube.
 
 	// TODO: use templated coprocessor type, if any, optionally to include this storage.
-	Acorn::Tube::ULA tube_ula_;
 	Acorn::Tube::Tube6502 tube6502_;
+	Acorn::Tube::ULA<ConcreteMachine, Acorn::Tube::Tube6502> tube_ula_;
+
+public:
+	void set_tube_irq() {
+		update_irq_line();
+	}
 };
 
 }
@@ -1237,6 +1247,6 @@ std::unique_ptr<Machine> Machine::BBCMicro(
 	switch(acorn_target->tube_processor) {
 		case TubeProcessor::None:		/* return machine<TubeProcessor::None>(*acorn_target, rom_fetcher); */
 		case TubeProcessor::MOS6502:	return machine<TubeProcessor::MOS6502>(*acorn_target, rom_fetcher);
-		default:	return nil;
+		default:	return nullptr;
 	}
 }
