@@ -57,11 +57,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--new=electron"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "&apos;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Soft/Archimedes/Lemmings.adf&apos;"
+            argument = "--new=archimedes"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

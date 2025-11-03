@@ -1154,8 +1154,15 @@ int main(int argc, char *argv[]) {
 
 					const auto mouse_machine = machine->mouse_machine();
 					if(mouse_machine) {
+						const auto index = [&] {
+							switch(event.button.button) {
+								default:				return 0;
+								case SDL_BUTTON_MIDDLE:	return 1;
+								case SDL_BUTTON_RIGHT:	return 2;
+							}
+						} ();
 						mouse_machine->get_mouse().set_button_pressed(
-							event.button.button % mouse_machine->get_mouse().get_number_of_buttons(),
+							index % mouse_machine->get_mouse().get_number_of_buttons(),
 							event.type == SDL_MOUSEBUTTONDOWN);
 					}
 				} break;
