@@ -45,6 +45,14 @@ public:
 		std::copy(source.begin(), source.end(), &ram_[65536 - 2048]);
 	}
 
+	void set_tube_irq() {
+		m6502_.set<CPU::MOS6502Mk2::Line::IRQ>(true);
+	}
+
+	void set_tube_nmi() {
+		m6502_.set<CPU::MOS6502Mk2::Line::NMI>(true);
+	}
+
 private:
 	uint8_t ram_[65536];
 	Cycles cycles_modulo_;
