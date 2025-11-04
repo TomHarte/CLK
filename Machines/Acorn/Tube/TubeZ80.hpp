@@ -11,14 +11,18 @@
 #include "Processors/Z80/Z80.hpp"
 #include "Machines/Utility/ROMCatalogue.hpp"
 
+#include <algorithm>
+
 namespace Acorn::Tube {
 
 template <typename ULAT>
 struct TubeZ80: public CPU::Z80::BusHandler {
 public:
-	// TODO.
-	static constexpr auto ROM = ROM::Name::BBCMicroTube110;
-	void set_rom(const std::vector<uint8_t> &) {}
+	static constexpr auto ROM = ROM::Name::BBCMicroZ80Tube122;
+	void set_rom(std::vector<uint8_t> rom) {
+		rom.resize(sizeof(rom_));
+		std::copy(rom.begin(), rom.end(), std::begin(rom_));
+	}
 
 	TubeZ80(ULAT &ula) : z80_(*this), ula_(ula) {}
 

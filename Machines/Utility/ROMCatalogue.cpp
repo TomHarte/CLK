@@ -454,12 +454,20 @@ const std::vector<Description> &Description::all_roms() {
 			0x8314fed0u
 		},
 		{
-			BBCMicroTube110,
+			BBCMicro6502Tube110,
 			"BBCMicro",
-			"the Tube 1.10 Boot ROM",
+			"the 6502 Tube 1.10 Boot ROM",
 			"TUBE110.rom",
 			2_kb,
 			0x9ec2dbd0u
+		},
+		{
+			BBCMicroZ80Tube122,
+			"BBCMicro",
+			"the Z80 Tube 1.22 Boot ROM",
+			"Z80_122.rom",
+			4_kb,
+			0xb5851efcu
 		},
 
 	//

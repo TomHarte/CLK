@@ -25,7 +25,7 @@ namespace Acorn::Tube {
 template <typename ULAT>
 struct Tube6502 {
 public:
-	static constexpr auto ROM = ROM::Name::BBCMicroTube110;
+	static constexpr auto ROM = ROM::Name::BBCMicro6502Tube110;
 
 	Tube6502(ULAT &ula) : m6502_(*this), ula_(ula) {}
 
