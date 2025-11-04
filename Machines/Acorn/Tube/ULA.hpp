@@ -29,38 +29,23 @@ struct ULA {
 		to_host4_(*this, 0x01)
 	{}
 
-	uint8_t status() const {
-		return flags_;
-	}
-
-	void set_status(const uint8_t value) {
-		const uint8_t bits = value & 0x3f;
-		if(value & 0x80) {
-			flags_ |= bits;
-		} else {
-			flags_ &= ~bits;
-		}
-	}
-
+	/// @returns @c true if the parasite's reset line should be active.
 	bool parasite_reset() const {
 		return !(flags_ & 0x20);
 	}
 
+	/// Call-in for the FIFOs; indicates that a FIFO just went from empty to not-empty,
+	/// which might cause an interrupt elsewhere depending on the mask and on whether
+	/// that interrupt is enabled.
 	void fifo_has_data(const uint8_t mask) {
 		if(!(flags_ & mask)) return;
 
 		switch(mask) {
-			default: __builtin_unreachable();
-			case 0x01:
-				host_.set_host_tube_irq();
-			break;
+			default: 		__builtin_unreachable();
+			case 0x01:		host_.set_host_tube_irq();		break;
 			case 0x02:
-			case 0x04:
-				host_.set_parasite_tube_irq();
-			break;
-			case 0x08:
-				host_.set_parasite_tube_nmi();
-			break;
+			case 0x04:		host_.set_parasite_tube_irq();	break;
+			case 0x08:		host_.set_parasite_tube_nmi();	break;
 		}
 	}
 
@@ -129,6 +114,21 @@ struct ULA {
 		}
 	}
 private:
+	uint8_t status() const {
+		return flags_;
+	}
+
+	void set_status(const uint8_t value) {
+		const uint8_t bits = value & 0x3f;
+		if(value & 0x80) {
+			flags_ |= bits;
+		} else {
+			flags_ &= ~bits;
+		}
+
+		// TODO: understand meaning of bit 4.
+	}
+
 	HostT &host_;
 	uint8_t flags_ = 0x3f;
 

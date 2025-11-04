@@ -14,6 +14,10 @@
 
 namespace Acorn::Tube {
 
+// TODO: the handling of the 'ROM' below seems to match what I'm reading but doesn't make a lot
+// of sense to me; it is copied into RAM (by whom?) and then copied in again upon every reset
+// (again: by whom?).
+
 template <typename ULAT>
 struct Tube6502 {
 public:
@@ -33,10 +37,8 @@ public:
 				const uint8_t result = ula_.parasite_read(address);
 				value = result;
 				update_interrupts();
-//				printf("Parasite read %04x of %02x\n", +address, result);
 			} else {
 				ula_.parasite_write(address, value);
-//				printf("Parasite write %04x of %02x\n", +address, +value);
 			}
 		} else {
 			if constexpr (is_read(operation)) {
@@ -48,9 +50,8 @@ public:
 		return Cycles(1);
 	}
 
-	void set_rom(const std::vector<uint8_t> &source) {
-		// TODO: verify the ROM is 2kb.
-		// TODO: determine whether this really is ROM, or is ROM that should have copied itself to RAM, or is something else.
+	void set_rom(std::vector<uint8_t> source) {
+		source.resize(sizeof(rom_));
 		std::copy(source.begin(), source.end(), rom_);
 		reinstall_rom();
 	}
