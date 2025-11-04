@@ -51,6 +51,8 @@ namespace {
 using Logger = Log::Logger<Log::Source::BBCMicro>;
 using TubeProcessor = Analyser::Static::Acorn::BBCMicroTarget::TubeProcessor;
 
+// MARK: - Joysticks.
+
 /*!
 	Provides an analogue joystick with a single fire button.
 */
@@ -98,6 +100,9 @@ private:
 	const int first_channel_;
 	bool fire_ = false;
 };
+
+// MARK: - Lazy audio holder.
+
 /*!
 	Combines an SN76489 with an appropriate asynchronous queue and filtering speaker.
 */
@@ -162,6 +167,8 @@ struct VideoBaseAddress {
 protected:
 	uint16_t video_base_ = 0;
 };
+
+// MARK: - VIAs.
 
 /*!
 	Models the system VIA, which connects to the SN76489 and the keyboard.
@@ -373,6 +380,8 @@ private:
 	const std::vector<std::unique_ptr<Inputs::Joystick>> &joysticks_;
 	Delegate &delegate_;
 };
+
+// MARK: - CRTC output.
 
 /*!
 	Handles CRTC bus activity.
@@ -675,6 +684,8 @@ using CRTC = Motorola::CRTC::CRTC6845<
 	Motorola::CRTC::CursorType::Native>;
 }
 
+// MARK: - Tube.
+
 template <typename HostT, TubeProcessor> struct Tube;
 
 template <typename HostT>
@@ -692,6 +703,8 @@ struct Tube<HostT, TubeProcessor::WDC65C02> {
 		ula(owner),
 		processor(ula) {}
 };
+
+// MARK: - ConcreteMachine.
 
 template <TubeProcessor tube_processor, bool has_1770>
 class ConcreteMachine:
