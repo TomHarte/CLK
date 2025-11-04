@@ -47,6 +47,7 @@ public:
 				if(address == 0x66) {
 					rom_visible_ = true;
 				}
+				[[fallthrough]];
 			case CPU::Z80::PartialMachineCycle::Read:
 				if(rom_visible_ && address <= sizeof(rom_)) {
 					*cycle.value = rom_[address];
@@ -57,7 +58,7 @@ public:
 			break;
 
 			case CPU::Z80::PartialMachineCycle::Write:
-				ram_[address] = cycle.value;
+				ram_[address] = *cycle.value;
 			break;
 
 			case CPU::Z80::PartialMachineCycle::Interrupt:
@@ -65,11 +66,11 @@ public:
 			break;
 
 			case CPU::Z80::PartialMachineCycle::Input:
-				*cycle.value = ula_.read_parasite(address);
+				*cycle.value = ula_.parasite_read(address);
 			break;
 
 			case CPU::Z80::PartialMachineCycle::Output:
-				ula_.write_parasite(address, *cycle.value);
+				ula_.parasite_write(address, *cycle.value);
 			break;
 
 			default: break;

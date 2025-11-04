@@ -899,7 +899,7 @@ public:
 			// The WD1770 is nominally clocked at 8Mhz.
 			wd1770_.run_for(duration * 4);
 		}
-		if constexpr (tube_processor == TubeProcessor::WDC65C02) {
+		if constexpr (tube_processor != TubeProcessor::None) {
 			tube_.processor.run_for(duration);
 		}
 
