@@ -385,11 +385,11 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Atari ST" identifier="atarist" id="a6Y-mx-yFn">
                                 <view key="view" id="nnv-Wi-7hc">
-                                    <rect key="frame" x="10" y="7" width="400" height="274"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="292"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="dKg-qC-BBF">
-                                            <rect key="frame" x="18" y="236" width="58" height="16"/>
+                                            <rect key="frame" x="18" y="254" width="58" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory:" id="ZBF-0r-RNK">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -397,7 +397,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="QD0-qk-qCa">
-                                            <rect key="frame" x="79" y="230" width="80" height="25"/>
+                                            <rect key="frame" x="79" y="248" width="80" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="512 kb" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="512" imageScaling="axesIndependently" inset="2" selectedItem="LVX-CI-lo9" id="dSS-yv-CDV">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="message"/>
@@ -423,52 +423,78 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="BBC Micro" identifier="bbcmicro" id="muc-z9-Vqc">
                                 <view key="view" id="SRc-2D-95G">
-                                    <rect key="frame" x="10" y="7" width="400" height="290"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="292"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="JqM-IK-FMP">
-                                            <rect key="frame" x="18" y="253" width="168" height="18"/>
+                                            <rect key="frame" x="18" y="255" width="168" height="18"/>
                                             <buttonCell key="cell" type="check" title="With Disk Filing System" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="tpW-5C-xKp">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="945-wU-JOH">
-                                            <rect key="frame" x="18" y="231" width="232" height="18"/>
+                                            <rect key="frame" x="18" y="233" width="232" height="18"/>
                                             <buttonCell key="cell" type="check" title="With Advanced Disk Filing System" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="S0c-Jg-7Pu">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lzo-8g-o4S">
-                                            <rect key="frame" x="18" y="209" width="284" height="18"/>
+                                            <rect key="frame" x="18" y="211" width="284" height="18"/>
                                             <buttonCell key="cell" type="check" title="Fill unused ROM banks with sideways RAM" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="JEz-eK-uWp">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
+                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="y7H-nu-CPH">
+                                            <rect key="frame" x="20" y="174" width="118" height="16"/>
+                                            <textFieldCell key="cell" lineBreakMode="clipping" title="Second Processor:" id="11b-Ml-o3Y">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="yhA-Dw-hqn">
+                                            <rect key="frame" x="141" y="168" width="81" height="25"/>
+                                            <popUpButtonCell key="cell" type="push" title="None" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="Rpc-1u-8X2" id="vk3-Qo-uxV">
+                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="menu"/>
+                                                <menu key="menu" id="Qyy-YZ-beq">
+                                                    <items>
+                                                        <menuItem title="None" state="on" id="Rpc-1u-8X2"/>
+                                                        <menuItem title="65C02" tag="6502" id="k5e-d2-O0X"/>
+                                                    </items>
+                                                </menu>
+                                            </popUpButtonCell>
+                                        </popUpButton>
                                     </subviews>
                                     <constraints>
                                         <constraint firstItem="945-wU-JOH" firstAttribute="leading" secondItem="SRc-2D-95G" secondAttribute="leading" constant="20" symbolic="YES" id="1iM-70-oZq"/>
-                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="lzo-8g-o4S" secondAttribute="bottom" constant="20" symbolic="YES" id="FM6-AA-Vhf"/>
+                                        <constraint firstItem="yhA-Dw-hqn" firstAttribute="top" secondItem="lzo-8g-o4S" secondAttribute="bottom" constant="20" symbolic="YES" id="28I-GC-l4K"/>
+                                        <constraint firstItem="y7H-nu-CPH" firstAttribute="leading" secondItem="SRc-2D-95G" secondAttribute="leading" constant="22" id="3yR-gS-ciE"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="yhA-Dw-hqn" secondAttribute="trailing" constant="20" symbolic="YES" id="8V6-jM-LW7"/>
+                                        <constraint firstItem="y7H-nu-CPH" firstAttribute="centerY" secondItem="yhA-Dw-hqn" secondAttribute="centerY" id="IUr-qS-L4l"/>
                                         <constraint firstItem="JqM-IK-FMP" firstAttribute="leading" secondItem="SRc-2D-95G" secondAttribute="leading" constant="20" symbolic="YES" id="NfY-dE-aJw"/>
+                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="yhA-Dw-hqn" secondAttribute="bottom" constant="20" symbolic="YES" id="Rg8-zf-0ep"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="lzo-8g-o4S" secondAttribute="trailing" constant="20" symbolic="YES" id="X3p-qJ-ENH"/>
                                         <constraint firstItem="lzo-8g-o4S" firstAttribute="leading" secondItem="SRc-2D-95G" secondAttribute="leading" constant="20" symbolic="YES" id="b5a-SX-2ty"/>
                                         <constraint firstItem="lzo-8g-o4S" firstAttribute="top" secondItem="945-wU-JOH" secondAttribute="bottom" constant="6" symbolic="YES" id="d1Y-Ia-IjQ"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="945-wU-JOH" secondAttribute="trailing" constant="20" symbolic="YES" id="dmY-PV-ap4"/>
                                         <constraint firstItem="JqM-IK-FMP" firstAttribute="top" secondItem="SRc-2D-95G" secondAttribute="top" constant="20" symbolic="YES" id="ggl-QH-mV4"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="JqM-IK-FMP" secondAttribute="trailing" constant="20" symbolic="YES" id="mvO-UZ-BtT"/>
+                                        <constraint firstItem="yhA-Dw-hqn" firstAttribute="leading" secondItem="y7H-nu-CPH" secondAttribute="trailing" constant="8" symbolic="YES" id="ocM-jZ-Qrd"/>
                                         <constraint firstItem="945-wU-JOH" firstAttribute="top" secondItem="JqM-IK-FMP" secondAttribute="bottom" constant="6" symbolic="YES" id="pes-xi-zkv"/>
                                     </constraints>
                                 </view>
                             </tabViewItem>
                             <tabViewItem label="Commodore TED" identifier="c16plus4" id="8zk-1k-5AC" userLabel="Commodore TED">
                                 <view key="view" id="JoI-6t-qsH">
-                                    <rect key="frame" x="10" y="7" width="400" height="274"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="292"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="c7C-7n-u1N">
-                                            <rect key="frame" x="18" y="237" width="175" height="18"/>
+                                            <rect key="frame" x="18" y="255" width="175" height="18"/>
                                             <buttonCell key="cell" type="check" title="Attach C-1541 disk drive" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="oqq-Tb-j6f">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
@@ -1174,6 +1200,7 @@ Gw
                 <outlet property="atariSTMemorySizeButton" destination="QD0-qk-qCa" id="aKa-L6-2Te"/>
                 <outlet property="bbcADFSButton" destination="945-wU-JOH" id="fec-Lp-8F2"/>
                 <outlet property="bbcDFSButton" destination="JqM-IK-FMP" id="ocY-a5-u7h"/>
+                <outlet property="bbcSecondProcessorButton" destination="yhA-Dw-hqn" id="lzf-f5-4iQ"/>
                 <outlet property="bbcSidewaysRAMButton" destination="lzo-8g-o4S" id="3P1-20-Ne7"/>
                 <outlet property="cpcModelTypeButton" destination="2zv-Zo-rmO" id="F4C-b2-eS0"/>
                 <outlet property="electronADFSButton" destination="81w-gC-hph" id="oNg-GT-OYj"/>

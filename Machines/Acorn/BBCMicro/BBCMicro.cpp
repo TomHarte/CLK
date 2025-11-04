@@ -1,4 +1,5 @@
 //
+//
 //  BBCMicro.cpp
 //  Clock Signal
 //
@@ -722,7 +723,8 @@ public:
 		using Name = ::ROM::Name;
 
 		auto request = Request(Name::AcornBASICII) && Request(Name::BBCMicroMOS12);
-		if(target.has_1770dfs) {
+		const bool install_dfs = target.has_1770dfs || tube_processor != TubeProcessor::None;
+		if(install_dfs) {
 			request = request && Request(Name::BBCMicroDFS226);
 		}
 		if(target.has_adfs) {
@@ -731,7 +733,7 @@ public:
 
 		switch(tube_processor) {
 			default: break;
-			case TubeProcessor::MOS6502:
+			case TubeProcessor::WDC65C02:
 				request = request && Request(Name::BBCMicroTube110);
 			break;
 		}
@@ -749,7 +751,7 @@ public:
 
 		// Install filing systems: put the DFS before the ADFS because it's more common on the BBC.
 		size_t fs_slot = 14;
-		if(target.has_1770dfs) {
+		if(install_dfs) {
 			install_sideways(fs_slot--, roms.find(Name::BBCMicroDFS226)->second, false);
 		}
 		if(target.has_adfs) {
@@ -759,7 +761,7 @@ public:
 		// Throw the tube ROM to its target.
 		switch(tube_processor) {
 			default: break;
-			case TubeProcessor::MOS6502:
+			case TubeProcessor::WDC65C02:
 				tube6502_.set_rom(roms.find(Name::BBCMicroTube110)->second);
 			break;
 		}
@@ -855,7 +857,7 @@ public:
 			// The WD1770 is nominally clocked at 8Mhz.
 			wd1770_.run_for(duration * 4);
 		}
-		if constexpr (tube_processor == TubeProcessor::MOS6502) {
+		if constexpr (tube_processor == TubeProcessor::WDC65C02) {
 			tube6502_.run_for(duration);
 		}
 
@@ -1247,8 +1249,8 @@ std::unique_ptr<Machine> Machine::BBCMicro(
 ) {
 	const Target *const acorn_target = dynamic_cast<const Target *>(target);
 	switch(acorn_target->tube_processor) {
-		case TubeProcessor::None:		/* return machine<TubeProcessor::None>(*acorn_target, rom_fetcher); */
-		case TubeProcessor::MOS6502:	return machine<TubeProcessor::MOS6502>(*acorn_target, rom_fetcher);
+		case TubeProcessor::None:		return machine<TubeProcessor::None>(*acorn_target, rom_fetcher);
+		case TubeProcessor::WDC65C02:	return machine<TubeProcessor::WDC65C02>(*acorn_target, rom_fetcher);
 		default:	return nullptr;
 	}
 }
