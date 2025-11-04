@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Processors/6502Mk2/6502Mk2.hpp"
+#include "Machines/Utility/ROMCatalogue.hpp"
 
 #include <algorithm>
 
@@ -18,9 +19,14 @@ namespace Acorn::Tube {
 // of sense to me; it is copied into RAM (by whom?) and then copied in again upon every reset
 // (again: by whom?).
 
+// TODO: based on the service manual I believe correct behaviour is to page the ROM upon reset, and keep
+// it paged until a tube register is hit. It'll copy itself into the underlying RAM in the meantime.
+
 template <typename ULAT>
 struct Tube6502 {
 public:
+	static constexpr auto ROM = ROM::Name::BBCMicroTube110;
+
 	Tube6502(ULAT &ula) : m6502_(*this), ula_(ula) {}
 
 	// By convention, these are cycles relative to the host's 2Mhz bus.

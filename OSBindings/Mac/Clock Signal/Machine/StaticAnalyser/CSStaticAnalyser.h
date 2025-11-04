@@ -42,6 +42,7 @@ typedef NS_ENUM(NSInteger, CSMachineArchimedesModel) {
 typedef NS_ENUM(NSInteger, CSMachineBBCMicroSecondProcessor) {
 	CSMachineBBCMicroSecondProcessorNone,
 	CSMachineBBCMicroSecondProcessor65C02,
+	CSMachineBBCMicroSecondProcessorZ80,
 };
 
 typedef NS_ENUM(NSInteger, CSMachineCommodoreTEDModel) {

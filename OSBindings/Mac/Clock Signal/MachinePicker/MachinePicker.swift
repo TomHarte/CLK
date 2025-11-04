@@ -352,6 +352,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 				var secondProcessor: CSMachineBBCMicroSecondProcessor = .processorNone
 				switch bbcSecondProcessorButton.selectedTag() {
 					case 6502:	secondProcessor = .processor65C02
+					case 80:	secondProcessor = .processorZ80
 					case 0:		fallthrough
 					default:	secondProcessor = .processorNone
 				}
