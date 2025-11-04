@@ -675,6 +675,24 @@ using CRTC = Motorola::CRTC::CRTC6845<
 	Motorola::CRTC::CursorType::Native>;
 }
 
+template <typename HostT, TubeProcessor> struct Tube;
+
+template <typename HostT>
+struct Tube<HostT, TubeProcessor::None> {
+	Tube(HostT &) {}
+};
+
+template <typename HostT>
+struct Tube<HostT, TubeProcessor::WDC65C02> {
+	using TubeULA = Acorn::Tube::ULA<HostT>;
+	TubeULA ula;
+	Acorn::Tube::Tube6502<TubeULA> processor;
+
+	Tube(HostT &owner) :
+		ula(owner),
+		processor(ula) {}
+};
+
 template <TubeProcessor tube_processor, bool has_1770>
 class ConcreteMachine:
 	public Activity::Source,
@@ -1230,25 +1248,7 @@ private:
 
 	// MARK: - Tube.
 
-	template <TubeProcessor> struct Tube;
-
-	template <>
-	struct Tube<TubeProcessor::None> {
-		Tube(ConcreteMachine &) {}
-	};
-
-	template <>
-	struct Tube<TubeProcessor::WDC65C02> {
-		using TubeULA = Acorn::Tube::ULA<ConcreteMachine>;
-		TubeULA ula;
-		Acorn::Tube::Tube6502<TubeULA> processor;
-
-		Tube(ConcreteMachine &owner) :
-			ula(owner),
-			processor(ula) {}
-	};
-
-	Tube<tube_processor> tube_;
+	Tube<ConcreteMachine, tube_processor> tube_;
 
 public:
 	void set_host_tube_irq()		{	update_irq_line();			}
