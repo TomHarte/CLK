@@ -42,6 +42,10 @@ struct ULA {
 		}
 	}
 
+	bool parasite_reset() const {
+		return !(flags_ & 0x20);
+	}
+
 	void fifo_has_data(const uint8_t mask) {
 		if(!(flags_ & mask)) return;
 
@@ -86,13 +90,13 @@ struct ULA {
 
 	uint8_t parasite_read(const uint16_t address) {
 		switch(address & 7) {
-			case 0:	return to_parasite1_.data_available() | to_host1_.full() | status();
+			case 0:	return to_parasite1_.data_available() | to_host1_.not_full() | status();
 			case 1:	return to_parasite1_.read();
-			case 2:	return to_parasite2_.data_available() | to_host2_.full();
+			case 2:	return to_parasite2_.data_available() | to_host2_.not_full();
 			case 3:	return to_parasite2_.read();
-			case 4:	return to_parasite3_.data_available() | to_host3_.full();
+			case 4:	return to_parasite3_.data_available() | to_host3_.not_full();
 			case 5:	return to_parasite3_.read();
-			case 6:	return to_parasite4_.data_available() | to_host4_.full();
+			case 6:	return to_parasite4_.data_available() | to_host4_.not_full();
 			case 7:	return to_parasite4_.read();
 
 			default: __builtin_unreachable();
@@ -112,13 +116,13 @@ struct ULA {
 
 	uint8_t host_read(const uint16_t address) {
 		switch(address & 7) {
-			case 0:	return to_host1_.data_available() | to_parasite1_.full() | status();
+			case 0:	return to_host1_.data_available() | to_parasite1_.not_full() | status();
 			case 1:	return to_host1_.read();
-			case 2:	return to_host2_.data_available() | to_parasite2_.full();
+			case 2:	return to_host2_.data_available() | to_parasite2_.not_full();
 			case 3:	return to_host2_.read();
-			case 4:	return to_host3_.data_available() | to_parasite3_.full();
+			case 4:	return to_host3_.data_available() | to_parasite3_.not_full();
 			case 5:	return to_host3_.read();
-			case 6:	return to_host4_.data_available() | to_parasite4_.full();
+			case 6:	return to_host4_.data_available() | to_parasite4_.not_full();
 			case 7:	return to_host4_.read();
 
 			default: __builtin_unreachable();

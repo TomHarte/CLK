@@ -50,12 +50,19 @@ public:
 
 	void set_rom(const std::vector<uint8_t> &source) {
 		// TODO: verify the ROM is 2kb.
-		// TODO: determine whethe rthis really is ROM, or is ROM that should have copied itself to RAM, or is something else.
-		std::copy(source.begin(), source.end(), &ram_[65536 - 2048]);
+		// TODO: determine whether this really is ROM, or is ROM that should have copied itself to RAM, or is something else.
+		std::copy(source.begin(), source.end(), rom_);
+		reinstall_rom();
 	}
 
 	void set_irq() {	m6502_.template set<CPU::MOS6502Mk2::Line::IRQ>(true);	}
 	void set_nmi() {	m6502_.template set<CPU::MOS6502Mk2::Line::NMI>(true);	}
+	void set_reset(const bool reset) {
+		m6502_.template set<CPU::MOS6502Mk2::Line::Reset>(reset);
+		if(reset) {
+			reinstall_rom();
+		}
+	}
 
 private:
 	void update_interrupts() {
@@ -63,6 +70,11 @@ private:
 		m6502_.template set<CPU::MOS6502Mk2::Line::NMI>(ula_.has_parasite_nmi());
 	}
 
+	void reinstall_rom() {
+		std::copy(std::begin(rom_), std::end(rom_), &ram_[65536 - 2048]);
+	}
+
+	uint8_t rom_[2048];
 	uint8_t ram_[65536];
 	Cycles cycles_modulo_;
 
