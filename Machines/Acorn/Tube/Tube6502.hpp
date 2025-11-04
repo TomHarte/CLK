@@ -83,7 +83,7 @@ private:
 		static constexpr auto pause_precision = CPU::MOS6502Mk2::PausePrecision::AnyCycle;
 		using BusHandlerT = Tube6502;
 	};
-	CPU::MOS6502Mk2::Processor<CPU::MOS6502Mk2::Model::M6502, M6502Traits> m6502_;
+	CPU::MOS6502Mk2::Processor<CPU::MOS6502Mk2::Model::WDC65C02, M6502Traits> m6502_;
 
 	ULAT &ula_;
 };

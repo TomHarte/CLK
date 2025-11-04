@@ -925,9 +925,7 @@ public:
 					if constexpr (is_read(operation)) {
 						const uint8_t result = tube_ula_.host_read(address);
 						value = result;
-						Logger::info().append("Read tube %04x: %02x", +address, result);
 					} else {
-						Logger::info().append("Write tube %04x: %02x", +address, value);
 						tube_ula_.host_write(address, value);
 						tube6502_.set_reset(tube_ula_.parasite_reset());
 					}
