@@ -57,8 +57,12 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--new=archimedes"
+            argument = "&quot;/Users/thomasharte/Library/Mobile\ Documents/com\~apple\~CloudDocs/Soft/Archimedes/Lemmings.adf&quot;"
             isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--new=archimedes"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/thomasharte/Downloads/Program/Program.prg"
