@@ -65,7 +65,7 @@ struct ULA {
 	}
 
 	bool has_host_irq() const {
-		return (flags_ & 0x01) && to_host1_.data_available();
+		return (flags_ & 0x01) && to_host4_.data_available();
 	}
 
 	bool has_parasite_irq() const {

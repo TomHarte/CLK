@@ -19,12 +19,12 @@ struct FIFO {
 
 	/// @returns b7 set exactly if this FIFO is not empty.
 	uint8_t data_available() const {
-		return (read_ != write_) ? 0x80 : 0x00;
+		return read_ != write_ ? 0x80 : 0x00;
 	}
 
 	/// @returns b6 set exactly if this FIFO is not full.
 	uint8_t not_full() const {
-		return (size_t(write_ - read_) < length) ? 0x40 : 0x00;
+		return size_t(write_ - read_) < length ? 0x40 : 0x00;
 	}
 
 	void write(const uint8_t value) {
