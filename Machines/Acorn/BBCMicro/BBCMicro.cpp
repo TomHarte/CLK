@@ -1,4 +1,5 @@
 //
+//
 //  BBCMicro.cpp
 //  Clock Signal
 //
@@ -14,8 +15,10 @@
 #include "Machines/Utility/MemoryFuzzer.hpp"
 #include "Machines/Utility/Typer.hpp"
 
-#include "Processors/6502/6502.hpp"
 #include "Processors/6502Mk2/6502Mk2.hpp"
+
+#include "Machines/Acorn/Tube/ULA.hpp"
+#include "Machines/Acorn/Tube/Tube6502.hpp"
 
 #include "Components/6522/6522.hpp"
 #include "Components/6845/CRTC6845.hpp"
@@ -46,6 +49,9 @@ namespace BBCMicro {
 
 namespace {
 using Logger = Log::Logger<Log::Source::BBCMicro>;
+using TubeProcessor = Analyser::Static::Acorn::BBCMicroTarget::TubeProcessor;
+
+// MARK: - Joysticks.
 
 /*!
 	Provides an analogue joystick with a single fire button.
@@ -94,6 +100,9 @@ private:
 	const int first_channel_;
 	bool fire_ = false;
 };
+
+// MARK: - Lazy audio holder.
+
 /*!
 	Combines an SN76489 with an appropriate asynchronous queue and filtering speaker.
 */
@@ -158,6 +167,8 @@ struct VideoBaseAddress {
 protected:
 	uint16_t video_base_ = 0;
 };
+
+// MARK: - VIAs.
 
 /*!
 	Models the system VIA, which connects to the SN76489 and the keyboard.
@@ -369,6 +380,8 @@ private:
 	const std::vector<std::unique_ptr<Inputs::Joystick>> &joysticks_;
 	Delegate &delegate_;
 };
+
+// MARK: - CRTC output.
 
 /*!
 	Handles CRTC bus activity.
@@ -671,7 +684,29 @@ using CRTC = Motorola::CRTC::CRTC6845<
 	Motorola::CRTC::CursorType::Native>;
 }
 
-template <bool has_1770>
+// MARK: - Tube.
+
+template <typename HostT, TubeProcessor> struct Tube;
+
+template <typename HostT>
+struct Tube<HostT, TubeProcessor::None> {
+	Tube(HostT &) {}
+};
+
+template <typename HostT>
+struct Tube<HostT, TubeProcessor::WDC65C02> {
+	using TubeULA = Acorn::Tube::ULA<HostT>;
+	TubeULA ula;
+	Acorn::Tube::Tube6502<TubeULA> processor;
+
+	Tube(HostT &owner) :
+		ula(owner),
+		processor(ula) {}
+};
+
+// MARK: - ConcreteMachine.
+
+template <TubeProcessor tube_processor, bool has_1770>
 class ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
@@ -700,7 +735,8 @@ public:
 		crtc_bus_handler_(ram_.data(), system_via_),
 		crtc_(crtc_bus_handler_),
 		acia_(HalfCycles(2'000'000)), // TODO: look up real ACIA clock rate.
-		adc_(HalfCycles(2'000'000))
+		adc_(HalfCycles(2'000'000)),
+		tube_(*this)
 	{
 		set_clock_rate(2'000'000);
 
@@ -717,11 +753,18 @@ public:
 		using Name = ::ROM::Name;
 
 		auto request = Request(Name::AcornBASICII) && Request(Name::BBCMicroMOS12);
-		if(target.has_1770dfs) {
+		if(target.has_1770dfs || tube_processor != TubeProcessor::None) {
 			request = request && Request(Name::BBCMicroDFS226);
 		}
 		if(target.has_adfs) {
 			request = request && Request(Name::BBCMicroADFS130);
+		}
+
+		switch(tube_processor) {
+			default: break;
+			case TubeProcessor::WDC65C02:
+				request = request && Request(Name::BBCMicroTube110);
+			break;
 		}
 
 		auto roms = rom_fetcher(request);
@@ -735,13 +778,32 @@ public:
 		// Put BASIC in pole position.
 		install_sideways(15, roms.find(Name::AcornBASICII)->second, false);
 
-		// Install filing systems: put the DFS before the ADFS because it's more common on the BBC.
+		// Install filing systems: put the DFS before the ADFS because it's more common on the BBC if the user
+		// explicitly requested DFS. Include it at the end otherwise if it's just implied by the Tube.
 		size_t fs_slot = 14;
+		const auto add_sideways = [&](const Name name) {
+			install_sideways(fs_slot--, roms.find(name)->second, false);
+		};
 		if(target.has_1770dfs) {
-			install_sideways(fs_slot--, roms.find(Name::BBCMicroDFS226)->second, false);
+			add_sideways(Name::BBCMicroDFS226);
 		}
 		if(target.has_adfs) {
-			install_sideways(fs_slot--, roms.find(Name::BBCMicroADFS130)->second, false);
+			add_sideways(Name::BBCMicroADFS130);
+		}
+		if(!target.has_1770dfs && tube_processor != TubeProcessor::None) {
+			add_sideways(Name::BBCMicroDFS226);
+		}
+
+		// Throw the tube ROM to its target.
+		if constexpr (tube_processor != TubeProcessor::None) {
+			switch(tube_processor) {
+				default:
+					__builtin_unreachable();
+
+				case TubeProcessor::WDC65C02:
+					tube_.processor.set_rom(roms.find(Name::BBCMicroTube110)->second);
+				break;
+			}
 		}
 
 		// Install the ADT ROM if available, but don't error if it's missing. It's very optional.
@@ -831,11 +893,14 @@ public:
 		}
 		adc_.run_for(duration);
 
-
 		if constexpr (has_1770) {
 			// The WD1770 is nominally clocked at 8Mhz.
 			wd1770_.run_for(duration * 4);
 		}
+		if constexpr (tube_processor == TubeProcessor::WDC65C02) {
+			tube_.processor.run_for(duration);
+		}
+
 
 		//
 		// Questionably-clocked devices.
@@ -893,12 +958,19 @@ public:
 						break;
 					}
 				}
-			} else if(address == 0xfee0) {
-				if constexpr (is_read(operation)) {
-					Logger::info().append("Read tube status: 0");
-					value = 0;
+			} else if(address >= 0xfee0 && address < 0xfee8) {
+				if constexpr (tube_processor == TubeProcessor::None) {
+					if constexpr (is_read(operation)) {
+						value = address == 0xfee0 ? 0xfe : 0xff;
+					}
 				} else {
-					Logger::info().append("Wrote tube: %02x", value);
+					if constexpr (is_read(operation)) {
+						const uint8_t result = tube_.ula.host_read(address);
+						value = result;
+					} else {
+						tube_.ula.host_write(address, value);
+						tube_.processor.set_reset(tube_.ula.parasite_reset());
+					}
 				}
 			} else if(address >= 0xfe08 && address < 0xfe10) {
 				if constexpr (is_read(operation)) {
@@ -942,6 +1014,7 @@ public:
 			}
 			return duration;
 		}
+
 
 		//
 		// ROM or RAM access.
@@ -1134,9 +1207,19 @@ private:
 	SystemVIA system_via_;
 
 	void update_irq_line() {
+		const bool tube_irq =
+			[&] {
+				if constexpr (tube_processor != TubeProcessor::None) {
+					return tube_.ula.has_host_irq();
+				} else {
+					return false;
+				}
+			} ();
+
 		m6502_.template set<CPU::MOS6502Mk2::Line::IRQ>(
 			user_via_.get_interrupt_line() ||
-			system_via_.get_interrupt_line()
+			system_via_.get_interrupt_line() ||
+			tube_irq
 		);
 	}
 
@@ -1175,21 +1258,42 @@ private:
 		const auto options = dynamic_cast<Options *>(str.get());
 		crtc_bus_handler_.set_dynamic_framing(options->dynamic_crop);
 	}
+
+	// MARK: - Tube.
+
+	Tube<ConcreteMachine, tube_processor> tube_;
+
+public:
+	void set_host_tube_irq()		{	update_irq_line();			}
+	void set_parasite_tube_irq()	{	tube_.processor.set_irq();	}
+	void set_parasite_tube_nmi()	{	tube_.processor.set_nmi();	}
 };
 
 }
 
 using namespace BBCMicro;
 
+namespace {
+using Target = Analyser::Static::Acorn::BBCMicroTarget;
+
+template <Target::TubeProcessor processor>
+std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	if(target.has_1770dfs || target.has_adfs) {
+		return std::make_unique<BBCMicro::ConcreteMachine<processor, true>>(target, rom_fetcher);
+	} else {
+		return std::make_unique<BBCMicro::ConcreteMachine<processor, false>>(target, rom_fetcher);
+	}
+}
+}
+
 std::unique_ptr<Machine> Machine::BBCMicro(
 	const Analyser::Static::Target *target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	using Target = Analyser::Static::Acorn::BBCMicroTarget;
 	const Target *const acorn_target = dynamic_cast<const Target *>(target);
-	if(acorn_target->has_1770dfs || acorn_target->has_adfs) {
-		return std::make_unique<BBCMicro::ConcreteMachine<true>>(*acorn_target, rom_fetcher);
-	} else {
-		return std::make_unique<BBCMicro::ConcreteMachine<false>>(*acorn_target, rom_fetcher);
+	switch(acorn_target->tube_processor) {
+		case TubeProcessor::None:		return machine<TubeProcessor::None>(*acorn_target, rom_fetcher);
+		case TubeProcessor::WDC65C02:	return machine<TubeProcessor::WDC65C02>(*acorn_target, rom_fetcher);
+		default:	return nullptr;
 	}
 }

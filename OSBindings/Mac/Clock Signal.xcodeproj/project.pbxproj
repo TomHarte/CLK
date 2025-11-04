@@ -1561,6 +1561,8 @@
 		4B3FCC3F201EC24200960631 /* MultiMachine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MultiMachine.cpp; sourceTree = "<group>"; };
 		4B3FE75C1F3CF68B00448EE4 /* CPM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CPM.cpp; path = Parsers/CPM.cpp; sourceTree = "<group>"; };
 		4B3FE75D1F3CF68B00448EE4 /* CPM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CPM.hpp; path = Parsers/CPM.hpp; sourceTree = "<group>"; };
+		4B4195F42EB8F061001C966D /* ULA.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ULA.hpp; sourceTree = "<group>"; };
+		4B4195F52EB92630001C966D /* Tube6502.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Tube6502.hpp; sourceTree = "<group>"; };
 		4B43983829620FB1006B0BFC /* 9918.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 9918.cpp; sourceTree = "<group>"; };
 		4B43983C29621024006B0BFC /* ClockConverter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ClockConverter.hpp; sourceTree = "<group>"; };
 		4B43983E29628538006B0BFC /* Fetch.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Fetch.hpp; sourceTree = "<group>"; };
@@ -1612,6 +1614,7 @@
 		4B49F0A823346F7A0045E6A6 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/MacintoshOptions.xib"; sourceTree = SOURCE_ROOT; };
 		4B4A75BC2EB2C55100EA398F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/CompositeDynamicCropOptions.xib; sourceTree = "<group>"; };
 		4B4A75BF2EB399D700EA398F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/DynamicCropOptions.xib; sourceTree = "<group>"; };
+		4B4A75C22EB43F1C00EA398F /* FIFO.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FIFO.hpp; sourceTree = "<group>"; };
 		4B4A762E1DB1A3FA007AAE2E /* AY38910.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AY38910.cpp; sourceTree = "<group>"; };
 		4B4A762F1DB1A3FA007AAE2E /* AY38910.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AY38910.hpp; sourceTree = "<group>"; };
 		4B4B1A3A200198C900A0F866 /* KonamiSCC.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = KonamiSCC.cpp; sourceTree = "<group>"; };
@@ -3354,6 +3357,16 @@
 			path = uPD7002;
 			sourceTree = "<group>";
 		};
+		4B4A75C32EB43F1C00EA398F /* Tube */ = {
+			isa = PBXGroup;
+			children = (
+				4B4A75C22EB43F1C00EA398F /* FIFO.hpp */,
+				4B4195F42EB8F061001C966D /* ULA.hpp */,
+				4B4195F52EB92630001C966D /* Tube6502.hpp */,
+			);
+			path = Tube;
+			sourceTree = "<group>";
+		};
 		4B4A762D1DB1A35C007AAE2E /* AY38910 */ = {
 			isa = PBXGroup;
 			children = (
@@ -4673,6 +4686,7 @@
 		4BB505682B962DDF0031C43C /* Acorn */ = {
 			isa = PBXGroup;
 			children = (
+				4B4A75C32EB43F1C00EA398F /* Tube */,
 				4BB505692B962DDF0031C43C /* Archimedes */,
 				4B710C8C2E77A3B20056BDF4 /* BBCMicro */,
 				4BB5056A2B962DDF0031C43C /* Electron */,

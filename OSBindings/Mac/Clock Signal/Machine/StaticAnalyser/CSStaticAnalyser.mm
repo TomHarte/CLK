@@ -160,13 +160,19 @@
 	return self;
 }
 
-- (instancetype)initWithBBCMicroDFS:(BOOL)dfs adfs:(BOOL)adfs sidewaysRAM:(BOOL)sidewaysRAM {
+- (instancetype)initWithBBCMicroDFS:(BOOL)dfs adfs:(BOOL)adfs sidewaysRAM:(BOOL)sidewaysRAM secondProcessor:(CSMachineBBCMicroSecondProcessor)secondProcessor {
 	self = [super init];
 	if(self) {
-		auto target = std::make_unique<Analyser::Static::Acorn::BBCMicroTarget>();
+		using Target = Analyser::Static::Acorn::BBCMicroTarget;
+		auto target = std::make_unique<Target>();
 		target->has_1770dfs = dfs;
 		target->has_adfs = adfs;
 		target->has_sideways_ram = sidewaysRAM;
+
+		switch(secondProcessor) {
+			case CSMachineBBCMicroSecondProcessorNone:	target->tube_processor = Target::TubeProcessor::None;		break;
+			case CSMachineBBCMicroSecondProcessor65C02:	target->tube_processor = Target::TubeProcessor::WDC65C02;	break;
+		}
 		_targets.push_back(std::move(target));
 	}
 	return self;

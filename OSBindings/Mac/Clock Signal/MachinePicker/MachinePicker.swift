@@ -39,6 +39,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 	@IBOutlet var bbcDFSButton: NSButton!
 	@IBOutlet var bbcADFSButton: NSButton!
 	@IBOutlet var bbcSidewaysRAMButton: NSButton!
+	@IBOutlet var bbcSecondProcessorButton: NSPopUpButton!
 
 	// MARK: - CPC properties
 	@IBOutlet var cpcModelTypeButton: NSPopUpButton!
@@ -136,6 +137,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		bbcDFSButton.state = standardUserDefaults.bool(forKey: "new.bbcDFS") ? .on : .off
 		bbcADFSButton.state = standardUserDefaults.bool(forKey: "new.bbcADFS") ? .on : .off
 		bbcSidewaysRAMButton.state = standardUserDefaults.bool(forKey: "new.bbcSidewaysRAM") ? .on : .off
+		bbcSecondProcessorButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.bbcSecondProcessor"))
 
 		// CPC settings
 		cpcModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.cpcModel"))
@@ -215,6 +217,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		standardUserDefaults.set(bbcDFSButton.state == .on, forKey: "new.bbcDFS")
 		standardUserDefaults.set(bbcADFSButton.state == .on, forKey: "new.bbcADFS")
 		standardUserDefaults.set(bbcSidewaysRAMButton.state == .on, forKey: "new.bbcSidewaysRAM")
+		standardUserDefaults.set(bbcSecondProcessorButton.selectedTag(), forKey: "new.bbcSecondProcessor")
 
 		// CPC settings
 		standardUserDefaults.set(cpcModelTypeButton.selectedTag(), forKey: "new.cpcModel")
@@ -346,10 +349,17 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 				return CSStaticAnalyser(atariSTMemorySize: memorySize)
 
 			case "bbcmicro":
+				var secondProcessor: CSMachineBBCMicroSecondProcessor = .processorNone
+				switch bbcSecondProcessorButton.selectedTag() {
+					case 6502:	secondProcessor = .processor65C02
+					case 0:		fallthrough
+					default:	secondProcessor = .processorNone
+				}
 				return CSStaticAnalyser(
 					bbcMicroDFS: bbcDFSButton.state == .on,
 					adfs: bbcADFSButton.state == .on,
-					sidewaysRAM: bbcSidewaysRAMButton.state == .on)
+					sidewaysRAM: bbcSidewaysRAMButton.state == .on,
+					secondProcessor: secondProcessor)
 
 			case "c16plus4":
 				let hasC1541 = plus4HasC1541Button.state == .on
