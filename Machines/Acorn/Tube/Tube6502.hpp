@@ -30,10 +30,13 @@ public:
 	Cycles perform(const AddressT address, CPU::MOS6502Mk2::data_t<operation> value) {
 		if(address >= 0xfef8 && address < 0xff00) {
 			if constexpr (is_read(operation)) {
-				value = ula_.parasite_read(address);
+				const uint8_t result = ula_.parasite_read(address);
+				value = result;
 				update_interrupts();
+//				printf("Parasite read %04x of %02x\n", +address, result);
 			} else {
 				ula_.parasite_write(address, value);
+//				printf("Parasite write %04x of %02x\n", +address, +value);
 			}
 		} else {
 			if constexpr (is_read(operation)) {

@@ -17,10 +17,12 @@ template <size_t length, typename ULAT>
 struct FIFO {
 	FIFO(ULAT &ula, const uint8_t mask = 0x00) : ula_(ula), mask_(mask) {}
 
-	uint8_t status() const {
-		return
-			((read_ != write_) ? 0x80 : 0x00) |
-			((size_t(write_ - read_) < length) ? 0x40 : 0x00);
+	uint8_t data_available() const {
+		return 	(read_ != write_) ? 0x80 : 0x00;
+	}
+
+	uint8_t full() const {
+		return	(size_t(write_ - read_) < length) ? 0x40 : 0x00;
 	}
 
 	void write(const uint8_t value) {
@@ -28,7 +30,7 @@ struct FIFO {
 		if(write_ == read_) {
 			ula_.fifo_has_data(mask_);
 		}
-		buffer_[write_++] = value;
+		buffer_[(write_++) % length] = value;
 	}
 
 	uint8_t read() {
