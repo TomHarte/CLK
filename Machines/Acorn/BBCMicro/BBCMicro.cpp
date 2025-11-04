@@ -705,8 +705,7 @@ public:
 		crtc_(crtc_bus_handler_),
 		acia_(HalfCycles(2'000'000)), // TODO: look up real ACIA clock rate.
 		adc_(HalfCycles(2'000'000)),
-		tube_ula_(*this),
-		tube6502_(tube_ula_)
+		tube_(*this)
 	{
 		set_clock_rate(2'000'000);
 
@@ -723,8 +722,7 @@ public:
 		using Name = ::ROM::Name;
 
 		auto request = Request(Name::AcornBASICII) && Request(Name::BBCMicroMOS12);
-		const bool install_dfs = target.has_1770dfs || tube_processor != TubeProcessor::None;
-		if(install_dfs) {
+		if(target.has_1770dfs || tube_processor != TubeProcessor::None) {
 			request = request && Request(Name::BBCMicroDFS226);
 		}
 		if(target.has_adfs) {
@@ -749,21 +747,32 @@ public:
 		// Put BASIC in pole position.
 		install_sideways(15, roms.find(Name::AcornBASICII)->second, false);
 
-		// Install filing systems: put the DFS before the ADFS because it's more common on the BBC.
+		// Install filing systems: put the DFS before the ADFS because it's more common on the BBC if the user
+		// explicitly requested DFS. Include it at the end otherwise if it's just implied by the Tube.
 		size_t fs_slot = 14;
-		if(install_dfs) {
-			install_sideways(fs_slot--, roms.find(Name::BBCMicroDFS226)->second, false);
+		const auto add_sideways = [&](const Name name) {
+			install_sideways(fs_slot--, roms.find(name)->second, false);
+		};
+		if(target.has_1770dfs) {
+			add_sideways(Name::BBCMicroDFS226);
 		}
 		if(target.has_adfs) {
-			install_sideways(fs_slot--, roms.find(Name::BBCMicroADFS130)->second, false);
+			add_sideways(Name::BBCMicroADFS130);
+		}
+		if(!target.has_1770dfs && tube_processor != TubeProcessor::None) {
+			add_sideways(Name::BBCMicroDFS226);
 		}
 
 		// Throw the tube ROM to its target.
-		switch(tube_processor) {
-			default: break;
-			case TubeProcessor::WDC65C02:
-				tube6502_.set_rom(roms.find(Name::BBCMicroTube110)->second);
-			break;
+		if constexpr (tube_processor != TubeProcessor::None) {
+			switch(tube_processor) {
+				default:
+					__builtin_unreachable();
+
+				case TubeProcessor::WDC65C02:
+					tube_.processor.set_rom(roms.find(Name::BBCMicroTube110)->second);
+				break;
+			}
 		}
 
 		// Install the ADT ROM if available, but don't error if it's missing. It's very optional.
@@ -858,7 +867,7 @@ public:
 			wd1770_.run_for(duration * 4);
 		}
 		if constexpr (tube_processor == TubeProcessor::WDC65C02) {
-			tube6502_.run_for(duration);
+			tube_.processor.run_for(duration);
 		}
 
 
@@ -919,17 +928,17 @@ public:
 					}
 				}
 			} else if(address >= 0xfee0 && address < 0xfee8) {
-				if(tube_processor == TubeProcessor::None) {
+				if constexpr (tube_processor == TubeProcessor::None) {
 					if constexpr (is_read(operation)) {
 						value = address == 0xfee0 ? 0xfe : 0xff;
 					}
 				} else {
 					if constexpr (is_read(operation)) {
-						const uint8_t result = tube_ula_.host_read(address);
+						const uint8_t result = tube_.ula.host_read(address);
 						value = result;
 					} else {
-						tube_ula_.host_write(address, value);
-						tube6502_.set_reset(tube_ula_.parasite_reset());
+						tube_.ula.host_write(address, value);
+						tube_.processor.set_reset(tube_.ula.parasite_reset());
 					}
 				}
 			} else if(address >= 0xfe08 && address < 0xfe10) {
@@ -1167,13 +1176,19 @@ private:
 	SystemVIA system_via_;
 
 	void update_irq_line() {
+		const bool tube_irq =
+			[&] {
+				if constexpr (tube_processor != TubeProcessor::None) {
+					return tube_.ula.has_host_irq();
+				} else {
+					return false;
+				}
+			} ();
+
 		m6502_.template set<CPU::MOS6502Mk2::Line::IRQ>(
 			user_via_.get_interrupt_line() ||
 			system_via_.get_interrupt_line() ||
-			(
-				tube_processor != TubeProcessor::None &&
-				tube_ula_.has_host_irq()
-			)
+			tube_irq
 		);
 	}
 
@@ -1215,15 +1230,30 @@ private:
 
 	// MARK: - Tube.
 
-	// TODO: use templated coprocessor type, if any, optionally to include this storage.
-	using TubeULA = Acorn::Tube::ULA<ConcreteMachine>;
-	TubeULA tube_ula_;
-	Acorn::Tube::Tube6502<TubeULA> tube6502_;
+	template <TubeProcessor> struct Tube;
+
+	template <>
+	struct Tube<TubeProcessor::None> {
+		Tube(ConcreteMachine &) {}
+	};
+
+	template <>
+	struct Tube<TubeProcessor::WDC65C02> {
+		using TubeULA = Acorn::Tube::ULA<ConcreteMachine>;
+		TubeULA ula;
+		Acorn::Tube::Tube6502<TubeULA> processor;
+
+		Tube(ConcreteMachine &owner) :
+			ula(owner),
+			processor(ula) {}
+	};
+
+	Tube<tube_processor> tube_;
 
 public:
-	void set_host_tube_irq()		{	update_irq_line();		}
-	void set_parasite_tube_irq()	{	tube6502_.set_irq();	}
-	void set_parasite_tube_nmi()	{	tube6502_.set_nmi();	}
+	void set_host_tube_irq()		{	update_irq_line();			}
+	void set_parasite_tube_irq()	{	tube_.processor.set_irq();	}
+	void set_parasite_tube_nmi()	{	tube_.processor.set_nmi();	}
 };
 
 }
