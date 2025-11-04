@@ -27,6 +27,9 @@ struct FIFO {
 		return size_t(write_ - read_) < length ? 0x40 : 0x00;
 	}
 
+	/// Adds a value to the FIFO, notifying the ULA if this would cause the FIFO to
+	/// transition from empty to not-empty. The ULA will be supplied with this FIFO's
+	/// mask as specified at construction.
 	void write(const uint8_t value) {
 		if(write_ - read_ == length) return;
 		if(write_ == read_) {
@@ -35,6 +38,7 @@ struct FIFO {
 		buffer_[(write_++) % length] = value;
 	}
 
+	/// Removes a value from the FIFO.
 	uint8_t read() {
 		const uint8_t result = buffer_[read_ % length];
 		if(write_ != read_) ++read_;
