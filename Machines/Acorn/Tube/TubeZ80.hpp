@@ -44,13 +44,12 @@ public:
 		}
 
 		const uint16_t address = *cycle.address;
-		rom_visible_ &= address < 0x8000;
-
 		switch(cycle.operation) {
 			case CPU::Z80::PartialMachineCycle::ReadOpcode:
 				if(address == 0x66) {
 					rom_visible_ = true;
 				}
+				rom_visible_ &= address < 0x8000;
 				[[fallthrough]];
 			case CPU::Z80::PartialMachineCycle::Read:
 				if(rom_visible_ && address <= sizeof(rom_)) {
