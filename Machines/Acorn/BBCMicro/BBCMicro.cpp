@@ -704,7 +704,8 @@ public:
 		crtc_(crtc_bus_handler_),
 		acia_(HalfCycles(2'000'000)), // TODO: look up real ACIA clock rate.
 		adc_(HalfCycles(2'000'000)),
-		tube_ula_(*this, tube6502_)
+		tube_ula_(*this),
+		tube6502_(tube_ula_)
 	{
 		set_clock_rate(2'000'000);
 
@@ -922,11 +923,12 @@ public:
 					}
 				} else {
 					if constexpr (is_read(operation)) {
-						Logger::info().append("Read tube status %04x: %02x", +address, tube_ula_.status());
-						value = tube_ula_.status();
+						const uint8_t result = tube_ula_.host_read(address);
+						value = result;
+						Logger::info().append("Read tube %04x: %02x", +address, result);
 					} else {
-						Logger::info().append("Wrote tube %04x: %02x", +address, value);
-						tube_ula_.set_status(value);
+						Logger::info().append("Write tube %04x: %02x", +address, value);
+						tube_ula_.host_write(address, value);
 					}
 				}
 			} else if(address >= 0xfe08 && address < 0xfe10) {
@@ -1213,13 +1215,14 @@ private:
 	// MARK: - Tube.
 
 	// TODO: use templated coprocessor type, if any, optionally to include this storage.
-	Acorn::Tube::Tube6502 tube6502_;
-	Acorn::Tube::ULA<ConcreteMachine, Acorn::Tube::Tube6502> tube_ula_;
+	using TubeULA = Acorn::Tube::ULA<ConcreteMachine>;
+	TubeULA tube_ula_;
+	Acorn::Tube::Tube6502<TubeULA> tube6502_;
 
 public:
-	void set_tube_irq() {
-		update_irq_line();
-	}
+	void set_host_tube_irq()		{	update_irq_line();		}
+	void set_parasite_tube_irq()	{	tube6502_.set_irq();	}
+	void set_parasite_tube_nmi()	{	tube6502_.set_nmi();	}
 };
 
 }
