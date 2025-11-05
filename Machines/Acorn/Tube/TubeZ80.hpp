@@ -70,6 +70,7 @@ public:
 
 			case CPU::Z80::PartialMachineCycle::Input:
 				*cycle.value = ula_.parasite_read(address);
+				update_interrupts();
 			break;
 
 			case CPU::Z80::PartialMachineCycle::Output:
@@ -83,6 +84,11 @@ public:
 	}
 
 private:
+	void update_interrupts() {
+		z80_.set_interrupt_line(ula_.has_parasite_irq());
+		z80_.set_non_maskable_interrupt_line(ula_.has_parasite_nmi());
+	}
+
 	CPU::Z80::Processor<TubeZ80, false, false> z80_;
 	bool rom_visible_ = true;
 
