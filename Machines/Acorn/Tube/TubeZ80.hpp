@@ -65,7 +65,7 @@ public:
 			break;
 
 			case CPU::Z80::PartialMachineCycle::Interrupt:
-				*cycle.value = 0xff;
+				*cycle.value = 0xfe;
 			break;
 
 			case CPU::Z80::PartialMachineCycle::Input:
