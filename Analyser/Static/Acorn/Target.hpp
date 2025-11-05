@@ -45,7 +45,7 @@ struct BBCMicroTarget: public ::Analyser::Static::Target, public Reflection::Str
 	bool has_adfs = false;
 	bool has_sideways_ram = true;
 
-	ReflectableEnum(TubeProcessor, None, WDC65C02);
+	ReflectableEnum(TubeProcessor, None, WDC65C02, Z80);
 	TubeProcessor tube_processor = TubeProcessor::None;
 
 	BBCMicroTarget() : Analyser::Static::Target(Machine::BBCMicro) {}

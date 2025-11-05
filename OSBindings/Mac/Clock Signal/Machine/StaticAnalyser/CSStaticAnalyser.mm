@@ -172,6 +172,7 @@
 		switch(secondProcessor) {
 			case CSMachineBBCMicroSecondProcessorNone:	target->tube_processor = Target::TubeProcessor::None;		break;
 			case CSMachineBBCMicroSecondProcessor65C02:	target->tube_processor = Target::TubeProcessor::WDC65C02;	break;
+			case CSMachineBBCMicroSecondProcessorZ80:	target->tube_processor = Target::TubeProcessor::Z80;		break;
 		}
 		_targets.push_back(std::move(target));
 	}

@@ -19,6 +19,7 @@
 
 #include "Machines/Acorn/Tube/ULA.hpp"
 #include "Machines/Acorn/Tube/Tube6502.hpp"
+#include "Machines/Acorn/Tube/TubeZ80.hpp"
 
 #include "Components/6522/6522.hpp"
 #include "Components/6845/CRTC6845.hpp"
@@ -704,6 +705,17 @@ struct Tube<HostT, TubeProcessor::WDC65C02> {
 		processor(ula) {}
 };
 
+template <typename HostT>
+struct Tube<HostT, TubeProcessor::Z80> {
+	using TubeULA = Acorn::Tube::ULA<HostT>;
+	TubeULA ula;
+	Acorn::Tube::TubeZ80<TubeULA> processor;
+
+	Tube(HostT &owner) :
+		ula(owner),
+		processor(ula) {}
+};
+
 // MARK: - ConcreteMachine.
 
 template <TubeProcessor tube_processor, bool has_1770>
@@ -760,11 +772,8 @@ public:
 			request = request && Request(Name::BBCMicroADFS130);
 		}
 
-		switch(tube_processor) {
-			default: break;
-			case TubeProcessor::WDC65C02:
-				request = request && Request(Name::BBCMicroTube110);
-			break;
+		if constexpr (tube_processor != TubeProcessor::None) {
+			request = request && Request(tube_.processor.ROM);
 		}
 
 		auto roms = rom_fetcher(request);
@@ -796,14 +805,7 @@ public:
 
 		// Throw the tube ROM to its target.
 		if constexpr (tube_processor != TubeProcessor::None) {
-			switch(tube_processor) {
-				default:
-					__builtin_unreachable();
-
-				case TubeProcessor::WDC65C02:
-					tube_.processor.set_rom(roms.find(Name::BBCMicroTube110)->second);
-				break;
-			}
+			tube_.processor.set_rom(roms.find(tube_.processor.ROM)->second);
 		}
 
 		// Install the ADT ROM if available, but don't error if it's missing. It's very optional.
@@ -897,7 +899,7 @@ public:
 			// The WD1770 is nominally clocked at 8Mhz.
 			wd1770_.run_for(duration * 4);
 		}
-		if constexpr (tube_processor == TubeProcessor::WDC65C02) {
+		if constexpr (tube_processor != TubeProcessor::None) {
 			tube_.processor.run_for(duration);
 		}
 
@@ -1294,6 +1296,7 @@ std::unique_ptr<Machine> Machine::BBCMicro(
 	switch(acorn_target->tube_processor) {
 		case TubeProcessor::None:		return machine<TubeProcessor::None>(*acorn_target, rom_fetcher);
 		case TubeProcessor::WDC65C02:	return machine<TubeProcessor::WDC65C02>(*acorn_target, rom_fetcher);
+		case TubeProcessor::Z80:		return machine<TubeProcessor::Z80>(*acorn_target, rom_fetcher);
 		default:	return nullptr;
 	}
 }

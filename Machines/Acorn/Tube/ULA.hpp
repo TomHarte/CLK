@@ -31,7 +31,7 @@ struct ULA {
 
 	/// @returns @c true if the parasite's reset line should be active.
 	bool parasite_reset() const {
-		return !(flags_ & 0x20);
+		return flags_ & 0x20;
 	}
 
 	/// Call-in for the FIFOs; indicates that a FIFO just went from empty to not-empty,
@@ -126,11 +126,11 @@ private:
 			flags_ &= ~bits;
 		}
 
-		// TODO: understand meaning of bit 4.
+		// TODO: understand meaning of bits 4 and 6.
 	}
 
 	HostT &host_;
-	uint8_t flags_ = 0x3f;
+	uint8_t flags_ = 0x01;
 
 	FIFO<1, ULA> to_parasite1_;
 	FIFO<1, ULA> to_parasite2_;

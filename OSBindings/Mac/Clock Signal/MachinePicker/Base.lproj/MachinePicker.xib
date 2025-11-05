@@ -459,11 +459,12 @@ Gw
                                             <rect key="frame" x="141" y="168" width="81" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="None" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="Rpc-1u-8X2" id="vk3-Qo-uxV">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="menu"/>
+                                                <font key="font" metaFont="message"/>
                                                 <menu key="menu" id="Qyy-YZ-beq">
                                                     <items>
                                                         <menuItem title="None" state="on" id="Rpc-1u-8X2"/>
                                                         <menuItem title="65C02" tag="6502" id="k5e-d2-O0X"/>
+                                                        <menuItem title="Z80" tag="80" id="oWF-1C-PLs"/>
                                                     </items>
                                                 </menu>
                                             </popUpButtonCell>
