@@ -126,6 +126,20 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 		if(dfs_catalogue || (adfs_catalogue && !adfs_catalogue->has_large_sectors && adfs_catalogue->is_hugo)) {
 			// Accept the disk and determine whether DFS or ADFS ROMs are implied.
 
+			// Special case: if there's only one file, and it is called CPMDISK,
+			// select a BBC with the Z80 second processor.
+			const auto &files = dfs_catalogue ? dfs_catalogue->files : adfs_catalogue->files;
+			if(files.size() == 1 && files[0].name == "$.CPMDISC") {
+				targetBBC->media.disks = media.disks;
+				targetBBC->has_1770dfs = bool(dfs_catalogue);
+				targetBBC->has_adfs = bool(adfs_catalogue);
+				targetBBC->tube_processor = BBCMicroTarget::TubeProcessor::Z80;
+
+				TargetList targets;
+				targets.push_back(std::move(targetBBC));
+				return targets;
+			}
+
 			// Electron: use the Pres ADFS if using an ADFS, as it leaves Page at &EOO.
 			targetElectron->media.disks = media.disks;
 			targetElectron->has_dfs = bool(dfs_catalogue);
