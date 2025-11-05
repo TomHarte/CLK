@@ -60,6 +60,7 @@ public:
 	void set_reset(const bool reset) {
 		m6502_.template set<CPU::MOS6502Mk2::Line::Reset>(reset);
 		rom_visible_ |= reset;
+		update_interrupts();
 	}
 
 private:

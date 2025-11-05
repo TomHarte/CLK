@@ -113,6 +113,21 @@ struct ULA {
 			default: __builtin_unreachable();
 		}
 	}
+
+	void set_reset(const bool reset) {
+		if(reset) {
+			flags_ = 0x01;
+			to_parasite1_.reset();
+			to_parasite2_.reset();
+			to_parasite3_.reset();
+			to_parasite4_.reset();
+			to_host1_.reset();
+			to_host2_.reset();
+			to_host3_.reset();
+			to_host4_.reset();
+		}
+	}
+
 private:
 	uint8_t status() const {
 		return flags_;

@@ -1091,7 +1091,7 @@ private:
 			break;
 
 			case Key::Break:
-				m6502_.template set<CPU::MOS6502Mk2::Line::Reset>(is_pressed);
+				set_reset(is_pressed);
 			break;
 
 			default:
@@ -1102,8 +1102,16 @@ private:
 	bool was_caps_ = false;
 
 	void clear_all_keys() final {
-		m6502_.template set<CPU::MOS6502Mk2::Line::Reset>(false);
+		set_reset(false);
 		system_via_port_handler_.clear_all_keys();
+	}
+
+	void set_reset(const bool reset) {
+		m6502_.template set<CPU::MOS6502Mk2::Line::Reset>(reset);
+		if constexpr (tube_processor != TubeProcessor::None) {
+			tube_.ula.set_reset(reset);
+			tube_.processor.set_reset(reset);
+		}
 	}
 
 	HalfCycles get_typer_delay(const std::string &text) const final {
