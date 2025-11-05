@@ -38,9 +38,7 @@ public:
 		if(address >= 0xfef8 && address < 0xff00) {
 			rom_visible_ = false;
 			if constexpr (is_read(operation)) {
-				const uint8_t result = ula_.parasite_read(address);
-				value = result;
-				update_interrupts();
+				value = ula_.parasite_read(address);
 			} else {
 				ula_.parasite_write(address, value);
 			}
@@ -55,20 +53,14 @@ public:
 		return Cycles(1);
 	}
 
-	void set_irq() {	m6502_.template set<CPU::MOS6502Mk2::Line::IRQ>(true);	}
-	void set_nmi() {	m6502_.template set<CPU::MOS6502Mk2::Line::NMI>(true);	}
+	void set_irq(const bool active) {	m6502_.template set<CPU::MOS6502Mk2::Line::IRQ>(active);	}
+	void set_nmi(const bool active) {	m6502_.template set<CPU::MOS6502Mk2::Line::NMI>(active);	}
 	void set_reset(const bool reset) {
 		m6502_.template set<CPU::MOS6502Mk2::Line::Reset>(reset);
 		rom_visible_ |= reset;
-		update_interrupts();
 	}
 
 private:
-	void update_interrupts() {
-		m6502_.template set<CPU::MOS6502Mk2::Line::IRQ>(ula_.has_parasite_irq());
-		m6502_.template set<CPU::MOS6502Mk2::Line::NMI>(ula_.has_parasite_nmi());
-	}
-
 	uint8_t rom_[2048];
 	uint8_t ram_[65536];
 	Cycles cycles_modulo_;

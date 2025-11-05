@@ -29,24 +29,15 @@ struct ULA {
 		to_host4_(*this, 0x01)
 	{}
 
-	/// @returns @c true if the parasite's reset line should be active.
-	bool parasite_reset() const {
-		return flags_ & 0x20;
-	}
-
 	/// Call-in for the FIFOs; indicates that a FIFO just went from empty to not-empty,
 	/// which might cause an interrupt elsewhere depending on the mask and on whether
 	/// that interrupt is enabled.
 	void fifo_has_data(const uint8_t mask) {
-		if(!(flags_ & mask)) return;
+		apply_fifo_mask(mask, 0xff);
+	}
 
-		switch(mask) {
-			default: 		__builtin_unreachable();
-			case 0x01:		host_.set_host_tube_irq();		break;
-			case 0x02:
-			case 0x04:		host_.set_parasite_tube_irq();	break;
-			case 0x08:		host_.set_parasite_tube_nmi();	break;
-		}
+	void fifo_is_empty(const uint8_t mask) {
+		apply_fifo_mask(0x00, ~mask);
 	}
 
 	bool has_host_irq() const {
@@ -115,7 +106,13 @@ struct ULA {
 	}
 
 	void set_reset(const bool reset) {
-		if(reset) {
+		if(reset_ == reset) {
+			return;
+		}
+
+		// This is a software approximtion of holding the reset state for as long
+		// as it is signalled.
+		if(!reset) {
 			flags_ = 0x01;
 			to_parasite1_.reset();
 			to_parasite2_.reset();
@@ -126,19 +123,53 @@ struct ULA {
 			to_host3_.reset();
 			to_host4_.reset();
 		}
+		reset_ = reset;
+
+		update_parasite_reset();
 	}
 
 private:
+	void signal_changes(const uint8_t changes) {
+		if(changes & 0x01) {
+			host_.set_host_tube_irq(interrupt_sources_ & 0x01);
+		}
+		if(changes & 0x06) {
+			host_.set_parasite_tube_irq(interrupt_sources_ & 0x06);
+		}
+		if(changes & 0x08) {
+			host_.set_parasite_tube_nmi(interrupt_sources_ & 0x08);
+		}
+	}
+
+	uint8_t signalling_fifos() const {
+		return interrupt_sources_ & flags_;
+	}
+
+	void apply_fifo_mask(const uint8_t or_, const uint8_t and_) {
+		const auto signalling = signalling_fifos();
+		interrupt_sources_ = (interrupt_sources_ | or_) & and_;
+		signal_changes(signalling_fifos() ^ signalling);
+	}
+
+	void update_parasite_reset() {
+		host_.set_parasite_reset((flags_ & 0x20) || reset_);
+	}
+
 	uint8_t status() const {
 		return flags_;
 	}
 
 	void set_status(const uint8_t value) {
+		const auto signalling = signalling_fifos();
 		const uint8_t bits = value & 0x3f;
 		if(value & 0x80) {
 			flags_ |= bits;
 		} else {
 			flags_ &= ~bits;
+		}
+		signal_changes(signalling_fifos() ^ signalling);
+		if(value & 0x20) {
+			update_parasite_reset();
 		}
 
 		// TODO: understand meaning of bits 4 and 6.
@@ -146,6 +177,8 @@ private:
 
 	HostT &host_;
 	uint8_t flags_ = 0x01;
+	bool reset_ = false;
+	uint8_t interrupt_sources_ = 0x00;
 
 	FIFO<1, ULA> to_parasite1_;
 	FIFO<1, ULA> to_parasite2_;

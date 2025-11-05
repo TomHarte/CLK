@@ -31,12 +31,11 @@ public:
 		z80_.run_for(cycles * 3);
 	}
 
-	void set_irq() {	z80_.set_interrupt_line(true);	}
-	void set_nmi() {	z80_.set_non_maskable_interrupt_line(true);	}
+	void set_irq(const bool active) {	z80_.set_interrupt_line(active);				}
+	void set_nmi(const bool active) {	z80_.set_non_maskable_interrupt_line(active);	}
 	void set_reset(const bool reset) {
 		z80_.set_reset_line(reset);
 		rom_visible_ |= reset;
-		update_interrupts();
 	}
 
 	HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
@@ -71,7 +70,6 @@ public:
 
 			case CPU::Z80::PartialMachineCycle::Input:
 				*cycle.value = ula_.parasite_read(address);
-				update_interrupts();
 			break;
 
 			case CPU::Z80::PartialMachineCycle::Output:
@@ -85,10 +83,6 @@ public:
 	}
 
 private:
-	void update_interrupts() {
-		z80_.set_interrupt_line(ula_.has_parasite_irq());
-		z80_.set_non_maskable_interrupt_line(ula_.has_parasite_nmi());
-	}
 
 	CPU::Z80::Processor<TubeZ80, false, false> z80_;
 	bool rom_visible_ = true;

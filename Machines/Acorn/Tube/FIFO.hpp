@@ -42,12 +42,16 @@ struct FIFO {
 	uint8_t read() {
 		const uint8_t result = buffer_[read_ % length];
 		if(write_ != read_) ++read_;
+		if(write_ == read_) {
+			ula_.fifo_is_empty(mask_);
+		}
 		return result;
 	}
 
 	/// Empties the FIFO.
 	void reset() {
 		read_ = write_ = 0;
+		ula_.fifo_is_empty(mask_);
 	}
 
 private:
