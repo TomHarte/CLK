@@ -115,8 +115,9 @@ struct ULA {
 	}
 
 	void set_reset(const bool reset) {
-		if(reset) {
-			flags_ = 0x01;
+		// This attempts the software
+		if(!reset && reset_) {
+//			flags_ = 0x01;
 			to_parasite1_.reset();
 			to_parasite2_.reset();
 			to_parasite3_.reset();
@@ -126,6 +127,7 @@ struct ULA {
 			to_host3_.reset();
 			to_host4_.reset();
 		}
+		reset_ = reset;
 	}
 
 private:
@@ -146,6 +148,7 @@ private:
 
 	HostT &host_;
 	uint8_t flags_ = 0x01;
+	bool reset_ = false;
 
 	FIFO<1, ULA> to_parasite1_;
 	FIFO<1, ULA> to_parasite2_;
