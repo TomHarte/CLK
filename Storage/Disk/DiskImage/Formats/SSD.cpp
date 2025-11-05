@@ -16,15 +16,19 @@ namespace {
 using namespace Storage::Disk;
 
 SSD::SSD(const std::string &file_name) : MFMSectorDump(file_name) {
-	// very loose validation: the file needs to be a multiple of 256 bytes
-	// and not ungainly large
+	// Very loose validation: the file needs to be a multiple of 256 bytes
+	// and not ungainly large.
+
+	// Disk has two heads if the suffix is .dsd or if it's too large to be an SSD.
+	const bool is_double_sided =
+		(tolower(file_name[file_name.size() - 3]) == 'd') ||
+		file_.stats().st_size > 400*256;
 
 	if(file_.stats().st_size & 255) throw Error::InvalidFormat;
 	if(file_.stats().st_size < 512) throw Error::InvalidFormat;
 	if(file_.stats().st_size > 800*256) throw Error::InvalidFormat;
 
-	// this has two heads if the suffix is .dsd, one if it's .ssd
-	head_count_ = (tolower(file_name[file_name.size() - 3]) == 'd') ? 2 : 1;
+	head_count_ = is_double_sided ? 2 : 1;
 	track_count_ = int(file_.stats().st_size / (256 * 10 * head_count_));
 	if(track_count_ < 40) track_count_ = 40;
 	else if(track_count_ < 80) track_count_ = 80;
