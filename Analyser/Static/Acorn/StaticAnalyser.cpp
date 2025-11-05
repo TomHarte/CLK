@@ -126,7 +126,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 		if(dfs_catalogue || (adfs_catalogue && !adfs_catalogue->has_large_sectors && adfs_catalogue->is_hugo)) {
 			// Accept the disk and determine whether DFS or ADFS ROMs are implied.
 
-			// Special case: if there's only one file, and it is called CPMDISK,
+			// Special case: if there's only one file, and it is called CPMDISC,
 			// select a BBC with the Z80 second processor.
 			const auto &files = dfs_catalogue ? dfs_catalogue->files : adfs_catalogue->files;
 			if(files.size() == 1 && files[0].name == "$.CPMDISC") {
