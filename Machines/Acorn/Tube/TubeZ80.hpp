@@ -36,6 +36,7 @@ public:
 	void set_reset(const bool reset) {
 		z80_.set_reset_line(reset);
 		rom_visible_ |= reset;
+		update_interrupts();
 	}
 
 	HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {

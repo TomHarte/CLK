@@ -45,6 +45,11 @@ struct FIFO {
 		return result;
 	}
 
+	/// Empties the FIFO.
+	void reset() {
+		read_ = write_ = 0;
+	}
+
 private:
 	ULAT &ula_;
 	uint8_t mask_;
