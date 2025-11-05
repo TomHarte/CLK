@@ -140,7 +140,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 				return targets;
 			}
 
-			// Electron: use the Pres ADFS if using an ADFS, as it leaves Page at &EOO.
+			// Electron: use the Pres ADFS if using an ADFS, as it leaves Page at &E00.
 			targetElectron->media.disks = media.disks;
 			targetElectron->has_dfs = bool(dfs_catalogue);
 			targetElectron->has_pres_adfs = bool(adfs_catalogue);
