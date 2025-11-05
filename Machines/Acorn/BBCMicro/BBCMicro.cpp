@@ -899,7 +899,7 @@ public:
 			// The WD1770 is nominally clocked at 8Mhz.
 			wd1770_.run_for(duration * 4);
 		}
-		if constexpr (tube_processor != TubeProcessor::None) {
+		if constexpr (requires {tube_.processor;}) {
 			tube_.processor.run_for(duration);
 		}
 
@@ -961,17 +961,15 @@ public:
 					}
 				}
 			} else if(address >= 0xfee0 && address < 0xfee8) {
-				if constexpr (tube_processor == TubeProcessor::None) {
+				if constexpr (requires {tube_.ula;}) {
 					if constexpr (is_read(operation)) {
-						value = address == 0xfee0 ? 0xfe : 0xff;
+						value = tube_.ula.host_read(address);
+					} else {
+						tube_.ula.host_write(address, value);
 					}
 				} else {
 					if constexpr (is_read(operation)) {
-						const uint8_t result = tube_.ula.host_read(address);
-						value = result;
-					} else {
-						tube_.ula.host_write(address, value);
-						tube_.processor.set_reset(tube_.ula.parasite_reset());
+						value = address == 0xfee0 ? 0xfe : 0xff;
 					}
 				}
 			} else if(address >= 0xfe08 && address < 0xfe10) {
@@ -1108,9 +1106,8 @@ private:
 
 	void set_reset(const bool reset) {
 		m6502_.template set<CPU::MOS6502Mk2::Line::Reset>(reset);
-		if constexpr (tube_processor != TubeProcessor::None) {
+		if constexpr (requires {tube_.ula;}) {
 			tube_.ula.set_reset(reset);
-			tube_.processor.set_reset(reset);
 		}
 	}
 
@@ -1219,7 +1216,7 @@ private:
 	void update_irq_line() {
 		const bool tube_irq =
 			[&] {
-				if constexpr (tube_processor != TubeProcessor::None) {
+				if constexpr (requires {tube_.ula;}) {
 					return tube_.ula.has_host_irq();
 				} else {
 					return false;
@@ -1274,9 +1271,10 @@ private:
 	Tube<ConcreteMachine, tube_processor> tube_;
 
 public:
-	void set_host_tube_irq()		{	update_irq_line();			}
-	void set_parasite_tube_irq()	{	tube_.processor.set_irq();	}
-	void set_parasite_tube_nmi()	{	tube_.processor.set_nmi();	}
+	void set_host_tube_irq(bool)					{	update_irq_line();					}
+	void set_parasite_tube_irq(const bool active)	{	tube_.processor.set_irq(active);	}
+	void set_parasite_tube_nmi(const bool active)	{	tube_.processor.set_nmi(active);	}
+	void set_parasite_reset(const bool active)		{	tube_.processor.set_reset(active);	}
 };
 
 }
