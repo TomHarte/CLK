@@ -26,7 +26,7 @@ SSD::SSD(const std::string &file_name) : MFMSectorDump(file_name) {
 
 	if(file_.stats().st_size & 255) throw Error::InvalidFormat;
 	if(file_.stats().st_size < 512) throw Error::InvalidFormat;
-	if(file_.stats().st_size > 800*256) throw Error::InvalidFormat;
+	if(file_.stats().st_size > 80*2*10*256) throw Error::InvalidFormat;
 
 	head_count_ = is_double_sided ? 2 : 1;
 	track_count_ = int(file_.stats().st_size / (256 * 10 * head_count_));
