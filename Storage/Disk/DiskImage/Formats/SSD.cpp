@@ -22,7 +22,7 @@ SSD::SSD(const std::string &file_name) : MFMSectorDump(file_name) {
 	// Disk has two heads if the suffix is .dsd or if it's too large to be an SSD.
 	const bool is_double_sided =
 		(tolower(file_name[file_name.size() - 3]) == 'd') ||
-		file_.stats().st_size > 400*256;
+		file_.stats().st_size > 80*10*256;
 
 	if(file_.stats().st_size & 255) throw Error::InvalidFormat;
 	if(file_.stats().st_size < 512) throw Error::InvalidFormat;
