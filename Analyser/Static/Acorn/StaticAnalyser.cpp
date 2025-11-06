@@ -85,6 +85,12 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	TargetPlatform::IntType,
 	bool
 ) {
+	const auto early_exit = [](auto &ptr) {
+		TargetList list;
+		list.push_back(std::move(ptr));
+		return list;
+	};
+
 	auto targetElectron = std::make_unique<ElectronTarget>();
 	auto targetBBC = std::make_unique<BBCMicroTarget>();
 	auto targetArchimedes = std::make_unique<ArchimedesTarget>();
@@ -126,20 +132,6 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 		if(dfs_catalogue || (adfs_catalogue && !adfs_catalogue->has_large_sectors && adfs_catalogue->is_hugo)) {
 			// Accept the disk and determine whether DFS or ADFS ROMs are implied.
 
-			// Special case: if there's only one file, and it is called CPMDISC,
-			// select a BBC with the Z80 second processor.
-			const auto &files = dfs_catalogue ? dfs_catalogue->files : adfs_catalogue->files;
-			if(files.size() == 1 && files[0].name == "$.CPMDISC") {
-				targetBBC->media.disks = media.disks;
-				targetBBC->has_1770dfs = bool(dfs_catalogue);
-				targetBBC->has_adfs = bool(adfs_catalogue);
-				targetBBC->tube_processor = BBCMicroTarget::TubeProcessor::Z80;
-
-				TargetList targets;
-				targets.push_back(std::move(targetBBC));
-				return targets;
-			}
-
 			// Electron: use the Pres ADFS if using an ADFS, as it leaves Page at &E00.
 			targetElectron->media.disks = media.disks;
 			targetElectron->has_dfs = bool(dfs_catalogue);
@@ -149,6 +141,14 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 			targetBBC->media.disks = media.disks;
 			targetBBC->has_1770dfs = bool(dfs_catalogue);
 			targetBBC->has_adfs = bool(adfs_catalogue);
+
+			// Special case: if there's only one file, and it is called CPMDISC,
+			// select a BBC with the Z80 second processor.
+			const auto &files = dfs_catalogue ? dfs_catalogue->files : adfs_catalogue->files;
+			if(files.size() == 1 && files[0].name == "$.CPMDISC") {
+				targetBBC->tube_processor = BBCMicroTarget::TubeProcessor::Z80;
+				return early_exit(targetBBC);
+			}
 
 			// Check whether a simple shift+break will do for loading this disk.
 			const auto bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
@@ -174,10 +174,19 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 					sole_basic_file ? "CHAIN \"" + sole_basic_file->name + "\"\n" : "*CAT\n";
 			}
 
+			// Further special case: if any of the files have a top word of 0x0003 then
+			// they're for a 6502 second processor, so provide a BBC with one of those.
+			for(const auto &file: files) {
+				if((file.load_address >> 16) == 3) {
+					targetBBC->tube_processor = BBCMicroTarget::TubeProcessor::WDC65C02;
+					return early_exit(targetBBC);
+				}
+			}
+
 			// Add a slight preference for the BBC over the Electron, all else being equal, if this is a DFS floppy.
 			format_prefers_bbc = bool(dfs_catalogue);
 
-			for(const auto &file: dfs_catalogue ? dfs_catalogue->files : adfs_catalogue->files) {
+			for(const auto &file: files) {
 				// Electron: check whether adding the AP6 ROM is justified.
 				// For now this is an incredibly dense text search;
 				// if any of the commands that aren't usually present
