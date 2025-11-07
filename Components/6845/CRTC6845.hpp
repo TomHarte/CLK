@@ -76,7 +76,7 @@ public:
 	CRTC6845(BusHandlerT &bus_handler) noexcept :
 		bus_handler_(bus_handler), status_(0) {}
 
-	void select_register(uint8_t r) {
+	void select_register(const uint8_t r) {
 		selected_register_ = r;
 	}
 
@@ -101,11 +101,11 @@ public:
 		// Per the BBC Wiki, attempting to read such a register results in 0.
 		if(selected_register_ < 12 || selected_register_ > 17) return 0x00;
 
-		return registers_[selected_register_];
+		return registers_[selected_register_.get()];
 	}
 
 	void set_register(const uint8_t value) {
-		switch(selected_register_) {
+		switch(selected_register_.get()) {
 			case 0:	layout_.horizontal.total = value;		break;
 			case 1: layout_.horizontal.displayed = value;	break;
 			case 2:	layout_.horizontal.start_sync = value;	break;
@@ -168,9 +168,9 @@ public:
 		};
 
 		if(selected_register_ < 16) {
-			registers_[selected_register_] = value & masks[selected_register_];
+			registers_[selected_register_.get()] = value & masks[selected_register_.get()];
 		}
-		if(selected_register_ == 31 && personality == Personality::UM6845R) {
+		if(selected_register_.get() == 31 && personality == Personality::UM6845R) {
 			dummy_register_ = value;
 		}
 	}
@@ -527,7 +527,7 @@ private:
 
 	uint8_t registers_[18]{};
 	uint8_t dummy_register_ = 0;
-	int selected_register_ = 0;
+	Numeric::SizedInt<5> selected_register_ = 0;
 
 	CharacterAddress character_counter_;		// h_counter
 	Numeric::SizedInt<3> character_reset_history_;	// sol
