@@ -766,7 +766,7 @@ public:
 
 		auto request = Request(Name::AcornBASICII) && Request(Name::BBCMicroMOS12);
 		if(target.has_1770dfs || tube_processor != TubeProcessor::None) {
-			request = request && Request(Name::BBCMicroDFS226);
+			request = request && Request(Name::BBCMicro1770DFS226);
 		}
 		if(target.has_adfs) {
 			request = request && Request(Name::BBCMicroADFS130);
@@ -794,13 +794,13 @@ public:
 			install_sideways(fs_slot--, roms.find(name)->second, false);
 		};
 		if(target.has_1770dfs) {
-			add_sideways(Name::BBCMicroDFS226);
+			add_sideways(Name::BBCMicro1770DFS226);
 		}
 		if(target.has_adfs) {
 			add_sideways(Name::BBCMicroADFS130);
 		}
 		if(!target.has_1770dfs && tube_processor != TubeProcessor::None) {
-			add_sideways(Name::BBCMicroDFS226);
+			add_sideways(Name::BBCMicro1770DFS226);
 		}
 
 		// Throw the tube ROM to its target.
@@ -1195,8 +1195,12 @@ private:
 		rom_write_masks_[slot] = is_writeable;
 		rom_inserted_[slot] = true;
 
-		assert(source.size() == roms_[slot].size());
-		std::copy(source.begin(), source.end(), roms_[slot].begin());
+		assert(roms_[slot].size() % source.size() == 0);
+		auto begin = roms_[slot].begin();
+		while(begin != roms_[slot].end()) {
+			std::copy(source.begin(), source.end(), begin);
+			std::advance(begin, source.size());
+		}
 	}
 
 	// MARK: - Components.
