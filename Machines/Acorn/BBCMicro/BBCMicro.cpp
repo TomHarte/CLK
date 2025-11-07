@@ -1195,8 +1195,12 @@ private:
 		rom_write_masks_[slot] = is_writeable;
 		rom_inserted_[slot] = true;
 
-		assert(source.size() == roms_[slot].size());
-		std::copy(source.begin(), source.end(), roms_[slot].begin());
+		assert(roms_[slot].size() % source.size() == 0);
+		auto begin = roms_[slot].begin();
+		while(begin != roms_[slot].end()) {
+			std::copy(source.begin(), source.end(), begin);
+			std::advance(begin, source.size());
+		}
 	}
 
 	// MARK: - Components.
