@@ -127,13 +127,13 @@ public:
 				}
 
 				// Per CPC documentation, skew doesn't work on a "type 1 or 2", i.e. an MC6845 or a UM6845R.
-				if(personality != Personality::UM6845R && personality != Personality::MC6845) {
-					switch((value >> 4)&3) {
-						default:	display_skew_mask_ = 1;		break;
-						case 1:		display_skew_mask_ = 2;		break;
-						case 2:		display_skew_mask_ = 4;		break;
-					}
-				}
+//				if(personality != Personality::UM6845R && personality != Personality::MC6845) {
+//					switch((value >> 4)&3) {
+//						default:	display_skew_mask_ = 1;		break;
+//						case 1:		display_skew_mask_ = 2;		break;
+//						case 2:		display_skew_mask_ = 4;		break;
+//					}
+//				}
 			break;
 			case 9:	layout_.vertical.end_line = value;	break;
 			case 10:
@@ -533,7 +533,6 @@ private:
 	LineAddress line_;							// line_counter
 	LineAddress next_line_;						// line_counter_next
 	RefreshAddress refresh_;					// ma_i
-	uint8_t adjustment_counter_ = 0;
 
 	bool character_is_visible_ = false;			// h_display
 	bool row_is_visible_ = false;				// v_display
@@ -549,8 +548,7 @@ private:
 	RefreshAddress line_address_;				// ma_row
 	uint8_t status_ = 0;
 
-	int display_skew_mask_ = 1;
-	unsigned int character_is_visible_shifter_ = 0;
+//	int display_skew_mask_ = 1;
 
 	bool eof_latched_ = false;					// eof_latched
 	bool eom_latched_ = false;					// eom_latched
@@ -560,8 +558,6 @@ private:
 	bool hit_vsync_last_ = false;				// vs_hit_last
 	bool vsync_even_ = false;					// vs_even
 	bool vsync_odd_ = false;					// vs_odd
-
-	bool reset_ = false;
 
 	Numeric::SizedInt<3> cursor_history_;	// cursor0, cursor1, cursor2 [TODO]
 	bool line_is_interlaced_ = false;
