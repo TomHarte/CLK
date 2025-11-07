@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "TubeProcessor.hpp"
+
 #include "Processors/6502Mk2/6502Mk2.hpp"
 #include "Machines/Utility/ROMCatalogue.hpp"
 
@@ -16,7 +18,7 @@
 namespace Acorn::Tube {
 
 template <typename ULAT>
-struct Tube6502 {
+class Processor<ULAT, TubeProcessor::WDC65C02> {
 public:
 	static constexpr auto ROM = ROM::Name::BBCMicro6502Tube110;
 	void set_rom(std::vector<uint8_t> source) {
@@ -24,7 +26,7 @@ public:
 		std::copy(source.begin(), source.end(), rom_);
 	}
 
-	Tube6502(ULAT &ula) : m6502_(*this), ula_(ula) {}
+	Processor(ULAT &ula) : m6502_(*this), ula_(ula) {}
 
 	// By convention, these are cycles relative to the host's 2Mhz bus.
 	// Multiply by 3/2 to turn that into the tube 6502's usual 3Mhz bus.
@@ -68,7 +70,7 @@ private:
 	struct M6502Traits {
 		static constexpr auto uses_ready_line = false;
 		static constexpr auto pause_precision = CPU::MOS6502Mk2::PausePrecision::AnyCycle;
-		using BusHandlerT = Tube6502;
+		using BusHandlerT = Processor;
 	};
 	CPU::MOS6502Mk2::Processor<CPU::MOS6502Mk2::Model::WDC65C02, M6502Traits> m6502_;
 	bool rom_visible_ = true;

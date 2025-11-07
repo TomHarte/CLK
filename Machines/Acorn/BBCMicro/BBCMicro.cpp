@@ -687,33 +687,20 @@ using CRTC = Motorola::CRTC::CRTC6845<
 
 // MARK: - Tube.
 
-template <typename HostT, TubeProcessor> struct Tube;
+template <typename HostT, TubeProcessor tube_processor>
+struct Tube {
+	using TubeULA = Acorn::Tube::ULA<HostT>;
+	TubeULA ula;
+	Acorn::Tube::Processor<TubeULA, tube_processor> processor;
+
+	Tube(HostT &owner) :
+		ula(owner),
+		processor(ula) {}
+};
 
 template <typename HostT>
 struct Tube<HostT, TubeProcessor::None> {
 	Tube(HostT &) {}
-};
-
-template <typename HostT>
-struct Tube<HostT, TubeProcessor::WDC65C02> {
-	using TubeULA = Acorn::Tube::ULA<HostT>;
-	TubeULA ula;
-	Acorn::Tube::Tube6502<TubeULA> processor;
-
-	Tube(HostT &owner) :
-		ula(owner),
-		processor(ula) {}
-};
-
-template <typename HostT>
-struct Tube<HostT, TubeProcessor::Z80> {
-	using TubeULA = Acorn::Tube::ULA<HostT>;
-	TubeULA ula;
-	Acorn::Tube::TubeZ80<TubeULA> processor;
-
-	Tube(HostT &owner) :
-		ula(owner),
-		processor(ula) {}
 };
 
 // MARK: - ConcreteMachine.
