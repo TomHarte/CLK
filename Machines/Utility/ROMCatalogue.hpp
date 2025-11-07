@@ -82,7 +82,8 @@ enum Name {
 
 	// BBC Micro.
 	BBCMicroMOS12,
-	BBCMicroDFS226,
+	BBCMicro8271DFS09,
+	BBCMicro1770DFS226,
 	BBCMicroADFS130,
 	BBCMicroAdvancedDiscToolkit140,
 	BBCMicro6502Tube110,
