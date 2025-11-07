@@ -492,9 +492,6 @@ private:
 		/// Provide interlaced sync and scan even/odd lines depending on field.
 		SyncAndVideo,
 	};
-	enum class BlinkMode {
-		// TODO.
-	};
 
 	// Comments on the right provide the corresponding signal name in hoglet's VHDL implementation.
 	struct {
