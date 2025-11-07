@@ -1951,6 +1951,7 @@
 		4B9378E322A199C600973513 /* Audio.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Audio.hpp; sourceTree = "<group>"; };
 		4B95FA9C1F11893B0008E395 /* ZX8081Controller.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZX8081Controller.swift; sourceTree = "<group>"; };
 		4B961408222760E0001A7BF2 /* Screenshot.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Screenshot.hpp; sourceTree = "<group>"; };
+		4B96DEC32EBEA88C00505298 /* TubeProcessor.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TubeProcessor.hpp; sourceTree = "<group>"; };
 		4B96F7CB263E30B00092AEE1 /* RawSectorDump.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RawSectorDump.hpp; sourceTree = "<group>"; };
 		4B96F7CC263E33B10092AEE1 /* DSK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DSK.cpp; sourceTree = "<group>"; };
 		4B96F7CD263E33B10092AEE1 /* DSK.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DSK.hpp; sourceTree = "<group>"; };
@@ -3365,6 +3366,7 @@
 				4B4195F52EB92630001C966D /* Tube6502.hpp */,
 				4B4195F62EBAB06C001C966D /* TubeZ80.hpp */,
 				4B4195F42EB8F061001C966D /* ULA.hpp */,
+				4B96DEC32EBEA88C00505298 /* TubeProcessor.hpp */,
 			);
 			path = Tube;
 			sourceTree = "<group>";

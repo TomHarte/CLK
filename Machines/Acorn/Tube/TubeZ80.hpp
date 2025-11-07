@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "TubeProcessor.hpp"
+
 #include "Processors/Z80/Z80.hpp"
 #include "Machines/Utility/ROMCatalogue.hpp"
 
@@ -16,7 +18,7 @@
 namespace Acorn::Tube {
 
 template <typename ULAT>
-struct TubeZ80: public CPU::Z80::BusHandler {
+class Processor<ULAT, TubeProcessor::Z80>: public CPU::Z80::BusHandler {
 public:
 	static constexpr auto ROM = ROM::Name::BBCMicroZ80Tube122;
 	void set_rom(std::vector<uint8_t> rom) {
@@ -24,7 +26,7 @@ public:
 		std::copy(rom.begin(), rom.end(), std::begin(rom_));
 	}
 
-	TubeZ80(ULAT &ula) : z80_(*this), ula_(ula) {}
+	Processor(ULAT &ula) : z80_(*this), ula_(ula) {}
 
 	void run_for(const Cycles cycles) {
 		// Map from 2Mhz to 6Mhz.
@@ -84,7 +86,7 @@ public:
 
 private:
 
-	CPU::Z80::Processor<TubeZ80, false, false> z80_;
+	CPU::Z80::Processor<Processor, false, false> z80_;
 	bool rom_visible_ = true;
 
 	uint8_t rom_[4096];
