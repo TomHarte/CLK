@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "Numeric/SizedInt.hpp"
+
 #include "Concurrency/AsyncTaskQueue.hpp"
 #include "Outputs/Speaker/Implementation/BufferSource.hpp"
 
@@ -17,6 +19,10 @@ class SID: public Outputs::Speaker::BufferSource<SID, false> {
 public:
 	SID(Concurrency::AsyncTaskQueue<false> &audio_queue);
 
+	void write(Numeric::SizedInt<5> address, uint8_t value);
+	uint8_t read(Numeric::SizedInt<5> address);
+
+	// Outputs::Speaker::BufferSource.
 	template <Outputs::Speaker::Action action>
 		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
 	bool is_zero_level() const;
@@ -24,6 +30,18 @@ public:
 
 private:
 	Concurrency::AsyncTaskQueue<false> &audio_queue_;
+
+	struct Voice {
+		Numeric::SizedInt<16> frequency;
+		Numeric::SizedInt<12> pulse_width;
+		Numeric::SizedInt<8> control;
+		Numeric::SizedInt<4> attack;
+		Numeric::SizedInt<4> decay;
+		Numeric::SizedInt<4> sustain;
+		Numeric::SizedInt<4> release;
+	};
+
+	Voice voices_[3];
 };
 
 }

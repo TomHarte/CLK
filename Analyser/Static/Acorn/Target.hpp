@@ -44,7 +44,7 @@ struct BBCMicroTarget: public ::Analyser::Static::Target, public Reflection::Str
 	bool has_1770dfs = false;
 	bool has_adfs = false;
 	bool has_sideways_ram = true;
-	bool has_beebsid = true;
+	bool has_beebsid = true;			// TODO: false is a much better default.
 
 	ReflectableEnum(TubeProcessor, None, WDC65C02, Z80);
 	TubeProcessor tube_processor = TubeProcessor::None;

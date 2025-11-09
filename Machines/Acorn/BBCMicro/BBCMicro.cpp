@@ -109,6 +109,8 @@ private:
 /*!
 	Combines an SN76489 with an appropriate asynchronous queue and filtering speaker.
 */
+
+// TODO: generalise the below and clean up across the project.
 template <bool has_beebsid>
 struct Audio {
 private:
@@ -147,7 +149,7 @@ public:
 			return sn76489_;
 		}
 		if constexpr (std::is_same_v<TargetT, MOS::SID::SID>) {
-			return sn76489_;
+			return sid_;
 		}
 	}
 
@@ -1026,6 +1028,12 @@ public:
 							wd1770_.write(address, value);
 						}
 					break;
+				}
+			} else if(has_beebsid && address >= 0xfc20 && address < 0xfc40) {
+				if constexpr (is_read(operation)) {
+					value = audio_.template get<MOS::SID::SID>().read(+address);
+				} else {
+					audio_.template get<MOS::SID::SID>().write(+address, value);
 				}
 			} else {
 				Logger::error()

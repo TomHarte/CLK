@@ -12,6 +12,30 @@ using namespace MOS::SID;
 
 SID::SID(Concurrency::AsyncTaskQueue<false> &audio_queue) : audio_queue_(audio_queue) {}
 
+
+void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
+	switch(address.get()) {
+		case 0x00:	case 0x07:	case 0x0e:	voices_[address.get() / 7].frequency.load<0>(value);	break;
+		case 0x01:	case 0x08:	case 0x0f:	voices_[address.get() / 7].frequency.load<8>(value);	break;
+		case 0x02:	case 0x09:	case 0x10:	voices_[address.get() / 7].pulse_width.load<0>(value);	break;
+		case 0x03:	case 0x0a:	case 0x11:	voices_[address.get() / 7].pulse_width.load<8>(value);	break;
+		case 0x04:	case 0x0b:	case 0x12:	voices_[address.get() / 7].control = value;				break;
+		case 0x05:	case 0x0c:	case 0x13:
+			voices_[address.get() / 7].attack = value >> 4;
+			voices_[address.get() / 7].decay = value;
+		break;
+		case 0x06:	case 0x0d:	case 0x14:
+			voices_[address.get() / 7].sustain = value >> 4;
+			voices_[address.get() / 7].release = value;
+		break;
+	}
+}
+
+uint8_t SID::read(const Numeric::SizedInt<5> address) {
+	(void)address;
+	return 0xff;
+}
+
 void SID::set_sample_volume_range(const std::int16_t range) {
 	(void)range;
 }
