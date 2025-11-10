@@ -48,9 +48,19 @@ bool SID::is_zero_level() const {
 template <Outputs::Speaker::Action action>
 void SID::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::MonoSample *const target) {
 	for(std::size_t c = 0; c < number_of_samples; c++) {
+		// Advance phase.
 		voices_[0].update();
 		voices_[1].update();
 		voices_[2].update();
+
+		// Apply hard synchronisations.
+		voices_[0].synchronise(voices_[2]);
+		voices_[1].synchronise(voices_[0]);
+		voices_[2].synchronise(voices_[1]);
+
+		// TODO: inspect enabled wave types (and volumes) to complete digital path.
+
+		// TODO: apply filter.
 	}
 	(void)number_of_samples;
 	(void)target;

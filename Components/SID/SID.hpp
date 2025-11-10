@@ -44,15 +44,27 @@ private:
 		bool pulse() const { return control.bit<6>(); }
 		bool sawtooth() const { return control.bit<5>(); }
 		bool triangle() const { return control.bit<4>(); }
-		bool test() const { return control.bit<3>(); }
+		bool test() const { return control.bit<3>(); }			// Implemented.
 		bool ring_mod() const { return control.bit<2>(); }
-		bool sync() const { return control.bit<1>(); }
+		bool sync() const { return control.bit<1>(); }			// Implemented.
 		bool gate() const { return control.bit<0>(); }
 
 		Numeric::SizedInt<24> phase;
+		Numeric::SizedInt<24> previous_phase;
 
 		void update() {
-			phase += pitch.get();
+			previous_phase = phase;
+			if(test()) {
+				phase = 0;
+			} else {
+				phase += pitch.get();
+			}
+		}
+
+		void synchronise(const Voice &prior) {
+			if(sync() && !prior.previous_phase.bit<23>() && prior.phase.bit<23>()) {
+				phase = 0;
+			}
 		}
 	};
 
