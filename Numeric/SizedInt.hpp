@@ -24,8 +24,9 @@ struct SizedInt {
 	constexpr SizedInt(const IntT start_value) noexcept : counter_(start_value & Mask) {}
 	SizedInt() = default;
 
+	template <int begin = 0>
 	IntT get() const {
-		return counter_;
+		return counter_ >> begin;
 	}
 
 	SizedInt operator +(const SizedInt offset) const {	return SizedInt<bits>(counter_ + offset.counter_); }
