@@ -58,6 +58,8 @@ void SID::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::M
 		voices_[1].synchronise(voices_[0]);
 		voices_[2].synchronise(voices_[1]);
 
+		// TODO: advance ADSR.
+
 		// TODO: inspect enabled wave types (and volumes) to complete digital path.
 
 		// TODO: apply filter.
