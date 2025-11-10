@@ -32,13 +32,28 @@ private:
 	Concurrency::AsyncTaskQueue<false> &audio_queue_;
 
 	struct Voice {
-		Numeric::SizedInt<16> frequency;
+		Numeric::SizedInt<16> pitch;
 		Numeric::SizedInt<12> pulse_width;
 		Numeric::SizedInt<8> control;
 		Numeric::SizedInt<4> attack;
 		Numeric::SizedInt<4> decay;
 		Numeric::SizedInt<4> sustain;
 		Numeric::SizedInt<4> release;
+
+		bool noise() const { return control.bit<7>(); }
+		bool pulse() const { return control.bit<6>(); }
+		bool sawtooth() const { return control.bit<5>(); }
+		bool triangle() const { return control.bit<4>(); }
+		bool test() const { return control.bit<3>(); }
+		bool ring_mod() const { return control.bit<2>(); }
+		bool sync() const { return control.bit<1>(); }
+		bool gate() const { return control.bit<0>(); }
+
+		Numeric::SizedInt<24> phase;
+
+		void update() {
+			phase += pitch.get();
+		}
 	};
 
 	Voice voices_[3];

@@ -15,8 +15,8 @@ SID::SID(Concurrency::AsyncTaskQueue<false> &audio_queue) : audio_queue_(audio_q
 void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
 	audio_queue_.enqueue([&] {
 		switch(address.get()) {
-			case 0x00:	case 0x07:	case 0x0e:	voices_[address.get() / 7].frequency.load<0>(value);	break;
-			case 0x01:	case 0x08:	case 0x0f:	voices_[address.get() / 7].frequency.load<8>(value);	break;
+			case 0x00:	case 0x07:	case 0x0e:	voices_[address.get() / 7].pitch.load<0>(value);		break;
+			case 0x01:	case 0x08:	case 0x0f:	voices_[address.get() / 7].pitch.load<8>(value);		break;
 			case 0x02:	case 0x09:	case 0x10:	voices_[address.get() / 7].pulse_width.load<0>(value);	break;
 			case 0x03:	case 0x0a:	case 0x11:	voices_[address.get() / 7].pulse_width.load<8>(value);	break;
 			case 0x04:	case 0x0b:	case 0x12:	voices_[address.get() / 7].control = value;				break;
@@ -47,6 +47,11 @@ bool SID::is_zero_level() const {
 
 template <Outputs::Speaker::Action action>
 void SID::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::MonoSample *const target) {
+	for(std::size_t c = 0; c < number_of_samples; c++) {
+		voices_[0].update();
+		voices_[1].update();
+		voices_[2].update();
+	}
 	(void)number_of_samples;
 	(void)target;
 }
