@@ -164,9 +164,9 @@ private:
 				while(!should_quit_.load(std::memory_order_relaxed)) {
 					// Wait for new actions to be signalled, and grab them.
 					std::unique_lock lock(condition_mutex_);
-					while(actions_.empty() && !should_quit_.load(std::memory_order_relaxed)) {
-						condition_.wait(lock);
-					}
+					condition_.wait(lock, [&] {
+						return !actions_.empty() || should_quit_.load(std::memory_order_relaxed);
+					});
 					std::swap(actions, actions_);
 					lock.unlock();
 
