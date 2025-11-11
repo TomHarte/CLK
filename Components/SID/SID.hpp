@@ -87,13 +87,27 @@ private:
 			Numeric::SizedInt<4> release;
 
 			// State.
-			Numeric::SizedInt<8> envelope;
-			Numeric::SizedInt<15> rate_counter;
 			enum class Phase {
 				Attack,
 				DecayAndHold,
 				Release,
-			} phase_ = Phase::Attack;
+			} phase = Phase::Release;
+			Numeric::SizedInt<15> rate_counter;
+			Numeric::SizedInt<15> rate_counter_target;
+
+			void set_phase(const Phase new_phase) {
+				static constexpr uint16_t rate_prescaler[] = {
+					9, 32, 63, 95, 149, 220, 267, 313, 392, 977, 1954, 3126, 3907, 11720, 19532, 31251
+				};
+				static_assert(sizeof(rate_prescaler) / sizeof(*rate_prescaler) == 16);
+
+				phase = new_phase;
+				switch(phase) {
+					case Phase::Attack:			rate_counter_target = rate_prescaler[attack.get()]; break;
+					case Phase::DecayAndHold:	rate_counter_target = rate_prescaler[decay.get()]; break;
+					case Phase::Release:		rate_counter_target = rate_prescaler[release.get()]; break;
+				}
+			}
 		} adsr;
 		Numeric::SizedInt<8> control;
 
@@ -119,7 +133,14 @@ private:
 				}
 			}
 
-			// TODO: ADSR.
+			// ADSR.
+			++ adsr.rate_counter;
+			if(adsr.rate_counter == adsr.rate_counter_target) {
+				adsr.rate_counter = 0;
+
+				// TODO: second prescaler?
+			}
+
 		}
 
 		void synchronise(const Voice &prior) {

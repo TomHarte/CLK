@@ -47,10 +47,12 @@ void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
 			case 0x05:	case 0x0c:	case 0x13:
 				adsr().attack = value >> 4;
 				adsr().decay = value;
+				adsr().set_phase(adsr().phase);
 			break;
 			case 0x06:	case 0x0d:	case 0x14:
 				adsr().sustain = value >> 4;
 				adsr().release = value;
+				adsr().set_phase(adsr().phase);
 			break;
 		}
 	});
@@ -81,8 +83,6 @@ void SID::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::M
 		voices_[0].synchronise(voices_[2]);
 		voices_[1].synchronise(voices_[0]);
 		voices_[2].synchronise(voices_[1]);
-
-		// TODO: advance ADSR.
 
 		// TODO: inspect enabled wave types (and volumes) to complete digital path.
 
