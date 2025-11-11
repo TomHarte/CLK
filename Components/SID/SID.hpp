@@ -54,25 +54,29 @@ private:
 			bool did_rise_b23() const {
 				return previous_phase > phase;
 			}
+			bool did_rise_b19() const {
+				static constexpr int NoiseBit = 1 << (19 + 8);
+				return (previous_phase ^ phase) & phase & NoiseBit;
+			}
 			uint16_t sawtooth_output() const {
 				return (phase >> 20) ^ 0x800;
 			}
 			uint16_t noise_output() const {
 				// Uses bits: 20, 18, 14, 11, 9, 5, 2 and 0, plus four more zero bits.
 				return
-					((noise >> 8) & 0x800) |
-					((noise >> 7) & 0x400) |
-					((noise >> 4) & 0x200) |
-					((noise >> 2) & 0x100) |
-					((noise >> 1) & 0x080) |
-					((noise << 2) & 0x040) |
-					((noise << 4) & 0x020) |
-					((noise << 5) & 0x010);
+					((noise >> 8) & 0b1000'0000'0000) |		// b20 -> b11
+					((noise >> 8) & 0b0100'0000'0000) |		// b18 -> b10
+					((noise >> 5) & 0b0010'0000'0000) |		// b14 -> b9
+					((noise >> 3) & 0b0001'0000'0000) |		// b11 -> b8
+					((noise >> 2) & 0b0000'1000'0000) |		// b9 -> b7
+					((noise << 1) & 0b0000'0100'0000) |		// b5 -> b6
+					((noise << 3) & 0b0000'0010'0000) |		// b2 -> b5
+					((noise << 4) & 0b0000'0001'0000);		// b0 -> b4
 			}
-			void update_noise() {
+			void update_noise(const bool test) {
 				noise =
 					(noise << 1) |
-					(((noise >> 17) ^ (noise >> 20)) & 1);
+					(((noise >> 17) ^ ((noise >> 22) | test)) & 1);
 			}
 		} oscillator;
 		struct ADSR {
@@ -110,8 +114,8 @@ private:
 			} else {
 				oscillator.phase += oscillator.pitch;
 
-				if(oscillator.did_rise_b23()) {
-					oscillator.update_noise();
+				if(oscillator.did_rise_b19()) {
+					oscillator.update_noise(test());
 				}
 			}
 

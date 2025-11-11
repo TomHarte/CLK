@@ -1173,6 +1173,9 @@ private:
 	}
 
 	void flush_output(const int outputs) final {
+		// TODO: I think there's an infrastructural bug here on macOS; if the audio output has stalled out,
+		// the outer wrapper won't ask for an audio flush, which means the queue will never try to start,
+		// and the audio queue will just fill indefinitely. Could this be the mythical 'leak'?
 		if(outputs & Output::Audio) {
 			audio_.flush();
 		}
