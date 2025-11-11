@@ -111,7 +111,7 @@ private:
 		}
 
 		uint16_t pulse_output() const {
-			return oscillator.phase > oscillator.pulse_width ? MaxWaveformValue : 0;
+			return (oscillator.phase > oscillator.pulse_width) ? MaxWaveformValue : 0;
 		}
 
 		uint16_t triangle_output(const Voice &prior) const {
@@ -136,10 +136,14 @@ private:
 
 			uint16_t output = MaxWaveformValue;
 
-			if(pulse())		output &= pulse_output();
-			if(sawtooth())	output &= sawtooth_output();
-			if(triangle())	output &= triangle_output(prior);
-			if(noise())		output &= noise_output();
+			if(pulse())
+				output &= pulse_output();
+			if(sawtooth())
+				output &= sawtooth_output();
+			if(triangle())
+				output &= triangle_output(prior);
+			if(noise())
+				output &= noise_output();
 
 			return output;
 		}

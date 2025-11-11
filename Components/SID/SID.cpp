@@ -13,7 +13,7 @@ using namespace MOS::SID;
 SID::SID(Concurrency::AsyncTaskQueue<false> &audio_queue) : audio_queue_(audio_queue) {}
 
 void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
-	audio_queue_.enqueue([&] {
+	audio_queue_.enqueue([=, this] {
 		const auto voice = [&]() -> Voice & {
 			return voices_[address.get() / 7];
 		};
@@ -62,7 +62,7 @@ void SID::set_sample_volume_range(const std::int16_t range) {
 }
 
 bool SID::is_zero_level() const {
-	return true;
+	return false;
 }
 
 template <Outputs::Speaker::Action action>
