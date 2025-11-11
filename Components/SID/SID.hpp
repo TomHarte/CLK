@@ -34,12 +34,26 @@ private:
 	struct Voice {
 		struct Oscillator {
 			// Programmer inputs.
-			Numeric::SizedInt<16> pitch;
-			Numeric::SizedInt<12> pulse_width;
+			uint32_t pitch = 0;
+			uint32_t pulse_width = 0;
 
 			// State.
-			Numeric::SizedInt<24> phase;
-			Numeric::SizedInt<24> previous_phase;
+			//
+			// A real SID has a 24-bit phase counter and does various things when the top bit transitions from 0 to 1.
+			// This implementation maintains a 32-bit phase counter in which the low byte is unused and the top bit
+			// is inverted. That saves the cost of any masking and makes the 0 -> 1 transition test actually a 1 -> 0
+			// transition test, which can be phrased simply as after < before. Sadly overflow of signed integers is
+			// still undefined behaviour in C++ at the time of writing.
+			static constexpr uint32_t PhaseReload = 0x8000'0000;
+			uint32_t phase = PhaseReload;
+			uint32_t previous_phase = PhaseReload;
+
+			bool did_rise_b23() const {
+				return previous_phase > phase;
+			}
+			uint16_t sawtooth() const {
+				return phase >> 20;
+			}
 		} oscillator;
 		struct ADSR {
 			// Programmer inputs.
@@ -59,14 +73,14 @@ private:
 		} adsr;
 		Numeric::SizedInt<8> control;
 
-		bool noise() const		{ return control.bit<7>(); }
+		bool noise() const		{ return control.bit<7>(); }	// TODO
 		bool pulse() const		{ return control.bit<6>(); }
 		bool sawtooth() const	{ return control.bit<5>(); }
 		bool triangle() const	{ return control.bit<4>(); }
-		bool test() const		{ return control.bit<3>(); }	// Implemented.
+		bool test() const		{ return control.bit<3>(); }
 		bool ring_mod() const	{ return control.bit<2>(); }
-		bool sync() const		{ return control.bit<1>(); }	// Implemented.
-		bool gate() const		{ return control.bit<0>(); }
+		bool sync() const		{ return control.bit<1>(); }
+		bool gate() const		{ return control.bit<0>(); }	// TODO
 
 		void update() {
 			// Oscillator.
@@ -74,7 +88,7 @@ private:
 			if(test()) {
 				oscillator.phase = 0;
 			} else {
-				oscillator.phase += oscillator.pitch.get();
+				oscillator.phase += oscillator.pitch;
 			}
 
 			// TODO: ADSR.
@@ -84,20 +98,34 @@ private:
 			// Only oscillator work to do here.
 			if(
 				sync() &&
-				!prior.oscillator.previous_phase.bit<23>() &&
-				prior.oscillator.phase.bit<23>()
+				prior.oscillator.did_rise_b23()
 			) {
-				oscillator.phase = 0;
+				oscillator.phase = Oscillator::PhaseReload;
 			}
 		}
 
 		static constexpr uint16_t MaxWaveformValue = (1 << 12) - 1;
 
-		uint16_t pulse_output() const {
-			return oscillator.phase.get<12>() > oscillator.pulse_width.get() ? MaxWaveformValue : 0;
+		uint16_t sawtooth_output() const {
+			return oscillator.sawtooth();
 		}
 
-		uint16_t output() const {
+		uint16_t pulse_output() const {
+			return oscillator.phase > oscillator.pulse_width ? MaxWaveformValue : 0;
+		}
+
+		uint16_t triangle_output(const Voice &prior) const {
+			const uint16_t sawtooth = oscillator.sawtooth();
+			const uint16_t xor_mask =
+				((sawtooth ^ (ring_mod() && prior.sawtooth())) & 0x800) ? 0xfff : 0x000;
+			return ((sawtooth << 1) ^ xor_mask) & 0xfff;
+		}
+
+		uint16_t noise_output() const {
+			return 0;	// TODO.
+		}
+
+		uint16_t output(const Voice &prior) const {
 			// TODO: true composite waves.
 			//
 			// My current understanding on this: if multiple waveforms are enabled, the pull to zero beats the
@@ -108,7 +136,10 @@ private:
 
 			uint16_t output = MaxWaveformValue;
 
-			if(pulse()) output &= pulse_output();
+			if(pulse())		output &= pulse_output();
+			if(sawtooth())	output &= sawtooth_output();
+			if(triangle())	output &= triangle_output(prior);
+			if(noise())		output &= noise_output();
 
 			return output;
 		}

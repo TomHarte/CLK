@@ -25,11 +25,21 @@ void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
 		};
 
 		switch(address.get()) {
-			case 0x00:	case 0x07:	case 0x0e:	oscillator().pitch.load<0>(value);			break;
-			case 0x01:	case 0x08:	case 0x0f:	oscillator().pitch.load<8>(value);			break;
-			case 0x02:	case 0x09:	case 0x10:	oscillator().pulse_width.load<0>(value);	break;
-			case 0x03:	case 0x0a:	case 0x11:	oscillator().pulse_width.load<8>(value);	break;
-			case 0x04:	case 0x0b:	case 0x12:	voice().control = value;					break;
+			case 0x00:	case 0x07:	case 0x0e:
+				oscillator().pitch = (oscillator().pitch & 0xff'00'00) | uint32_t(value << 8);
+			break;
+			case 0x01:	case 0x08:	case 0x0f:
+				oscillator().pitch = (oscillator().pitch & 0x00'ff'00) | uint32_t(value << 16);
+			break;
+			case 0x02:	case 0x09:	case 0x10:
+				oscillator().pulse_width = (oscillator().pitch & 0xf0'00'00'00) | uint32_t(value << 20);
+			break;
+			case 0x03:	case 0x0a:	case 0x11:
+				oscillator().pulse_width = (oscillator().pitch & 0x0f'f0'00'00) | uint32_t(value << 28);
+			break;
+			case 0x04:	case 0x0b:	case 0x12:
+				voice().control = value;
+			break;
 			case 0x05:	case 0x0c:	case 0x13:
 				adsr().attack = value >> 4;
 				adsr().decay = value;
@@ -73,8 +83,17 @@ void SID::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::M
 		// TODO: inspect enabled wave types (and volumes) to complete digital path.
 
 		// TODO: apply filter.
+
+		// TEMPORARY! Output _something_.
+		Outputs::Speaker::apply<action>(
+			target[c],
+			Outputs::Speaker::MonoSample(
+				voices_[0].output(voices_[2]) +
+				voices_[1].output(voices_[0]) +
+				voices_[2].output(voices_[1])
+			)
+		);
 	}
-	(void)number_of_samples;
 	(void)target;
 }
 
