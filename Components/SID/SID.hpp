@@ -83,8 +83,9 @@ private:
 			// Programmer inputs.
 			Numeric::SizedInt<4> attack;
 			Numeric::SizedInt<4> decay;
-			Numeric::SizedInt<4> sustain;
 			Numeric::SizedInt<4> release;
+
+			Numeric::SizedInt<8> sustain;
 
 			// State.
 			enum class Phase {
@@ -94,6 +95,7 @@ private:
 			} phase = Phase::Release;
 			Numeric::SizedInt<15> rate_counter;
 			Numeric::SizedInt<15> rate_counter_target;
+			Numeric::SizedInt<8> envelope_counter;
 
 			void set_phase(const Phase new_phase) {
 				static constexpr uint16_t rate_prescaler[] = {
@@ -139,6 +141,30 @@ private:
 				adsr.rate_counter = 0;
 
 				// TODO: second prescaler?
+				static constexpr uint8_t envelope_counter_rates[] = {
+					1,														// 0
+					30, 30, 30, 30, 30, 30,									// 1–6
+					16, 16, 16, 16, 16, 16, 16, 16,							// 7–14
+					8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,						// 15–26
+					4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+					4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,				// 27–54
+					2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+				};
+				static_assert(envelope_counter_rates[0] == 1);
+				static_assert(envelope_counter_rates[1] == 30);
+				static_assert(envelope_counter_rates[6] == 30);
+				static_assert(envelope_counter_rates[7] == 16);
+				static_assert(envelope_counter_rates[14] == 16);
+				static_assert(envelope_counter_rates[15] == 8);
+				static_assert(envelope_counter_rates[26] == 8);
+				static_assert(envelope_counter_rates[27] == 4);
+				static_assert(envelope_counter_rates[54] == 4);
+				static_assert(envelope_counter_rates[55] == 2);
+//				static_assert(envelope_counter_rates[94] == 2);
+//				static_assert(envelope_counter_rates[95] == 1);
+//				static_assert(envelope_counter_rates[255] == 1);
+
+//				envelope_counter;
 			}
 
 		}

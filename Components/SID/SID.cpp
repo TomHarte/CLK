@@ -50,7 +50,7 @@ void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
 				adsr().set_phase(adsr().phase);
 			break;
 			case 0x06:	case 0x0d:	case 0x14:
-				adsr().sustain = value >> 4;
+				adsr().sustain = (value >> 4) | (value & 0xf0);
 				adsr().release = value;
 				adsr().set_phase(adsr().phase);
 			break;
