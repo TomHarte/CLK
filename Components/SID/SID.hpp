@@ -273,7 +273,8 @@ private:
 			if(noise())
 				output &= noise_output();
 
-			return output;
+			// Scale output to 14 bits.
+			return (output * adsr.envelope) >> 6;
 		}
 
 	};
