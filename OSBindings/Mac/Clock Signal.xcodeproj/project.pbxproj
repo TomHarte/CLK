@@ -756,6 +756,7 @@
 		4B96DECC2EBEE7D100505298 /* SID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96DECA2EBEE7D100505298 /* SID.cpp */; };
 		4B96DECD2EBEE7D100505298 /* SID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96DECA2EBEE7D100505298 /* SID.cpp */; };
 		4B96DECE2EBEE7D100505298 /* SID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96DECA2EBEE7D100505298 /* SID.cpp */; };
+		4B96DED32EC3ECDA00505298 /* SIDTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B96DED22EC3ECDA00505298 /* SIDTests.mm */; };
 		4B96F7CE263E33B10092AEE1 /* DSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96F7CC263E33B10092AEE1 /* DSK.cpp */; };
 		4B96F7CF263E33B10092AEE1 /* DSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B96F7CC263E33B10092AEE1 /* DSK.cpp */; };
 		4B98A05E1FFAD3F600ADF63B /* CSROMFetcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */; };
@@ -1957,6 +1958,7 @@
 		4B96DEC32EBEA88C00505298 /* TubeProcessor.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TubeProcessor.hpp; sourceTree = "<group>"; };
 		4B96DEC92EBEE7D100505298 /* SID.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SID.hpp; sourceTree = "<group>"; };
 		4B96DECA2EBEE7D100505298 /* SID.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SID.cpp; sourceTree = "<group>"; };
+		4B96DED22EC3ECDA00505298 /* SIDTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SIDTests.mm; sourceTree = "<group>"; };
 		4B96F7CB263E30B00092AEE1 /* RawSectorDump.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RawSectorDump.hpp; sourceTree = "<group>"; };
 		4B96F7CC263E33B10092AEE1 /* DSK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DSK.cpp; sourceTree = "<group>"; };
 		4B96F7CD263E33B10092AEE1 /* DSK.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DSK.hpp; sourceTree = "<group>"; };
@@ -4886,6 +4888,7 @@
 				4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */,
 				4B3F76B825A1635300178AEC /* PowerPCDecoderTests.mm */,
 				4BE76CF822641ED300ACD6FA /* QLTests.mm */,
+				4B96DED22EC3ECDA00505298 /* SIDTests.mm */,
 				4B8DD3672633B2D400B3C866 /* SpectrumVideoContentionTests.mm */,
 				4B2AF8681E513FC20027EE29 /* TIATests.mm */,
 				4B1D08051E0F7A1100763741 /* TimeTests.mm */,
@@ -6796,6 +6799,7 @@
 				4B778F4623A5F1D80000D260 /* StaticAnalyser.cpp in Sources */,
 				4B778F1323A5EC890000D260 /* Z80Base.cpp in Sources */,
 				4B778F2923A5EF030000D260 /* CommodoreROM.cpp in Sources */,
+				4B96DED32EC3ECDA00505298 /* SIDTests.mm in Sources */,
 				4B06AADC2C645F720034D014 /* BD500.cpp in Sources */,
 				4B778F4823A5F1E70000D260 /* StaticAnalyser.cpp in Sources */,
 				4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */,
