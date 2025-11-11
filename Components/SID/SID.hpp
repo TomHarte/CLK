@@ -180,6 +180,9 @@ private:
 	};
 
 	Voice voices_[3];
+	// TODO: an emulator thread copy of voices needs to be kept too, to do the digital stuff, as
+	// the current output of voice 3 can be read.
+	uint8_t last_write_;
 };
 
 }
