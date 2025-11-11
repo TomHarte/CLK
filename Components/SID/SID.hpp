@@ -48,11 +48,31 @@ private:
 			uint32_t phase = PhaseReload;
 			uint32_t previous_phase = PhaseReload;
 
+			static constexpr uint32_t NoiseReload = 0x7'ffff;
+			uint32_t noise = NoiseReload;
+
 			bool did_rise_b23() const {
 				return previous_phase > phase;
 			}
-			uint16_t sawtooth() const {
-				return phase >> 20;
+			uint16_t sawtooth_output() const {
+				return (phase >> 20) ^ 0x800;
+			}
+			uint16_t noise_output() const {
+				// Uses bits: 20, 18, 14, 11, 9, 5, 2 and 0, plus four more zero bits.
+				return
+					((noise >> 8) & 0x800) |
+					((noise >> 7) & 0x400) |
+					((noise >> 4) & 0x200) |
+					((noise >> 2) & 0x100) |
+					((noise >> 1) & 0x080) |
+					((noise << 2) & 0x040) |
+					((noise << 4) & 0x020) |
+					((noise << 5) & 0x010);
+			}
+			void update_noise() {
+				noise =
+					(noise << 1) |
+					(((noise >> 17) ^ (noise >> 20)) & 1);
 			}
 		} oscillator;
 		struct ADSR {
@@ -73,7 +93,7 @@ private:
 		} adsr;
 		Numeric::SizedInt<8> control;
 
-		bool noise() const		{ return control.bit<7>(); }	// TODO
+		bool noise() const		{ return control.bit<7>(); }
 		bool pulse() const		{ return control.bit<6>(); }
 		bool sawtooth() const	{ return control.bit<5>(); }
 		bool triangle() const	{ return control.bit<4>(); }
@@ -89,6 +109,10 @@ private:
 				oscillator.phase = 0;
 			} else {
 				oscillator.phase += oscillator.pitch;
+
+				if(oscillator.did_rise_b23()) {
+					oscillator.update_noise();
+				}
 			}
 
 			// TODO: ADSR.
@@ -107,7 +131,7 @@ private:
 		static constexpr uint16_t MaxWaveformValue = (1 << 12) - 1;
 
 		uint16_t sawtooth_output() const {
-			return oscillator.sawtooth();
+			return oscillator.sawtooth_output();
 		}
 
 		uint16_t pulse_output() const {
@@ -115,15 +139,15 @@ private:
 		}
 
 		uint16_t triangle_output(const Voice &prior) const {
-			const uint16_t sawtooth = oscillator.sawtooth();
+			const uint16_t sawtooth = oscillator.sawtooth_output();
 			const uint16_t xor_mask1 = sawtooth;
 			const uint16_t xor_mask2 = ring_mod() ? prior.sawtooth() : 0;
-			const uint16_t xor_mask = (xor_mask1 ^ xor_mask2) ? 0xfff : 0x000;
+			const uint16_t xor_mask = ((xor_mask1 ^ xor_mask2) & 0x800) ? 0xfff : 0x000;
 			return ((sawtooth << 1) ^ xor_mask) & 0xfff;
 		}
 
 		uint16_t noise_output() const {
-			return 0;	// TODO.
+			return oscillator.noise_output();
 		}
 
 		uint16_t output(const Voice &prior) const {
