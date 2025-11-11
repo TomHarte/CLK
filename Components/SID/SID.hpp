@@ -225,7 +225,11 @@ struct Voice {
 	}
 
 	uint16_t pulse_output() const {
-		return (oscillator.phase > oscillator.pulse_width) ? MaxWaveformValue : 0;
+		// TODO: find a better test than this.
+		return (
+			(oscillator.phase ^ 0x8000'0000) <
+			(oscillator.pulse_width ^ 0x8000'0000))
+				? MaxWaveformValue : 0;
 	}
 
 	uint16_t triangle_output(const Voice &prior) const {
