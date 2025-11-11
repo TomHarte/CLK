@@ -97,6 +97,12 @@ public:
 		}
 	}
 
+	/// @returns The number of items currently enqueued.
+	size_t size() {
+		const std::lock_guard guard(condition_mutex_);
+		return actions_.size();
+	}
+
 	/// Causes any enqueued actions that are not yet scheduled to be scheduled.
 	void perform() {
 		static_assert(!perform_automatically);

@@ -166,6 +166,10 @@ public:
 		return &speaker_;
 	}
 
+	size_t queue_size() {
+		return audio_queue_.size();
+	}
+
 private:
 	Concurrency::AsyncTaskQueue<false> audio_queue_;
 	TI::SN76489 sn76489_;
@@ -1176,7 +1180,7 @@ private:
 		// TODO: I think there's an infrastructural bug here on macOS; if the audio output has stalled out,
 		// the outer wrapper won't ask for an audio flush, which means the queue will never try to start,
 		// and the audio queue will just fill indefinitely. Could this be the mythical 'leak'?
-		if(outputs & Output::Audio) {
+		if(outputs & Output::Audio || audio_.queue_size() > 200) {
 			audio_.flush();
 		}
 	}
