@@ -273,8 +273,8 @@ private:
 			if(noise())
 				output &= noise_output();
 
-			// Scale output to 14 bits.
-			return (output * adsr.envelope) >> 6;
+			// Scale output to 13 bits.
+			return (output * adsr.envelope) >> 7;
 		}
 
 	};
@@ -283,6 +283,8 @@ private:
 	// TODO: an emulator thread copy of voices needs to be kept too, to do the digital stuff, as
 	// the current output of voice 3 can be read.
 	uint8_t last_write_;
+
+	int16_t range_ = 0;
 };
 
 }

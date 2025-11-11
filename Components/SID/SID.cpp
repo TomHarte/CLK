@@ -64,7 +64,7 @@ uint8_t SID::read(const Numeric::SizedInt<5> address) {
 }
 
 void SID::set_sample_volume_range(const std::int16_t range) {
-	(void)range;
+	range_ = range;
 }
 
 bool SID::is_zero_level() const {
@@ -87,15 +87,14 @@ void SID::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::M
 		// TODO: inspect enabled wave types (and volumes) to complete digital path.
 
 		// TODO: apply filter.
+		const int16_t sample =
+			voices_[0].output(voices_[2]) +
+			voices_[1].output(voices_[0]) +
+			voices_[2].output(voices_[1]);
 
-		// TEMPORARY! Output _something_.
 		Outputs::Speaker::apply<action>(
 			target[c],
-			Outputs::Speaker::MonoSample(
-				voices_[0].output(voices_[2]) +
-				voices_[1].output(voices_[0]) +
-				voices_[2].output(voices_[1])
-			)
+			Outputs::Speaker::MonoSample((sample * range_) >> 16)
 		);
 	}
 }
