@@ -95,7 +95,9 @@ private:
 			} phase = Phase::Release;
 			Numeric::SizedInt<15> rate_counter;
 			Numeric::SizedInt<15> rate_counter_target;
-			Numeric::SizedInt<8> envelope_counter;
+
+			uint8_t exponential_counter;
+			uint8_t envelope;
 
 			void set_phase(const Phase new_phase) {
 				static constexpr uint16_t rate_prescaler[] = {
@@ -113,6 +115,16 @@ private:
 		} adsr;
 		Numeric::SizedInt<8> control;
 
+		void set_control(const uint8_t new_control) {
+			const bool old_gate = gate();
+			control = new_control;
+			if(gate() && !old_gate) {
+				adsr.set_phase(ADSR::Phase::Attack);
+			} else if(!gate() && old_gate) {
+				adsr.set_phase(ADSR::Phase::Release);
+			}
+		}
+
 		bool noise() const		{ return control.bit<7>(); }
 		bool pulse() const		{ return control.bit<6>(); }
 		bool sawtooth() const	{ return control.bit<5>(); }
@@ -120,7 +132,7 @@ private:
 		bool test() const		{ return control.bit<3>(); }
 		bool ring_mod() const	{ return control.bit<2>(); }
 		bool sync() const		{ return control.bit<1>(); }
-		bool gate() const		{ return control.bit<0>(); }	// TODO
+		bool gate() const		{ return control.bit<0>(); }
 
 		void update() {
 			// Oscillator.
@@ -136,12 +148,14 @@ private:
 			}
 
 			// ADSR.
+
+			// First prescalar, which is a function of the programmer-set rate.
 			++ adsr.rate_counter;
 			if(adsr.rate_counter == adsr.rate_counter_target) {
 				adsr.rate_counter = 0;
 
-				// TODO: second prescaler?
-				static constexpr uint8_t envelope_counter_rates[] = {
+				// Second prescalar, which approximates an exponential.
+				static constexpr uint8_t exponential_prescaler[] = {
 					1,														// 0
 					30, 30, 30, 30, 30, 30,									// 1–6
 					16, 16, 16, 16, 16, 16, 16, 16,							// 7–14
@@ -149,24 +163,62 @@ private:
 					4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
 					4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,				// 27–54
 					2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+					2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+					2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,					// 55–94
+					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+					1, 1, 1, 1, 1, 1, 1,
 				};
-				static_assert(envelope_counter_rates[0] == 1);
-				static_assert(envelope_counter_rates[1] == 30);
-				static_assert(envelope_counter_rates[6] == 30);
-				static_assert(envelope_counter_rates[7] == 16);
-				static_assert(envelope_counter_rates[14] == 16);
-				static_assert(envelope_counter_rates[15] == 8);
-				static_assert(envelope_counter_rates[26] == 8);
-				static_assert(envelope_counter_rates[27] == 4);
-				static_assert(envelope_counter_rates[54] == 4);
-				static_assert(envelope_counter_rates[55] == 2);
-//				static_assert(envelope_counter_rates[94] == 2);
-//				static_assert(envelope_counter_rates[95] == 1);
-//				static_assert(envelope_counter_rates[255] == 1);
+				static_assert(sizeof(exponential_prescaler) == 256);
+				static_assert(exponential_prescaler[0] == 1);
+				static_assert(exponential_prescaler[1] == 30);
+				static_assert(exponential_prescaler[6] == 30);
+				static_assert(exponential_prescaler[7] == 16);
+				static_assert(exponential_prescaler[14] == 16);
+				static_assert(exponential_prescaler[15] == 8);
+				static_assert(exponential_prescaler[26] == 8);
+				static_assert(exponential_prescaler[27] == 4);
+				static_assert(exponential_prescaler[54] == 4);
+				static_assert(exponential_prescaler[55] == 2);
+				static_assert(exponential_prescaler[94] == 2);
+				static_assert(exponential_prescaler[95] == 1);
+				static_assert(exponential_prescaler[255] == 1);
 
-//				envelope_counter;
+				// TODO: what resets the exponential counter? If anything?
+				++adsr.exponential_counter;
+				if(adsr.exponential_counter == exponential_prescaler[adsr.envelope]) {
+					adsr.exponential_counter = 0;
+
+					switch(adsr.phase) {
+						case ADSR::Phase::Attack:
+							++adsr.envelope;
+							if(adsr.envelope == 0xff) {
+								adsr.set_phase(ADSR::Phase::DecayAndHold);
+							}
+						break;
+						case ADSR::Phase::DecayAndHold:
+							if(adsr.envelope == adsr.sustain) {
+								break;
+							}
+							--adsr.envelope;
+						break;
+						case ADSR::Phase::Release:
+							if(adsr.envelope) {
+								--adsr.envelope;
+							}
+						break;
+					}
+				}
 			}
-
 		}
 
 		void synchronise(const Voice &prior) {
