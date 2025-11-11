@@ -116,8 +116,9 @@ private:
 
 		uint16_t triangle_output(const Voice &prior) const {
 			const uint16_t sawtooth = oscillator.sawtooth();
-			const uint16_t xor_mask =
-				((sawtooth ^ (ring_mod() && prior.sawtooth())) & 0x800) ? 0xfff : 0x000;
+			const uint16_t xor_mask1 = sawtooth;
+			const uint16_t xor_mask2 = ring_mod() ? prior.sawtooth() : 0;
+			const uint16_t xor_mask = (xor_mask1 ^ xor_mask2) ? 0xfff : 0x000;
 			return ((sawtooth << 1) ^ xor_mask) & 0xfff;
 		}
 

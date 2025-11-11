@@ -128,13 +128,13 @@ private:
 
 public:
 	Audio() :
-		sn76489_(TI::SN76489::Personality::SN76489, audio_queue_, 2),
+		sn76489_(TI::SN76489::Personality::SN76489, audio_queue_, 4),
 		sid_(audio_queue_),
 		compound_(sn76489_, sid_),
 		speaker_(speaker_source())
 	{
-		// Combined with the additional divider specified above, implies this chip is clocked at 4Mhz.
-		speaker_.set_input_rate(2'000'000.0f);
+		// Combined with the additional divider specified above, implies the SN76489 is clocked at 4Mhz.
+		speaker_.set_input_rate(1'000'000.0f);
 	}
 
 	~Audio() {

@@ -35,7 +35,10 @@ void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
 				oscillator().pulse_width = (oscillator().pitch & 0xf0'00'00'00) | uint32_t(value << 20);
 			break;
 			case 0x03:	case 0x0a:	case 0x11:
-				oscillator().pulse_width = (oscillator().pitch & 0x0f'f0'00'00) | uint32_t(value << 28);
+				// The top bit of the phase counter is inverted; since it'll be compared directly with the
+				// pulse width, invert that bit too.
+				oscillator().pulse_width =
+					((oscillator().pitch & 0x0f'f0'00'00) | uint32_t(value << 28)) ^ 0x8000'0000;
 			break;
 			case 0x04:	case 0x0b:	case 0x12:
 				voice().control = value;
