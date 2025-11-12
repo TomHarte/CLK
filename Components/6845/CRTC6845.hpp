@@ -125,6 +125,7 @@ public:
 					case 0b01:	layout_.interlace_mode_ = InterlaceMode::Sync;			break;
 					case 0b11:	layout_.interlace_mode_ = InterlaceMode::SyncAndVideo;	break;
 				}
+				layout_.update_lines_per_row();
 
 				// Per CPC documentation, skew doesn't work on a "type 1 or 2", i.e. an MC6845 or a UM6845R.
 //				if(personality != Personality::UM6845R && personality != Personality::MC6845) {
@@ -135,7 +136,10 @@ public:
 //					}
 //				}
 			break;
-			case 9:	layout_.vertical.end_line = value;	break;
+			case 9:
+				layout_.vertical.end_line = value;
+				layout_.update_lines_per_row();
+			break;
 			case 10:
 				layout_.vertical.start_cursor = value;
 				layout_.cursor_flags = value >> 5;
@@ -205,11 +209,8 @@ public:
 			//
 			// Shared signals.
 			//
-				const bool character_total_hit = character_counter_ == layout_.horizontal.total;		// r00_h_total_hit
-				const auto lines_per_row =
-					layout_.interlace_mode_ == InterlaceMode::SyncAndVideo ?
-						layout_.vertical.end_line & LineAddress::IntT(~1) : layout_.vertical.end_line;	// max_scanline
-				const bool line_end_hit = line_ == lines_per_row && !is_in_adjustment_period_;	// max_scanline_hit
+				const bool character_total_hit = character_counter_ == layout_.horizontal.total;				// r00_h_total_hit
+				const bool line_end_hit = line_ == layout_.vertical.lines_per_row && !is_in_adjustment_period_;	// max_scanline_hit
 				const bool new_frame =
 					character_total_hit && eof_latched_ &&
 					(
@@ -512,9 +513,16 @@ private:
 			LineAddress end_line;		// r09_max_scanline_addr
 			LineAddress start_cursor;	// r10_cursor_start
 			LineAddress end_cursor;		// r11_cursor_end
+
+			LineAddress lines_per_row;	// max_scanline
 		} vertical;
 
 		InterlaceMode interlace_mode_ = InterlaceMode::Off;		// r08_interlace
+		void update_lines_per_row() {
+			vertical.lines_per_row =
+				interlace_mode_ == InterlaceMode::SyncAndVideo ?
+					vertical.end_line & LineAddress::IntT(~1) : vertical.end_line;
+		}
 
 		RefreshAddress start_address;		// r12_start_addr_h + r13_start_addr_l
 		RefreshAddress cursor_address;		// r14_cursor_h + r15_cursor_l
