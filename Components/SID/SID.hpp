@@ -180,29 +180,29 @@ struct Voice {
 			static_assert(exponential_prescaler[95] == 1);
 			static_assert(exponential_prescaler[255] == 1);
 
-			// TODO: what resets the exponential counter? If anything?
-			++adsr.exponential_counter;
-			if(adsr.exponential_counter == exponential_prescaler[adsr.envelope]) {
+			if(adsr.phase == ADSR::Phase::Attack) {
+				++adsr.envelope;
+				// TODO: what really resets the exponential counter? If anything?
 				adsr.exponential_counter = 0;
+			} else {
+				++adsr.exponential_counter;
+				if(adsr.exponential_counter == exponential_prescaler[adsr.envelope]) {
+					adsr.exponential_counter = 0;
 
-				switch(adsr.phase) {
-					case ADSR::Phase::Attack:
-						++adsr.envelope;
-						if(adsr.envelope == 0xff) {
-							adsr.set_phase(ADSR::Phase::DecayAndHold);
-						}
-					break;
-					case ADSR::Phase::DecayAndHold:
-						if(adsr.envelope == adsr.sustain) {
-							break;
-						}
-						--adsr.envelope;
-					break;
-					case ADSR::Phase::Release:
-						if(adsr.envelope) {
+					switch(adsr.phase) {
+						default: __builtin_unreachable();
+						case ADSR::Phase::DecayAndHold:
+							if(adsr.envelope == adsr.sustain) {
+								break;
+							}
 							--adsr.envelope;
-						}
-					break;
+						break;
+						case ADSR::Phase::Release:
+							if(adsr.envelope) {
+								--adsr.envelope;
+							}
+						break;
+					}
 				}
 			}
 		}

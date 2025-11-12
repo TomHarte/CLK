@@ -143,7 +143,7 @@ public:
 
 	template <typename TargetT>
 	TargetT &get() {
-		speaker_.run_for(audio_queue_, time_since_update_.flush<Cycles>());
+		post_time();
 
 		if constexpr (std::is_same_v<TargetT, TI::SN76489>) {
 			return sn76489_;
@@ -158,7 +158,7 @@ public:
 	}
 
 	void flush() {
-		speaker_.run_for(audio_queue_, time_since_update_.flush<Cycles>());
+		post_time();
 		audio_queue_.perform();
 	}
 
@@ -171,6 +171,10 @@ public:
 	}
 
 private:
+	void post_time() {
+		speaker_.run_for(audio_queue_, time_since_update_.divide(Cycles(2)));
+	}
+
 	Concurrency::AsyncTaskQueue<false> audio_queue_;
 	TI::SN76489 sn76489_;
 	MOS::SID::SID sid_;
