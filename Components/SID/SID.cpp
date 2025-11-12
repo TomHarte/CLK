@@ -58,14 +58,30 @@ void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
 				adsr().set_phase(adsr().phase);
 			break;
 
+			case 0x15:
+				filter_cutoff_.load<0, 3>(value);
+				update_filter();
+			break;
+			case 0x16:
+				filter_cutoff_.load<3>(value);
+				update_filter();
+			break;
 			case 0x17:
-				filter_control_ = value;
+				filter_channels_ = value;
+				filter_resonance_ = value >> 4;
+				update_filter();
 			break;
 			case 0x18:
 				volume_ = value & 0x0f;
+				filter_mode_ = value >> 4;
+				update_filter();
 			break;
 		}
 	});
+}
+
+void SID::update_filter() {
+
 }
 
 uint8_t SID::read(const Numeric::SizedInt<5> address) {
@@ -102,15 +118,15 @@ void SID::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::M
 		};
 
 		const uint16_t direct_sample =
-			(filter_control_.bit<0>() ? 0 : outputs[0]) +
-			(filter_control_.bit<1>() ? 0 : outputs[1]) +
-			(filter_control_.bit<2>() ? 0 : outputs[2]);
+			(filter_channels_.bit<0>() ? 0 : outputs[0]) +
+			(filter_channels_.bit<1>() ? 0 : outputs[1]) +
+			(filter_channels_.bit<2>() ? 0 : outputs[2]);
 
 		const int16_t filtered_sample =
 			filter_.apply(
-				(filter_control_.bit<0>() ? outputs[0] : 0) +
-				(filter_control_.bit<1>() ? outputs[1] : 0) +
-				(filter_control_.bit<2>() ? outputs[2] : 0)
+				(filter_channels_.bit<0>() ? outputs[0] : 0) +
+				(filter_channels_.bit<1>() ? outputs[1] : 0) +
+				(filter_channels_.bit<2>() ? outputs[2] : 0)
 			);
 
 		// Sum, apply volume and output.

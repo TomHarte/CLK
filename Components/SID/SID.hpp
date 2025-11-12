@@ -292,8 +292,13 @@ private:
 
 	int16_t range_ = 0;
 	uint8_t volume_ = 0;
-	Numeric::SizedInt<4> filter_control_ = 0;
+
 	SignalProcessing::BiquadFilter filter_;
+	Numeric::SizedInt<11> filter_cutoff_;
+	Numeric::SizedInt<4> filter_resonance_;
+	Numeric::SizedInt<4> filter_channels_;
+	Numeric::SizedInt<4> filter_mode_;
+	void update_filter();
 };
 
 }
