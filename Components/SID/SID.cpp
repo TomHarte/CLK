@@ -57,6 +57,10 @@ void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
 				adsr().release = value;
 				adsr().set_phase(adsr().phase);
 			break;
+
+			case 0x18:
+				volume_ = value & 0x0f;
+			break;
 		}
 	});
 }
@@ -91,9 +95,19 @@ void SID::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::M
 
 		// TODO: apply filter.
 		const int16_t sample =
-			voices_[0].output(voices_[2]) +
-			voices_[1].output(voices_[0]) +
-			voices_[2].output(voices_[1]);
+			(
+				volume_ * (
+					voices_[0].output(voices_[2]) +
+					voices_[1].output(voices_[0]) +
+					voices_[2].output(voices_[1])
+						- 227	// DC offset.
+				)
+
+				- 88732
+			) / 3;
+		// Maximum range of above: 15 * (4095 * 3 - 227) = [-3405, 180870]
+		// So subtracting 88732 will move to the centre of the range, and 3 is the smallest
+		// integer that avoids clipping.
 
 		Outputs::Speaker::apply<action>(
 			target[c],

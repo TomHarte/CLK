@@ -288,6 +288,7 @@ private:
 	uint8_t last_write_;
 
 	int16_t range_ = 0;
+	uint8_t volume_ = 0;
 };
 
 }
