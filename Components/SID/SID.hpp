@@ -12,6 +12,7 @@
 
 #include "Concurrency/AsyncTaskQueue.hpp"
 #include "Outputs/Speaker/Implementation/BufferSource.hpp"
+#include "SignalProcessing/BiquadFilter.hpp"
 
 namespace MOS::SID {
 
@@ -291,6 +292,8 @@ private:
 
 	int16_t range_ = 0;
 	uint8_t volume_ = 0;
+	Numeric::SizedInt<4> filter_control_ = 0;
+	SignalProcessing::BiquadFilter filter_;
 };
 
 }

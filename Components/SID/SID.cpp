@@ -58,6 +58,9 @@ void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
 				adsr().set_phase(adsr().phase);
 			break;
 
+			case 0x17:
+				filter_control_ = value;
+			break;
 			case 0x18:
 				volume_ = value & 0x0f;
 			break;
@@ -91,18 +94,33 @@ void SID::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::M
 		voices_[1].synchronise(voices_[0]);
 		voices_[2].synchronise(voices_[1]);
 
-		// TODO: inspect enabled wave types (and volumes) to complete digital path.
+		// Construct filtered and unfiltered output.
+		const uint16_t outputs[3] = {
+			voices_[0].output(voices_[2]),
+			voices_[1].output(voices_[0]),
+			voices_[2].output(voices_[1]),
+		};
 
-		// TODO: apply filter.
-		const int16_t sample =
+		const uint16_t direct_sample =
+			(filter_control_.bit<0>() ? 0 : outputs[0]) +
+			(filter_control_.bit<1>() ? 0 : outputs[1]) +
+			(filter_control_.bit<2>() ? 0 : outputs[2]);
+
+		const int16_t filtered_sample =
+			filter_.apply(
+				(filter_control_.bit<0>() ? outputs[0] : 0) +
+				(filter_control_.bit<1>() ? outputs[1] : 0) +
+				(filter_control_.bit<2>() ? outputs[2] : 0)
+			);
+
+		// Sum, apply volume and output.
+		const auto sample =
 			(
 				volume_ * (
-					voices_[0].output(voices_[2]) +
-					voices_[1].output(voices_[0]) +
-					voices_[2].output(voices_[1])
+					direct_sample +
+					filtered_sample
 						- 227	// DC offset.
 				)
-
 				- 88732
 			) / 3;
 		// Maximum range of above: 15 * (4095 * 3 - 227) = [-3405, 180870]

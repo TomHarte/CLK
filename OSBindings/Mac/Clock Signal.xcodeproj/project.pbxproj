@@ -1959,6 +1959,7 @@
 		4B96DEC92EBEE7D100505298 /* SID.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SID.hpp; sourceTree = "<group>"; };
 		4B96DECA2EBEE7D100505298 /* SID.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SID.cpp; sourceTree = "<group>"; };
 		4B96DED22EC3ECDA00505298 /* SIDTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SIDTests.mm; sourceTree = "<group>"; };
+		4B96DED42EC53BC300505298 /* BiquadFilter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = BiquadFilter.hpp; sourceTree = "<group>"; };
 		4B96F7CB263E30B00092AEE1 /* RawSectorDump.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RawSectorDump.hpp; sourceTree = "<group>"; };
 		4B96F7CC263E33B10092AEE1 /* DSK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DSK.cpp; sourceTree = "<group>"; };
 		4B96F7CD263E33B10092AEE1 /* DSK.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DSK.hpp; sourceTree = "<group>"; };
@@ -3024,6 +3025,7 @@
 				4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */,
 				4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */,
 				4B24095A1C45DF85004DA684 /* Stepper.hpp */,
+				4B96DED42EC53BC300505298 /* BiquadFilter.hpp */,
 			);
 			name = SignalProcessing;
 			path = ../../SignalProcessing;
