@@ -42,7 +42,7 @@ void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
 					(
 						(oscillator().pitch & 0x0f'f0'00'00) |
 						uint32_t(value << 28)
-					) ^ 0x8000'0000;
+					);
 			break;
 			case 0x04:	case 0x0b:	case 0x12:
 				voice().set_control(value);

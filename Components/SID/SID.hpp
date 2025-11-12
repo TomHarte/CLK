@@ -184,6 +184,10 @@ struct Voice {
 				++adsr.envelope;
 				// TODO: what really resets the exponential counter? If anything?
 				adsr.exponential_counter = 0;
+
+				if(adsr.envelope == 0xff) {
+					adsr.set_phase(ADSR::Phase::DecayAndHold);
+				}
 			} else {
 				++adsr.exponential_counter;
 				if(adsr.exponential_counter == exponential_prescaler[adsr.envelope]) {
@@ -225,11 +229,9 @@ struct Voice {
 	}
 
 	uint16_t pulse_output() const {
-		// TODO: find a better test than this.
 		return (
-			(oscillator.phase ^ 0x8000'0000) <
-			(oscillator.pulse_width ^ 0x8000'0000))
-				? MaxWaveformValue : 0;
+			(oscillator.phase ^ 0x8000'0000) < oscillator.pulse_width
+		) ? 0 : MaxWaveformValue;
 	}
 
 	uint16_t triangle_output(const Voice &prior) const {
