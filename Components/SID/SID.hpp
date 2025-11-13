@@ -96,6 +96,7 @@ public:
 
 	void write(Numeric::SizedInt<5> address, uint8_t value);
 	uint8_t read(Numeric::SizedInt<5> address);
+	void set_potentometer_input(int index, uint8_t value);
 
 	// Outputs::Speaker::BufferSource.
 	template <Outputs::Speaker::Action action>
@@ -120,6 +121,8 @@ private:
 	void update_filter();
 
 	SignalProcessing::BiquadFilter output_filter_;
+
+	uint8_t potentometers_[2]{};
 };
 
 }

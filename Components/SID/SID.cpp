@@ -88,6 +88,10 @@ void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
 	});
 }
 
+void SID::set_potentometer_input(const int index, const uint8_t value) {
+	potentometers_[index] = value;
+}
+
 void SID::update_filter() {
 	using Type = SignalProcessing::BiquadFilter::Type;
 	Type type = Type::AllPass;
@@ -136,8 +140,8 @@ uint8_t SID::read(const Numeric::SizedInt<5> address) {
 	switch(address.get()) {
 		default:	return last_write_;
 
-		case 0x19:	return 0x00;	// TODO: potentometer x.
-		case 0x1a:	return 0x00;	// TODO: potentometer y.
+		case 0x19:	return potentometers_[0];
+		case 0x1a:	return potentometers_[1];
 
 		case 0x1b:
 		case 0x1c:
