@@ -81,7 +81,7 @@ void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
 }
 
 void SID::update_filter() {
-
+	// TODO!
 }
 
 uint8_t SID::read(const Numeric::SizedInt<5> address) {
