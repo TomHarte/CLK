@@ -14,10 +14,18 @@
 
 namespace SignalProcessing {
 
+/*!
+	A biquad[ratic] filter approximates the real analogue thing in taking a 1d PCM signal and applying a
+	filter to it as a function of the current input plus the two most-recent inputs plus the two most-recent outputs.
+
+	So both IIR and three-tap FIR filters are degenerate cases of the biquad.
+
+	It is used quite often in real designs, hence an implementation of this filter specifically.
+
+	(And the below is largely textbook; I can't claim any great knowledge)
+*/
 class BiquadFilter {
 public:
-	BiquadFilter() {}
-
 	enum class Type {
 		LowPass,
 		HighPass,
@@ -28,7 +36,22 @@ public:
 		LowShelf,
 		HighShelf
 	};
+
+	// Default construction: a filter that produces _nothing_.
+	BiquadFilter() {}
+
 	BiquadFilter(
+		const Type type,
+		const float sample_rate,
+		const float frequency,
+		const float resonance = 0.707f,
+		const float gain = 8,
+		const bool normalise = true
+	) {
+		configure(type, sample_rate, frequency, resonance, gain, normalise);
+	}
+
+	void configure(
 		const Type type,
 		const float sample_rate,
 		const float frequency,
@@ -183,7 +206,8 @@ private:
 	float outputs_[2]{};
 	float coefficients_[5]{};
 #endif
-		// 0 = b0; 1 = b1; 2 = b2; 3 = a1; 4 = a2
+		// Coefficients indices versus common textbook terms:
+		//	0 = b0; 1 = b1; 2 = b2; 3 = a1; 4 = a2
 };
 
 }

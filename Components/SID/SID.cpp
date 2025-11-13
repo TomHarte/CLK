@@ -107,15 +107,14 @@ void SID::update_filter() {
 		case 7: type = Type::AllPass;	break;
 	}
 
-	filter_ =
-		SignalProcessing::BiquadFilter(
-			type,
-			1'000'000.0f,
-			30.0f + float(filter_cutoff_.get()) * 5.8f,
-			0.707f + float(filter_resonance_.get()) * 0.125f,
-			6.0f,
-			true
-		);
+	filter_.configure(
+		type,
+		1'000'000.0f,
+		30.0f + float(filter_cutoff_.get()) * 5.8f,
+		0.707f + float(filter_resonance_.get()) * 0.125f,
+		6.0f,
+		true
+	);
 }
 
 uint8_t SID::read(const Numeric::SizedInt<5> address) {
