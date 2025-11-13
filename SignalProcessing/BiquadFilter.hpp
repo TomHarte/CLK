@@ -134,19 +134,32 @@ public:
 			}
 		}
 		for(int c = 0; c < 5; c++) {
-			assert(std::abs(coefficients[c]) < 32768.0f / 16384.0f);
-			coefficients_[c] = int16_t(coefficients[c] * 16384.0f);
+#ifdef FIXED
+			coefficients_[c] = FixedType(coefficients[c] * FixedMultiplier);
+#else
+			coefficients_[c] = coefficients[c];
+#endif
 		}
 	}
 
 	int16_t apply(const int16_t input) {
-		const int16_t output = (
+#ifdef FIXED
+		const auto applied =
 			coefficients_[0] * input +
 			coefficients_[1] * inputs_[0] +
 			coefficients_[2] * inputs_[1] -
 			coefficients_[3] * outputs_[0] -
-			coefficients_[4] * outputs_[1]
-		) >> 14;
+			coefficients_[4] * outputs_[1];
+
+		const auto output = int16_t(applied >> FixedShift);
+#else
+		const float output =
+			coefficients_[0] * float(input) +
+			coefficients_[1] * inputs_[0] +
+			coefficients_[2] * inputs_[1] -
+			coefficients_[3] * outputs_[0] -
+			coefficients_[4] * outputs_[1];
+#endif
 
 		inputs_[1] = inputs_[0];
 		inputs_[0] = input;
@@ -157,9 +170,19 @@ public:
 	}
 
 private:
+#ifdef FIXED
 	int16_t inputs_[2]{};
 	int16_t outputs_[2]{};
-	int16_t coefficients_[5]{};
+
+	using FixedType = int64_t;
+	static constexpr int FixedShift = 48;
+	static constexpr auto FixedMultiplier = static_cast<float>(int64_t(1) << FixedShift);
+	FixedType coefficients_[5]{};
+#else
+	float inputs_[2]{};
+	float outputs_[2]{};
+	float coefficients_[5]{};
+#endif
 		// 0 = b0; 1 = b1; 2 = b2; 3 = a1; 4 = a2
 };
 

@@ -112,7 +112,7 @@ void SID::update_filter() {
 			type,
 			1'000'000.0f,
 			30.0f + float(filter_cutoff_.get()) * 5.8f,
-			0.707f + float(filter_resonance_.get()) * 0.25f,
+			0.707f + float(filter_resonance_.get()) * 0.125f,
 			6.0f,
 			true
 		);
