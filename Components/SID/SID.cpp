@@ -133,8 +133,18 @@ void SID::update_filter() {
 }
 
 uint8_t SID::read(const Numeric::SizedInt<5> address) {
-	(void)address;
-	return last_write_;
+	switch(address.get()) {
+		default:	return last_write_;
+
+		case 0x19:	return 0x00;	// TODO: potentometer x.
+		case 0x1a:	return 0x00;	// TODO: potentometer y.
+
+		case 0x1b:
+		case 0x1c:
+			// Ensure all channels are entirely up to date.
+			audio_queue_.flush();
+			return (address == 0x1c) ? voices_[2].adsr.envelope : uint8_t(voices_[2].output(voices_[1]) >> 4);
+	}
 }
 
 // MARK: - Oscillators.
@@ -160,7 +170,7 @@ uint16_t Voice::Oscillator::sawtooth_output() const {
 
 uint16_t Voice::NoiseGenerator::output() const {
 	// Uses bits: 20, 18, 14, 11, 9, 5, 2 and 0, plus four more zero bits.
-	return
+	const uint16_t output =
 		((noise >> 9) & 0b1000'0000'0000) |		// b20 -> b11
 		((noise >> 8) & 0b0100'0000'0000) |		// b18 -> b10
 		((noise >> 5) & 0b0010'0000'0000) |		// b14 -> b9
@@ -169,6 +179,9 @@ uint16_t Voice::NoiseGenerator::output() const {
 		((noise << 1) & 0b0000'0100'0000) |		// b5 -> b6
 		((noise << 3) & 0b0000'0010'0000) |		// b2 -> b5
 		((noise << 4) & 0b0000'0001'0000);		// b0 -> b4
+
+	assert(output <= Voice::MaxWaveformValue);
+	return output;
 }
 
 void Voice::NoiseGenerator::update(const bool test) {

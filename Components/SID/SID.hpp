@@ -17,6 +17,8 @@
 namespace MOS::SID {
 
 struct Voice {
+	static constexpr uint16_t MaxWaveformValue = (1 << 12) - 1;
+
 	struct Oscillator {
 		// Programmer inputs.
 		uint32_t pitch = 0;
@@ -84,8 +86,6 @@ private:
 	bool sync() const;
 	bool gate() const;
 
-	static constexpr uint16_t MaxWaveformValue = (1 << 12) - 1;
-
 	uint16_t pulse_output() const;
 	uint16_t triangle_output(const Voice &prior) const;
 };
@@ -99,17 +99,12 @@ public:
 
 	// Outputs::Speaker::BufferSource.
 	template <Outputs::Speaker::Action action>
-		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
+		void apply_samples(std::size_t, Outputs::Speaker::MonoSample *);
 	bool is_zero_level() const;
 	void set_sample_volume_range(std::int16_t);
 
 private:
 	Concurrency::AsyncTaskQueue<false> &audio_queue_;
-
-	// TODO: an emulator thread copy of voices needs to be kept too, to do the digital stuff, as
-	// the current output of voice 3 can be read. Probably best if the audio thread posts its most
-	// recent copy atomically and the emulator thread just catches up from whatever it has? I don't
-	// think that spinning on voice 3 is common.
 	Voice voices_[3];
 
 	uint8_t last_write_;
