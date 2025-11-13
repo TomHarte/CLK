@@ -142,7 +142,7 @@ uint8_t SID::read(const Numeric::SizedInt<5> address) {
 		case 0x1b:
 		case 0x1c:
 			// Ensure all channels are entirely up to date.
-			audio_queue_.flush();
+			audio_queue_.spin_flush();
 			return (address == 0x1c) ? voices_[2].adsr.envelope : uint8_t(voices_[2].output(voices_[1]) >> 4);
 	}
 }

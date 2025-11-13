@@ -138,7 +138,7 @@ public:
 	}
 
 	~Audio() {
-		audio_queue_.flush();
+		audio_queue_.lock_flush();
 	}
 
 	template <typename TargetT>

@@ -143,7 +143,7 @@ public:
 	}
 
 	~ConcreteMachine() {
-		audio_queue_.flush();
+		audio_queue_.lock_flush();
 	}
 
 	void set_key_state(uint16_t key, bool isPressed) final {

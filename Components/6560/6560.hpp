@@ -75,7 +75,7 @@ public:
 	}
 
 	~MOS6560() {
-		audio_queue_.flush();
+		audio_queue_.lock_flush();
 	}
 
 	void set_clock_rate(const double clock_rate) {

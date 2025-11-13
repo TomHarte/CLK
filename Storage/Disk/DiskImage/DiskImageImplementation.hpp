@@ -75,7 +75,7 @@ Track *DiskImageHolder<T>::track_at_position(Track::Address address) const {
 
 template <typename T>
 DiskImageHolder<T>::~DiskImageHolder() {
-	if(update_queue_) update_queue_->flush();
+	if(update_queue_) update_queue_->lock_flush();
 }
 
 template <typename T>
