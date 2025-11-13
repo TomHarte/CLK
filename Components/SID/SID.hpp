@@ -52,7 +52,7 @@ struct Voice {
 		uint16_t noise_output() const {
 			// Uses bits: 20, 18, 14, 11, 9, 5, 2 and 0, plus four more zero bits.
 			return
-				((noise >> 8) & 0b1000'0000'0000) |		// b20 -> b11
+				((noise >> 9) & 0b1000'0000'0000) |		// b20 -> b11
 				((noise >> 8) & 0b0100'0000'0000) |		// b18 -> b10
 				((noise >> 5) & 0b0010'0000'0000) |		// b14 -> b9
 				((noise >> 3) & 0b0001'0000'0000) |		// b11 -> b8
@@ -194,19 +194,8 @@ struct Voice {
 				if(adsr.exponential_counter == exponential_prescaler[adsr.envelope]) {
 					adsr.exponential_counter = 0;
 
-					switch(adsr.phase) {
-						default: __builtin_unreachable();
-						case ADSR::Phase::DecayAndHold:
-							if(adsr.envelope == adsr.sustain) {
-								break;
-							}
-							--adsr.envelope;
-						break;
-						case ADSR::Phase::Release:
-							if(adsr.envelope) {
-								--adsr.envelope;
-							}
-						break;
+					if(adsr.envelope && (adsr.envelope != adsr.sustain || adsr.phase != ADSR::Phase::DecayAndHold)) {
+						--adsr.envelope;
 					}
 				}
 			}
