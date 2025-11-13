@@ -81,7 +81,35 @@ void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
 }
 
 void SID::update_filter() {
-	// TODO!
+	using Type = SignalProcessing::BiquadFilter::Type;
+	Type type = Type::AllPass;
+
+	switch(filter_mode_.get()) {
+		case 0:
+			filter_ = SignalProcessing::BiquadFilter();
+		return;
+
+		case 1:
+		case 3: type = Type::LowPass;	break;
+
+		case 2: type = Type::BandPass;	break;
+		case 5: type = Type::Notch;		break;
+
+		case 4:
+		case 6: type = Type::HighPass;	break;
+
+		case 7: type = Type::AllPass;	break;
+	}
+
+	filter_ =
+		SignalProcessing::BiquadFilter(
+			type,
+			1'000'000.0f,
+			30.0f + float(filter_cutoff_.get()) * 5.8f,
+			0.707f + float(filter_resonance_.get()) * 0.25f,
+			6.0f,
+			true
+		);
 }
 
 uint8_t SID::read(const Numeric::SizedInt<5> address) {

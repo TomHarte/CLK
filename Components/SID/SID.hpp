@@ -297,7 +297,7 @@ private:
 	Numeric::SizedInt<11> filter_cutoff_;
 	Numeric::SizedInt<4> filter_resonance_;
 	Numeric::SizedInt<4> filter_channels_;
-	Numeric::SizedInt<4> filter_mode_;
+	Numeric::SizedInt<3> filter_mode_;
 	void update_filter();
 };
 

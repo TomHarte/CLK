@@ -15,10 +15,7 @@ namespace SignalProcessing {
 
 class BiquadFilter {
 public:
-	BiquadFilter() {
-		// Default construction: no filter.
-		coefficients_[0] = int16_t(1 << 15);
-	}
+	BiquadFilter() {}
 
 	enum class Type {
 		LowPass,
@@ -47,7 +44,7 @@ public:
 		switch(type) {
 			case Type::LowPass:
 				coefficients[0] = (1.0f - cos_w0) / 2.0f;
-				coefficients[1] = 1.0f + cos_w0;
+				coefficients[1] = 1.0f - cos_w0;
 				coefficients[2] = (1.0f - cos_w0) / 2.0f;
 				magnitude = 1.0f + alpha;
 				coefficients[3] = -2.0f * cos_w0;
@@ -136,7 +133,7 @@ public:
 			}
 		}
 		for(int c = 0; c < 5; c++) {
-			coefficients_[c] = int16_t(coefficients[c] * 32767.0f);
+			coefficients_[c] = int16_t(coefficients[c] * 4096.0f);
 		}
 	}
 
@@ -144,17 +141,17 @@ public:
 		const int16_t output = (
 			coefficients_[0] * input +
 			coefficients_[1] * inputs_[0] +
-			coefficients_[2] * inputs_[1] +
-			coefficients_[3] * outputs_[0] +
+			coefficients_[2] * inputs_[1] -
+			coefficients_[3] * outputs_[0] -
 			coefficients_[4] * outputs_[1]
-		) >> 15;
+		) >> 12;
 
 		inputs_[1] = inputs_[0];
 		inputs_[0] = input;
 		outputs_[1] = outputs_[0];
 		outputs_[0] = output;
 
-		return output;
+		return int16_t(output);
 	}
 
 private:
