@@ -157,7 +157,8 @@ public:
 	}
 
 	/// Schedules any remaining unscheduled work, then spins
-	/// until all scheduled work has been performed.
+	/// until all scheduled work has been performed, placing a memory barrier
+	/// in between.
 	void spin_flush() {
 		std::atomic<bool> has_run = false;
 
