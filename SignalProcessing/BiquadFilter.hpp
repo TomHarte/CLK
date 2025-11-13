@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <cmath>
 #include <numbers>
 
@@ -31,9 +32,9 @@ public:
 		const Type type,
 		const float sample_rate,
 		const float frequency,
-		const float resonance,
-		const float gain,
-		const bool normalise
+		const float resonance = 0.707f,
+		const float gain = 8,
+		const bool normalise = true
 	) {
 		const float w0 = 2.0f * std::numbers::pi_v<float> * frequency / sample_rate;
 		const float alpha = std::sin(w0) / (2.0f * resonance);
@@ -133,7 +134,8 @@ public:
 			}
 		}
 		for(int c = 0; c < 5; c++) {
-			coefficients_[c] = int16_t(coefficients[c] * 4096.0f);
+			assert(std::abs(coefficients[c]) < 32768.0f / 16384.0f);
+			coefficients_[c] = int16_t(coefficients[c] * 16384.0f);
 		}
 	}
 
@@ -144,7 +146,7 @@ public:
 			coefficients_[2] * inputs_[1] -
 			coefficients_[3] * outputs_[0] -
 			coefficients_[4] * outputs_[1]
-		) >> 12;
+		) >> 14;
 
 		inputs_[1] = inputs_[0];
 		inputs_[0] = input;

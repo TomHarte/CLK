@@ -299,6 +299,8 @@ private:
 	Numeric::SizedInt<4> filter_channels_;
 	Numeric::SizedInt<3> filter_mode_;
 	void update_filter();
+
+	SignalProcessing::BiquadFilter output_filter_;
 };
 
 }

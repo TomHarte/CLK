@@ -10,7 +10,13 @@
 
 using namespace MOS::SID;
 
-SID::SID(Concurrency::AsyncTaskQueue<false> &audio_queue) : audio_queue_(audio_queue) {}
+SID::SID(Concurrency::AsyncTaskQueue<false> &audio_queue) :
+	audio_queue_(audio_queue),
+	output_filter_(
+		SignalProcessing::BiquadFilter::Type::LowPass,
+		1000000.0f,
+		15000.0f
+	) {}
 
 void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
 	last_write_ = value;
@@ -158,7 +164,7 @@ void SID::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::M
 			);
 
 		// Sum, apply volume and output.
-		const auto sample =
+		const auto sample = output_filter_.apply(int16_t(
 			(
 				volume_ * (
 					direct_sample +
@@ -166,7 +172,8 @@ void SID::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::M
 						- 227	// DC offset.
 				)
 				- 88732
-			) / 3;
+			) / 3
+		));
 		// Maximum range of above: 15 * (4095 * 3 - 227) = [-3405, 180870]
 		// So subtracting 88732 will move to the centre of the range, and 3 is the smallest
 		// integer that avoids clipping.
