@@ -8,6 +8,12 @@
 
 #include "SID.hpp"
 
+// Sources used:
+//
+//	(1) SID Article v0.2 at https://github.com/ImreOlajos/SID-Article
+//	(2) Technical SID Information/Software stuff at http://www.sidmusic.org/sid/sidtech2.html
+//	(3) SID 6581/8580 (Sound Interface Device) reference at https://oxyron.de/html/registers_sid.html
+
 using namespace MOS::SID;
 
 SID::SID(Concurrency::AsyncTaskQueue<false> &audio_queue) :

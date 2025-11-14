@@ -22,7 +22,8 @@ namespace SignalProcessing {
 
 	It is used quite often in real designs, hence an implementation of this filter specifically.
 
-	(And the below is largely textbook; I can't claim any great knowledge)
+	... and the below is largely textbook; I can't claim any great knowledge. I am especially indebted to
+	the W3C Group's audio EQ cookbook at https://www.w3.org/TR/audio-eq-cookbook/ .
 */
 class BiquadFilter {
 public:
