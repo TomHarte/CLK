@@ -325,7 +325,7 @@ public:
 	/// Flushes all accumulated time.
 	inline void flush() {
 		if(!is_flushed_) {
-			task_queue_.flush();
+			task_queue_.lock_flush();
 			object_.run_for(time_since_update_.template flush<TargetTimeScale>());
 			is_flushed_ = true;
 		}

@@ -114,7 +114,7 @@ public:
 	}
 
 	~ConcreteMachine() {
-		audio_queue_.flush();
+		audio_queue_.lock_flush();
 	}
 
 	forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {

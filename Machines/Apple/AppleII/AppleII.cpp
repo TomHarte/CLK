@@ -678,7 +678,7 @@ public:
 	}
 
 	~ConcreteMachine() {
-		audio_queue_.flush();
+		audio_queue_.lock_flush();
 	}
 
 	void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {

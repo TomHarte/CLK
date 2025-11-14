@@ -15,7 +15,6 @@ using namespace MOS::MOS6560;
 AudioGenerator::AudioGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue) :
 	audio_queue_(audio_queue) {}
 
-
 void AudioGenerator::set_volume(const uint8_t volume) {
 	audio_queue_.enqueue([this, volume]() {
 		volume_ = int16_t(volume) * range_multiplier_;
@@ -148,7 +147,7 @@ template void AudioGenerator::apply_samples<Outputs::Speaker::Action::Store>(
 template void AudioGenerator::apply_samples<Outputs::Speaker::Action::Ignore>(
 	std::size_t, Outputs::Speaker::MonoSample *);
 
-void AudioGenerator::set_sample_volume_range(std::int16_t range) {
+void AudioGenerator::set_sample_volume_range(const std::int16_t range) {
 	range_multiplier_ = int16_t(range / 64);
 }
 

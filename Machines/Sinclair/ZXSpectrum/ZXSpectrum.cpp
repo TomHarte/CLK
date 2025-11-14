@@ -213,7 +213,7 @@ public:
 	}
 
 	~ConcreteMachine() {
-		audio_queue_.flush();
+		audio_queue_.lock_flush();
 	}
 
 	static constexpr unsigned int clock_rate() {

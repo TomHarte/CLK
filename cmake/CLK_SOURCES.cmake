@@ -59,6 +59,7 @@ set(CLK_SOURCES
 	Components/OPx/OPLL.cpp
 	Components/RP5C01/RP5C01.cpp
 	Components/SAA5050/SAA5050.cpp
+	Components/SID/SID.cpp
 	Components/SN76489/SN76489.cpp
 	Components/Serial/Line.cpp
 	Components/uPD7002/uPD7002.cpp

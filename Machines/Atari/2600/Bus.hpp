@@ -26,7 +26,7 @@ public:
 		speaker_(tia_sound_) {}
 
 	virtual ~Bus() {
-		audio_queue_.flush();
+		audio_queue_.lock_flush();
 	}
 
 	virtual void run_for(const Cycles cycles) = 0;

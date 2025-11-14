@@ -76,6 +76,7 @@ SOURCES += \
 	$$SRC/Components/KonamiSCC/*.cpp \
 	$$SRC/Components/OPx/*.cpp \
 	$$SRC/Components/RP5C01/*.cpp \
+	$$SRC/Components/SID/*.cpp \
 	$$SRC/Components/SAA5050/*.cpp \
 	$$SRC/Components/Serial/*.cpp \
 	$$SRC/Components/SN76489/*.cpp \
@@ -213,6 +214,7 @@ HEADERS += \
 	$$SRC/Components/OPx/*.hpp \
 	$$SRC/Components/OPx/Implementation/*.hpp \
 	$$SRC/Components/RP5C01/*.hpp \
+	$$SRC/Components/SID/*.hpp \
 	$$SRC/Components/SAA5050/*.hpp \
 	$$SRC/Components/Serial/*.hpp \
 	$$SRC/Components/SN76489/*.hpp \

@@ -97,6 +97,12 @@ public:
 		}
 	}
 
+	/// @returns The number of items currently enqueued.
+	size_t size() {
+		const std::lock_guard guard(condition_mutex_);
+		return actions_.size();
+	}
+
 	/// Causes any enqueued actions that are not yet scheduled to be scheduled.
 	void perform() {
 		static_assert(!perform_automatically);
@@ -131,7 +137,7 @@ public:
 
 	/// Schedules any remaining unscheduled work, then blocks synchronously
 	/// until all scheduled work has been performed.
-	void flush() {
+	void lock_flush() {
 		std::mutex flush_mutex;
 		std::condition_variable flush_condition;
 		bool has_run = false;
@@ -148,6 +154,23 @@ public:
 		}
 
 		flush_condition.wait(lock, [&has_run] { return has_run; });
+	}
+
+	/// Schedules any remaining unscheduled work, then spins
+	/// until all scheduled work has been performed, placing a memory barrier
+	/// in between.
+	void spin_flush() {
+		std::atomic<bool> has_run = false;
+
+		enqueue([&has_run] () {
+			has_run.store(true, std::memory_order::release);
+		});
+
+		if constexpr (!perform_automatically) {
+			perform();
+		}
+
+		while(!has_run.load(std::memory_order::acquire));
 	}
 
 	~AsyncTaskQueue() {

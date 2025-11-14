@@ -178,7 +178,7 @@ public:
 	}
 
 	~ConcreteMachine() {
-		audio_queue_.flush();
+		audio_queue_.lock_flush();
 	}
 
 	ChangeEffect effect_for_file_did_change(const std::string &) const final {

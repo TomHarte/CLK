@@ -24,6 +24,7 @@
 #include "Components/6522/6522.hpp"
 #include "Components/6845/CRTC6845.hpp"
 #include "Components/6850/6850.hpp"
+#include "Components/SID/SID.hpp"
 #include "Components/SAA5050/SAA5050.hpp"
 #include "Components/SN76489/SN76489.hpp"
 #include "Components/uPD7002/uPD7002.hpp"
@@ -35,6 +36,7 @@
 #include "Outputs/Log.hpp"
 
 #include "Outputs/CRT/CRT.hpp"
+#include "Outputs/Speaker/Implementation/CompoundSource.hpp"
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "Concurrency/AsyncTaskQueue.hpp"
 
@@ -107,22 +109,48 @@ private:
 /*!
 	Combines an SN76489 with an appropriate asynchronous queue and filtering speaker.
 */
+
+// TODO: generalise the below and clean up across the project.
+template <bool has_beebsid>
 struct Audio {
+private:
+	using CompoundSource = Outputs::Speaker::CompoundSource<TI::SN76489, MOS::SID::SID>;
+	using Source = std::conditional_t<has_beebsid, CompoundSource, TI::SN76489>;
+	using Speaker = Outputs::Speaker::PullLowpass<Source>;
+
+	Source &speaker_source() {
+		if constexpr (has_beebsid) {
+			return compound_;
+		} else {
+			return sn76489_;
+		}
+	}
+
+public:
 	Audio() :
-		sn76489_(TI::SN76489::Personality::SN76489, audio_queue_, 2),
-		speaker_(sn76489_)
+		sn76489_(TI::SN76489::Personality::SN76489, audio_queue_, 4),
+		sid_(audio_queue_),
+		compound_(sn76489_, sid_),
+		speaker_(speaker_source())
 	{
-		// Combined with the additional divider specified above, implies this chip is clocked at 4Mhz.
-		speaker_.set_input_rate(2'000'000.0f);
+		// Combined with the additional divider specified above, implies the SN76489 is clocked at 4Mhz.
+		speaker_.set_input_rate(1'000'000.0f);
 	}
 
 	~Audio() {
-		audio_queue_.flush();
+		audio_queue_.lock_flush();
 	}
 
-	TI::SN76489 *operator ->() {
-		speaker_.run_for(audio_queue_, time_since_update_.flush<Cycles>());
-		return &sn76489_;
+	template <typename TargetT>
+	TargetT &get() {
+		post_time();
+
+		if constexpr (std::is_same_v<TargetT, TI::SN76489>) {
+			return sn76489_;
+		}
+		if constexpr (std::is_same_v<TargetT, MOS::SID::SID>) {
+			return sid_;
+		}
 	}
 
 	void operator +=(const Cycles duration) {
@@ -130,7 +158,7 @@ struct Audio {
 	}
 
 	void flush() {
-		speaker_.run_for(audio_queue_, time_since_update_.flush<Cycles>());
+		post_time();
 		audio_queue_.perform();
 	}
 
@@ -138,10 +166,20 @@ struct Audio {
 		return &speaker_;
 	}
 
+	size_t queue_size() {
+		return audio_queue_.size();
+	}
+
 private:
+	void post_time() {
+		speaker_.run_for(audio_queue_, time_since_update_.divide(Cycles(2)));
+	}
+
 	Concurrency::AsyncTaskQueue<false> audio_queue_;
 	TI::SN76489 sn76489_;
-	Outputs::Speaker::PullLowpass<TI::SN76489> speaker_;
+	MOS::SID::SID sid_;
+	CompoundSource compound_;
+	Outputs::Speaker::PullLowpass<Source> speaker_;
 	Cycles time_since_update_;
 };
 
@@ -174,19 +212,20 @@ protected:
 /*!
 	Models the system VIA, which connects to the SN76489 and the keyboard.
 */
-struct SystemVIAPortHandler;
-using SystemVIA = MOS::MOS6522::MOS6522<SystemVIAPortHandler>;
+struct VSyncReceiver {
+	virtual void set_vsync(bool) = 0;
+};
+struct SystemVIADelegate {
+	virtual void strobe_lightpen() = 0;
+};
 
-struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
-	struct Delegate {
-		virtual void strobe_lightpen() = 0;
-	};
-
+template <typename AudioT>
+struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler, public VSyncReceiver {
 	SystemVIAPortHandler(
-		Audio &audio,
+		AudioT &audio,
 		VideoBaseAddress &video_base,
-		SystemVIA &via,
-		Delegate &delegate,
+		MOS::MOS6522::MOS6522<SystemVIAPortHandler<AudioT>> &via,
+		SystemVIADelegate &delegate,
 		const std::vector<std::unique_ptr<Inputs::Joystick>> &joysticks,
 		const bool run_disk
 	) :
@@ -221,7 +260,7 @@ struct SystemVIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 
 		// Check for a strobe on the audio output.
 		if((old_latch^latch_) & old_latch & LatchFlags::WriteToSN76489) {
-			audio_->write(port_a_output_);
+			audio_.template get<TI::SN76489>().write(port_a_output_);
 		}
 
 		// Pass on the video wraparound/base.
@@ -335,10 +374,10 @@ private:
 	uint8_t port_a_output_ = 0;
 	bool previous_cb2_ = false;
 
-	Audio &audio_;
+	AudioT &audio_;
 	VideoBaseAddress &video_base_;
 
-	SystemVIA &via_;
+	MOS::MOS6522::MOS6522<SystemVIAPortHandler<AudioT>> &via_;
 
 	// MARK: - Keyboard state and helpers.
 
@@ -369,7 +408,7 @@ private:
 				}
 		} ()).to_ulong() & 0xfe;	// Discard the first row.
 
-		via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(state);
+		via_.template set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(state);
 	}
 
 	static inline const std::string caps_led = "CAPS";
@@ -379,7 +418,11 @@ private:
 	Activity::Observer *activity_observer_ = nullptr;
 
 	const std::vector<std::unique_ptr<Inputs::Joystick>> &joysticks_;
-	Delegate &delegate_;
+	SystemVIADelegate &delegate_;
+
+	void set_vsync(const bool vsync) override {
+		via_.template set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(vsync);
+	}
 };
 
 // MARK: - CRTC output.
@@ -389,10 +432,10 @@ private:
 */
 class CRTCBusHandler: public VideoBaseAddress {
 public:
-	CRTCBusHandler(const uint8_t *const ram, SystemVIA &system_via) :
+	CRTCBusHandler(const uint8_t *const ram, VSyncReceiver &vsync_receiver) :
 		crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red1Green1Blue1),
 		ram_(ram),
-		system_via_(system_via)
+		vsync_receiver_(vsync_receiver)
 	{}
 
 	void set_dynamic_framing(const bool enable) {
@@ -440,7 +483,10 @@ public:
 		static_assert(!(PixelAllocationUnit % 16));
 		static_assert(!(PixelAllocationUnit % 12));
 
-		system_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(state.vsync);
+		if(state.vsync != vsync_) {
+			vsync_receiver_.set_vsync(state.vsync);
+			vsync_ = state.vsync;
+		}
 
 		// Count cycles since horizontal sync to insert a colour burst.
 		// TODO: this is copy/pasted from the CPC. How does the BBC do it?
@@ -675,7 +721,8 @@ private:
 	}
 
 	const uint8_t *const ram_ = nullptr;
-	SystemVIA &system_via_;
+	VSyncReceiver &vsync_receiver_;
+	bool vsync_ = false;
 
 	Mullard::SAA5050Serialiser saa5050_serialiser_;
 };
@@ -705,7 +752,7 @@ struct Tube<HostT, TubeProcessor::None> {
 
 // MARK: - ConcreteMachine.
 
-template <TubeProcessor tube_processor, bool has_1770>
+template <TubeProcessor tube_processor, bool has_1770, bool has_beebsid>
 class ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
@@ -718,7 +765,7 @@ class ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
 	public NEC::uPD7002::Delegate,
-	public SystemVIAPortHandler::Delegate,
+	public SystemVIADelegate,
 	public Utility::TypeRecipient<CharacterMapper>,
 	public WD::WD1770::Delegate
 {
@@ -731,7 +778,7 @@ public:
 		system_via_port_handler_(audio_, crtc_bus_handler_, system_via_, *this, joysticks_, target.should_shift_restart),
 		user_via_(user_via_port_handler_),
 		system_via_(system_via_port_handler_),
-		crtc_bus_handler_(ram_.data(), system_via_),
+		crtc_bus_handler_(ram_.data(), system_via_port_handler_),
 		crtc_(crtc_bus_handler_),
 		acia_(HalfCycles(2'000'000)), // TODO: look up real ACIA clock rate.
 		adc_(HalfCycles(2'000'000)),
@@ -990,6 +1037,12 @@ public:
 						}
 					break;
 				}
+			} else if(has_beebsid && address >= 0xfc20 && address < 0xfc40) {
+				if constexpr (is_read(operation)) {
+					value = audio_.template get<MOS::SID::SID>().read(+address);
+				} else {
+					audio_.template get<MOS::SID::SID>().write(+address, value);
+				}
 			} else {
 				Logger::error()
 					.append("Unhandled IO %s at %04x", is_read(operation) ? "read" : "write", address)
@@ -1045,8 +1098,7 @@ private:
 		return crtc_bus_handler_.get_scaled_scan_status();
 	}
 
-
-	// MARK: - SystemVIAPortHandler::Delegate.
+	// MARK: - SystemVIADelegate.
 	void strobe_lightpen() override {
 		crtc_.trigger_light_pen();
 	}
@@ -1129,7 +1181,10 @@ private:
 	}
 
 	void flush_output(const int outputs) final {
-		if(outputs & Output::Audio) {
+		// TODO: I think there's an infrastructural bug here on macOS; if the audio output has stalled out,
+		// the outer wrapper won't ask for an audio flush, which means the queue will never try to start,
+		// and the audio queue will just fill indefinitely. Could this be the mythical 'leak'?
+		if(outputs & Output::Audio || audio_.queue_size() > 200) {
 			audio_.flush();
 		}
 	}
@@ -1141,7 +1196,7 @@ private:
 
 	// MARK: - uPD7002::Delegate.
 	void did_change_interrupt_status(NEC::uPD7002 &) override {
-		system_via_.set_control_line_input<MOS::MOS6522::Port::B, MOS::MOS6522::Line::One>(adc_.interrupt());
+		system_via_.template set_control_line_input<MOS::MOS6522::Port::B, MOS::MOS6522::Line::One>(adc_.interrupt());
 	}
 
 	// MARK: - MediaTarget.
@@ -1200,9 +1255,9 @@ private:
 	CPU::MOS6502Mk2::Processor<CPU::MOS6502Mk2::Model::M6502, M6502Traits> m6502_;
 
 	UserVIAPortHandler user_via_port_handler_;
-	SystemVIAPortHandler system_via_port_handler_;
+	SystemVIAPortHandler<Audio<has_beebsid>> system_via_port_handler_;
 	UserVIA user_via_;
-	SystemVIA system_via_;
+	MOS::MOS6522::MOS6522<SystemVIAPortHandler<Audio<has_beebsid>>> system_via_;
 
 	void update_irq_line() {
 		const bool tube_irq =
@@ -1221,7 +1276,7 @@ private:
 		);
 	}
 
-	Audio audio_;
+	Audio<has_beebsid> audio_;
 
 	CRTCBusHandler crtc_bus_handler_;
 	CRTC crtc_;
@@ -1275,12 +1330,21 @@ using namespace BBCMicro;
 namespace {
 using Target = Analyser::Static::Acorn::BBCMicroTarget;
 
+template <Target::TubeProcessor processor, bool has_1770>
+std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	if(target.has_beebsid) {
+		return std::make_unique<BBCMicro::ConcreteMachine<processor, has_1770, true>>(target, rom_fetcher);
+	} else {
+		return std::make_unique<BBCMicro::ConcreteMachine<processor, has_1770, false>>(target, rom_fetcher);
+	}
+}
+
 template <Target::TubeProcessor processor>
 std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	if(target.has_1770dfs || target.has_adfs) {
-		return std::make_unique<BBCMicro::ConcreteMachine<processor, true>>(target, rom_fetcher);
+		return machine<processor, true>(target, rom_fetcher);
 	} else {
-		return std::make_unique<BBCMicro::ConcreteMachine<processor, false>>(target, rom_fetcher);
+		return machine<processor, false>(target, rom_fetcher);
 	}
 }
 }

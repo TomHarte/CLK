@@ -360,7 +360,7 @@ public:
 	}
 
 	~ConcreteMachine() {
-		speaker_.audio_queue.flush();
+		speaker_.audio_queue.lock_flush();
 	}
 
 	void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {

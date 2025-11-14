@@ -127,7 +127,7 @@ public:
 	}
 
 	~AYDeferrer() {
-		audio_queue_.flush();
+		audio_queue_.lock_flush();
 	}
 
 	/// Adds @c half_cycles half cycles to the amount of time that has passed.

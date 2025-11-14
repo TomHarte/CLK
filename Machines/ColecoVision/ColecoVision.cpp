@@ -168,7 +168,7 @@ public:
 	}
 
 	~ConcreteMachine() {
-		audio_queue_.flush();
+		audio_queue_.lock_flush();
 	}
 
 	const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {

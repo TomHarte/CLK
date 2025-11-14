@@ -817,7 +817,7 @@ public:
 	}
 
 	~ConcreteMachine() {
-		speaker_.queue.flush();
+		speaker_.queue.lock_flush();
 	}
 
 	// MARK: - TimedMachine.
