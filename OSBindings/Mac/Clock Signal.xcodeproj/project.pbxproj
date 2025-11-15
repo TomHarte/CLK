@@ -2523,6 +2523,7 @@
 		4BEF6AA81D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DigitalPhaseLockedLoopBridge.h; sourceTree = "<group>"; };
 		4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DigitalPhaseLockedLoopBridge.mm; sourceTree = "<group>"; };
 		4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DPLLTests.swift; sourceTree = "<group>"; };
+		4BEF9CA92EC8294E00DDD0F6 /* SpeakerQueue.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SpeakerQueue.hpp; sourceTree = "<group>"; };
 		4BF0BC67297108D100CCA2B5 /* MemorySlotHandler.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MemorySlotHandler.cpp; sourceTree = "<group>"; };
 		4BF0BC6F2973318E00CCA2B5 /* RP5C01.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RP5C01.cpp; sourceTree = "<group>"; };
 		4BF0BC702973318E00CCA2B5 /* RP5C01.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RP5C01.hpp; sourceTree = "<group>"; };
@@ -5312,6 +5313,7 @@
 		4BD060A41FE49D3C006E14BE /* Speaker */ = {
 			isa = PBXGroup;
 			children = (
+				4BEF9CA92EC8294E00DDD0F6 /* SpeakerQueue.hpp */,
 				4BD060A51FE49D3C006E14BE /* Speaker.hpp */,
 				4B8EF6051FE5AF830076CCDD /* Implementation */,
 			);

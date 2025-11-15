@@ -9,7 +9,7 @@
 #pragma once
 
 #include "Outputs/Speaker/Implementation/BufferSource.hpp"
-#include "Concurrency/AsyncTaskQueue.hpp"
+#include "Outputs/Speaker/SpeakerQueue.hpp"
 
 namespace Atari2600 {
 
@@ -19,7 +19,7 @@ constexpr int CPUTicksPerAudioTick = 2;
 
 class TIASound: public Outputs::Speaker::BufferSource<TIASound, false> {
 public:
-	TIASound(Concurrency::AsyncTaskQueue<false> &);
+	TIASound(Outputs::Speaker::TaskQueue &);
 
 	void set_volume(int channel, uint8_t volume);
 	void set_divider(int channel, uint8_t divider);
@@ -30,7 +30,7 @@ public:
 	void set_sample_volume_range(std::int16_t);
 
 private:
-	Concurrency::AsyncTaskQueue<false> &audio_queue_;
+	Outputs::Speaker::TaskQueue &audio_queue_;
 
 	uint8_t volume_[2];
 	uint8_t divider_[2];

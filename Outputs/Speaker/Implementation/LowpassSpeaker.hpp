@@ -10,6 +10,7 @@
 
 #include "BufferSource.hpp"
 #include "Outputs/Speaker/Speaker.hpp"
+#include "Outputs/Speaker/SpeakerQueue.hpp"
 #include "SignalProcessing/FIRFilter.hpp"
 #include "ClockReceiver/ClockReceiver.hpp"
 #include "Concurrency/AsyncTaskQueue.hpp"
@@ -375,10 +376,13 @@ public:
 		if(cycles == Cycles(0)) {
 			return;
 		}
+		queue.enqueue(update_for(cycles));
+	}
 
-		queue.enqueue([this, cycles] {
+	std::function<void(void)> update_for(const Cycles cycles) {
+		return [this, cycles] {
 			run_for(cycles);
-		});
+		};
 	}
 
 private:
