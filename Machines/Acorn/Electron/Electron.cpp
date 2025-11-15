@@ -760,7 +760,6 @@ private:
 
 	// Outputs
 	VideoOutput video_;
-
 	Outputs::Speaker::SpeakerQueue<
 		Outputs::Speaker::PullLowpass<SoundGenerator>,
 		SoundGenerator
