@@ -39,7 +39,7 @@
 namespace {
 
 struct MachineUpdater {
-	void perform(Time::Nanos duration) {
+	void perform(const Time::Nanos duration) {
 		// Top out at 1/20th of a second; this is a safeguard against a negative
 		// feedback loop if emulation starts running slowly.
 		const auto seconds = std::min(Time::seconds(duration), 0.05);
@@ -51,7 +51,7 @@ struct MachineUpdater {
 	MachineTypes::TimedMachine *timed_machine = nullptr;
 };
 
-using Updater = Concurrency::AsyncTaskQueue<true, false, MachineUpdater>;
+using Updater = Concurrency::AsyncTaskQueue<true, false, false, MachineUpdater>;
 
 }
 

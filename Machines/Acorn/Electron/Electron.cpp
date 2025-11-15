@@ -15,7 +15,6 @@
 #include "ClockReceiver/ClockReceiver.hpp"
 #include "ClockReceiver/ForceInline.hpp"
 #include "Configurable/StandardOptions.hpp"
-#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "Processors/6502/6502.hpp"
 
 #include "Storage/MassStorage/SCSI/SCSI.hpp"
@@ -26,6 +25,9 @@
 #include "Analyser/Static/Acorn/Target.hpp"
 
 #include "ClockReceiver/JustInTime.hpp"
+
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/Speaker/SpeakerQueue.hpp"
 
 #include "Interrupts.hpp"
 #include "Keyboard.hpp"
@@ -58,8 +60,7 @@ public:
 			hard_drive_(scsi_bus_, 0),
 			scsi_device_(scsi_bus_.add_device()),
 			video_(ram_),
-			sound_generator_(audio_queue_),
-			speaker_(sound_generator_) {
+			audio_(SoundGenerator::clock_rate_divider) {
 		memset(key_states_, 0, sizeof(key_states_));
 		for(int c = 0; c < 16; c++)
 			memset(roms_[c], 0xff, 16384);
@@ -67,8 +68,8 @@ public:
 		tape_.set_delegate(this);
 		set_clock_rate(2000000);
 
-		speaker_.set_input_rate(2000000 / SoundGenerator::clock_rate_divider);
-		speaker_.set_high_frequency_cutoff(6000);
+		audio_.speaker.set_input_rate(2000000 / SoundGenerator::clock_rate_divider);
+		audio_.speaker.set_high_frequency_cutoff(6000);
 
 		::ROM::Request request = ::ROM::Request(::ROM::Name::AcornBASICII) && ::ROM::Request(::ROM::Name::AcornElectronMOS100);
 		if(target.has_pres_adfs) {
@@ -143,7 +144,7 @@ public:
 	}
 
 	~ConcreteMachine() {
-		audio_queue_.lock_flush();
+		audio_.stop();
 	}
 
 	void set_key_state(uint16_t key, bool isPressed) final {
@@ -234,8 +235,7 @@ public:
 		const auto [cycles, video_interrupts] = run_for_access(address);
 		signal_interrupt(video_interrupts);
 
-		cycles_since_audio_update_ += cycles;
-		if(cycles_since_audio_update_ > Cycles(16384)) update_audio();
+		audio_ += cycles;
 		tape_.run_for(cycles);
 
 		if(typer_) typer_->run_for(cycles);
@@ -278,8 +278,7 @@ public:
 						// update speaker mode
 						bool new_speaker_is_enabled = (*value & 6) == 2;
 						if(new_speaker_is_enabled != speaker_is_enabled_) {
-							update_audio();
-							sound_generator_.set_is_enabled(new_speaker_is_enabled);
+							audio_.generator.set_is_enabled(new_speaker_is_enabled);
 							speaker_is_enabled_ = new_speaker_is_enabled;
 						}
 
@@ -340,8 +339,7 @@ public:
 				break;
 				case 0xfe06:
 					if(!is_read(operation)) {
-						update_audio();
-						sound_generator_.set_divider(*value);
+						audio_.generator.set_divider(*value);
 						tape_.set_counter(*value);
 					}
 				break;
@@ -510,8 +508,7 @@ public:
 
 	void flush_output(int outputs) final {
 		if(outputs & Output::Audio) {
-			update_audio();
-			audio_queue_.perform();
+			audio_.perform();
 		}
 	}
 
@@ -532,7 +529,7 @@ public:
 	}
 
 	Outputs::Speaker::Speaker *get_speaker() final {
-		return &speaker_;
+		return &audio_.speaker;
 	}
 
 	void run_for(const Cycles cycles) final {
@@ -682,10 +679,6 @@ private:
 	}
 
 	// MARK: - Work deferral updates.
-	inline void update_audio() {
-		speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(SoundGenerator::clock_rate_divider)));
-	}
-
 	inline void signal_interrupt(uint8_t interrupt) {
 		if(!interrupt) {
 			return;
@@ -732,9 +725,6 @@ private:
 	uint8_t key_states_[14];
 	Electron::KeyboardMapper keyboard_mapper_;
 
-	// Counters related to simultaneous subsystems
-	Cycles cycles_since_audio_update_ = 0;
-
 	// Tape
 	Tape tape_;
 	bool use_fast_tape_hack_ = false;
@@ -771,9 +761,10 @@ private:
 	// Outputs
 	VideoOutput video_;
 
-	Concurrency::AsyncTaskQueue<false> audio_queue_;
-	SoundGenerator sound_generator_;
-	Outputs::Speaker::PullLowpass<SoundGenerator> speaker_;
+	Outputs::Speaker::SpeakerQueue<
+		Outputs::Speaker::PullLowpass<SoundGenerator>,
+		SoundGenerator
+	> audio_;
 
 	bool speaker_is_enabled_ = false;
 

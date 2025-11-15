@@ -9,13 +9,13 @@
 #pragma once
 
 #include "Outputs/Speaker/Implementation/BufferSource.hpp"
-#include "Concurrency/AsyncTaskQueue.hpp"
+#include "Outputs/Speaker/SpeakerQueue.hpp"
 
 namespace Electron {
 
 class SoundGenerator: public ::Outputs::Speaker::BufferSource<SoundGenerator, false> {
 public:
-	SoundGenerator(Concurrency::AsyncTaskQueue<false> &);
+	SoundGenerator(Outputs::Speaker::TaskQueue &);
 
 	void set_divider(uint8_t);
 	void set_is_enabled(bool);
@@ -28,7 +28,7 @@ public:
 	void set_sample_volume_range(std::int16_t range);
 
 private:
-	Concurrency::AsyncTaskQueue<false> &audio_queue_;
+	Outputs::Speaker::TaskQueue &audio_queue_;
 	unsigned int counter_ = 0;
 	unsigned int divider_ = 0;
 	bool is_enabled_ = false;
