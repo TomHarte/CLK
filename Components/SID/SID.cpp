@@ -88,6 +88,7 @@ void SID::write(const Numeric::SizedInt<5> address, const uint8_t value) {
 			case 0x18:
 				volume_ = value & 0x0f;
 				filter_mode_ = value >> 4;
+				voice3_disable_ = value & 0x80;
 				update_filter();
 			break;
 		}
@@ -393,7 +394,7 @@ void SID::apply_samples(const std::size_t number_of_samples, Outputs::Speaker::M
 		const uint16_t direct_sample =
 			(filter_channels_.bit<0>() ? 0 : outputs[0]) +
 			(filter_channels_.bit<1>() ? 0 : outputs[1]) +
-			(filter_channels_.bit<2>() ? 0 : outputs[2]);
+			(filter_channels_.bit<2>() || voice3_disable_ ? 0 : outputs[2]);
 
 		const int16_t filtered_sample =
 			filter_.apply(

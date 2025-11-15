@@ -118,6 +118,7 @@ private:
 	Numeric::SizedInt<4> filter_resonance_;
 	Numeric::SizedInt<4> filter_channels_;
 	Numeric::SizedInt<3> filter_mode_;
+	bool voice3_disable_;
 	void update_filter();
 
 	SignalProcessing::BiquadFilter output_filter_;
