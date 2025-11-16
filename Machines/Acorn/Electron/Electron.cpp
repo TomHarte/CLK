@@ -27,7 +27,6 @@
 #include "ClockReceiver/JustInTime.hpp"
 
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
-#include "Outputs/Speaker/SpeakerQueue.hpp"
 
 #include "Interrupts.hpp"
 #include "Keyboard.hpp"
@@ -60,16 +59,17 @@ public:
 			hard_drive_(scsi_bus_, 0),
 			scsi_device_(scsi_bus_.add_device()),
 			video_(ram_),
-			audio_(SoundGenerator::clock_rate_divider) {
+			audio_(
+				2000000.0 / SoundGenerator::clock_rate_divider,
+				SoundGenerator::clock_rate_divider,
+				6000.0f
+			) {
 		memset(key_states_, 0, sizeof(key_states_));
 		for(int c = 0; c < 16; c++)
 			memset(roms_[c], 0xff, 16384);
 
 		tape_.set_delegate(this);
 		set_clock_rate(2000000);
-
-		audio_.speaker.set_input_rate(2000000 / SoundGenerator::clock_rate_divider);
-		audio_.speaker.set_high_frequency_cutoff(6000);
 
 		::ROM::Request request = ::ROM::Request(::ROM::Name::AcornBASICII) && ::ROM::Request(::ROM::Name::AcornElectronMOS100);
 		if(target.has_pres_adfs) {
@@ -278,7 +278,7 @@ public:
 						// update speaker mode
 						bool new_speaker_is_enabled = (*value & 6) == 2;
 						if(new_speaker_is_enabled != speaker_is_enabled_) {
-							audio_.generator.set_is_enabled(new_speaker_is_enabled);
+							audio_->set_is_enabled(new_speaker_is_enabled);
 							speaker_is_enabled_ = new_speaker_is_enabled;
 						}
 
@@ -339,7 +339,7 @@ public:
 				break;
 				case 0xfe06:
 					if(!is_read(operation)) {
-						audio_.generator.set_divider(*value);
+						audio_->set_divider(*value);
 						tape_.set_counter(*value);
 					}
 				break;
@@ -529,7 +529,7 @@ public:
 	}
 
 	Outputs::Speaker::Speaker *get_speaker() final {
-		return &audio_.speaker;
+		return &audio_.speaker();
 	}
 
 	void run_for(const Cycles cycles) final {
@@ -760,10 +760,7 @@ private:
 
 	// Outputs
 	VideoOutput video_;
-	Outputs::Speaker::SpeakerQueue<
-		Outputs::Speaker::PullLowpass<SoundGenerator>,
-		SoundGenerator
-	> audio_;
+	Outputs::Speaker::PullLowpassSpeakerQueue<SoundGenerator> audio_;
 
 	bool speaker_is_enabled_ = false;
 

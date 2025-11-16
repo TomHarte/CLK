@@ -418,4 +418,7 @@ private:
 	}
 };
 
+template <typename GeneratorT>
+using PullLowpassSpeakerQueue = SpeakerQueue<Outputs::Speaker::PullLowpass<GeneratorT>, GeneratorT>;
+
 }
