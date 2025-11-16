@@ -418,7 +418,7 @@ private:
 	}
 };
 
-template <typename GeneratorT>
-using PullLowpassSpeakerQueue = SpeakerQueue<Outputs::Speaker::PullLowpass<GeneratorT>, GeneratorT>;
+template <typename CyclesT, typename GeneratorT>
+using PullLowpassSpeakerQueue = SpeakerQueue<CyclesT, Outputs::Speaker::PullLowpass<GeneratorT>, GeneratorT>;
 
 }

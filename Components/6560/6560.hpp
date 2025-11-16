@@ -463,7 +463,7 @@ private:
 	BusHandler &bus_handler_;
 	Outputs::CRT::CRT crt_;
 
-	Outputs::Speaker::PullLowpassSpeakerQueue<AudioGenerator> audio_;
+	Outputs::Speaker::PullLowpassSpeakerQueue<Cycles, AudioGenerator> audio_;
 
 	// register state
 	struct {

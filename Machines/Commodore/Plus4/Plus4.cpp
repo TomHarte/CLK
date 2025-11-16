@@ -707,7 +707,7 @@ private:
 	Cycles timers_subcycles_;
 	Timers timers_;
 	Video video_;
-	Outputs::Speaker::PullLowpassSpeakerQueue<Audio> audio_;
+	Outputs::Speaker::PullLowpassSpeakerQueue<Cycles, Audio> audio_;
 
 	// MARK: - MappedKeyboardMachine.
 	MappedKeyboardMachine::KeyboardMapper *get_keyboard_mapper() override {

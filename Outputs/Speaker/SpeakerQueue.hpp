@@ -14,15 +14,15 @@
 namespace Outputs::Speaker {
 using TaskQueue = Concurrency::AsyncTaskQueue<false, true, true>;
 
-template <typename SpeakerT, typename GeneratorT>
+template <typename CyclesT, typename SpeakerT, typename GeneratorT>
 struct SpeakerQueue: private Concurrency::EnqueueDelegate {
-	constexpr SpeakerQueue(const Cycles divider) noexcept :
+	constexpr SpeakerQueue(const CyclesT divider) noexcept :
 		generator_(queue_), speaker_(generator_), divider_(divider)
 	{
 		queue_.set_enqueue_delegate(this);
 	}
 
-	constexpr SpeakerQueue(const float input_rate, const Cycles divider, const float high_cutoff = -1.0f) noexcept :
+	constexpr SpeakerQueue(const float input_rate, const CyclesT divider, const float high_cutoff = -1.0f) noexcept :
 		SpeakerQueue(divider)
 	{
 		speaker_.set_input_rate(input_rate);
@@ -31,8 +31,8 @@ struct SpeakerQueue: private Concurrency::EnqueueDelegate {
 		}
 	}
 
-	void operator += (const Cycles &duration) {
-		cycles_since_update_ += duration;
+	void operator += (const CyclesT &duration) {
+		time_since_update_ += duration;
 	}
 
 	void stop() {
@@ -57,11 +57,11 @@ private:
 	TaskQueue queue_;
 	GeneratorT generator_;
 	SpeakerT speaker_;
-	Cycles divider_;
-	Cycles cycles_since_update_;
+	CyclesT divider_;
+	CyclesT time_since_update_;
 
 	std::function<void(void)> prepare_enqueue() final {
-		return speaker_.update_for(cycles_since_update_.divide(divider_));
+		return speaker_.update_for(time_since_update_.template divide<Cycles>(divider_));
 	}
 };
 

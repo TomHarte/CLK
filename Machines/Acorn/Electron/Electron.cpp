@@ -760,7 +760,7 @@ private:
 
 	// Outputs
 	VideoOutput video_;
-	Outputs::Speaker::PullLowpassSpeakerQueue<SoundGenerator> audio_;
+	Outputs::Speaker::PullLowpassSpeakerQueue<Cycles, SoundGenerator> audio_;
 
 	bool speaker_is_enabled_ = false;
 

@@ -35,7 +35,7 @@ public:
 	// The RIOT, TIA and speaker.
 	PIA mos6532_;
 	TIA tia_;
-	Outputs::Speaker::PullLowpassSpeakerQueue<TIASound> audio_;
+	Outputs::Speaker::PullLowpassSpeakerQueue<Cycles, TIASound> audio_;
 
 	// Joystick state.
 	uint8_t tia_input_value_[2] = {0xff, 0xff};

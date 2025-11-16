@@ -103,12 +103,10 @@ public:
 		min_ram_slot_(min_ram_slot(target)),
 		z80_(*this),
 		nick_(ram_.end() - 65536),
-		dave_audio_(audio_queue_),
-		speaker_(dave_audio_) {
+		audio_(float(clock_rate) / float(DaveDivider), DaveDivider) {
 
 		// Request a clock of 4Mhz; this'll be mapped upwards for Nick and downwards for Dave elsewhere.
 		set_clock_rate(clock_rate);
-		speaker_.set_input_rate(float(clock_rate) / float(dave_divider));
 
 		ROM::Request request;
 		using Target = Analyser::Static::Enterprise::Target;
@@ -257,7 +255,7 @@ public:
 	}
 
 	~ConcreteMachine() {
-		audio_queue_.lock_flush();
+		audio_.stop();
 	}
 
 	// MARK: - Z80::BusHandler.
@@ -344,7 +342,7 @@ public:
 		}
 
 		const HalfCycles full_length = cycle.length + penalty;
-		time_since_audio_update_ += full_length;
+		audio_ += full_length;
 		advance_nick(full_length);
 		if(dave_timer_ += full_length) {
 			set_interrupts(dave_timer_.last_valid()->get_new_interrupts(), dave_timer_.last_sequence_point_overrun());
@@ -475,8 +473,7 @@ public:
 					case 0xa4:	case 0xa5:	case 0xa6:	case 0xa7:
 					case 0xa8:	case 0xa9:	case 0xaa:	case 0xab:
 					case 0xac:	case 0xad:	case 0xae:	case 0xaf:
-						update_audio();
-						dave_audio_.write(address, *cycle.value);
+						audio_->write(address, *cycle.value);
 						dave_timer_->write(address, *cycle.value);
 					break;
 
@@ -563,8 +560,7 @@ public:
 			nick_.flush();
 		}
 		if(outputs & Output::Audio) {
-			update_audio();
-			audio_queue_.perform();
+			audio_.perform();
 		}
 	}
 
@@ -650,7 +646,7 @@ private:
 	// MARK: - AudioProducer
 
 	Outputs::Speaker::Speaker *get_speaker() final {
-		return &speaker_;
+		return &audio_.speaker();
 	}
 
 	// MARK: - TimedMachine
@@ -726,20 +722,13 @@ private:
 	bool previous_nick_interrupt_line_ = false;
 	// Cf. timing guesses above.
 
-	Concurrency::AsyncTaskQueue<false> audio_queue_;
-	Dave::Audio dave_audio_;
-	Outputs::Speaker::PullLowpass<Dave::Audio> speaker_;
-	HalfCycles time_since_audio_update_;
-
+	Outputs::Speaker::PullLowpassSpeakerQueue<HalfCycles, Dave::Audio> audio_;
 	HalfCycles dave_delay_ = HalfCycles(2);
 
 	// The divider supplied to the JustInTimeActor and the manual divider used in
-	// update_audio() should match.
-	static constexpr int dave_divider = 8;
-	JustInTimeActor<Dave::TimedInterruptSource, HalfCycles, 1, dave_divider> dave_timer_;
-	inline void update_audio() {
-		speaker_.run_for(audio_queue_, time_since_audio_update_.divide_cycles(Cycles(dave_divider)));
-	}
+	// the spekaer queue should match.
+	static constexpr int DaveDivider = 8;
+	JustInTimeActor<Dave::TimedInterruptSource, HalfCycles, 1, DaveDivider> dave_timer_;
 
 	// MARK: - EXDos card.
 	EXDos exdos_;

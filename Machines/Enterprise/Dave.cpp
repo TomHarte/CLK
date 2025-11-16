@@ -12,7 +12,7 @@ using namespace Enterprise::Dave;
 
 // MARK: - Audio generator
 
-Audio::Audio(Concurrency::AsyncTaskQueue<false> &audio_queue) :
+Audio::Audio(Outputs::Speaker::TaskQueue &audio_queue) :
 	audio_queue_(audio_queue) {}
 
 void Audio::write(uint16_t address, const uint8_t value) {

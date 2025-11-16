@@ -11,7 +11,7 @@
 #include <cstdint>
 
 #include "ClockReceiver/ClockReceiver.hpp"
-#include "Concurrency/AsyncTaskQueue.hpp"
+#include "Outputs/Speaker/SpeakerQueue.hpp"
 #include "Numeric/LFSR.hpp"
 #include "Outputs/Speaker/Implementation/BufferSource.hpp"
 
@@ -28,7 +28,7 @@ enum class Interrupt: uint8_t {
 */
 class Audio: public Outputs::Speaker::BufferSource<Audio, true> {
 public:
-	Audio(Concurrency::AsyncTaskQueue<false> &audio_queue);
+	Audio(Outputs::Speaker::TaskQueue &);
 
 	/// Modifies an register in the audio range; only the low 4 bits are
 	/// used for register decoding so it's assumed that the caller has
@@ -41,7 +41,7 @@ public:
 	void apply_samples(std::size_t number_of_samples, Outputs::Speaker::StereoSample *target);
 
 private:
-	Concurrency::AsyncTaskQueue<false> &audio_queue_;
+	Outputs::Speaker::TaskQueue &audio_queue_;
 
 	// Global divider (i.e. 8MHz/12Mhz switch).
 	uint8_t global_divider_;
