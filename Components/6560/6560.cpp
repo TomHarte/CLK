@@ -12,7 +12,7 @@
 
 using namespace MOS::MOS6560;
 
-AudioGenerator::AudioGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue) :
+AudioGenerator::AudioGenerator(Outputs::Speaker::TaskQueue &audio_queue) :
 	audio_queue_(audio_queue) {}
 
 void AudioGenerator::set_volume(const uint8_t volume) {

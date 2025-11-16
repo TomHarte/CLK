@@ -19,7 +19,7 @@ namespace MOS::MOS6560 {
 // audio state
 class AudioGenerator: public Outputs::Speaker::BufferSource<AudioGenerator, false> {
 public:
-	AudioGenerator(Concurrency::AsyncTaskQueue<false> &audio_queue);
+	AudioGenerator(Outputs::Speaker::TaskQueue &audio_queue);
 
 	void set_volume(uint8_t);
 	void set_control(int channel, uint8_t value);
@@ -30,7 +30,7 @@ public:
 	void set_sample_volume_range(std::int16_t);
 
 private:
-	Concurrency::AsyncTaskQueue<false> &audio_queue_;
+	Outputs::Speaker::TaskQueue &audio_queue_;
 
 	unsigned int counters_[4] = {2, 1, 0, 0};	// create a slight phase offset for the three channels
 	unsigned int shift_registers_[4] = {0, 0, 0, 0};
@@ -64,8 +64,7 @@ public:
 	MOS6560(BusHandler &bus_handler) :
 			bus_handler_(bus_handler),
 			crt_(65*4, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Luminance8Phase8),
-			audio_generator_(audio_queue_),
-			speaker_(audio_generator_)
+			audio_(Cycles(4))
 	{
 		// default to s-video output
 		crt_.set_display_type(Outputs::Display::DisplayType::SVideo);
@@ -75,11 +74,11 @@ public:
 	}
 
 	~MOS6560() {
-		audio_queue_.lock_flush();
+		audio_.stop();
 	}
 
 	void set_clock_rate(const double clock_rate) {
-		speaker_.set_input_rate(float(clock_rate / 4.0));
+		audio_.speaker().set_input_rate(float(clock_rate / 4.0));
 	}
 
 	void set_scan_target(Outputs::Display::ScanTarget *const scan_target) {
@@ -95,11 +94,11 @@ public:
 		return crt_.get_display_type();
 	}
 	Outputs::Speaker::Speaker *get_speaker() {
-		return &speaker_;
+		return &audio_.speaker();
 	}
 
 	void set_high_frequency_cutoff(const float cutoff) {
-		speaker_.set_high_frequency_cutoff(cutoff);
+		audio_.speaker().set_high_frequency_cutoff(cutoff);
 	}
 
 	/*!
@@ -180,7 +179,7 @@ public:
 	*/
 	inline void run_for(const Cycles cycles) {
 		// keep track of the amount of time since the speaker was updated; lazy updates are applied
-		cycles_since_speaker_update_ += cycles;
+		audio_ += cycles;
 
 		auto number_of_cycles = cycles.as_integral();
 		while(number_of_cycles--) {
@@ -377,8 +376,7 @@ public:
 		Causes the 6560 to flush as much pending CRT and speaker communications as possible.
 	*/
 	inline void flush() {
-		update_audio();
-		audio_queue_.perform();
+		audio_.perform();
 	}
 
 	/*!
@@ -420,14 +418,12 @@ public:
 			case 0xb:
 			case 0xc:
 			case 0xd:
-				update_audio();
-				audio_generator_.set_control(address - 0xa, value);
+				audio_->set_control(address - 0xa, value);
 			break;
 
 			case 0xe:
-				update_audio();
 				registers_.auxiliary_colour = colours_[value >> 4];
-				audio_generator_.set_volume(value & 0xf);
+				audio_->set_volume(value & 0xf);
 			break;
 
 			case 0xf: {
@@ -467,14 +463,7 @@ private:
 	BusHandler &bus_handler_;
 	Outputs::CRT::CRT crt_;
 
-	Concurrency::AsyncTaskQueue<false> audio_queue_;
-	AudioGenerator audio_generator_;
-	Outputs::Speaker::PullLowpass<AudioGenerator> speaker_;
-
-	Cycles cycles_since_speaker_update_;
-	void update_audio() {
-		speaker_.run_for(audio_queue_, Cycles(cycles_since_speaker_update_.divide(Cycles(4))));
-	}
+	Outputs::Speaker::PullLowpassSpeakerQueue<AudioGenerator> audio_;
 
 	// register state
 	struct {
