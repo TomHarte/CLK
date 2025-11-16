@@ -186,13 +186,11 @@ public:
 		interrupts_(*this),
 		timers_(interrupts_),
 		video_(video_map_, interrupts_),
-		audio_(audio_queue_),
-		speaker_(audio_)
+		audio_(clock_rate(false), Cycles(1))
 	{
 		const auto clock = clock_rate(false);
 		media_divider_ = Cycles(clock);
 		set_clock_rate(clock);
-		speaker_.set_input_rate(float(clock));
 
 		const auto kernel = ROM::Name::Plus4KernelPALv5;
 		const auto basic = ROM::Name::Plus4BASIC;
@@ -236,7 +234,7 @@ public:
 	}
 
 	~ConcreteMachine() {
-		audio_queue_.lock_flush();
+		audio_.stop();
 	}
 
 	// HACK. NOCOMMIT.
@@ -261,8 +259,7 @@ public:
 				c1541_->run_for(c1541_cycles_.divide(media_divider_));
 			}
 
-
-			time_since_audio_update_ += length;
+			audio_ += length;
 		}
 
 		if(operation == CPU::MOS6502::BusOperation::Ready) {
@@ -533,8 +530,7 @@ public:
 					case 0xff06:	video_.write<0xff06>(*value);	break;
 					case 0xff07:
 						video_.write<0xff07>(*value);
-						update_audio();
-						audio_.set_divider(*value);
+						audio_->set_divider(*value);
 					break;
 					case 0xff08:
 						// Observation here: the kernel posts a 0 to this
@@ -561,23 +557,19 @@ public:
 					case 0xff0d:	video_.write<0xff0d>(*value);	break;
 					case 0xff0e:
 						ff0e_ = *value;
-						update_audio();
-						audio_.set_frequency_low<0>(*value);
+						audio_->set_frequency_low<0>(*value);
 					break;
 					case 0xff0f:
 						ff0f_ = *value;
-						update_audio();
-						audio_.set_frequency_low<1>(*value);
+						audio_->set_frequency_low<1>(*value);
 					break;
 					case 0xff10:
 						ff10_ = *value;
-						update_audio();
-						audio_.set_frequency_high<1>(*value);
+						audio_->set_frequency_high<1>(*value);
 					break;
 					case 0xff11:
 						ff11_ = *value;
-						update_audio();
-						audio_.set_control(*value);
+						audio_->set_control(*value);
 					break;
 					case 0xff12:
 						ff12_ = *value & 0x3f;
@@ -589,8 +581,7 @@ public:
 							page_video_ram();
 						}
 
-						update_audio();
-						audio_.set_frequency_high<0>(*value);
+						audio_->set_frequency_high<0>(*value);
 					break;
 					case 0xff13:
 						ff13_ = *value & 0xfe;
@@ -630,7 +621,7 @@ private:
 	Processor m6502_;
 
 	Outputs::Speaker::Speaker *get_speaker() override {
-		return &speaker_;
+		return &audio_.speaker();
 	}
 
 	void set_activity_observer(Activity::Observer *const observer) final {
@@ -684,16 +675,12 @@ private:
 
 	void run_for(const Cycles cycles) final {
 		m6502_.run_for(cycles);
-
-		// I don't know why.
-		update_audio();
-		audio_queue_.perform();
+		audio_.perform();
 	}
 
 	void flush_output(int outputs) override {
 		if(outputs & Output::Audio) {
-			update_audio();
-			audio_queue_.perform();
+			audio_.perform();
 		}
 	}
 
@@ -720,14 +707,7 @@ private:
 	Cycles timers_subcycles_;
 	Timers timers_;
 	Video video_;
-
-	Concurrency::AsyncTaskQueue<false> audio_queue_;
-	Audio audio_;
-	Cycles time_since_audio_update_;
-	Outputs::Speaker::PullLowpass<Audio> speaker_;
-	void update_audio() {
-		speaker_.run_for(audio_queue_, time_since_audio_update_.flush<Cycles>());
-	}
+	Outputs::Speaker::PullLowpassSpeakerQueue<Audio> audio_;
 
 	// MARK: - MappedKeyboardMachine.
 	MappedKeyboardMachine::KeyboardMapper *get_keyboard_mapper() override {

@@ -9,13 +9,13 @@
 #pragma once
 
 #include "Outputs/Speaker/Implementation/BufferSource.hpp"
-#include "Concurrency/AsyncTaskQueue.hpp"
+#include "Outputs/Speaker/SpeakerQueue.hpp"
 
 namespace Commodore::Plus4 {
 
 class Audio: public Outputs::Speaker::BufferSource<Audio, false> {
 public:
-	Audio(Concurrency::AsyncTaskQueue<false> &audio_queue) :
+	Audio(Outputs::Speaker::TaskQueue &audio_queue) :
 		audio_queue_(audio_queue) {}
 
 	template <Outputs::Speaker::Action action>
@@ -122,7 +122,7 @@ public:
 
 private:
 	// Calling-thread state.
-	Concurrency::AsyncTaskQueue<false> &audio_queue_;
+	Outputs::Speaker::TaskQueue &audio_queue_;
 
 	// Audio-thread state.
 	int16_t external_volume_ = 0;
