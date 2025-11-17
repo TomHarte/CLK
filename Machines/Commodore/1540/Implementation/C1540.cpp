@@ -125,6 +125,7 @@ void Machine::set_serial_bus(Commodore::Serial::Bus &serial_bus) {
 
 void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {
 	get_drive().set_disk(disk);
+	drive_VIA_port_handler_.set_is_read_only(disk->is_read_only());
 }
 
 void MachineBase::set_activity_observer(Activity::Observer *const observer) {
@@ -237,7 +238,11 @@ uint8_t DriveVIA::get_port_input() const {
 }
 
 void DriveVIA::set_sync_detected(const bool sync_detected) {
-	port_b_ = (port_b_ & 0x7f) | (sync_detected ? 0x00 : 0x80);
+	port_b_ = (port_b_ & ~0x80) | (sync_detected ? 0x00 : 0x80);
+}
+
+void DriveVIA::set_is_read_only(const bool is_read_only) {
+	port_b_ = (port_b_ & ~0x10) | (is_read_only ? 0x10 : 0x80);
 }
 
 void DriveVIA::set_data_input(const uint8_t value) {
@@ -257,34 +262,43 @@ void DriveVIA::set_control_line_output(const bool value) {
 	if(port == MOS::MOS6522::Port::A && line == MOS::MOS6522::Line::Two) {
 		should_set_overflow_ = value;
 	}
+
+	if(port == MOS::MOS6522::Port::B && line == MOS::MOS6522::Line::Two) {
+		// TODO: 0 = write, 1 = read.
+		if(!value) {
+			printf("NOT IMPLEMENTED: write mode\n");
+		}
+	}
 }
 
 template <MOS::MOS6522::Port port>
 void DriveVIA::set_port_output(const uint8_t value, uint8_t) {
-	if(port) {
-		if(previous_port_b_output_ != value) {
-			// Record drive motor state.
-			drive_motor_ = value&4;
+	if(!port) {
+		return;
+	}
 
-			// Check for a head step.
-			const int step_difference = ((value&3) - (previous_port_b_output_&3))&3;
-			if(step_difference && delegate_) {
-				delegate_->drive_via_did_step_head(*this, (step_difference == 1) ? 1 : -1);
-			}
+	if(previous_port_b_output_ != value) {
+		// Record drive motor state.
+		drive_motor_ = value&4;
 
-			// Check for a change in density.
-			const int density_difference = (previous_port_b_output_^value) & (3 << 5);
-			if(density_difference && delegate_) {
-				delegate_->drive_via_did_set_data_density(*this, (value >> 5)&3);
-			}
-
-			// Post the LED status.
-			if(observer_) {
-				observer_->set_led_status("Drive", value&8);
-			}
-
-			previous_port_b_output_ = value;
+		// Check for a head step.
+		const int step_difference = ((value&3) - (previous_port_b_output_&3))&3;
+		if(step_difference && delegate_) {
+			delegate_->drive_via_did_step_head(*this, (step_difference == 1) ? 1 : -1);
 		}
+
+		// Check for a change in density.
+		const int density_difference = (previous_port_b_output_^value) & (3 << 5);
+		if(density_difference && delegate_) {
+			delegate_->drive_via_did_set_data_density(*this, (value >> 5)&3);
+		}
+
+		// Post the LED status.
+		if(observer_) {
+			observer_->set_led_status("Drive", value&8);
+		}
+
+		previous_port_b_output_ = value;
 	}
 }
 

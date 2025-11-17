@@ -65,15 +65,17 @@ private:
 	It is wired up such that Port B contains:
 		Bits 0/1:	head step direction
 		Bit 2:		motor control
-		Bit 3:		LED control (TODO)
+		Bit 3:		LED control
 		Bit 4:		write protect photocell status (TODO)
 		Bits 5/6:	read/write density
 		Bit 7:		0 if sync marks are currently being detected, 1 otherwise.
 
 	... and Port A contains the byte most recently read from the disk or the byte next to write to the disk, depending on data direction.
 
-	It is implied that CA2 might be used to set processor overflow, CA1 a strobe for data input, and one of the CBs being definitive on
-	whether the disk head is being told to read or write, but it's unclear and I've yet to investigate. So, TODO.
+	Elsewhere:
+	* CA2 might is used to set processor overflow;
+	* CA1 a strobe for data input; and
+	* CB2 indicates read/write mode; 1 = read, 0 = write.
 */
 class DriveVIA: public MOS::MOS6522::IRQDelegatePortHandler {
 public:
@@ -88,6 +90,7 @@ public:
 
 	void set_sync_detected(bool);
 	void set_data_input(uint8_t);
+	void set_is_read_only(bool);
 	bool should_set_overflow();
 	bool motor_enabled();
 
