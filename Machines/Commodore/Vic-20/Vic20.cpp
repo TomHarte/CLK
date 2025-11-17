@@ -280,7 +280,6 @@ class ConcreteMachine:
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::JoystickMachine,
 	public Configurable::Device,
-	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
 	public Utility::TypeRecipient<CharacterMapper>,
 	public Storage::Tape::BinaryTapePlayer::Delegate,

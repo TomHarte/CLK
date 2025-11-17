@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Processors/6502/6502.hpp"
+#include "Processors/6502Mk2/6502Mk2.hpp"
 #include "Components/6522/6522.hpp"
 
 #include "Machines/Commodore/SerialBus.hpp"
@@ -122,7 +122,6 @@ private:
 };
 
 class MachineBase:
-	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
 	public DriveVIA::Delegate,
 	public Storage::Disk::Controller {
@@ -134,7 +133,8 @@ public:
 	void set_activity_observer(Activity::Observer *);
 
 	// to satisfy CPU::MOS6502::Processor
-	Cycles perform_bus_operation(CPU::MOS6502::BusOperation, uint16_t address, uint8_t *value);
+	template <CPU::MOS6502Mk2::BusOperation operation, typename AddressT>
+	Cycles perform(const AddressT, CPU::MOS6502Mk2::data_t<operation>);
 
 protected:
 	// to satisfy MOS::MOS6522::Delegate
@@ -144,7 +144,12 @@ protected:
 	void drive_via_did_step_head(DriveVIA &, int direction) override;
 	void drive_via_did_set_data_density(DriveVIA &, int density) override;
 
-	CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, MachineBase, false> m6502_;
+	struct M6502Traits {
+		static constexpr auto uses_ready_line = false;
+		static constexpr auto pause_precision = CPU::MOS6502Mk2::PausePrecision::AnyCycle;
+		using BusHandlerT = MachineBase;
+	};
+	CPU::MOS6502Mk2::Processor<CPU::MOS6502Mk2::Model::M6502, M6502Traits> m6502_;
 
 	uint8_t ram_[0x800];
 	uint8_t rom_[0x4000];

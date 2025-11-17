@@ -428,6 +428,7 @@ public:
 					break;
 
 					default:
+						value = 0xff;
 						Logger::info().append("TODO: read @ %04x", address);
 					break;
 				}
@@ -517,6 +518,7 @@ public:
 
 					default:
 						Logger::info().append("TODO: TED read at %04x", address);
+						value = 0xff;
 						is_hit = false;
 				}
 			} else {

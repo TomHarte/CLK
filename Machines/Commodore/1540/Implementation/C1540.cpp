@@ -65,7 +65,8 @@ void Machine::set_serial_bus(Commodore::Serial::Bus &serial_bus) {
 	Commodore::Serial::attach(serial_port_, serial_bus);
 }
 
-Cycles MachineBase::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+template <CPU::MOS6502Mk2::BusOperation operation, typename AddressT>
+Cycles MachineBase::perform(const AddressT address, CPU::MOS6502Mk2::data_t<operation> value) {
 	/*
 		Memory map (given that I'm unsure yet on any potential mirroring):
 
@@ -75,24 +76,28 @@ Cycles MachineBase::perform_bus_operation(CPU::MOS6502::BusOperation operation, 
 			0xc000-0xffff	ROM
 	*/
 	if(address < 0x800) {
-		if(is_read(operation))
-			*value = ram_[address];
+		if constexpr (is_read(operation))
+			value = ram_[address];
 		else
-			ram_[address] = *value;
+			ram_[address] = value;
 	} else if(address >= 0xc000) {
-		if(is_read(operation)) {
-			*value = rom_[address & 0x3fff];
+		if constexpr (is_read(operation)) {
+			value = rom_[address & 0x3fff];
 		}
 	} else if(address >= 0x1800 && address <= 0x180f) {
-		if(is_read(operation))
-			*value = serial_port_VIA_.read(address);
+		if constexpr (is_read(operation))
+			value = serial_port_VIA_.read(address);
 		else
-			serial_port_VIA_.write(address, *value);
+			serial_port_VIA_.write(address, value);
 	} else if(address >= 0x1c00 && address <= 0x1c0f) {
-		if(is_read(operation))
-			*value = drive_VIA_.read(address);
+		if constexpr (is_read(operation))
+			value = drive_VIA_.read(address);
 		else
-			drive_VIA_.write(address, *value);
+			drive_VIA_.write(address, value);
+	} else {
+		if constexpr (is_read(operation)) {
+			value = 0xff;
+		}
 	}
 
 	serial_port_VIA_.run_for(Cycles(1));
@@ -123,7 +128,7 @@ void MachineBase::set_activity_observer(Activity::Observer *observer) {
 
 void MachineBase::mos6522_did_change_interrupt_status(void *) {
 	// both VIAs are connected to the IRQ line
-	m6502_.set_irq_line(serial_port_VIA_.get_interrupt_line() || drive_VIA_.get_interrupt_line());
+	m6502_.set<CPU::MOS6502Mk2::Line::IRQ>(serial_port_VIA_.get_interrupt_line() || drive_VIA_.get_interrupt_line());
 }
 
 // MARK: - Disk drive
@@ -141,10 +146,10 @@ void MachineBase::process_input_bit(int value) {
 		drive_VIA_port_handler_.set_data_input(uint8_t(shift_register_));
 		bit_window_offset_ = 0;
 		if(drive_VIA_port_handler_.get_should_set_overflow()) {
-			m6502_.set_overflow_line(true);
+			m6502_.set<CPU::MOS6502Mk2::Line::Overflow>(true);
 		}
 	}
-	else m6502_.set_overflow_line(false);
+	else m6502_.set<CPU::MOS6502Mk2::Line::Overflow>(false);
 }
 
 // the 1540 does not recognise index holes
