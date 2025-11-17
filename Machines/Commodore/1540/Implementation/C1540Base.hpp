@@ -88,8 +88,8 @@ public:
 
 	void set_sync_detected(bool);
 	void set_data_input(uint8_t);
-	bool get_should_set_overflow();
-	bool get_motor_enabled();
+	bool should_set_overflow();
+	bool motor_enabled();
 
 	template <MOS::MOS6522::Port, MOS::MOS6522::Line>
 	void set_control_line_output(bool value);
