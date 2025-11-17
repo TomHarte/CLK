@@ -66,6 +66,7 @@ enum class Line {
 	PowerOn,
 	Overflow,
 	NMI,
+	Ready,
 };
 
 // MARK: - Address bus.
@@ -192,6 +193,9 @@ public:
 			// Edge triggered.
 			case Line::Overflow:	edge_sample(Inputs::InterruptRequest::Reset, inputs_.overflow);		break;
 			case Line::NMI:			edge_sample(Inputs::InterruptRequest::NMI, inputs_.nmi);			break;
+
+			// Merely stateful.
+			case Line::Ready:		inputs_.ready = value;												break;
 
 			default:
 				__builtin_unreachable();
