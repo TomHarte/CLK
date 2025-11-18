@@ -79,19 +79,23 @@ public:
 	}
 
 	/// Receives announcements of control line output change from the 6522.
-	template <MOS::MOS6522::Port port, MOS::MOS6522::Line line> void set_control_line_output(const bool value) {
+	template <MOS::MOS6522::Port port, MOS::MOS6522::Line line>
+	void set_control_line_output(const bool) {}
+
+	template <> void set_control_line_output<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(const bool value) {
 		// The CA2 output is used to control the tape motor.
-		if(port == MOS::MOS6522::Port::A && line == MOS::MOS6522::Line::Two) {
-			tape_->set_motor_control(!value);
-		}
+		tape_->set_motor_control(!value);
 	}
 
 	/// Receives announcements of changes in the serial bus connected to the serial port and propagates them into Port A.
-	void set_serial_line_state(Commodore::Serial::Line line, const bool value) {
+	void set_serial_line_state(const Commodore::Serial::Line line, const bool value) {
+		const auto set = [&](const uint8_t bit) {
+			port_a_ = (port_a_ & ~bit) | (value ? bit : 0x00);
+		};
 		switch(line) {
 			default: break;
-			case ::Commodore::Serial::Line::Data: port_a_ = (port_a_ & ~0x02) | (value ? 0x02 : 0x00);	break;
-			case ::Commodore::Serial::Line::Clock: port_a_ = (port_a_ & ~0x01) | (value ? 0x01 : 0x00);	break;
+			case ::Commodore::Serial::Line::Data: 	set(0x02);	break;
+			case ::Commodore::Serial::Line::Clock: 	set(0x01);	break;
 		}
 	}
 
@@ -146,7 +150,7 @@ public:
 
 	/// Sets all keys as unpressed.
 	void clear_all_keys() {
-		memset(columns_, 0xff, sizeof(columns_));
+		std::fill(std::begin(columns_), std::end(columns_), 0xff);
 	}
 
 	/// Called by the 6522 to get input. Reads the keyboard on Port A, returns a small amount of joystick state on Port B.
@@ -230,8 +234,6 @@ struct Vic6560BusHandler {
 	// It is assumed that these pointers have been filled in by the machine.
 	const uint8_t *video_memory_map[16]{};	// Segments video memory into 1kb portions.
 	const uint8_t *colour_memory{};			// Colour memory must be contiguous.
-
-	// TODO: make the above const.
 };
 
 /*!
@@ -454,7 +456,7 @@ public:
 	}
 
 	void set_key_state(const uint16_t key, const bool is_pressed) final {
-		if(key < 0xfff0) {
+		if(key < KeyUp) {
 			keyboard_via_port_handler_.set_key_state(key, is_pressed);
 		} else {
 			switch(key) {
@@ -480,6 +482,7 @@ public:
 
 	void clear_all_keys() final {
 		keyboard_via_port_handler_.clear_all_keys();
+		set_key_state(KeyRestore, false);
 	}
 
 	const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
@@ -748,12 +751,22 @@ private:
 			++address;
 		}
 	}
-	void write_to_map(const uint8_t **const map, const uint8_t *area, uint16_t address, size_t length) {
+	void write_to_map(
+		const uint8_t **const map,
+		const uint8_t *const area,
+		const uint16_t address,
+		const size_t length
+	) {
 		write_to_map([&](const uint16_t address, const size_t offset) {
 			map[address] = &area[offset];
 		}, address, length);
 	}
-	void write_to_map(uint8_t **const map, uint8_t *area, uint16_t address, size_t length) {
+	void write_to_map(
+		uint8_t **const map,
+		uint8_t *const area,
+		const uint16_t address,
+		const size_t length
+	) {
 		write_to_map([&](const uint16_t address, const size_t offset) {
 			map[address] = &area[offset];
 		}, address, length);
