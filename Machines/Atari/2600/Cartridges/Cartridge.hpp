@@ -70,10 +70,11 @@ public:
 		// leap to the end of ready only once ready is signalled because on a 6502 ready doesn't take
 		// effect until the next read; therefore it isn't safe to assume that signalling ready immediately
 		// skips to the end of the line.
-		if(operation == CPU::MOS6502::BusOperation::Ready)
+		if(operation == CPU::MOS6502::BusOperation::Ready) {
 			cycles_run_for = tia_.get_cycles_until_horizontal_blank(cycles_since_video_update_);
+		}
 
-		cycles_since_speaker_update_ += Cycles(cycles_run_for);
+		audio_ += Cycles(cycles_run_for);
 		cycles_since_video_update_ += Cycles(cycles_run_for);
 		cycles_since_6532_update_ += Cycles(cycles_run_for / 3);
 		bus_extender_.advance_cycles(cycles_run_for / 3);
@@ -171,11 +172,11 @@ public:
 						case 0x2c:	update_video(); tia_.clear_collision_flags();										break;
 
 						case 0x15:
-						case 0x16:	update_audio(); tia_sound_.set_control(decodedAddress - 0x15, *value);				break;
+						case 0x16:	audio_->set_control(decodedAddress - 0x15, *value);			break;
 						case 0x17:
-						case 0x18:	update_audio(); tia_sound_.set_divider(decodedAddress - 0x17, *value);				break;
+						case 0x18:	audio_->set_divider(decodedAddress - 0x17, *value);			break;
 						case 0x19:
-						case 0x1a:	update_audio(); tia_sound_.set_volume(decodedAddress - 0x19, *value);				break;
+						case 0x1a:	audio_->set_volume(decodedAddress - 0x19, *value);				break;
 					}
 				}
 			}
@@ -201,9 +202,8 @@ public:
 	}
 
 	void flush() override {
-		update_audio();
 		update_video();
-		audio_queue_.perform();
+		audio_.perform();
 	}
 
 protected:

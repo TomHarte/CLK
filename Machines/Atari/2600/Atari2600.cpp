@@ -159,7 +159,7 @@ public:
 
 	// to satisfy CRTMachine::Machine
 	void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
-		bus_->speaker_.set_input_rate(float(get_clock_rate() / double(CPUTicksPerAudioTick)));
+		bus_->audio_.speaker().set_input_rate(float(get_clock_rate() / double(CPUTicksPerAudioTick)));
 		bus_->tia_.set_crt_delegate(&frequency_mismatch_warner_);
 		bus_->tia_.set_scan_target(scan_target);
 	}
@@ -169,7 +169,7 @@ public:
 	}
 
 	Outputs::Speaker::Speaker *get_speaker() final {
-		return &bus_->speaker_;
+		return &bus_->audio_.speaker();
 	}
 
 	void run_for(const Cycles cycles) final {
@@ -206,11 +206,11 @@ private:
 	// a confidence counter
 	Analyser::Dynamic::ConfidenceCounter confidence_counter_;
 
-	void set_is_ntsc(bool is_ntsc) {
+	void set_is_ntsc(const bool is_ntsc) {
 		bus_->tia_.set_output_mode(is_ntsc ? TIA::OutputMode::NTSC : TIA::OutputMode::PAL);
 		const double clock_rate = is_ntsc ? NTSC_clock_rate : PAL_clock_rate;
-		bus_->speaker_.set_input_rate(float(clock_rate) / float(CPUTicksPerAudioTick));
-		bus_->speaker_.set_high_frequency_cutoff(float(clock_rate) / float(CPUTicksPerAudioTick * 2));
+		bus_->audio_.speaker().set_input_rate(float(clock_rate) / float(CPUTicksPerAudioTick));
+		bus_->audio_.speaker().set_high_frequency_cutoff(float(clock_rate) / float(CPUTicksPerAudioTick * 2));
 		set_clock_rate(clock_rate);
 	}
 };

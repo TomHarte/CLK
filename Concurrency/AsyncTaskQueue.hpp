@@ -40,9 +40,12 @@ private:
 /// An implementation detail; provides a no-op implementation of time advances for TaskQueues without a Performer.
 template <> struct TaskQueueStorage<void> {
 	TaskQueueStorage() {}
+protected:
+	void update() {}
+};
 
-	protected:
-		void update() {}
+struct EnqueueDelegate {
+	virtual std::function<void(void)> prepare_enqueue() = 0;
 };
 
 /*!
@@ -67,10 +70,15 @@ template <> struct TaskQueueStorage<void> {
 template <
 	bool perform_automatically,
 	bool start_immediately = true,
+	bool use_enqueue_delegate = false,
 	typename Performer = void
 >
 class AsyncTaskQueue: public TaskQueueStorage<Performer> {
 public:
+	void set_enqueue_delegate(EnqueueDelegate *const delegate) {
+		enqueue_delegate_ = delegate;
+	}
+
 	template <typename... Args> AsyncTaskQueue(Args&&... args) :
 		TaskQueueStorage<Performer>(std::forward<Args>(args)...) {
 		if constexpr (start_immediately) {
@@ -90,6 +98,9 @@ public:
 	/// to 'now'.
 	void enqueue(const std::function<void(void)> &post_action) {
 		const std::lock_guard guard(condition_mutex_);
+		if constexpr (use_enqueue_delegate) {
+			actions_.push_back(enqueue_delegate_->prepare_enqueue());
+		}
 		actions_.push_back(post_action);
 
 		if constexpr (perform_automatically) {
@@ -205,6 +216,8 @@ private:
 			}
 		};
 	}
+
+	EnqueueDelegate *enqueue_delegate_ = nullptr;
 
 	// The list of actions waiting be performed. These will be elided,
 	// increasing their latency, if the emulation thread falls behind.

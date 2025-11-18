@@ -21,12 +21,10 @@ namespace Atari2600 {
 
 class Bus {
 public:
-	Bus() :
-		tia_sound_(audio_queue_),
-		speaker_(tia_sound_) {}
+	Bus() : audio_(Cycles(CPUTicksPerAudioTick * 3)) {}
 
 	virtual ~Bus() {
-		audio_queue_.lock_flush();
+		audio_.stop();
 	}
 
 	virtual void run_for(const Cycles cycles) = 0;
@@ -34,31 +32,22 @@ public:
 	virtual void set_reset_line(bool state) = 0;
 	virtual void flush() = 0;
 
-	// the RIOT, TIA and speaker
+	// The RIOT, TIA and speaker.
 	PIA mos6532_;
 	TIA tia_;
+	Outputs::Speaker::PullLowpassSpeakerQueue<Cycles, TIASound> audio_;
 
-	Concurrency::AsyncTaskQueue<false> audio_queue_;
-	TIASound tia_sound_;
-	Outputs::Speaker::PullLowpass<TIASound> speaker_;
-
-	// joystick state
+	// Joystick state.
 	uint8_t tia_input_value_[2] = {0xff, 0xff};
 
 protected:
-	// speaker backlog accumlation counter
-	Cycles cycles_since_speaker_update_;
-	inline void update_audio() {
-		speaker_.run_for(audio_queue_, cycles_since_speaker_update_.divide(Cycles(CPUTicksPerAudioTick * 3)));
-	}
-
-	// video backlog accumulation counter
+	// Video backlog accumulation counter.
 	Cycles cycles_since_video_update_;
 	inline void update_video() {
 		tia_.run_for(cycles_since_video_update_.flush<Cycles>());
 	}
 
-	// RIOT backlog accumulation counter
+	// RIOT backlog accumulation counter.
 	Cycles cycles_since_6532_update_;
 	inline void update_6532() {
 		mos6532_.run_for(cycles_since_6532_update_.flush<Cycles>());
