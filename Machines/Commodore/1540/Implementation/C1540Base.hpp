@@ -85,6 +85,7 @@ public:
 		virtual void drive_via_did_set_drive_motor(DriveVIA &, bool enabled) = 0;
 		virtual void drive_via_did_set_write_mode(DriveVIA &, bool write) = 0;
 		virtual void drive_via_should_set_cpu_overflow(DriveVIA &, bool overflow) = 0;
+		virtual void drive_via_set_to_shifter_output(DriveVIA &, uint8_t) = 0;
 	};
 	void set_delegate(Delegate *);
 
@@ -153,6 +154,7 @@ protected:
 	void drive_via_did_set_drive_motor(DriveVIA &, bool) override;
 	void drive_via_did_set_write_mode(DriveVIA &, bool) override;
 	void drive_via_should_set_cpu_overflow(DriveVIA &, bool) override;
+	void drive_via_set_to_shifter_output(DriveVIA &, uint8_t) override;
 
 	struct M6502Traits {
 		static constexpr auto uses_ready_line = false;
@@ -175,6 +177,7 @@ protected:
 	int shift_register_ = 0, bit_window_offset_;
 	void process_input_bit(int value) override;
 	void process_index_hole() override;
+	void process_write_completed() override;
 };
 
 }

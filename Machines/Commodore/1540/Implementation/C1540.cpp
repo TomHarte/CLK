@@ -122,7 +122,8 @@ void Machine::set_serial_bus(Commodore::Serial::Bus &serial_bus) {
 
 void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {
 	get_drive().set_disk(disk);
-	drive_VIA_port_handler_.set_is_read_only(disk->is_read_only());
+//	drive_VIA_port_handler_.set_is_read_only(disk->is_read_only());
+	drive_VIA_port_handler_.set_is_read_only(false);
 }
 
 void MachineBase::set_activity_observer(Activity::Observer *const observer) {
@@ -147,6 +148,7 @@ void MachineBase::process_input_bit(const int value) {
 	} else {
 		drive_VIA_port_handler_.set_sync_detected(false);
 	}
+
 	++bit_window_offset_;
 	if(bit_window_offset_ == 8) {
 		drive_VIA_port_handler_.set_data_input(uint8_t(shift_register_));
@@ -159,7 +161,23 @@ void MachineBase::process_input_bit(const int value) {
 	}
 }
 
-// the 1540 does not recognise index holes
+void MachineBase::process_write_completed() {
+	if(set_cpu_overflow_) {
+		// TODO: REMOVE UGLY HACK HERE.
+		//
+		// The issue here is that I want overflow to go high for one shift of the
+		// underlying register. But Storage::Disk::Controller doesn't current reveal
+		// that level of detail. Instead I'm raising the overflow interrupt momentarily
+		// because I know that'll set the proper flag in the processor as a biproduct
+		// of its current implementation.
+		//
+		// Yuck.
+		m6502_.set<CPU::MOS6502Mk2::Line::Overflow>(true);
+		m6502_.set<CPU::MOS6502Mk2::Line::Overflow>(false);
+	}
+}
+
+// The 1540 does not recognise index holes.
 void MachineBase::process_index_hole()	{}
 
 // MARK: - Drive VIA delegate
@@ -176,8 +194,26 @@ void MachineBase::drive_via_did_set_drive_motor(DriveVIA &, const bool enabled) 
 	get_drive().set_motor_on(enabled);
 }
 
-void MachineBase::drive_via_did_set_write_mode(DriveVIA &, bool) {
-	// TODO.
+void MachineBase::drive_via_did_set_write_mode(DriveVIA &, const bool enabled) {
+	auto &drive = get_drive();
+	if(enabled) {
+		drive.begin_writing(expected_bit_length(), false);
+	} else {
+		drive.end_writing();
+	}
+}
+
+void MachineBase::drive_via_set_to_shifter_output(DriveVIA &, uint8_t value) {
+	// TODO: this should actually latch only at some point after the processor's reaction
+	// to overflow being set in process_write_completed. I'm fuzzy on the exact timing, but
+	// if I take it as true that overflow goes high as the final bit starts to go out then
+	// presumably the shift register grabs whatever is coming out of the VIA just shortly
+	// before it needs to shift again.
+	auto &drive = get_drive();
+	for(int c = 0; c < 8; c++) {
+		drive.write_bit(value & 0x80);
+		value <<= 1;
+	}
 }
 
 void MachineBase::drive_via_should_set_cpu_overflow(DriveVIA &, const bool overflow) {
@@ -278,8 +314,9 @@ void DriveVIA::set_control_line_output(const bool value) {
 	}
 
 	if(port == MOS::MOS6522::Port::B && line == MOS::MOS6522::Line::Two) {
-		if(value != write_mode_) {
-			write_mode_ = !value;
+		const bool new_write_mode = !value;
+		if(new_write_mode != write_mode_) {
+			write_mode_ = new_write_mode;
 			if(delegate_) {
 				delegate_->drive_via_did_set_write_mode(*this, write_mode_);
 			}
@@ -322,7 +359,9 @@ void DriveVIA::set_port_output<MOS::MOS6522::Port::B>(const uint8_t value, uint8
 
 template <>
 void DriveVIA::set_port_output<MOS::MOS6522::Port::A>(const uint8_t value, uint8_t) {
-	printf("TODO: output is %02x\n", value);
+	if(delegate_) {
+		delegate_->drive_via_set_to_shifter_output(*this, value);
+	}
 }
 
 void DriveVIA::set_activity_observer(Activity::Observer *const observer) {

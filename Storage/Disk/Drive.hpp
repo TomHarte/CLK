@@ -120,7 +120,7 @@ public:
 	/*!
 		Writes the bit @c value as the next in the PCM stream initiated by @c begin_writing.
 	*/
-	void write_bit(bool value);
+	void write_bit(bool);
 
 	/*!
 		Ends write mode, switching back to read mode. The drive will stop overwriting events.

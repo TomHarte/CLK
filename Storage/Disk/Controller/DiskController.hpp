@@ -40,6 +40,7 @@ protected:
 		Communicates to the PLL the expected length of a bit as a fraction of a second.
 	*/
 	void set_expected_bit_length(Time bit_length);
+	Time expected_bit_length();
 
 	/*!
 		Advances the drive by @c number_of_cycles cycles.

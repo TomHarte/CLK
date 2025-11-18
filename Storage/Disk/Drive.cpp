@@ -237,11 +237,10 @@ void Drive::run_for(const Cycles cycles) {
 					if(cycles_until_bits_written_ > zero) {
 						Storage::Time cycles_to_run_for_time(static_cast<int>(cycles_to_run_for));
 						if(cycles_until_bits_written_ <= cycles_to_run_for_time) {
-							if(event_delegate_) event_delegate_->process_write_completed();
-							if(cycles_until_bits_written_ <= cycles_to_run_for_time)
-								cycles_until_bits_written_.set_zero();
-							else
-								cycles_until_bits_written_ -= cycles_to_run_for_time;
+							if(event_delegate_) {
+								event_delegate_->process_write_completed();
+							}
+							cycles_until_bits_written_.set_zero();
 						} else {
 							cycles_until_bits_written_ -= cycles_to_run_for_time;
 						}

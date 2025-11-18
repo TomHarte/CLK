@@ -73,7 +73,7 @@ void Controller::process_write_completed() {
 
 // MARK: - PLL control and delegate
 
-void Controller::set_expected_bit_length(Time bit_length) {
+void Controller::set_expected_bit_length(const Time bit_length) {
 	bit_length_ = bit_length;
 	bit_length_.simplify();
 
@@ -84,6 +84,10 @@ void Controller::set_expected_bit_length(Time bit_length) {
 	// account of in rotation speed, air turbulence, etc, so a direct conversion will do
 	const int clocks_per_bit = cycles_per_bit.get<int>();
 	pll_.set_clocks_per_bit(clocks_per_bit);
+}
+
+Storage::Time Controller::expected_bit_length() {
+	return bit_length_;
 }
 
 void Controller::digital_phase_locked_loop_output_bit(int value) {
