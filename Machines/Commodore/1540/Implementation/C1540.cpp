@@ -242,7 +242,7 @@ void DriveVIA::set_sync_detected(const bool sync_detected) {
 }
 
 void DriveVIA::set_is_read_only(const bool is_read_only) {
-	port_b_ = (port_b_ & ~0x10) | (is_read_only ? 0x10 : 0x80);
+	port_b_ = (port_b_ & ~0x10) | (is_read_only ? 0x00 : 0x10);
 }
 
 void DriveVIA::set_data_input(const uint8_t value) {
