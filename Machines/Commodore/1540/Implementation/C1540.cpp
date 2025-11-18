@@ -271,12 +271,8 @@ void DriveVIA::set_control_line_output(const bool value) {
 	}
 }
 
-template <MOS::MOS6522::Port port>
-void DriveVIA::set_port_output(const uint8_t value, uint8_t) {
-	if(!port) {
-		return;
-	}
-
+template <>
+void DriveVIA::set_port_output<MOS::MOS6522::Port::B>(const uint8_t value, uint8_t) {
 	if(previous_port_b_output_ != value) {
 		// Record drive motor state.
 		drive_motor_ = value&4;
@@ -300,6 +296,11 @@ void DriveVIA::set_port_output(const uint8_t value, uint8_t) {
 
 		previous_port_b_output_ = value;
 	}
+}
+
+template <>
+void DriveVIA::set_port_output<MOS::MOS6522::Port::A>(const uint8_t value, uint8_t) {
+	printf("TODO: output is %02x\n", value);
 }
 
 void DriveVIA::set_activity_observer(Activity::Observer *const observer) {
