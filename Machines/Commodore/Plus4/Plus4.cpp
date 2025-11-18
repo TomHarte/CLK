@@ -528,8 +528,8 @@ public:
 					case 0xff05:	timers_.write<5>(value);		break;
 					case 0xff06:	video_.write<0xff06>(value);	break;
 					case 0xff07:
-						video_.write<0xff07>(*value);
-						audio_->set_divider(*value);
+						video_.write<0xff07>(value);
+						audio_->set_divider(value);
 					break;
 					case 0xff08:
 						// Observation here: the kernel posts a 0 to this
@@ -555,20 +555,20 @@ public:
 					case 0xff0c:	video_.write<0xff0c>(value);	break;
 					case 0xff0d:	video_.write<0xff0d>(value);	break;
 					case 0xff0e:
-						ff0e_ = *value;
-						audio_->set_frequency_low<0>(*value);
+						ff0e_ = value;
+						audio_->set_frequency_low<0>(value);
 					break;
 					case 0xff0f:
-						ff0f_ = *value;
-						audio_->set_frequency_low<1>(*value);
+						ff0f_ = value;
+						audio_->set_frequency_low<1>(value);
 					break;
 					case 0xff10:
-						ff10_ = *value;
-						audio_->set_frequency_high<1>(*value);
+						ff10_ = value;
+						audio_->set_frequency_high<1>(value);
 					break;
 					case 0xff11:
-						ff11_ = *value;
-						audio_->set_control(*value);
+						ff11_ = value;
+						audio_->set_control(value);
 					break;
 					case 0xff12:
 						ff12_ = value & 0x3f;
@@ -580,7 +580,7 @@ public:
 							page_video_ram();
 						}
 
-						audio_->set_frequency_high<0>(*value);
+						audio_->set_frequency_high<0>(value);
 					break;
 					case 0xff13:
 						ff13_ = value & 0xfe;
