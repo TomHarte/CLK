@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Processors/6502/6502.hpp"
+#include "Processors/6502Mk2/6502Mk2.hpp"
 #include "Components/6522/6522.hpp"
 
 #include "Machines/Commodore/SerialBus.hpp"
@@ -65,15 +65,17 @@ private:
 	It is wired up such that Port B contains:
 		Bits 0/1:	head step direction
 		Bit 2:		motor control
-		Bit 3:		LED control (TODO)
+		Bit 3:		LED control
 		Bit 4:		write protect photocell status (TODO)
 		Bits 5/6:	read/write density
 		Bit 7:		0 if sync marks are currently being detected, 1 otherwise.
 
 	... and Port A contains the byte most recently read from the disk or the byte next to write to the disk, depending on data direction.
 
-	It is implied that CA2 might be used to set processor overflow, CA1 a strobe for data input, and one of the CBs being definitive on
-	whether the disk head is being told to read or write, but it's unclear and I've yet to investigate. So, TODO.
+	Elsewhere:
+	* CA2 might is used to set processor overflow;
+	* CA1 a strobe for data input; and
+	* CB2 indicates read/write mode; 1 = read, 0 = write.
 */
 class DriveVIA: public MOS::MOS6522::IRQDelegatePortHandler {
 public:
@@ -88,8 +90,9 @@ public:
 
 	void set_sync_detected(bool);
 	void set_data_input(uint8_t);
-	bool get_should_set_overflow();
-	bool get_motor_enabled();
+	void set_is_read_only(bool);
+	bool should_set_overflow();
+	bool motor_enabled();
 
 	template <MOS::MOS6522::Port, MOS::MOS6522::Line>
 	void set_control_line_output(bool value);
@@ -122,7 +125,6 @@ private:
 };
 
 class MachineBase:
-	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
 	public DriveVIA::Delegate,
 	public Storage::Disk::Controller {
@@ -134,7 +136,8 @@ public:
 	void set_activity_observer(Activity::Observer *);
 
 	// to satisfy CPU::MOS6502::Processor
-	Cycles perform_bus_operation(CPU::MOS6502::BusOperation, uint16_t address, uint8_t *value);
+	template <CPU::MOS6502Mk2::BusOperation operation, typename AddressT>
+	Cycles perform(const AddressT, CPU::MOS6502Mk2::data_t<operation>);
 
 protected:
 	// to satisfy MOS::MOS6522::Delegate
@@ -144,7 +147,12 @@ protected:
 	void drive_via_did_step_head(DriveVIA &, int direction) override;
 	void drive_via_did_set_data_density(DriveVIA &, int density) override;
 
-	CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, MachineBase, false> m6502_;
+	struct M6502Traits {
+		static constexpr auto uses_ready_line = false;
+		static constexpr auto pause_precision = CPU::MOS6502Mk2::PausePrecision::AnyCycle;
+		using BusHandlerT = MachineBase;
+	};
+	CPU::MOS6502Mk2::Processor<CPU::MOS6502Mk2::Model::M6502, M6502Traits> m6502_;
 
 	uint8_t ram_[0x800];
 	uint8_t rom_[0x4000];

@@ -66,6 +66,7 @@ enum class Line {
 	PowerOn,
 	Overflow,
 	NMI,
+	Ready,
 };
 
 // MARK: - Address bus.
@@ -185,13 +186,23 @@ public:
 					(inputs_.interrupt_requests & Inputs::InterruptRequest::PowerOn);
 			break;
 
-			// Level triggered.
+			// Level triggered interrupts.
 			case Line::Reset:		level_sample(Inputs::InterruptRequest::Reset);						break;
 			case Line::IRQ:			level_sample(Inputs::InterruptRequest::IRQ);						break;
 
-			// Edge triggered.
-			case Line::Overflow:	edge_sample(Inputs::InterruptRequest::Reset, inputs_.overflow);		break;
+			// Edge triggered interrupts.
 			case Line::NMI:			edge_sample(Inputs::InterruptRequest::NMI, inputs_.nmi);			break;
+
+			// Leval-capturing state.
+			case Line::Ready:		inputs_.ready = value;												break;
+
+			// Edge-triggered state.
+			case Line::Overflow:
+				if(!inputs_.overflow && value) {
+					registers_.flags.set_per<Flag::Overflow>(Flag::Overflow);
+				}
+				inputs_.overflow = value;
+			break;
 
 			default:
 				__builtin_unreachable();
