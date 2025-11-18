@@ -13,7 +13,7 @@
 #include "Activity/Source.hpp"
 #include "Machines/MachineTypes.hpp"
 
-#include "Processors/6502/6502.hpp"
+#include "Processors/6502Mk2/6502Mk2.hpp"
 #include "Components/6560/6560.hpp"
 #include "Components/6522/6522.hpp"
 
@@ -72,26 +72,30 @@ public:
 		// Port A provides information about the presence or absence of a tape, and parts of
 		// the joystick and serial port state, both of which have been statefully collected
 		// into port_a_.
-		if(!port) {
+		if constexpr (port == MOS::MOS6522::Port::A) {
 			return port_a_ | (tape_->has_tape() ? 0x00 : 0x40);
 		}
 		return 0xff;
 	}
 
 	/// Receives announcements of control line output change from the 6522.
-	template <MOS::MOS6522::Port port, MOS::MOS6522::Line line> void set_control_line_output(const bool value) {
-		// The CA2 output is used to control the tape motor.
-		if(port == MOS::MOS6522::Port::A && line == MOS::MOS6522::Line::Two) {
+	template <MOS::MOS6522::Port port, MOS::MOS6522::Line line>
+	void set_control_line_output(const bool value) {
+		// CA2: control the tape motor.
+		if constexpr (port == MOS::MOS6522::Port::A && line == MOS::MOS6522::Line::Two) {
 			tape_->set_motor_control(!value);
 		}
 	}
 
 	/// Receives announcements of changes in the serial bus connected to the serial port and propagates them into Port A.
-	void set_serial_line_state(Commodore::Serial::Line line, const bool value) {
+	void set_serial_line_state(const Commodore::Serial::Line line, const bool value) {
+		const auto set = [&](const uint8_t bit) {
+			port_a_ = (port_a_ & ~bit) | (value ? bit : 0x00);
+		};
 		switch(line) {
 			default: break;
-			case ::Commodore::Serial::Line::Data: port_a_ = (port_a_ & ~0x02) | (value ? 0x02 : 0x00);	break;
-			case ::Commodore::Serial::Line::Clock: port_a_ = (port_a_ & ~0x01) | (value ? 0x01 : 0x00);	break;
+			case ::Commodore::Serial::Line::Data: 	set(0x02);	break;
+			case ::Commodore::Serial::Line::Clock: 	set(0x01);	break;
 		}
 	}
 
@@ -146,7 +150,7 @@ public:
 
 	/// Sets all keys as unpressed.
 	void clear_all_keys() {
-		memset(columns_, 0xff, sizeof(columns_));
+		std::fill(std::begin(columns_), std::end(columns_), 0xff);
 	}
 
 	/// Called by the 6522 to get input. Reads the keyboard on Port A, returns a small amount of joystick state on Port B.
@@ -230,8 +234,6 @@ struct Vic6560BusHandler {
 	// It is assumed that these pointers have been filled in by the machine.
 	const uint8_t *video_memory_map[16]{};	// Segments video memory into 1kb portions.
 	const uint8_t *colour_memory{};			// Colour memory must be contiguous.
-
-	// TODO: make the above const.
 };
 
 /*!
@@ -280,7 +282,6 @@ class ConcreteMachine:
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::JoystickMachine,
 	public Configurable::Device,
-	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
 	public Utility::TypeRecipient<CharacterMapper>,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
@@ -455,7 +456,7 @@ public:
 	}
 
 	void set_key_state(const uint16_t key, const bool is_pressed) final {
-		if(key < 0xfff0) {
+		if(key < KeyUp) {
 			keyboard_via_port_handler_.set_key_state(key, is_pressed);
 		} else {
 			switch(key) {
@@ -481,28 +482,27 @@ public:
 
 	void clear_all_keys() final {
 		keyboard_via_port_handler_.clear_all_keys();
+		set_key_state(KeyRestore, false);
 	}
 
 	const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 		return joysticks_;
 	}
 
-	// to satisfy CPU::MOS6502::Processor
-	forceinline Cycles perform_bus_operation(
-		const CPU::MOS6502::BusOperation operation,
-		const uint16_t address,
-		uint8_t *const value
-	) {
+	template <CPU::MOS6502Mk2::BusOperation operation, typename AddressT>
+	Cycles perform(const AddressT address, CPU::MOS6502Mk2::data_t<operation> value) {
 		// Tun the phase-1 part of this cycle, in which the VIC accesses memory.
 		cycles_since_mos6560_update_++;
 
 		// Run the phase-2 part of the cycle, which is whatever the 6502 said it should be.
-		const bool is_from_rom = m6502_.value_of(CPU::MOS6502::Register::ProgramCounter) > 0x8000;
-		if(is_read(operation)) {
+		const auto is_from_rom = [&]() {
+			return m6502_.registers().pc.full > 0x8000;
+		};
+		if constexpr (is_read(operation)) {
 			const auto page = processor_read_memory_map_[address >> 10];
 			uint8_t result;
 			if(!page) {
-				if(!is_from_rom) confidence_.add_miss();
+				if(!is_from_rom()) confidence_.add_miss();
 				result = 0xff;
 			} else {
 				result = processor_read_memory_map_[address >> 10][address & 0x3ff];
@@ -515,7 +515,7 @@ public:
 				if(address & 0x10) result &= user_port_via_.read(address);
 				if(address & 0x20) result &= keyboard_via_.read(address);
 
-				if(!is_from_rom) {
+				if(!is_from_rom()) {
 					if((address & 0x100) && !(address & 0x30)) {
 						confidence_.add_miss();
 					} else {
@@ -523,10 +523,10 @@ public:
 					}
 				}
 			}
-			*value = result;
+			value = result;
 
 			// Consider applying the fast tape hack.
-			if(use_fast_tape_hack_ && operation == CPU::MOS6502::BusOperation::ReadOpcode) {
+			if(use_fast_tape_hack_ && operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode) {
 				if(address == 0xf7b2) {
 					// Address 0xf7b2 contains a JSR to 0xf8c0 ('RDTPBLKS') that will fill the tape buffer with the
 					// next header. Skip that via a three-byte NOP and fill in the next header programmatically.
@@ -551,10 +551,10 @@ public:
 					ram_[0x90] = 0;
 					ram_[0x93] = 0;
 
-					*value = 0x0c;	// i.e. NOP abs, to swallow the entire JSR
+					value = 0x0c;	// i.e. NOP abs, to swallow the entire JSR
 				} else if(address == 0xf90b) {
-					const auto x = uint8_t(m6502_.value_of(CPU::MOS6502::Register::X));
-					if(x == 0xe) {
+					auto registers = m6502_.registers();
+					if(registers.x == 0xe) {
 						Storage::Tape::Commodore::Parser parser(TargetPlatform::Vic20);
 						const auto tape_position = tape_->serialiser()->offset();
 						const std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(*tape_->serialiser());
@@ -576,14 +576,13 @@ public:
 
 							// set tape status, carry and flag
 							ram_[0x90] |= 0x40;
-							uint8_t	flags = uint8_t(m6502_.value_of(CPU::MOS6502::Register::Flags));
-							flags &= ~uint8_t((CPU::MOS6502::Flag::Carry | CPU::MOS6502::Flag::Interrupt));
-							m6502_.set_value_of(CPU::MOS6502::Register::Flags, flags);
+							registers.flags.set_per<CPU::MOS6502Mk2::Flag::Carry>(0);
+							registers.flags.set_per<CPU::MOS6502Mk2::Flag::Interrupt>(0);
 
 							// to ensure that execution proceeds to 0xfccf, pretend a NOP was here and
 							// ensure that the PC leaps to 0xfccf
-							m6502_.set_value_of(CPU::MOS6502::Register::ProgramCounter, 0xfccf);
-							*value = 0xea;	// i.e. NOP implied
+							registers.pc.full = 0xfccf;
+							value = 0xea;	// i.e. NOP implied
 							hold_tape_ = true;
 							Logger::info().append("Found data");
 						} else {
@@ -592,27 +591,28 @@ public:
 							Logger::info().append("Didn't find data");
 						}
 					}
+					m6502_.set_registers(registers);
 				}
 			}
 		} else {
 			uint8_t *const ram = processor_write_memory_map_[address >> 10];
 			if(ram) {
 				update_video();
-				ram[address & 0x3ff] = *value;
+				ram[address & 0x3ff] = value;
 			}
 			// Anything between 0x9000 and 0x9400 is the IO area.
 			if((address&0xfc00) == 0x9000) {
 				// The VIC is selected by bit 8 = 0
 				if(!(address&0x100)) {
 					update_video();
-					mos6560_.write(address, *value);
+					mos6560_.write(address, value);
 				}
 				// The first VIA is selected by bit 4 = 1.
-				if(address & 0x10) user_port_via_.write(address, *value);
+				if(address & 0x10) user_port_via_.write(address, value);
 				// The second VIA is selected by bit 5 = 1.
-				if(address & 0x20) keyboard_via_.write(address, *value);
+				if(address & 0x20) keyboard_via_.write(address, value);
 
-				if(!is_from_rom) {
+				if(!is_from_rom()) {
 					if((address & 0x100) && !(address & 0x30)) {
 						confidence_.add_miss();
 					} else {
@@ -620,13 +620,13 @@ public:
 					}
 				}
 			} else if(!ram) {
-				if(!is_from_rom) confidence_.add_miss();
+				if(!is_from_rom()) confidence_.add_miss();
 			}
 		}
 
 		user_port_via_.run_for(Cycles(1));
 		keyboard_via_.run_for(Cycles(1));
-		if(typer_ && address == 0xeb1e && operation == CPU::MOS6502::BusOperation::ReadOpcode) {
+		if(typer_ && address == 0xeb1e && operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode) {
 			if(!typer_->type_next_character()) {
 				clear_all_keys();
 				typer_.reset();
@@ -672,8 +672,8 @@ public:
 	}
 
 	void mos6522_did_change_interrupt_status(void *) final {
-		m6502_.set_nmi_line(user_port_via_.get_interrupt_line());
-		m6502_.set_irq_line(keyboard_via_.get_interrupt_line());
+		m6502_.template set<CPU::MOS6502Mk2::Line::NMI>(user_port_via_.get_interrupt_line());
+		m6502_.template set<CPU::MOS6502Mk2::Line::IRQ>(keyboard_via_.get_interrupt_line());
 	}
 
 	void type_string(const std::string &string) final {
@@ -718,10 +718,16 @@ public:
 	}
 
 private:
+	struct M6502Traits {
+		static constexpr auto uses_ready_line = false;
+		static constexpr auto pause_precision = CPU::MOS6502Mk2::PausePrecision::BetweenInstructions;
+		using BusHandlerT = ConcreteMachine;
+	};
+	CPU::MOS6502Mk2::Processor<CPU::MOS6502Mk2::Model::M6502, M6502Traits> m6502_;
+
 	void update_video() {
 		mos6560_.run_for(cycles_since_mos6560_update_.flush<Cycles>());
 	}
-	CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
 
 	std::vector<uint8_t> character_rom_;
 	std::vector<uint8_t> basic_rom_;
@@ -745,12 +751,22 @@ private:
 			++address;
 		}
 	}
-	void write_to_map(const uint8_t **const map, const uint8_t *area, uint16_t address, size_t length) {
+	void write_to_map(
+		const uint8_t **const map,
+		const uint8_t *const area,
+		const uint16_t address,
+		const size_t length
+	) {
 		write_to_map([&](const uint16_t address, const size_t offset) {
 			map[address] = &area[offset];
 		}, address, length);
 	}
-	void write_to_map(uint8_t **const map, uint8_t *area, uint16_t address, size_t length) {
+	void write_to_map(
+		uint8_t **const map,
+		uint8_t *const area,
+		const uint16_t address,
+		const size_t length
+	) {
 		write_to_map([&](const uint16_t address, const size_t offset) {
 			map[address] = &area[offset];
 		}, address, length);
