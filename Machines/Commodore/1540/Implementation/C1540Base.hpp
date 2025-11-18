@@ -178,6 +178,10 @@ protected:
 	void process_input_bit(int value) override;
 	void process_index_hole() override;
 	void process_write_completed() override;
+	void is_writing_final_bit() override;
+
+	uint8_t port_a_output_ = 0xff;
+	void serialise_shift_output();
 };
 
 }

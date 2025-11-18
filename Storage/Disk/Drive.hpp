@@ -149,7 +149,7 @@ public:
 	*/
 	struct EventDelegate {
 		/// Informs the delegate that @c event has been reached.
-		virtual void process_event(const Event &event) = 0;
+		virtual void process_event(const Event &) = 0;
 
 		/*!
 			If the drive is in write mode, announces that all queued bits have now been written.
@@ -157,8 +157,13 @@ public:
 		*/
 		virtual void process_write_completed() {}
 
+		/*!
+			When in write mode, indicates that output of the final bit has begun.
+		*/
+		virtual void is_writing_final_bit() {}
+
 		/// Informs the delegate of the passing of @c cycles.
-		virtual void advance([[maybe_unused]] Cycles cycles) {}
+		virtual void advance(Cycles) {}
 	};
 
 	/// Sets the current event delegate.

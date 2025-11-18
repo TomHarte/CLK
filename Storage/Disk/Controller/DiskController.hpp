@@ -86,9 +86,15 @@ protected:
 
 	/*!
 		Should be implemented by subclasses if they implement writing; communicates that
-		all bits supplied to write_bit have now been written.
+		all bits supplied to `write_bit` have now been written.
 	*/
 	virtual void process_write_completed() override;
+
+	/*!
+		Can be implemented by subclasses that perform writing; indicates that the final
+		bit previously provided to the drive has started its output.
+	*/
+	virtual void is_writing_final_bit() override;
 
 	/*!
 		Puts the controller and the drive returned by get_drive() into write mode, supplying to

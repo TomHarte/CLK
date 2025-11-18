@@ -71,6 +71,10 @@ void Controller::process_write_completed() {
 	// Provided for subclasses to override.
 }
 
+void Controller::is_writing_final_bit() {
+	// Provided for subclasses to override.
+}
+
 // MARK: - PLL control and delegate
 
 void Controller::set_expected_bit_length(const Time bit_length) {

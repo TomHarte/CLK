@@ -161,19 +161,23 @@ void MachineBase::process_input_bit(const int value) {
 	}
 }
 
-void MachineBase::process_write_completed() {
+void MachineBase::is_writing_final_bit() {
 	if(set_cpu_overflow_) {
-		// TODO: REMOVE UGLY HACK HERE.
-		//
-		// The issue here is that I want overflow to go high for one shift of the
-		// underlying register. But Storage::Disk::Controller doesn't current reveal
-		// that level of detail. Instead I'm raising the overflow interrupt momentarily
-		// because I know that'll set the proper flag in the processor as a biproduct
-		// of its current implementation.
-		//
-		// Yuck.
 		m6502_.set<CPU::MOS6502Mk2::Line::Overflow>(true);
-		m6502_.set<CPU::MOS6502Mk2::Line::Overflow>(false);
+	}
+}
+
+void MachineBase::process_write_completed() {
+	m6502_.set<CPU::MOS6502Mk2::Line::Overflow>(false);
+	serialise_shift_output();
+}
+
+void MachineBase::serialise_shift_output() {
+	auto &drive = get_drive();
+	uint8_t value = port_a_output_;
+	for(int c = 0; c < 8; c++) {
+		drive.write_bit(value & 0x80);
+		value <<= 1;
 	}
 }
 
@@ -195,25 +199,16 @@ void MachineBase::drive_via_did_set_drive_motor(DriveVIA &, const bool enabled) 
 }
 
 void MachineBase::drive_via_did_set_write_mode(DriveVIA &, const bool enabled) {
-	auto &drive = get_drive();
 	if(enabled) {
-		drive.begin_writing(expected_bit_length(), false);
+		begin_writing(false);
+		serialise_shift_output();
 	} else {
-		drive.end_writing();
+		end_writing();
 	}
 }
 
-void MachineBase::drive_via_set_to_shifter_output(DriveVIA &, uint8_t value) {
-	// TODO: this should actually latch only at some point after the processor's reaction
-	// to overflow being set in process_write_completed. I'm fuzzy on the exact timing, but
-	// if I take it as true that overflow goes high as the final bit starts to go out then
-	// presumably the shift register grabs whatever is coming out of the VIA just shortly
-	// before it needs to shift again.
-	auto &drive = get_drive();
-	for(int c = 0; c < 8; c++) {
-		drive.write_bit(value & 0x80);
-		value <<= 1;
-	}
+void MachineBase::drive_via_set_to_shifter_output(DriveVIA &, const uint8_t value) {
+	port_a_output_ = value;
 }
 
 void MachineBase::drive_via_should_set_cpu_overflow(DriveVIA &, const bool overflow) {
@@ -271,7 +266,8 @@ void SerialPortVIA::set_serial_port(Commodore::Serial::Port &port) {
 }
 
 void SerialPortVIA::update_data_line() {
-	// "ATN (Attention) is an input on pin 3 of P2 and P3 that is sensed at PB7 and CA1 of UC3 after being inverted by UA1"
+	// "ATN (Attention) is an input on pin 3 of P2 and P3 that
+	// is sensed at PB7 and CA1 of UC3 after being inverted by UA1"
 	serial_port_->set_output(
 		::Commodore::Serial::Line::Data,
 		Serial::LineLevel(!data_level_output_ && (attention_level_input_ != attention_acknowledge_level_))
