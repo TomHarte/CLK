@@ -72,7 +72,7 @@ public:
 		// Port A provides information about the presence or absence of a tape, and parts of
 		// the joystick and serial port state, both of which have been statefully collected
 		// into port_a_.
-		if(!port) {
+		if constexpr (port == MOS::MOS6522::Port::A) {
 			return port_a_ | (tape_->has_tape() ? 0x00 : 0x40);
 		}
 		return 0xff;
@@ -80,11 +80,11 @@ public:
 
 	/// Receives announcements of control line output change from the 6522.
 	template <MOS::MOS6522::Port port, MOS::MOS6522::Line line>
-	void set_control_line_output(const bool) {}
-
-	template <> void set_control_line_output<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(const bool value) {
-		// The CA2 output is used to control the tape motor.
-		tape_->set_motor_control(!value);
+	void set_control_line_output(const bool value) {
+		// CA2: control the tape motor.
+		if constexpr (port == MOS::MOS6522::Port::A && line == MOS::MOS6522::Line::Two) {
+			tape_->set_motor_control(!value);
+		}
 	}
 
 	/// Receives announcements of changes in the serial bus connected to the serial port and propagates them into Port A.
