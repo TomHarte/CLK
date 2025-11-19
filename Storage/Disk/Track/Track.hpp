@@ -64,7 +64,7 @@ public:
 		HeadPosition position;
 
 		constexpr auto operator <=>(const Address&) const = default;
-		constexpr Address(int head, HeadPosition position) : head(head), position(position) {}
+		constexpr Address(const int head, const HeadPosition position) noexcept : head(head), position(position) {}
 	};
 
 	/*!

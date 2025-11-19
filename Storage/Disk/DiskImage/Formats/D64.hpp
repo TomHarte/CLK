@@ -30,6 +30,10 @@ public:
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 	bool represents(const std::string &) const;
 
+	bool is_read_only() const {
+		return false;
+	}
+
 private:
 	mutable Storage::FileHolder file_;
 	int number_of_tracks_;

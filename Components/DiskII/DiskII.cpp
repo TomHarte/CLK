@@ -296,8 +296,9 @@ int DiskII::read_address(int address) {
 			inputs_ &= ~input_mode;
 		break;
 		case 0xf:
-			if(!(inputs_ & input_mode))
-				drives_[active_drive_].begin_writing(Storage::Time(1, int(clock_rate_)), false);
+			if(!(inputs_ & input_mode)) {
+				drives_[active_drive_].begin_writing(Storage::Time(1, int(clock_rate_)), false, false);
+			}
 			inputs_ |= input_mode;
 		break;
 	}

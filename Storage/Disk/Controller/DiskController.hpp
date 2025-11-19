@@ -106,7 +106,7 @@ protected:
 		@param clamp_to_index_hole If @c true then writing will automatically be truncated by
 		the index hole. Writing will continue over the index hole otherwise.
 	*/
-	void begin_writing(bool clamp_to_index_hole);
+	void begin_writing(bool clamp_to_index_hole, bool synthesise_initial_writing_events);
 
 	/*!
 		Puts the drive returned by get_drive() out of write mode, and marks the controller

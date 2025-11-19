@@ -16,13 +16,19 @@
 
 using namespace Storage::Disk;
 
-Drive::Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads, ReadyType rdy_type):
+Drive::Drive(
+	const int input_clock_rate,
+	const int revolutions_per_minute,
+	const int number_of_heads,
+	const ReadyType rdy_type
+) :
 	Storage::TimedEventLoop(input_clock_rate),
 	available_heads_(number_of_heads),
 	ready_type_(rdy_type) {
 	set_rotation_speed(revolutions_per_minute);
 
-	const auto seed = std::default_random_engine::result_type(std::chrono::system_clock::now().time_since_epoch().count());
+	const auto seed =
+		std::default_random_engine::result_type(std::chrono::system_clock::now().time_since_epoch().count());
 	std::default_random_engine randomiser(seed);
 
 	// Get at least 64 bits of random information; rounding is likey to give this a slight bias.
@@ -34,16 +40,21 @@ Drive::Drive(int input_clock_rate, int revolutions_per_minute, int number_of_hea
 	}
 }
 
-Drive::Drive(int input_clock_rate, int number_of_heads, ReadyType rdy_type) : Drive(input_clock_rate, 300, number_of_heads, rdy_type) {}
+Drive::Drive(
+	const int input_clock_rate,
+	const int number_of_heads,
+	const ReadyType rdy_type
+) : Drive(input_clock_rate, 300, number_of_heads, rdy_type) {}
 
-void Drive::set_rotation_speed(float revolutions_per_minute) {
+void Drive::set_rotation_speed(const float revolutions_per_minute) {
 	// Rationalise the supplied speed so that cycles_per_revolution_ is exact.
 	cycles_per_revolution_ = int(0.5f + float(get_input_clock_rate()) * 60.0f / revolutions_per_minute);
 
 	// From there derive the appropriate rotational multiplier and possibly update the
 	// count of cycles since the index hole proportionally.
 	const float new_rotational_multiplier = float(cycles_per_revolution_) / float(get_input_clock_rate());
-	cycles_since_index_hole_ = Cycles::IntType(float(cycles_since_index_hole_) * new_rotational_multiplier / rotational_multiplier_);
+	cycles_since_index_hole_ =
+		Cycles::IntType(float(cycles_since_index_hole_) * new_rotational_multiplier / rotational_multiplier_);
 	rotational_multiplier_ = new_rotational_multiplier;
 	cycles_since_index_hole_ %= cycles_per_revolution_;
 }
@@ -75,14 +86,16 @@ bool Drive::has_disk() const {
 }
 
 ClockingHint::Preference Drive::preferred_clocking() const {
-	return (!has_disk_ || (time_until_motor_transition == Cycles(0) && !disk_is_rotating_)) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
+	return (
+		!has_disk_ || (time_until_motor_transition == Cycles(0) && !disk_is_rotating_)
+	) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 }
 
 bool Drive::get_is_track_zero() const {
 	return head_position_ == HeadPosition(0);
 }
 
-void Drive::step(HeadPosition offset) {
+void Drive::step(const HeadPosition offset) {
 	if(offset == HeadPosition(0)) {
 		return;
 	}
@@ -109,7 +122,7 @@ void Drive::step(HeadPosition offset) {
 	did_step(head_position_);
 }
 
-Track *Drive::step_to(HeadPosition offset) {
+Track *Drive::step_to(const HeadPosition offset) {
 	HeadPosition old_head_position = head_position_;
 	head_position_ = std::max(offset, HeadPosition(0));
 
@@ -160,7 +173,7 @@ bool Drive::get_is_ready() const {
 	return is_ready_;
 }
 
-void Drive::set_motor_on(bool motor_is_on) {
+void Drive::set_motor_on(const bool motor_is_on) {
 	// Do nothing if the input hasn't changed.
 	if(motor_input_is_on_ == motor_is_on) return;
 	motor_input_is_on_ = motor_is_on;
@@ -195,7 +208,7 @@ bool Drive::get_index_pulse() const {
 	return index_pulse_remaining_ > Cycles(0);
 }
 
-void Drive::set_event_delegate(Storage::Disk::Drive::EventDelegate *delegate) {
+void Drive::set_event_delegate(Storage::Disk::Drive::EventDelegate *const delegate) {
 	event_delegate_ = delegate;
 }
 
@@ -246,8 +259,8 @@ void Drive::run_for(const Cycles cycles) {
 							cycles_until_bits_written_ -= cycles_to_run_for_time;
 
 							if(
-								previous_cycles > cycles_per_bit_ &&
-								cycles_until_bits_written_ <= cycles_per_bit_ &&
+								previous_cycles >= cycles_per_bit_ &&
+								cycles_until_bits_written_ < cycles_per_bit_ &&
 								event_delegate_
 							) {
 								event_delegate_->is_writing_final_bit();
@@ -265,7 +278,7 @@ void Drive::run_for(const Cycles cycles) {
 
 // MARK: - Track timed event loop
 
-void Drive::get_next_event(float duration_already_passed) {
+void Drive::get_next_event(const float duration_already_passed) {
 	/*
 		Quick word on random-bit generation logic below; it seeks to obey the following logic:
 		if there is a gap of 15µs between recorded bits, start generating flux transitions
@@ -395,7 +408,11 @@ void Drive::invalidate_track() {
 
 // MARK: - Writing
 
-void Drive::begin_writing(Time bit_length, bool clamp_to_index_hole) {
+void Drive::begin_writing(
+	const Time bit_length,
+	const bool clamp_to_index_hole,
+	const bool synthesise_initial_writing_events
+) {
 	// Do nothing if already writing.
 	// TODO: cope properly if there's no disk to write to.
 	if(!is_reading_ || !disk_) return;
@@ -415,10 +432,15 @@ void Drive::begin_writing(Time bit_length, bool clamp_to_index_hole) {
 	write_segment_.length_of_a_bit = bit_length / Time(rotational_multiplier_);
 	write_segment_.data.clear();
 
+	cycles_until_bits_written_.set_zero();
 	write_start_time_ = Time(get_time_into_track());
+	if(synthesise_initial_writing_events) {
+		write_start_time_ += bit_length;
+		cycles_until_bits_written_ += cycles_per_bit_;
+	}
 }
 
-void Drive::write_bit(bool value) {
+void Drive::write_bit(const bool value) {
 	write_segment_.data.push_back(value);
 	cycles_until_bits_written_ += cycles_per_bit_;
 }
@@ -452,7 +474,7 @@ bool Drive::is_writing() const {
 	return !is_reading_;
 }
 
-void Drive::set_disk_is_rotating(bool is_rotating) {
+void Drive::set_disk_is_rotating(const bool is_rotating) {
 	disk_is_rotating_ = is_rotating;
 
 	if(observer_) {
@@ -472,7 +494,11 @@ void Drive::set_disk_is_rotating(bool is_rotating) {
 	update_clocking_observer();
 }
 
-void Drive::set_activity_observer(Activity::Observer *observer, const std::string &name, bool add_motor_led) {
+void Drive::set_activity_observer(
+	Activity::Observer *const observer,
+	const std::string &name,
+	const bool add_motor_led
+) {
 	observer_ = observer;
 	announce_motor_led_ = add_motor_led;
 	if(observer) {

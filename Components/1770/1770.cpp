@@ -562,7 +562,7 @@ void WD1770::posit_event(const int new_event_type) {
 		}
 
 		set_data_mode(DataMode::Writing);
-		begin_writing(false);
+		begin_writing(false, false);
 		for(int c = 0; c < (get_is_double_density() ? 12 : 6); c++) {
 			write_byte(0);
 		}
@@ -755,7 +755,7 @@ void WD1770::posit_event(const int new_event_type) {
 		}
 
 		WAIT_FOR_EVENT(Event1770::IndexHoleTarget);
-		begin_writing(true);
+		begin_writing(true, false);
 		index_hole_count_ = 0;
 
 	write_track_write_loop:

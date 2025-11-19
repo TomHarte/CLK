@@ -346,7 +346,9 @@ void IWM::select_shift_mode() {
 
 	// If writing mode just began, set the drive into write mode and cue up the first output byte.
 	if(old_shift_mode != ShiftMode::Writing && shift_mode_ == ShiftMode::Writing) {
-		if(drives_[active_drive_]) drives_[active_drive_]->begin_writing(Storage::Time(1, clock_rate_ / bit_length_.as_integral()), false);
+		if(drives_[active_drive_]) {
+			drives_[active_drive_]->begin_writing(Storage::Time(1, clock_rate_ / bit_length_.as_integral()), false, false);
+		}
 		shift_register_ = next_output_;
 		write_handshake_ |= 0x80 | 0x40;
 		output_bits_remaining_ = 8;

@@ -487,7 +487,7 @@ void i8272::posit_event(const int event_type) {
 
 		write_data_found_header:
 			WAIT_FOR_BYTES(get_is_double_density() ? 22 : 11);
-			begin_writing(true);
+			begin_writing(true, false);
 
 			write_id_data_joiner(command_.command() == Command::WriteDeletedData, true);
 
@@ -603,7 +603,7 @@ void i8272::posit_event(const int event_type) {
 			// Wait for the index hole.
 			WAIT_FOR_EVENT(Event::IndexHole);
 			index_hole_count_ = 0;
-			begin_writing(true);
+			begin_writing(true, false);
 
 			// Write start-of-track.
 			write_start_of_track();

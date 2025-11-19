@@ -132,9 +132,9 @@ void Controller::set_drive(int index_mask) {
 	}
 }
 
-void Controller::begin_writing(bool clamp_to_index_hole) {
+void Controller::begin_writing(const bool clamp_to_index_hole, const bool synthesise_initial_writing_events) {
 	is_reading_ = false;
-	get_drive().begin_writing(bit_length_, clamp_to_index_hole);
+	get_drive().begin_writing(bit_length_, clamp_to_index_hole, synthesise_initial_writing_events);
 }
 
 void Controller::end_writing() {

@@ -122,8 +122,7 @@ void Machine::set_serial_bus(Commodore::Serial::Bus &serial_bus) {
 
 void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {
 	get_drive().set_disk(disk);
-//	drive_VIA_port_handler_.set_is_read_only(disk->is_read_only());
-	drive_VIA_port_handler_.set_is_read_only(false);
+	drive_VIA_port_handler_.set_is_read_only(disk->is_read_only());
 }
 
 void MachineBase::set_activity_observer(Activity::Observer *const observer) {
@@ -200,8 +199,7 @@ void MachineBase::drive_via_did_set_drive_motor(DriveVIA &, const bool enabled) 
 
 void MachineBase::drive_via_did_set_write_mode(DriveVIA &, const bool enabled) {
 	if(enabled) {
-		begin_writing(false);
-		serialise_shift_output();
+		begin_writing(false, true);
 	} else {
 		end_writing();
 	}
