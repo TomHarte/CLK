@@ -71,9 +71,13 @@ void Controller::process_write_completed() {
 	// Provided for subclasses to override.
 }
 
+void Controller::is_writing_final_bit() {
+	// Provided for subclasses to override.
+}
+
 // MARK: - PLL control and delegate
 
-void Controller::set_expected_bit_length(Time bit_length) {
+void Controller::set_expected_bit_length(const Time bit_length) {
 	bit_length_ = bit_length;
 	bit_length_.simplify();
 
@@ -84,6 +88,10 @@ void Controller::set_expected_bit_length(Time bit_length) {
 	// account of in rotation speed, air turbulence, etc, so a direct conversion will do
 	const int clocks_per_bit = cycles_per_bit.get<int>();
 	pll_.set_clocks_per_bit(clocks_per_bit);
+}
+
+Storage::Time Controller::expected_bit_length() {
+	return bit_length_;
 }
 
 void Controller::digital_phase_locked_loop_output_bit(int value) {
@@ -124,9 +132,9 @@ void Controller::set_drive(int index_mask) {
 	}
 }
 
-void Controller::begin_writing(bool clamp_to_index_hole) {
+void Controller::begin_writing(const bool clamp_to_index_hole, const bool synthesise_initial_writing_events) {
 	is_reading_ = false;
-	get_drive().begin_writing(bit_length_, clamp_to_index_hole);
+	get_drive().begin_writing(bit_length_, clamp_to_index_hole, synthesise_initial_writing_events);
 }
 
 void Controller::end_writing() {

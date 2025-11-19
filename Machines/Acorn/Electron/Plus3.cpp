@@ -19,11 +19,24 @@ void Plus3::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
 	get_drive(drive).set_disk(disk);
 }
 
+const Storage::Disk::Disk *Plus3::disk(const std::string &name) {
+	const Storage::Disk::Disk *result = nullptr;
+	for_all_drives( [&](Storage::Disk::Drive &drive, size_t) {
+		const auto disk = drive.disk();
+		if(disk && disk->represents(name)) {
+			result = disk;
+		}
+	});
+	return result;
+}
+
+
 void Plus3::set_control_register(uint8_t control) {
 	//	bit 0 => enable or disable drive 1
 	//	bit 1 => enable or disable drive 2
 	//	bit 2 => side select
 	//	bit 3 => single density select
+	//	bit 5 => reset?
 
 	uint8_t changes = control ^ last_control_;
 	last_control_ = control;

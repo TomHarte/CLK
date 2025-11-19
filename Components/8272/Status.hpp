@@ -91,12 +91,12 @@ public:
 	void set(const MainStatus flag, const bool value) {
 		set(uint8_t(flag), value, main_status_);
 	}
-	void start_seek(const int drive)	{	main_status_ |= 1 << drive;	}
-	void set(const Status0 flag)		{	set(uint8_t(flag), true, status_[0]);	}
-	void set(const Status1 flag)		{	set(uint8_t(flag), true, status_[1]);	}
-	void set(const Status2 flag)		{	set(uint8_t(flag), true, status_[2]);	}
+	void start_seek(const int drive)		{	main_status_ |= 1 << drive;	}
+	void set(const Status0 flag)			{	set(uint8_t(flag), true, status_[0]);	}
+	void set(const Status1 flag)			{	set(uint8_t(flag), true, status_[1]);	}
+	void set(const Status2 flag)			{	set(uint8_t(flag), true, status_[2]);	}
 
-	void set_status0(uint8_t value)	{	status_[0] = value;	}
+	void set_status0(const uint8_t value)	{	status_[0] = value;	}
 
 	//
 	// Flag getters.

@@ -14,18 +14,16 @@
 using namespace Storage::Tape;
 
 namespace {
-
 constexpr unsigned int StandardTZXClock = 3500000;
 constexpr unsigned int TZXClockMSMultiplier = 3500;
-Log::Logger<Log::Source::TZX> logger;
-
+using Logger = Log::Logger<Log::Source::TZX>;
 }
 
 TZX::TZX(const std::string &file_name) : file_name_(file_name) {
-	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
+	Storage::FileHolder file(file_name, FileMode::Read);
 
 	// Check for signature followed by a 0x1a
-	if(!file.check_signature("ZXTape!")) throw ErrorNotTZX;
+	if(!file.check_signature<SignatureType::String>("ZXTape!")) throw ErrorNotTZX;
 	if(file.get() != 0x1a) throw ErrorNotTZX;
 
 	// Get version number
@@ -40,14 +38,14 @@ std::unique_ptr<FormatSerialiser> TZX::format_serialiser() const {
 	return std::make_unique<Serialiser>(file_name_);
 }
 
-TZX::Serialiser::Serialiser(const std::string &file_name) : file_(file_name, FileHolder::FileMode::Read) {
+TZX::Serialiser::Serialiser(const std::string &file_name) : file_(file_name, FileMode::Read) {
 	reset();
 }
 
 void TZX::Serialiser::reset() {
 	clear();
 	set_is_at_end(false);
-	file_.seek(0x0a, SEEK_SET);
+	file_.seek(0x0a, Whence::SET);
 
 	// This is a workaround for arguably dodgy ZX80/ZX81 TZXs; they launch straight
 	// into data but both machines require a gap before data begins. So impose
@@ -100,7 +98,7 @@ void TZX::Serialiser::push_next_pulses() {
 			default:
 				// In TZX each chunk has a different way of stating or implying its length,
 				// so there is no route past an unimplemented chunk.
-				logger.error().append("Unknown TZX chunk: %04x", chunk_id);
+				Logger::error().append("Unknown TZX chunk: %04x", chunk_id);
 				set_is_at_end(true);
 			return;
 		}
@@ -151,7 +149,7 @@ void TZX::Serialiser::get_generalised_data_block() {
 	post_gap(pause_after_block);
 
 	// This should be unnecessary, but intends to preserve sanity.
-	file_.seek(endpoint, SEEK_SET);
+	file_.seek(endpoint, Whence::SET);
 }
 
 void TZX::Serialiser::get_generalised_segment(
@@ -233,7 +231,7 @@ void TZX::Serialiser::get_standard_speed_data_block() {
 
 	const uint8_t first_byte = file_.get();
 	data_block.length_of_pilot_tone = (first_byte < 128) ? 8063 : 3223;
-	file_.seek(-1, SEEK_CUR);
+	file_.seek(-1, Whence::CUR);
 
 	get_data_block(data_block);
 }
@@ -348,7 +346,7 @@ void TZX::Serialiser::get_pause() {
 }
 
 void TZX::Serialiser::get_set_signal_level() {
-	file_.seek(4, SEEK_CUR);
+	file_.seek(4, Whence::CUR);
 	const uint8_t level = file_.get();
 	current_level_ = !!level;
 }
@@ -438,7 +436,7 @@ void TZX::Serialiser::post_pulse(const Storage::Time &time) {
 
 void TZX::Serialiser::ignore_group_start() {
 	const uint8_t length = file_.get();
-	file_.seek(length, SEEK_CUR);
+	file_.seek(length, Whence::CUR);
 }
 
 void TZX::Serialiser::ignore_group_end() {
@@ -459,7 +457,7 @@ void TZX::Serialiser::ignore_loop_end() {
 
 void TZX::Serialiser::ignore_call_sequence() {
 	const auto number_of_entries = file_.get_le<uint16_t>();
-	file_.seek(number_of_entries * sizeof(uint16_t), SEEK_CUR);
+	file_.seek(number_of_entries * sizeof(uint16_t), Whence::CUR);
 }
 
 void TZX::Serialiser::ignore_return_from_sequence() {
@@ -467,44 +465,44 @@ void TZX::Serialiser::ignore_return_from_sequence() {
 
 void TZX::Serialiser::ignore_select_block() {
 	const auto length_of_block = file_.get_le<uint16_t>();
-	file_.seek(length_of_block, SEEK_CUR);
+	file_.seek(length_of_block, Whence::CUR);
 }
 
 void TZX::Serialiser::ignore_stop_tape_if_in_48kb_mode() {
-	file_.seek(4, SEEK_CUR);
+	file_.seek(4, Whence::CUR);
 }
 
 void TZX::Serialiser::ignore_custom_info_block() {
-	file_.seek(0x10, SEEK_CUR);
+	file_.seek(0x10, Whence::CUR);
 	const auto length = file_.get_le<uint32_t>();
-	file_.seek(length, SEEK_CUR);
+	file_.seek(length, Whence::CUR);
 }
 
 // MARK: - Messaging
 
 void TZX::Serialiser::ignore_text_description() {
 	const uint8_t length = file_.get();
-	file_.seek(length, SEEK_CUR);
+	file_.seek(length, Whence::CUR);
 }
 
 void TZX::Serialiser::ignore_message_block() {
 	const uint8_t time_for_display = file_.get();
 	const uint8_t length = file_.get();
-	file_.seek(length, SEEK_CUR);
+	file_.seek(length, Whence::CUR);
 	(void)time_for_display;
 }
 
 void TZX::Serialiser::ignore_archive_info() {
 	const auto length = file_.get_le<uint16_t>();
-	file_.seek(length, SEEK_CUR);
+	file_.seek(length, Whence::CUR);
 }
 
 void TZX::Serialiser::get_hardware_type() {
 	// TODO: pick a way to retain and communicate this.
 	const uint8_t number_of_machines = file_.get();
-	file_.seek(number_of_machines * 3, SEEK_CUR);
+	file_.seek(number_of_machines * 3, Whence::CUR);
 }
 
 void TZX::Serialiser::ignore_glue_block() {
-	file_.seek(9, SEEK_CUR);
+	file_.seek(9, Whence::CUR);
 }

@@ -76,8 +76,11 @@ SOURCES += \
 	$$SRC/Components/KonamiSCC/*.cpp \
 	$$SRC/Components/OPx/*.cpp \
 	$$SRC/Components/RP5C01/*.cpp \
+	$$SRC/Components/SID/*.cpp \
+	$$SRC/Components/SAA5050/*.cpp \
 	$$SRC/Components/Serial/*.cpp \
 	$$SRC/Components/SN76489/*.cpp \
+	$$SRC/Components/uPD7002/*.cpp \
 \
 	$$SRC/Inputs/*.cpp \
 \
@@ -88,6 +91,7 @@ SOURCES += \
 \
 	$$SRC/Machines/*.cpp \
 	$$SRC/Machines/Acorn/Archimedes/*.cpp \
+	$$SRC/Machines/Acorn/BBCMicro/*.cpp \
 	$$SRC/Machines/Acorn/Electron/*.cpp \
 	$$SRC/Machines/Amiga/*.cpp \
 	$$SRC/Machines/AmstradCPC/*.cpp \
@@ -210,8 +214,11 @@ HEADERS += \
 	$$SRC/Components/OPx/*.hpp \
 	$$SRC/Components/OPx/Implementation/*.hpp \
 	$$SRC/Components/RP5C01/*.hpp \
+	$$SRC/Components/SID/*.hpp \
+	$$SRC/Components/SAA5050/*.hpp \
 	$$SRC/Components/Serial/*.hpp \
 	$$SRC/Components/SN76489/*.hpp \
+	$$SRC/Components/uPD7002/*.hpp \
 \
 	$$SRC/Concurrency/*.hpp \
 \
@@ -227,6 +234,7 @@ HEADERS += \
 \
 	$$SRC/Machines/*.hpp \
 	$$SRC/Machines/Acorn/Archimedes/*.hpp \
+	$$SRC/Machines/Acorn/BBCMicro/*.hpp \
 	$$SRC/Machines/Acorn/Electron/*.hpp \
 	$$SRC/Machines/Amiga/*.hpp \
 	$$SRC/Machines/AmstradCPC/*.hpp \

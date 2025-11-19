@@ -19,12 +19,10 @@
 using namespace Storage::State;
 
 namespace {
-
 constexpr uint32_t block(const char *str) {
 	return uint32_t(str[0] | (str[1] << 8) | (str[2] << 16) | (str[3] << 24));
 }
-Log::Logger<Log::Source::SZX> logger;
-
+using Logger = Log::Logger<Log::Source::SZX>;
 }
 
 std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name) {
@@ -37,7 +35,7 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 	result->state = std::unique_ptr<Reflection::Struct>(state);
 
 	// Check signature and major version number.
-	if(!file.check_signature("ZXST")) {
+	if(!file.check_signature<SignatureType::String>("ZXST")) {
 		return nullptr;
 	}
 	const uint8_t major_version = file.get();
@@ -80,7 +78,7 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 
 		switch(blockID) {
 			default:
-				logger.info().append("Unhandled block %c%c%c%c", char(blockID), char(blockID >> 8), char(blockID >> 16), char(blockID >> 24));
+				Logger::info().append("Unhandled block %c%c%c%c", char(blockID), char(blockID >> 8), char(blockID >> 16), char(blockID >> 24));
 			break;
 
 			// ZXSTZ80REGS
@@ -191,7 +189,7 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 		}
 
 		// Advance to the next block.
-		file.seek(location + size, SEEK_SET);
+		file.seek(location + size, Whence::SET);
 	}
 
 	return result;

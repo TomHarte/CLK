@@ -111,11 +111,6 @@ Video::Video() :
 	VideoSwitches<Cycles>(true, Cycles(2), [this] (Cycles cycles) { advance(cycles); }),
 	crt_(CyclesPerLine - 1, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red4Green4Blue4) {
 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
-	crt_.set_visible_area(Outputs::Display::Rect(0.097f, 0.1f, 0.85f, 0.85f));
-
-	// Reduce the initial bounce by cueing up the part of the frame that initial drawing actually
-	// starts with. More or less.
-	crt_.output_blank(228*63*2);
 
 	// Establish the shift lookup table for NTSC -> RGB output.
 	for(size_t c = 0; c < sizeof(ntsc_delay_lookup_) / sizeof(*ntsc_delay_lookup_); c++) {
@@ -149,8 +144,11 @@ Outputs::Display::DisplayType Video::get_display_type() const {
 	return crt_.get_display_type();
 }
 
-void Video::set_internal_ram(const uint8_t *ram) {
+void Video::set_internal_ram(const uint8_t *const ram) {
 	ram_ = ram;
+//	crt_.set_automatic_fixed_framing([&] {
+//		run_for(Cycles(10'000));
+//	});
 }
 
 void Video::advance(Cycles cycles) {
@@ -195,7 +193,7 @@ Cycles Video::next_sequence_point() const {
 	const int cycles_into_row = cycles_into_frame_ % CyclesPerLine;
 	const int row = cycles_into_frame_ / CyclesPerLine;
 
-	constexpr int sequence_point_offset = (blank_ticks + left_border_ticks) * CyclesPerTick;
+	static constexpr int sequence_point_offset = (blank_ticks + left_border_ticks) * CyclesPerTick;
 
 	// Seed as the distance to the next row 0.
 	int result = CyclesPerLine + sequence_point_offset - cycles_into_row + (Lines - row - 1)*CyclesPerLine;
@@ -241,7 +239,7 @@ void Video::output_row(int row, int start, int end) {
 
 	// The pixel buffer will actually be allocated a column early, to allow double high/low res to start
 	// half a column before everything else.
-	constexpr int pixel_buffer_allocation = start_of_pixels - 1;
+	static constexpr int pixel_buffer_allocation = start_of_pixels - 1;
 
 	// Possibly output border, pixels, border, if this is a pixel line.
 	if(row < 192 + ((new_video_&0x80) >> 4)) {	// i.e. 192 lines for classic Apple II video, 200 for IIgs video.
@@ -410,15 +408,7 @@ void Video::output_row(int row, int start, int end) {
 		// Output right border as far as currently known.
 		if(start >= start_of_right_border && start < start_of_sync) {
 			const int end_of_period = std::min(start_of_sync, end);
-
-			if(border_colour_) {
-				uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
-				if(pixel) *pixel = border_colour_;
-				crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
-			} else {
-				crt_.output_blank((end_of_period - start) * CyclesPerTick);
-			}
-
+			crt_.output_level<uint16_t>((end_of_period - start) * CyclesPerTick, border_colour_);
 			// There's no point updating start here; just fall
 			// through to the end == FinalColumn test.
 		}
@@ -426,15 +416,7 @@ void Video::output_row(int row, int start, int end) {
 		// This line is all border, all the time.
 		if(start >= start_of_left_border && start < start_of_sync) {
 			const int end_of_period = std::min(start_of_sync, end);
-
-			if(border_colour_) {
-				uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
-				if(pixel) *pixel = border_colour_;
-				crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
-			} else {
-				crt_.output_blank((end_of_period - start) * CyclesPerTick);
-			}
-
+			crt_.output_level<uint16_t>((end_of_period - start) * CyclesPerTick, border_colour_);
 			start = end_of_period;
 			if(start == end) return;
 		}
@@ -625,7 +607,7 @@ uint16_t *Video::output_super_high_res(uint16_t *target, int start, int end, int
 
 uint16_t *Video::output_double_high_resolution_mono(uint16_t *target, int start, int end, int row) {
 	const uint16_t row_address = get_row_address(row);
-	constexpr uint16_t colours[] = {0, 0xffff};
+	static constexpr uint16_t colours[] = {0, 0xffff};
 	for(int c = start; c < end; c++) {
 		const uint8_t source[2] = {
 			ram_[0x10000 + row_address + c],
@@ -766,7 +748,7 @@ uint16_t *Video::output_shift(uint16_t *target, int column) {
 	// I've picked for my rolls table and with my decision to count
 	// columns as aligned with double-mode.
 	const int phase = column * 7 + 3;
-	constexpr uint8_t rolls[4][16] = {
+	static constexpr uint8_t rolls[4][16] = {
 		{
 			0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf
 		},

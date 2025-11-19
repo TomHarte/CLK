@@ -21,22 +21,22 @@
 namespace MSX {
 
 class DiskROM: public MemorySlotHandler, public WD::WD1770 {
-	public:
-		DiskROM(MSX::MemorySlot &slot);
+public:
+	DiskROM(MSX::MemorySlot &slot);
 
-		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) final;
-		uint8_t read(uint16_t address) final;
-		void run_for(HalfCycles half_cycles) final;
+	void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) final;
+	uint8_t read(uint16_t address) final;
+	void run_for(HalfCycles half_cycles) final;
 
-		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive);
-		void set_activity_observer(Activity::Observer *observer);
+	void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive);
+	void set_activity_observer(Activity::Observer *observer);
 
-	private:
-		const std::vector<uint8_t> &rom_;
+private:
+	const std::vector<uint8_t> &rom_;
 
-		long int controller_cycles_ = 0;
+	long int controller_cycles_ = 0;
 
-		void set_head_load_request(bool head_load) final;
+	void set_head_load_request(bool head_load) final;
 };
 
 }

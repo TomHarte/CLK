@@ -52,7 +52,9 @@ void rcl(
 	const auto temp_count = count % (Numeric::bit_size<IntT>() + 1);
 	auto carry = context.flags.template carry_bit<IntT>();
 	switch(temp_count) {
-		case 0: break;
+		case 0:
+			if(!count) return;
+		break;
 		case Numeric::bit_size<IntT>(): {
 			const IntT temp_carry = destination & 1;
 			destination = IntT((destination >> 1) | (carry << (Numeric::bit_size<IntT>() - 1)));
@@ -69,10 +71,12 @@ void rcl(
 		} break;
 	}
 
-	context.flags.template set_from<Flag::Carry>(carry);
+	// Intention: overflow is set if the last shift step affected the top bit of
+	// the destination.
 	context.flags.template set_from<Flag::Overflow>(
 		((destination >> (Numeric::bit_size<IntT>() - 1)) & 1) ^ carry
 	);
+	context.flags.template set_from<Flag::Carry>(carry);
 }
 
 template <typename IntT, typename ContextT>
@@ -96,13 +100,12 @@ void rcr(
 			OD;
 	*/
 	auto carry = context.flags.template carry_bit<IntT>();
-	context.flags.template set_from<Flag::Overflow>(
-		((destination >> (Numeric::bit_size<IntT>() - 1)) & 1) ^ carry
-	);
 
 	const auto temp_count = count % (Numeric::bit_size<IntT>() + 1);
 	switch(temp_count) {
-		case 0: break;
+		case 0:
+			if(!count) return;
+		break;
 		case Numeric::bit_size<IntT>(): {
 			const IntT temp_carry = destination & Numeric::top_bit<IntT>();
 			destination = IntT((destination << 1) | carry);
@@ -119,6 +122,11 @@ void rcr(
 		} break;
 	}
 
+	// Intention: overflow is set if the last shift step affected the top bit of
+	// the destination.
+	context.flags.template set_from<Flag::Overflow>(
+		(destination ^ (destination << 1)) & Numeric::top_bit<IntT>()
+	);
 	context.flags.template set_from<Flag::Carry>(carry);
 }
 
@@ -291,10 +299,10 @@ void sal(
 			} else {
 				const auto mask = (Numeric::top_bit<IntT>() >> (count - 1));
 				context.flags.template set_from<Flag::Carry>(
-					 destination & mask
+					destination & mask
 				);
 				context.flags.template set_from<Flag::Overflow>(IntT(
-					 (destination ^ (destination << 1)) & mask
+					(destination ^ (destination << 1)) & mask
 				));
 				destination <<= count;
 			}
@@ -336,7 +344,7 @@ void shr(
 		return;
 	}
 
-	context.flags.template set_from<Flag::Overflow>(Numeric::top_bit<IntT>() & destination);
+	context.flags.template set_from<Flag::Overflow>(count == 1 && Numeric::top_bit<IntT>() & destination);
 	if(count == Numeric::bit_size<IntT>()) {
 		context.flags.template set_from<Flag::Carry>(Numeric::top_bit<IntT>() & destination);
 		destination = 0;

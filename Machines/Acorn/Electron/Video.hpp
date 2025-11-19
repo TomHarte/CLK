@@ -12,6 +12,7 @@
 #include "ClockReceiver/ClockReceiver.hpp"
 #include "Interrupts.hpp"
 
+#include <utility>
 #include <vector>
 
 namespace Electron {
@@ -33,7 +34,7 @@ public:
 	VideoOutput(const uint8_t *memory);
 
 	/// Sets the destination for output.
-	void set_scan_target(Outputs::Display::ScanTarget *scan_target);
+	void set_scan_target(Outputs::Display::ScanTarget *);
 
 	/// Gets the current scan status.
 	Outputs::Display::ScanStatus get_scaled_scan_status() const;
@@ -47,39 +48,34 @@ public:
 	/// Produces the next @c cycles of video output.
 	///
 	/// @returns a bit mask of all interrupts triggered.
-	uint8_t run_for(const Cycles cycles);
+	uint8_t run_for(const Cycles);
 
-	/// @returns The number of 2Mhz cycles that will pass before completion of an attempted
-	/// IO [/1Mhz] access that is first signalled in the upcoming cycle.
-	Cycles io_delay() {
-		return 2 + ((h_count_ >> 3)&1);
-	}
+	/// Runs for as many cycles as is correct to get to the next RAM access slot.
+	///
+	/// @returns the number of cycles run for and a bit mask of all interrupts triggered.
+	std::pair<Cycles, uint8_t> run_until_ram_slot();
 
-	/// @returns The number of 2Mhz cycles that will pass before completion of an attempted
-	/// RAM access that is first signalled in the upcoming cycle.
-	Cycles ram_delay() {
-		if(!mode_40_ && !in_blank()) {
-			return 2 + ((h_active - h_count_) >> 3);
-		}
-		return io_delay();
-	}
+	/// Runs for as many cycles as is correct to get to the next IO access slot.
+	///
+	/// @returns the number of cycles run for and a bit mask of all interrupts triggered.
+	std::pair<Cycles, uint8_t> run_until_io_slot();
 
 	/*!
 		Writes @c value to the register at @c address. May mutate the results of @c get_next_interrupt,
 		@c get_cycles_until_next_ram_availability and @c get_memory_access_range.
 	*/
-	void write(int address, uint8_t value);
+	void write(const int address, const uint8_t value);
 
 	/*!
 		@returns the number of cycles after (final cycle of last run_for batch + @c from_time)
 		before the video circuits will allow the CPU to access RAM.
 	*/
-	unsigned int get_cycles_until_next_ram_availability(int from_time);
+	unsigned int get_cycles_until_next_ram_availability(const int from_time);
 
 private:
-	const uint8_t *ram_ = nullptr;
+	const uint8_t *const ram_ = nullptr;
 
-	// CRT output
+	// CRT output.
 	enum class OutputStage {
 		Sync, Blank, Pixels, ColourBurst,
 	};
@@ -93,23 +89,38 @@ private:
 	Outputs::CRT::CRT crt_;
 
 	// Palettes.
-	uint8_t palette_[8]{};
-	uint8_t palette1bpp_[2]{};
-	uint8_t palette2bpp_[4]{};
-	uint8_t palette4bpp_[16]{};
+	uint8_t source_palette_[8]{};
+	uint8_t mapped_palette_[16]{};
 
-	template <int index, int source_bit, int target_bit>
+	struct BitIndex {
+		int address;
+		int bit;
+	};
+
+	template <BitIndex index, int target_bit>
+	requires (
+		target_bit >= 0 && target_bit <= 2 &&
+		index.bit >= 0 && index.bit <= 7 &&
+		index.address >= 0xfe08 && index.address <= 0xfe0f
+	)
 	uint8_t channel() {
-		if constexpr (source_bit < target_bit) {
-			return (palette_[index] << (target_bit - source_bit)) & (1 << target_bit);
-		} else {
-			return (palette_[index] >> (source_bit - target_bit)) & (1 << target_bit);
-		}
+		return uint8_t(((source_palette_[index.address - 0xfe08] >> index.bit) & 1) << target_bit);
 	}
 
-	template <int r_index, int r_bit, int g_index, int g_bit, int b_index, int b_bit>
+	template <BitIndex red, BitIndex green, BitIndex blue>
 	uint8_t palette_entry() {
-		return channel<r_index, r_bit, 2>() | channel<g_index, g_bit, 1>() | channel<b_index, b_bit, 0>();
+		return channel<red, 2>() | channel<green, 1>() | channel<blue, 0>();
+	}
+
+	template <uint16_t pair, int base>
+	requires ((pair & 1) == 0 && pair >= 0xfe08 && pair <= 0xfe0e && base >= 0 && base < 16 && !(base & 0b1010))
+	void set_palette_group(const int address, const uint8_t value) {
+		source_palette_[address & 0b0111] = ~value;
+
+		mapped_palette_[base | 0b0000] = palette_entry<BitIndex{pair + 1, 0}, BitIndex{pair + 1, 4}, BitIndex{pair, 4}>();
+		mapped_palette_[base | 0b0010] = palette_entry<BitIndex{pair + 1, 1}, BitIndex{pair + 1, 5}, BitIndex{pair, 5}>();
+		mapped_palette_[base | 0b1000] = palette_entry<BitIndex{pair + 1, 2}, BitIndex{pair, 2}, BitIndex{pair, 6}>();
+		mapped_palette_[base | 0b1010] = palette_entry<BitIndex{pair + 1, 3}, BitIndex{pair, 3}, BitIndex{pair, 7}>();
 	}
 
 	// User-selected base address; constrained to a 64-byte boundary by the setter.
@@ -129,9 +140,9 @@ private:
 	bool field_ = true;
 
 	// Current working address.
-	uint16_t row_addr_ = 0;	// Address, sans character row, adopted at the start of a row.
+	uint16_t row_addr_ = 0;		// Address, sans character row, adopted at the start of a row.
 	uint16_t byte_addr_ = 0;	// Current working address, incremented as the raster moves across the line.
-	int char_row_ = 0;		// Character row; 0–9 in text mode, 0–7 in graphics.
+	int char_row_ = 0;			// Character row; 0–9 in text mode, 0–7 in graphics.
 
 	// Sync states.
 	bool vsync_int_ = false;	// True => vsync active.
@@ -173,11 +184,17 @@ private:
 	}
 
 	bool in_blank() const {
-		return h_count_ >= h_active || (mode_text_ && v_count_ >= v_active_txt) || (!mode_text_ && v_count_ >= v_active_gph) || char_row_ >= 8;
+		return
+			h_count_ >= h_active ||
+			(mode_text_ && v_count_ >= v_active_txt) ||
+			(!mode_text_ && v_count_ >= v_active_gph) ||
+			char_row_ >= 8;
 	}
 
 	bool is_v_end() const {
 		return v_count_ == v_total();
 	}
+
+	uint8_t perform(int h_count, int v_count);
 };
 }

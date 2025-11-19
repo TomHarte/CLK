@@ -503,7 +503,7 @@ bool Reflection::Struct::deserialise(const uint8_t *bson, const size_t size) {
 	// Validate the object's declared size.
 	const auto end = bson + size;
 	auto read_int = [&bson] (auto &target) {
-		constexpr auto shift = 8 * (sizeof(target) - 1);
+		static constexpr auto shift = 8 * (sizeof(target) - 1);
 		target = 0;
 		for(size_t c = 0; c < sizeof(target); ++c) {
 			target >>= 8;

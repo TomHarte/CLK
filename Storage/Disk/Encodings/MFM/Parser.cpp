@@ -30,7 +30,7 @@ void Parser::install_track(const Storage::Disk::Track::Address &address) {
 		return;
 	}
 
-	std::map<int, Storage::Encodings::MFM::Sector> sectors_by_id;
+	SectorByIDMap sectors_by_id;
 	if(density_) {
 		append(parse_track(*track, *density_), sectors_by_id);
 	} else {
@@ -49,7 +49,7 @@ SectorMap Parser::parse_track(const Storage::Disk::Track &track, Density density
 		density);
 }
 
-void Parser::append(const SectorMap &source, std::map<int, Sector> &destination) {
+void Parser::append(const SectorMap &source, SectorByIDMap &destination) {
 	for(const auto &sector : source) {
 		destination.emplace(sector.second.address.sector, std::move(sector.second));
 	}

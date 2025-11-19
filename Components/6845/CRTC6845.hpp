@@ -9,28 +9,43 @@
 #pragma once
 
 #include "ClockReceiver/ClockReceiver.hpp"
+#include "Numeric/SizedInt.hpp"
 
 #include <cstdint>
 #include <cstdio>
 
+//
+// WARNING: code is in flux. I'm attempting to use hoglet's FPGA implementation at
+// https://github.com/hoglet67/BeebFpga/blob/master/src/common/mc6845.vhd as an authoritative guide to proper behaviour,
+// having found his Electron ULA to be excellent. This is starting by mapping various bits of internal state here
+// to hoglet's equivalents; cf. comments.
+//
+
 namespace Motorola::CRTC {
+
+using RefreshAddress = Numeric::SizedInt<14>;
+using LineAddress = Numeric::SizedInt<5>;
+
+using SyncCounter = Numeric::SizedInt<4>;
+using CharacterAddress = Numeric::SizedInt<8>;
+using RowAddress = Numeric::SizedInt<7>;
 
 struct BusState {
 	bool display_enable = false;
-	bool hsync = false;
-	bool vsync = false;
+	bool hsync = false;		// hs
+	bool vsync = false;		// vs
 	bool cursor = false;
-	uint16_t refresh_address = 0;
-	uint16_t row_address = 0;
+	RefreshAddress refresh;
+	LineAddress line;
 
 	// Not strictly part of the bus state; provided because the partition between 6845 and bus handler
 	// doesn't quite hold up in some emulated systems where the two are integrated and share more state.
-	int field_count = 0;
+	Numeric::SizedInt<5> field_count = 0;		// field_counter
 };
 
 class BusHandler {
-	public:
-		void perform_bus_cycle(const BusState &) {}
+public:
+	void perform_bus_cycle(const BusState &) {}
 };
 
 enum class Personality {
@@ -39,13 +54,7 @@ enum class Personality {
 	UM6845R,	// Type 1 in CPC parlance. Status register, fixed-length VSYNC.
 	MC6845,		// Type 2. No status register, fixed-length VSYNC, no zero-length HSYNC.
 	AMS40226,	// Type 3. Status is get register, fixed-length VSYNC, no zero-length HSYNC.
-
-	EGA,		// Extended EGA-style CRTC; uses 16-bit addressing throughout.
 };
-
-constexpr bool is_egavga(const Personality p) {
-	return p >= Personality::EGA;
-}
 
 // https://www.pcjs.org/blog/2018/03/20/ advises that "the behavior of bits 5 and 6 [of register 10, the cursor start
 // register is really card specific".
@@ -54,10 +63,10 @@ constexpr bool is_egavga(const Personality p) {
 enum class CursorType {
 	/// No cursor signal is generated.
 	None,
+	/// Built-in 6845 style: 00 => no blinking; 01 => no cursor; 10 => slow blink; 11 => fast blink
+	Native,
 	/// MDA style: 00 => symmetric blinking; 01 or 10 => no blinking; 11 => short on, long off.
 	MDA,
-	/// EGA style: ignore the bits completely.
-	EGA,
 };
 
 // TODO UM6845R and R12/R13; see http://www.cpcwiki.eu/index.php/CRTC#CRTC_Differences
@@ -67,7 +76,7 @@ public:
 	CRTC6845(BusHandlerT &bus_handler) noexcept :
 		bus_handler_(bus_handler), status_(0) {}
 
-	void select_register(uint8_t r) {
+	void select_register(const uint8_t r) {
 		selected_register_ = r;
 	}
 
@@ -85,65 +94,64 @@ public:
 		if(selected_register_ == 16 || selected_register_ == 17) status_ &= ~0x40;
 
 		if(personality == Personality::UM6845R && selected_register_ == 31) return dummy_register_;
-		if(selected_register_ < 12 || selected_register_ > 17) return 0xff;
-		return registers_[selected_register_];
+
+		// Registers below 12 are write-only; no registers are defined above position 17
+		// (other than the UM6845R-specific test register as per above).
+		//
+		// Per the BBC Wiki, attempting to read such a register results in 0.
+		if(selected_register_ < 12 || selected_register_ > 17) return 0x00;
+
+		return registers_[selected_register_.get()];
 	}
 
 	void set_register(const uint8_t value) {
-		static constexpr bool is_ega = is_egavga(personality);
-
-		const auto load_low = [value](uint16_t &target) {
-			target = (target & 0xff00) | value;
-		};
-		const auto load_high = [value](uint16_t &target) {
-			constexpr uint8_t mask = RefreshMask >> 8;
-			target = uint16_t((target & 0x00ff) | ((value & mask) << 8));
-		};
-
-		switch(selected_register_) {
+		switch(selected_register_.get()) {
 			case 0:	layout_.horizontal.total = value;		break;
 			case 1: layout_.horizontal.displayed = value;	break;
 			case 2:	layout_.horizontal.start_sync = value;	break;
 			case 3:
-				layout_.horizontal.sync_width = value & 0xf;
+				layout_.horizontal.sync_width = value;
 				layout_.vertical.sync_lines = value >> 4;
 				// TODO: vertical sync lines:
 				// "(0 means 16 on some CRTC. Not present on all CRTCs, fixed to 16 lines on these)"
 			break;
-			case 4:	layout_.vertical.total = value & 0x7f;		break;
-			case 5:	layout_.vertical.adjust = value & 0x1f;		break;
-			case 6:	layout_.vertical.displayed = value & 0x7f;	break;
-			case 7:	layout_.vertical.start_sync = value & 0x7f;	break;
+			case 4:	layout_.vertical.total = value;			break;
+			case 5:	layout_.vertical.adjust = value;		break;
+			case 6:	layout_.vertical.displayed = value;		break;
+			case 7:	layout_.vertical.start_sync = value;	break;
 			case 8:
 				switch(value & 3) {
-					default:	layout_.interlace_mode_ = InterlaceMode::Off;					break;
-					case 0b01:	layout_.interlace_mode_ = InterlaceMode::InterlaceSync;			break;
-					case 0b11:	layout_.interlace_mode_ = InterlaceMode::InterlaceSyncAndVideo;	break;
+					default:	layout_.interlace_mode_ = InterlaceMode::Off;			break;
+					case 0b01:	layout_.interlace_mode_ = InterlaceMode::Sync;			break;
+					case 0b11:	layout_.interlace_mode_ = InterlaceMode::SyncAndVideo;	break;
 				}
 
 				// Per CPC documentation, skew doesn't work on a "type 1 or 2", i.e. an MC6845 or a UM6845R.
-				if(personality != Personality::UM6845R && personality != Personality::MC6845) {
-					switch((value >> 4)&3) {
-						default:	display_skew_mask_ = 1;		break;
-						case 1:		display_skew_mask_ = 2;		break;
-						case 2:		display_skew_mask_ = 4;		break;
-					}
-				}
+//				if(personality != Personality::UM6845R && personality != Personality::MC6845) {
+//					switch((value >> 4)&3) {
+//						default:	display_skew_mask_ = 1;		break;
+//						case 1:		display_skew_mask_ = 2;		break;
+//						case 2:		display_skew_mask_ = 4;		break;
+//					}
+//				}
 			break;
-			case 9:	layout_.vertical.end_row = value & 0x1f;	break;
+			case 9:	layout_.vertical.end_line = value;	break;
 			case 10:
-				layout_.vertical.start_cursor = value & 0x1f;
-				layout_.cursor_flags = (value >> 5) & 3;
+				layout_.vertical.start_cursor = value;
+				layout_.cursor_flags = value >> 5;
+				update_cursor_mask();
 			break;
 			case 11:
-				layout_.vertical.end_cursor = value & 0x1f;
+				layout_.vertical.end_cursor = value;
 			break;
-			case 12:	load_high(layout_.start_address);	break;
-			case 13:	load_low(layout_.start_address);	break;
-			case 14:	load_high(layout_.cursor_address);	break;
-			case 15:	load_low(layout_.cursor_address);	break;
+			case 12:	layout_.start_address.template load<8>(value);	break;
+			case 13:	layout_.start_address.template load<0>(value);	break;
+			case 14:	layout_.cursor_address.template load<8>(value);	break;
+			case 15:	layout_.cursor_address.template load<0>(value);	break;
 		}
 
+		// Take redundant copies of all registers, limited to their actual bit sizes,
+		// to proffer up if the registers are read.
 		static constexpr uint8_t masks[] = {
 			0xff,	// Horizontal total.
 			0xff,	// Horizontal display end.
@@ -152,24 +160,24 @@ public:
 					// EGA: b0–b4: end of horizontal blank;
 					// b5–b6: "Number of character clocks to delay start of display after Horizontal Total has been reached."
 
-			is_ega ? 0xff : 0x7f,	// Start horizontal retrace.
+			0x7f,	// Start horizontal retrace.
 			0x1f, 0x7f, 0x7f,
-			0xff, 0x1f, 0x7f, 0x1f,
-			uint8_t(RefreshMask >> 8), uint8_t(RefreshMask),
-			uint8_t(RefreshMask >> 8), uint8_t(RefreshMask),
+			0xfc, 0x1f, 0x7f, 0x1f,
+			uint8_t(RefreshAddress::Mask >> 8), uint8_t(RefreshAddress::Mask),
+			uint8_t(RefreshAddress::Mask >> 8), uint8_t(RefreshAddress::Mask),
 		};
 
 		if(selected_register_ < 16) {
-			registers_[selected_register_] = value & masks[selected_register_];
+			registers_[selected_register_.get()] = value & masks[selected_register_.get()];
 		}
-		if(selected_register_ == 31 && personality == Personality::UM6845R) {
+		if(selected_register_.get() == 31 && personality == Personality::UM6845R) {
 			dummy_register_ = value;
 		}
 	}
 
 	void trigger_light_pen() {
-		registers_[17] = bus_state_.refresh_address & 0xff;
-		registers_[16] = bus_state_.refresh_address >> 8;
+		registers_[17] = bus_state_.refresh.get() & 0xff;
+		registers_[16] = bus_state_.refresh.get() >> 8;
 		status_ |= 0x40;
 	}
 
@@ -180,179 +188,291 @@ public:
 			// ordered so that whatever assignments result don't affect any subsequent conditionals
 
 
-			// Do bus work.
-			bus_state_.cursor = is_cursor_line_ &&
-				bus_state_.refresh_address == layout_.cursor_address;
-			bus_state_.display_enable = character_is_visible_ && line_is_visible_;
-			bus_handler_.perform_bus_cycle(bus_state_);
+			//
+			// External bus activity.
+			//
+				bus_state_.line = line_is_interlaced_ ? (line_ & LineAddress::IntT(~1)) | (odd_field_ ? 1 : 0) : line_;
+				bus_state_.display_enable = character_is_visible_ && row_is_visible_;
+				bus_state_.cursor = (cursor_mask_ && is_cursor_line_ && bus_state_.refresh == layout_.cursor_address)
+					&& bus_state_.display_enable;
+
+				bus_handler_.perform_bus_cycle(bus_state_);
+
+				bus_state_.refresh = refresh_;	// Deliberate: do this after bus activity.
+												// TODO: is this a hack?
+
 
 			//
-			// Shared, stateless signals.
+			// Shared signals.
 			//
-				const bool character_total_hit = character_counter_ == layout_.horizontal.total;
-				const uint8_t lines_per_row =
-					layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ?
-						layout_.vertical.end_row & ~1 : layout_.vertical.end_row;
-				const bool row_end_hit = bus_state_.row_address == lines_per_row && !is_in_adjustment_period_;
-				const bool was_eof = eof_latched_;
+				const bool character_total_hit = character_counter_ == layout_.horizontal.total;		// r00_h_total_hit
+				const auto lines_per_row =
+					layout_.interlace_mode_ == InterlaceMode::SyncAndVideo ?
+						layout_.vertical.end_line & LineAddress::IntT(~1) : layout_.vertical.end_line;	// max_scanline
+				const bool line_end_hit = line_ == lines_per_row && !is_in_adjustment_period_;	// max_scanline_hit
 				const bool new_frame =
-					character_total_hit && was_eof &&
+					character_total_hit && eof_latched_ &&
 					(
 						layout_.interlace_mode_ == InterlaceMode::Off ||
-						!odd_field_
-					);
+						!bus_state_.field_count.bit<0>() ||
+						extra_line_
+					);		// new_frame
 
-			//
-			// Horizontal.
-			//
-
-				// Update horizontal sync.
-				if(bus_state_.hsync) {
-					++hsync_counter_;
-					bus_state_.hsync = hsync_counter_ != layout_.horizontal.sync_width;
-				}
-				if(character_counter_ == layout_.horizontal.start_sync) {
-					hsync_counter_ = 0;
-					bus_state_.hsync = true;
-				}
-
-				// Check for end-of-line.
-				character_reset_history_ <<= 1;
-				if(character_total_hit) {
-					character_counter_ = 0;
-					character_is_visible_ = true;
-					character_reset_history_ |= 1;
-				} else {
-					character_counter_++;
-				}
-
-				// Check for end of visible characters.
-				if(character_counter_ == layout_.horizontal.displayed) {
-					character_is_visible_ = false;
-				}
-
-			//
-			// End-of-frame.
-			//
-
-				if(character_total_hit) {
-					if(was_eof) {
-						eof_latched_ = eom_latched_ = is_in_adjustment_period_ = false;
-						adjustment_counter_ = 0;
-					} else if(is_in_adjustment_period_) {
-						adjustment_counter_ = (adjustment_counter_ + 1) & 31;
-					}
-				}
-
-				if(character_reset_history_ & 2) {
-					eom_latched_ |= row_end_hit && row_counter_ == layout_.vertical.total;
-				}
-
-				if(character_reset_history_ & 4 && eom_latched_) {
-					// TODO: I don't believe the "add 1 for interlaced" test here is accurate;
-					// others represent the extra scanline as additional state, presumably because
-					// adjust total might be reprogrammed at any time.
-					const auto adjust_length =
-						layout_.vertical.adjust + (layout_.interlace_mode_ != InterlaceMode::Off && odd_field_ ? 1 : 0);
-					is_in_adjustment_period_ |= adjustment_counter_ != adjust_length;
-					eof_latched_ |= adjustment_counter_ == adjust_length;
-				}
-
-			//
-			// Vertical.
-			//
-
-				// Sync.
-				const bool vsync_horizontal =
-					(!odd_field_ && !character_counter_) ||
-					(odd_field_ && character_counter_ == (layout_.horizontal.total >> 1));
-				if(vsync_horizontal) {
-					if((row_counter_ == layout_.vertical.start_sync && !bus_state_.row_address) || bus_state_.vsync) {
-						bus_state_.vsync = true;
-						vsync_counter_ = (vsync_counter_ + 1) & 0xf;
-					} else {
-						vsync_counter_ = 0;
-					}
-
-					if(vsync_counter_ == layout_.vertical.sync_lines) {
-						bus_state_.vsync = false;
-					}
-				}
-
-				// Row address.
-				if(character_total_hit) {
-					if(was_eof) {
-						bus_state_.row_address = 0;
-						eof_latched_ = eom_latched_ = false;
-					} else if(row_end_hit) {
-						bus_state_.row_address = 0;
-					} else if(layout_.interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo) {
-						bus_state_.row_address = (bus_state_.row_address + 2) & ~1 & 31;
-					} else {
-						bus_state_.row_address = (bus_state_.row_address + 1) & 31;
-					}
-				}
-
-				// Row counter.
-				row_counter_ = next_row_counter_;
-				if(new_frame) {
-					next_row_counter_ = 0;
-					is_first_scanline_ = true;
-				} else {
-					next_row_counter_ = row_end_hit && character_total_hit ?
-						(next_row_counter_ + 1) : next_row_counter_;
-					is_first_scanline_ &= !row_end_hit;
-				}
-
-				// Vertical display enable.
-				if(is_first_scanline_) {
-					line_is_visible_ = true;
-					odd_field_ = bus_state_.field_count & 1;
-				} else if(line_is_visible_ && row_counter_ == layout_.vertical.displayed) {
-					line_is_visible_ = false;
-					++bus_state_.field_count;
-				}
-
-
-				// Cursor.
-				if constexpr (cursor_type != CursorType::None) {
-					// Check for cursor enable.
-					is_cursor_line_ |= bus_state_.row_address == layout_.vertical.start_cursor;
-					is_cursor_line_ &= bus_state_.row_address != layout_.vertical.end_cursor;
-
-					switch(cursor_type) {
-						// MDA-style blinking.
-						// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
-						// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
-						case CursorType::MDA:
-							switch(layout_.cursor_flags) {
-								case 0b11: is_cursor_line_ &= (bus_state_.field_count & 8) < 3;	break;
-								case 0b00: is_cursor_line_ &= bool(bus_state_.field_count & 8);	break;
-								case 0b01: is_cursor_line_ = false;								break;
-								case 0b10: is_cursor_line_ = true;								break;
-								default: break;
-							}
-						break;
-					}
-				}
 
 			//
 			// Addressing.
 			//
 
+				// Start-of-line address: seeded with the programmed display start address upon a new frame;
+				// otherwise copied from the refresh address at the end of each line of characters.
+				const auto initial_line_address = line_address_;
 				if(new_frame) {
-					bus_state_.refresh_address = layout_.start_address;
+					line_address_ = layout_.start_address;
+				} else if(character_counter_ == layout_.horizontal.displayed && line_end_hit) {
+					line_address_ = refresh_;
+				}
+
+				// Refresh address: seeded with the programmed display start address upon a new frame;
+				// otherwise copied from the start-of-line address is a new line is about to start;
+				// otherwise incremented across the line.
+				if(new_frame) {
+					refresh_ = layout_.start_address;
 				} else if(character_total_hit) {
-					bus_state_.refresh_address = line_address_;
+					refresh_ = initial_line_address;
 				} else {
-					bus_state_.refresh_address = (bus_state_.refresh_address + 1) & RefreshMask;
+					++refresh_;
+				}
+
+				//
+				// Per hoglet: b0 does not vary within a line even if you switch in/out of interlaced mode.
+				// He reproduces the same with extra state, which probably doesn't exist on the real device.
+				// This implementation follows his lead.
+				//
+				if(character_total_hit) {
+					line_is_interlaced_ = layout_.interlace_mode_ == InterlaceMode::SyncAndVideo;
+				}
+
+			//
+			// Sync.
+			//
+
+				// Vertical sync.
+				//
+				// Counter:
+				// Sync width of 0 => 16 lines of sync.
+				// Triggered by the row counter becoming equal to the sync start position, regardless of when.
+				// Subsequently increments at the start of each line.
+				const bool hit_vsync = row_counter_ == layout_.vertical.start_sync;		// vs_hit
+				const bool is_vsync_rising_edge = hit_vsync && !hit_vsync_last_;
+				hit_vsync_last_ = hit_vsync;
+
+				// Select odd or even sync depending on the field.
+				// (Noted: the reverse-odd-test is intentional)
+				bus_state_.vsync = (layout_.interlace_mode_ != InterlaceMode::Off && !odd_field_) ?
+					vsync_odd_ : vsync_even_;
+
+				// Odd sync copies even sync, but half a line later.
+				if(character_counter_ == layout_.horizontal.total >> 1) {
+					vsync_odd_ = vsync_even_;
+				}
+
+				// Even sync begins on the rising edge of vsync, then continues until the counter hits its proper
+				// target, one cycle after reset of the horizontal counter.
+				if(is_vsync_rising_edge) {
+					vsync_even_ = true;
+				} else if(vsync_counter_ == layout_.vertical.sync_lines && character_reset_history_.bit<0>()) {
+					vsync_even_ = false;
+				}
+
+				// The vsync counter is zeroed by the rising edge of sync but subsequently increments immediately
+				// upon reset of the horizontal counter.
+				if(is_vsync_rising_edge) {
+					vsync_counter_ = 0;
+				} else if(character_total_hit) {
+					++vsync_counter_;
+				}
+
+				// Horizontal sync.
+				//
+				// A sync width of 0 should mean that no sync is observed.
+				// Hitting the start sync condition while sync is already ongoing should have no effect.
+				if(bus_state_.hsync) {
+					++hsync_counter_;
+				} else {
+					hsync_counter_ = 0;
+				}
+				if(hsync_counter_ == layout_.horizontal.sync_width) {
+					bus_state_.hsync = false;
+				} else if(character_counter_ == layout_.horizontal.start_sync) {
+					bus_state_.hsync = true;
+				}
+
+
+			//
+			// Horizontal.
+			//
+
+				// Check for visible characters; visibility starts in the first column and continues
+				if(!character_counter_) {
+					character_is_visible_ = true;
+				}
+				if(character_counter_ == layout_.horizontal.displayed || character_total_hit) {
+					character_is_visible_ = false;
+				}
+
+				// Check for end-of-line.
+				//
+				// character_reset_history_ is used because some events are defined to occur one or two
+				// cycles after end-of-line regardless of whether an additional end of line is hit in
+				// the interim.
+				if(character_total_hit) {
+					character_counter_ = 0;
+				} else {
+					++character_counter_;
+				}
+
+
+			//
+			// Vertical.
+			//
+
+				// Update line counter (which also counts the vertical adjust period).
+				//
+				// Counts in steps of 2 only if & 3) mode is InterlaceMode::SyncAndVideo and this is
+				// not the adjustment period. Otherwise counts in steps of 1.
+				if(new_frame) {
+					line_ = 0;
+				} else if(character_total_hit) {
+					line_ = next_line_;
+				}
+
+				if(line_end_hit) {
+					next_line_ = 0;
+				} else if(is_in_adjustment_period_ || layout_.interlace_mode_ != InterlaceMode::SyncAndVideo) {
+					next_line_ = line_ + 1;
+				} else {
+					next_line_ = (line_ + 2) & LineAddress::IntT(~1);
+				}
+
+				// Update row counter.
+				//
+				// Very straightforward: tests at end of line whether row end has also been hit. If so, increments.
+				row_counter_ = next_row_counter_;
+				if(new_frame) {
+					next_row_counter_ = 0;
+				} else if(character_total_hit && line_end_hit) {
+					next_row_counter_ = row_counter_ + 1;
+				}
+
+				// Vertical display enable.
+				if(is_first_scanline_) {
+					row_is_visible_ = true;
+					odd_field_ = bus_state_.field_count.bit<0>();
+				} else if(row_is_visible_ && row_counter_ == layout_.vertical.displayed) {
+					row_is_visible_ = false;
+					++bus_state_.field_count;
+					update_cursor_mask();
+				}
+
+
+			//
+			// End-of-frame.
+			//
+
+				if(new_frame) {
+					is_in_adjustment_period_ = false;
+				} else if(character_total_hit && eom_latched_ && will_adjust_) {
+					is_in_adjustment_period_ = true;
 				}
 
 				if(new_frame) {
-					line_address_ = layout_.start_address;
-				} else if(character_counter_ == layout_.horizontal.displayed && row_end_hit) {
-					line_address_ = bus_state_.refresh_address;
+					is_first_scanline_ = true;
+				} else if(character_total_hit) {
+					is_first_scanline_ = false;
 				}
+
+				// The extra-line flag holds true for a single line if one is needed to complete
+				// an odd interlaced field.
+				if(
+					character_total_hit &&
+					eof_latched_ &&
+					layout_.interlace_mode_ != InterlaceMode::Off &&
+					bus_state_.field_count.bit<0>() &&
+					!extra_line_
+				) {
+					extra_line_ = true;
+				} else if(character_total_hit) {
+					extra_line_ = false;
+				}
+
+				// EOF (end of field) marks the end of the regular set of scans, including the adjustment area.
+				// It doesn't include the extra line added during odd interlaced fields.
+				if(new_frame) {
+					eof_latched_ = false;
+				} else if(eom_latched_ && !will_adjust_ && character_reset_history_.bit<2>()) {
+					eof_latched_ = true;
+				}
+
+				// Will-adjust indicates whether an adjustment area is upcoming; if so then it occurs after EOM.
+				if(new_frame) {
+					will_adjust_ = false;
+				} else if(character_reset_history_.bit<1>() && eom_latched_) {
+					if(next_line_ == layout_.vertical.adjust) {
+						will_adjust_ = false;
+					} else {
+						will_adjust_ = true;
+					}
+				}
+
+				// EOM (end of main) marks the end of the visible set of rows, prior to any adjustment area.
+				// It is set one cycle after the most-recent start of line.
+				if(new_frame) {
+					eom_latched_ = false;
+				} else if(character_reset_history_.bit<0>() && line_end_hit && row_counter_ == layout_.vertical.total) {
+					eom_latched_ = true;
+				}
+
+			//
+			// Cursor
+			//
+				cursor_history_ <<= 1;
+				if constexpr (cursor_type != CursorType::None) {
+					if(character_total_hit) {
+						// This is clearly a nonsense test; there's absolutely no reason a real 6845 would do anything
+						// other than equality comparisons, to maintain internal state.
+						//
+						// ... that said, I have been unable to reconcile:
+						//
+						//	1. the PCjs results on real MC6845Ps that show wraparound cursors
+						//		Cf. https://www.pcjs.org/blog/2018/03/20/ ; and
+						//	2. the expectations of the BBC Micro (which sets an out-of-range stop line for its cursor
+						//		right at initial boot) and various pieces of its software (including but
+						//		not limited to Arcadians, which uses in-range numbers but has start > end and expects
+						//		the cursor correspondingly to be hidden).
+						//
+						// I also note that the two BBC FPGA implementations I glanced at, hoglet's and Mister's, use
+						// fictional range comparisons.
+						//
+						// But, on the other hand, Tom Seddon remarks at https://github.com/tom-seddon/6845-tests that
+						// "Looks like the cursor switches on when cursor is off and raster matches R10, and switches
+						// off when cursor is on and raster matches R11."
+						//
+						// (but also seems to use a range test in his software implementation?)
+						is_cursor_line_ =
+							line_ >= layout_.vertical.start_cursor &&
+							line_ <= layout_.vertical.end_cursor;
+					}
+				}
+
+
+			//
+			// Event history.
+			//
+
+				// Somewhat of a fiction, this keeps a track of recent character resets because
+				// some events are keyed on 1 cycle after last reset, 2 cycles after last reset, etc.
+				character_reset_history_ <<= 1;
+				character_reset_history_ |= character_total_hit;
 		}
 	}
 
@@ -361,78 +481,117 @@ public:
 	}
 
 private:
-	static constexpr uint16_t RefreshMask = (personality >= Personality::EGA) ? 0xffff : 0x3fff;
-
 	BusHandlerT &bus_handler_;
 	BusState bus_state_;
 
 	enum class InterlaceMode {
+		/// No interlacing.
 		Off,
-		InterlaceSync,
-		InterlaceSyncAndVideo,
+		/// Provide interlaced sync, but just scan out the exact same display for each field.
+		Sync,
+		/// Provide interlaced sync and scan even/odd lines depending on field.
+		SyncAndVideo,
 	};
-	enum class BlinkMode {
-		// TODO.
-	};
+
+	// Comments on the right provide the corresponding signal name in hoglet's VHDL implementation.
 	struct {
 		struct {
-			uint8_t total;
-			uint8_t displayed;
-			uint8_t start_sync;
-			uint8_t sync_width;
+			CharacterAddress total;			// r00_h_total
+			CharacterAddress displayed;		// r01_h_displayed
+			CharacterAddress start_sync;	// r02_h_sync_pos
+			SyncCounter sync_width;			// r03_h_sync_width
 		} horizontal;
 
 		struct {
-			uint8_t total;
-			uint8_t displayed;
-			uint8_t start_sync;
-			uint8_t sync_lines;
-			uint8_t adjust;
+			RowAddress total;			// r04_v_total
+			RowAddress displayed;		// r06_v_displayed
+			RowAddress start_sync;		// r07_v_sync_pos
+			SyncCounter sync_lines;		// r03_v_sync_width
+			LineAddress adjust;			// r05_v_total_adj
 
-			uint8_t end_row;
-			uint8_t start_cursor;
-			uint8_t end_cursor;
+			LineAddress end_line;		// r09_max_scanline_addr
+			LineAddress start_cursor;	// r10_cursor_start
+			LineAddress end_cursor;		// r11_cursor_end
 		} vertical;
 
-		InterlaceMode interlace_mode_ = InterlaceMode::Off;
-		uint8_t end_row() const {
-			return interlace_mode_ == InterlaceMode::InterlaceSyncAndVideo ? vertical.end_row & ~1 : vertical.end_row;
-		}
+		InterlaceMode interlace_mode_ = InterlaceMode::Off;		// r08_interlace
 
-		uint16_t start_address;
-		uint16_t cursor_address;
-		uint16_t light_pen_address;
-		uint8_t cursor_flags;
+		RefreshAddress start_address;		// r12_start_addr_h + r13_start_addr_l
+		RefreshAddress cursor_address;		// r14_cursor_h + r15_cursor_l
+		RefreshAddress light_pen_address;	// r16_light_pen_h + r17_light_pen_l
+		Numeric::SizedInt<2> cursor_flags;	// r10_cursor_mode
 	} layout_;
 
 	uint8_t registers_[18]{};
 	uint8_t dummy_register_ = 0;
-	int selected_register_ = 0;
+	Numeric::SizedInt<5> selected_register_ = 0;
 
-	uint8_t character_counter_ = 0;
-	uint32_t character_reset_history_ = 0;
-	uint8_t row_counter_ = 0, next_row_counter_ = 0;
-	uint8_t adjustment_counter_ = 0;
+	CharacterAddress character_counter_;		// h_counter
+	Numeric::SizedInt<3> character_reset_history_;	// sol
+	RowAddress row_counter_;					// row_counter
+	RowAddress next_row_counter_;				// row_counter_next
+	LineAddress line_;							// line_counter
+	LineAddress next_line_;						// line_counter_next
+	RefreshAddress refresh_;					// ma_i
 
-	bool character_is_visible_ = false;
-	bool line_is_visible_ = false;
+	bool character_is_visible_ = false;			// h_display
+	bool row_is_visible_ = false;				// v_display
 	bool is_first_scanline_ = false;
 	bool is_cursor_line_ = false;
+	bool cursor_mask_ = false;
 
-	int hsync_counter_ = 0;
-	int vsync_counter_ = 0;
-	bool is_in_adjustment_period_ = false;
+	SyncCounter hsync_counter_;					// h_sync_counter
+	SyncCounter vsync_counter_;					// v_sync_counter
+	bool will_adjust_ = false;					// in_adj
+	bool is_in_adjustment_period_ = false;		// adj_in_progress
 
-	uint16_t line_address_ = 0;
+	RefreshAddress line_address_;				// ma_row
 	uint8_t status_ = 0;
 
-	int display_skew_mask_ = 1;
-	unsigned int character_is_visible_shifter_ = 0;
+//	int display_skew_mask_ = 1;
 
-	bool eof_latched_ = false;
-	bool eom_latched_ = false;
-	uint16_t next_row_address_ = 0;
-	bool odd_field_ = false;
+	bool eof_latched_ = false;					// eof_latched
+	bool eom_latched_ = false;					// eom_latched
+	bool odd_field_ = false;					// odd_field
+	bool extra_line_ = false;					// extra_scanline
+
+	bool hit_vsync_last_ = false;				// vs_hit_last
+	bool vsync_even_ = false;					// vs_even
+	bool vsync_odd_ = false;					// vs_odd
+
+	Numeric::SizedInt<3> cursor_history_;	// cursor0, cursor1, cursor2 [TODO]
+	bool line_is_interlaced_ = false;
+
+	void update_cursor_mask() {
+		switch(cursor_type) {
+			case CursorType::None:
+			break;
+
+			// MDA-style blinking.
+			// https://retrocomputing.stackexchange.com/questions/27803/what-are-the-blinking-rates-of-the-caret-and-of-blinking-text-on-pc-graphics-car
+			// gives an 8/8 pattern for regular blinking though mode 11 is then just a guess.
+			case CursorType::MDA:
+				switch(layout_.cursor_flags.get()) {
+					case 0b11: cursor_mask_ = (bus_state_.field_count & 8) < 3;	break;
+					case 0b00: cursor_mask_ = bus_state_.field_count.bit<3>();	break;
+					case 0b01: cursor_mask_ = false;							break;
+					case 0b10: cursor_mask_ = true;								break;
+					default: break;
+				}
+			break;
+
+			// Standard built-in 6845 blinking.
+			case CursorType::Native:
+				switch(layout_.cursor_flags.get()) {
+					case 0b00: cursor_mask_ = true;								break;
+					case 0b01: cursor_mask_ = false;							break;
+					case 0b10: cursor_mask_ = bus_state_.field_count.bit<3>();	break;
+					case 0b11: cursor_mask_= bus_state_.field_count.bit<4>();	break;
+					default: break;
+				}
+			break;
+		}
+	}
 };
 
 }

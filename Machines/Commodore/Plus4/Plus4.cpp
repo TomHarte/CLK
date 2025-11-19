@@ -16,7 +16,7 @@
 
 #include "Machines/MachineTypes.hpp"
 #include "Machines/Utility/MemoryFuzzer.hpp"
-#include "Processors/6502/6502.hpp"
+#include "Processors/6502Mk2/6502Mk2.hpp"
 #include "Analyser/Static/Commodore/Target.hpp"
 #include "Outputs/Log.hpp"
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
@@ -40,41 +40,40 @@ using namespace Commodore;
 using namespace Commodore::Plus4;
 
 namespace {
-
-Log::Logger<Log::Source::Plus4> logger;
+using Logger = Log::Logger<Log::Source::Plus4>;
 
 class Joystick: public Inputs::ConcreteJoystick {
-	public:
-		Joystick() :
-			ConcreteJoystick({
-				Input(Input::Up),
-				Input(Input::Down),
-				Input(Input::Left),
-				Input(Input::Right),
-				Input(Input::Fire)
-			}) {}
+public:
+	Joystick() :
+		ConcreteJoystick({
+			Input(Input::Up),
+			Input(Input::Down),
+			Input(Input::Left),
+			Input(Input::Right),
+			Input(Input::Fire)
+		}) {}
 
-		void did_set_input(const Input &digital_input, bool is_active) final {
-			const auto apply = [&](uint8_t mask) {
-				if(is_active) mask_ &= ~mask; else mask_ |= mask;
-			};
+	void did_set_input(const Input &digital_input, bool is_active) final {
+		const auto apply = [&](uint8_t mask) {
+			if(is_active) mask_ &= ~mask; else mask_ |= mask;
+		};
 
-			switch(digital_input.type) {
-				default: return;
-				case Input::Right:	apply(0x08);	break;
-				case Input::Left:	apply(0x04);	break;
-				case Input::Down:	apply(0x02);	break;
-				case Input::Up:		apply(0x01);	break;
-				case Input::Fire:	apply(0xc0);	break;
-			}
+		switch(digital_input.type) {
+			default: return;
+			case Input::Right:	apply(0x08);	break;
+			case Input::Left:	apply(0x04);	break;
+			case Input::Down:	apply(0x02);	break;
+			case Input::Up:		apply(0x01);	break;
+			case Input::Fire:	apply(0xc0);	break;
 		}
+	}
 
-		uint8_t mask() const {
-			return mask_;
-		}
+	uint8_t mask() const {
+		return mask_;
+	}
 
-	private:
-		uint8_t mask_ = 0xff;
+private:
+	uint8_t mask_ = 0xff;
 };
 
 class Timers {
@@ -90,7 +89,7 @@ public:
 			target = uint16_t((target & 0x00ff) | (value << 8));
 		};
 
-		constexpr auto timer = offset >> 1;
+		static constexpr auto timer = offset >> 1;
 		paused_[timer] = ~offset & 1;
 		if constexpr (offset & 1) {
 			load_high(timers_[timer]);
@@ -107,7 +106,7 @@ public:
 
 	template <int offset>
 	uint8_t read() {
-		constexpr auto timer = offset >> 1;
+		static constexpr auto timer = offset >> 1;
 		if constexpr (offset & 1) {
 			return uint8_t(timers_[timer] >> 8);
 		} else {
@@ -237,20 +236,17 @@ public:
 	}
 
 	~ConcreteMachine() {
-		audio_queue_.flush();
+		audio_queue_.lock_flush();
 	}
 
 	// HACK. NOCOMMIT.
 //	int pulse_num_ = 0;
 
-	Cycles perform_bus_operation(
-		const CPU::MOS6502::BusOperation operation,
-		const uint16_t address,
-		uint8_t *const value
-	) {
+	template <CPU::MOS6502Mk2::BusOperation operation, typename AddressT>
+	Cycles perform(const AddressT address, CPU::MOS6502Mk2::data_t<operation> value) {
 		// Determine from the TED video subsystem the length of this clock cycle as perceived by the 6502,
 		// relative to the master clock.
-		const auto length = video_.cycle_length(operation == CPU::MOS6502::BusOperation::Ready);
+		const auto length = video_.cycle_length(operation == CPU::MOS6502Mk2::BusOperation::Ready);
 
 		// Update other subsystems.
 		advance_timers_and_tape(length);
@@ -266,7 +262,7 @@ public:
 			time_since_audio_update_ += length;
 		}
 
-		if(operation == CPU::MOS6502::BusOperation::Ready) {
+		if(operation == CPU::MOS6502Mk2::BusOperation::Ready) {
 			return length;
 		}
 
@@ -283,17 +279,17 @@ public:
 			//	b1 = serial clock out and cassette write;
 			//	b0 = serial data out.
 
-			if(is_read(operation)) {
+			if constexpr (is_read(operation)) {
 				if(!address) {
-					*value = io_direction_;
+					value = io_direction_;
 				} else {
-					*value = io_input();
+					value = io_input();
 				}
 			} else {
 				if(!address) {
-					io_direction_ = *value;
+					io_direction_ = value;
 				} else {
-					io_output_ = *value;
+					io_output_ = value;
 				}
 
 				const auto output = io_output_ | ~io_direction_;
@@ -311,7 +307,7 @@ public:
 //				superspeed_ &= (address != 0xe68b) && (address != 0xe68d);
 //			}
 
-			constexpr bool use_hle = true;
+			static constexpr bool use_hle = true;
 
 //			if(
 //				use_fast_tape_hack_ &&
@@ -324,43 +320,43 @@ public:
 //				);
 //			}
 
-			if(
-				use_fast_tape_hack_ &&
-				operation == CPU::MOS6502Esque::BusOperation::ReadOpcode &&
-				(
-					(use_hle && address == 0xe5fd) ||
-					address == 0xe68b ||
-					address == 0xe68d
-				)
-			) {
-//				++pulse_num_;
-				if(use_hle) {
-					read_dipole();
-				}
+			if constexpr (is_read(operation)) {
+				if(
+					use_fast_tape_hack_ &&
+					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
+					(
+						(use_hle && address == 0xe5fd) ||
+						address == 0xe68b ||
+						address == 0xe68d
+					)
+				) {
+	//				++pulse_num_;
+					if(use_hle) {
+						read_dipole();
+					}
 
-//				using Flag = CPU::MOS6502::Flag;
-//				using Register = CPU::MOS6502::Register;
-//				const auto flags = m6502_.value_of(Register::Flags);
-//				printf("to %lld: %c%c%c\n",
-//					tape_player_->serialiser()->offset(),
-//					flags & Flag::Sign ? 'n' : '-',
-//					flags & Flag::Overflow ? 'v' : '-',
-//					flags & Flag::Carry ? 'c' : '-'
-//				);
-				*value = 0x60;
-			} else {
-				if(is_read(operation)) {
-					*value = map_.read(address);
+	//				using Flag = CPU::MOS6502::Flag;
+	//				using Register = CPU::MOS6502::Register;
+	//				const auto flags = m6502_.value_of(Register::Flags);
+	//				printf("to %lld: %c%c%c\n",
+	//					tape_player_->serialiser()->offset(),
+	//					flags & Flag::Sign ? 'n' : '-',
+	//					flags & Flag::Overflow ? 'v' : '-',
+	//					flags & Flag::Carry ? 'c' : '-'
+	//				);
+					value = 0x60;
 				} else {
-					map_.write(address) = *value;
+					value = map_.read(address);
 				}
+			} else {
+				map_.write(address) = value;
 			}
 
 
 			// TODO: rdbyte and ldsync is probably sufficient?
 
 //			if(use_fast_tape_hack_ && operation == CPU::MOS6502Esque::BusOperation::ReadOpcode) {
-//				constexpr uint16_t ldsync = 0;
+//				static constexpr uint16_t ldsync = 0;
 //				switch(address) {
 //					default: break;
 //
@@ -382,24 +378,24 @@ public:
 //						map_.write(0xb7) = 0x03;
 //						map_.write(0xf8) = header->type_descriptor();
 ////						hold_tape_ = true;
-//						logger.info().append("Found header");
+//						Logger::info().append("Found header");
 //					} else {
 //						// no header found, so pretend this hack never interceded
 //						tape_player_->serialiser()->set_offset(tape_position);
 ////						hold_tape_ = false;
-//						logger.info().append("Didn't find header");
+//						Logger::info().append("Didn't find header");
 //					}
 //
 //					// Clear status and the verify flags.
 //					ram_[0x90] = 0;
 //					ram_[0x93] = 0;
 //
-//					*value = 0x0c;	// NOP abs.
+//					value = 0x0c;	// NOP abs.
 //				}
 //			}
 		} else if(address < 0xff00) {
 			// Miscellaneous hardware. All TODO.
-			if(is_read(operation)) {
+			if constexpr (is_read(operation)) {
 				switch(address & 0xfff0) {
 					case 0xfd10:
 						// 6529 parallel port, about which I know only what I've found in kernel ROM disassemblies.
@@ -407,7 +403,7 @@ public:
 						// If play button is not currently pressed and this read is immediately followed by
 						// an AND 4, press it. The kernel will deal with motor control subsequently.
 						if(!play_button_) {
-							const uint16_t pc = m6502_.value_of(CPU::MOS6502::Register::ProgramCounter);
+							const uint16_t pc = m6502_.registers().pc.full;
 							const uint8_t next[] = {
 								map_.read(pc+0),
 								map_.read(pc+1),
@@ -423,22 +419,23 @@ public:
 							}
 						}
 
-						*value = 0xff ^ (play_button_ ? 0x4 :0x0);
+						value = 0xff ^ (play_button_ ? 0x4 :0x0);
 					break;
 
 					case 0xfdd0:
 					case 0xfdf0:
-						*value = uint8_t(address >> 8);
+						value = uint8_t(address >> 8);
 					break;
 
 					default:
-						logger.info().append("TODO: read @ %04x", address);
+						value = 0xff;
+						Logger::info().append("TODO: read @ %04x", address);
 					break;
 				}
 			} else {
 				switch(address & 0xfff0) {
 					case 0xfd30:
-						keyboard_mask_ = *value;
+						keyboard_mask_ = value;
 					break;
 
 					case 0xfdd0: {
@@ -448,28 +445,28 @@ public:
 					} break;
 
 					default:
-						logger.info().append("TODO: write of %02x @ %04x", *value, address);
+						Logger::info().append("TODO: write of %02x @ %04x", value, address);
 					break;
 				}
 			}
 		} else {
-			const auto pc = m6502_.value_of(CPU::MOS6502::Register::ProgramCounter);
+			const auto pc = m6502_.registers().pc.full;
 			const bool is_from_rom =
 				(rom_is_paged_ && pc >= 0x8000) ||
 				(pc >= 0x400 && pc < 0x500) ||
 				(pc >= 0x700 && pc < 0x800);
 			bool is_hit = true;
 
-			if(is_read(operation)) {
+			if constexpr (is_read(operation)) {
 				switch(address) {
-					case 0xff00:	*value = timers_.read<0>();		break;
-					case 0xff01:	*value = timers_.read<1>();		break;
-					case 0xff02:	*value = timers_.read<2>();		break;
-					case 0xff03:	*value = timers_.read<3>();		break;
-					case 0xff04:	*value = timers_.read<4>();		break;
-					case 0xff05:	*value = timers_.read<5>();		break;
-					case 0xff06:	*value = video_.read<0xff06>();	break;
-					case 0xff07:	*value = video_.read<0xff07>();	break;
+					case 0xff00:	value = timers_.read<0>();		break;
+					case 0xff01:	value = timers_.read<1>();		break;
+					case 0xff02:	value = timers_.read<2>();		break;
+					case 0xff03:	value = timers_.read<3>();		break;
+					case 0xff04:	value = timers_.read<4>();		break;
+					case 0xff05:	value = timers_.read<5>();		break;
+					case 0xff06:	value = video_.read<0xff06>();	break;
+					case 0xff07:	value = video_.read<0xff07>();	break;
 					case 0xff08: {
 						const uint8_t keyboard_input =
 							~(
@@ -488,133 +485,134 @@ public:
 							((joystick_mask_ & 0x02) ? 0xff : (joystick(0).mask() | 0x40)) &
 							((joystick_mask_ & 0x04) ? 0xff : (joystick(1).mask() | 0x80));
 
-						*value = keyboard_input & joystick_mask;
+						value = keyboard_input & joystick_mask;
 					} break;
-					case 0xff09:	*value = interrupts_.status();	break;
+					case 0xff09:	value = interrupts_.status();	break;
 					case 0xff0a:
-						*value = interrupts_.mask() | video_.read<0xff0a>() | 0xa0;
+						value = interrupts_.mask() | video_.read<0xff0a>() | 0xa0;
 					break;
-					case 0xff0b:	*value = video_.read<0xff0b>();	break;
-					case 0xff0c:	*value = video_.read<0xff0c>();	break;
-					case 0xff0d:	*value = video_.read<0xff0d>();	break;
-					case 0xff0e:	*value = ff0e_;					break;
-					case 0xff0f:	*value = ff0f_;					break;
-					case 0xff10:	*value = ff10_ | 0xfc;			break;
-					case 0xff11:	*value = ff11_;					break;
-					case 0xff12:	*value = ff12_ | 0xc0;			break;
-					case 0xff13:	*value = ff13_ | (rom_is_paged_ ? 1 : 0);	break;
-					case 0xff14:	*value = video_.read<0xff14>();	break;
-					case 0xff15:	*value = video_.read<0xff15>();	break;
-					case 0xff16:	*value = video_.read<0xff16>();	break;
-					case 0xff17:	*value = video_.read<0xff17>();	break;
-					case 0xff18:	*value = video_.read<0xff18>();	break;
-					case 0xff19:	*value = video_.read<0xff19>();	break;
-					case 0xff1a:	*value = video_.read<0xff1a>();	break;
-					case 0xff1b:	*value = video_.read<0xff1b>();	break;
-					case 0xff1c:	*value = video_.read<0xff1c>();	break;
-					case 0xff1d:	*value = video_.read<0xff1d>();	break;
-					case 0xff1e:	*value = video_.read<0xff1e>();	break;
-					case 0xff1f:	*value = video_.read<0xff1f>();	break;
+					case 0xff0b:	value = video_.read<0xff0b>();	break;
+					case 0xff0c:	value = video_.read<0xff0c>();	break;
+					case 0xff0d:	value = video_.read<0xff0d>();	break;
+					case 0xff0e:	value = ff0e_;					break;
+					case 0xff0f:	value = ff0f_;					break;
+					case 0xff10:	value = ff10_ | 0xfc;			break;
+					case 0xff11:	value = ff11_;					break;
+					case 0xff12:	value = ff12_ | 0xc0;			break;
+					case 0xff13:	value = ff13_ | (rom_is_paged_ ? 1 : 0);	break;
+					case 0xff14:	value = video_.read<0xff14>();	break;
+					case 0xff15:	value = video_.read<0xff15>();	break;
+					case 0xff16:	value = video_.read<0xff16>();	break;
+					case 0xff17:	value = video_.read<0xff17>();	break;
+					case 0xff18:	value = video_.read<0xff18>();	break;
+					case 0xff19:	value = video_.read<0xff19>();	break;
+					case 0xff1a:	value = video_.read<0xff1a>();	break;
+					case 0xff1b:	value = video_.read<0xff1b>();	break;
+					case 0xff1c:	value = video_.read<0xff1c>();	break;
+					case 0xff1d:	value = video_.read<0xff1d>();	break;
+					case 0xff1e:	value = video_.read<0xff1e>();	break;
+					case 0xff1f:	value = video_.read<0xff1f>();	break;
 
-					case 0xff3e:	*value = 0;						break;
-					case 0xff3f:	*value = 0;						break;
+					case 0xff3e:	value = 0;						break;
+					case 0xff3f:	value = 0;						break;
 
 					default:
-						logger.info().append("TODO: TED read at %04x", address);
+						Logger::info().append("TODO: TED read at %04x", address);
+						value = 0xff;
 						is_hit = false;
 				}
 			} else {
 				switch(address) {
-					case 0xff00:	timers_.write<0>(*value);		break;
-					case 0xff01:	timers_.write<1>(*value);		break;
-					case 0xff02:	timers_.write<2>(*value);		break;
-					case 0xff03:	timers_.write<3>(*value);		break;
-					case 0xff04:	timers_.write<4>(*value);		break;
-					case 0xff05:	timers_.write<5>(*value);		break;
-					case 0xff06:	video_.write<0xff06>(*value);	break;
+					case 0xff00:	timers_.write<0>(value);		break;
+					case 0xff01:	timers_.write<1>(value);		break;
+					case 0xff02:	timers_.write<2>(value);		break;
+					case 0xff03:	timers_.write<3>(value);		break;
+					case 0xff04:	timers_.write<4>(value);		break;
+					case 0xff05:	timers_.write<5>(value);		break;
+					case 0xff06:	video_.write<0xff06>(value);	break;
 					case 0xff07:
-						video_.write<0xff07>(*value);
+						video_.write<0xff07>(value);
 						update_audio();
-						audio_.set_divider(*value);
+						audio_.set_divider(value);
 					break;
 					case 0xff08:
 						// Observation here: the kernel posts a 0 to this
 						// address upon completing each keyboard scan cycle,
 						// once per frame.
-						if(typer_ && !*value) {
+						if(typer_ && !value) {
 							if(!typer_->type_next_character()) {
 								clear_all_keys();
 								typer_.reset();
 							}
 						}
 
-						joystick_mask_ = *value;
+						joystick_mask_ = value;
 					break;
 					case 0xff09:
-						interrupts_.set_status(*value);
+						interrupts_.set_status(value);
 					break;
 					case 0xff0a:
-						interrupts_.set_mask(*value);
-						video_.write<0xff0a>(*value);
+						interrupts_.set_mask(value);
+						video_.write<0xff0a>(value);
 					break;
-					case 0xff0b:	video_.write<0xff0b>(*value);	break;
-					case 0xff0c:	video_.write<0xff0c>(*value);	break;
-					case 0xff0d:	video_.write<0xff0d>(*value);	break;
+					case 0xff0b:	video_.write<0xff0b>(value);	break;
+					case 0xff0c:	video_.write<0xff0c>(value);	break;
+					case 0xff0d:	video_.write<0xff0d>(value);	break;
 					case 0xff0e:
-						ff0e_ = *value;
+						ff0e_ = value;
 						update_audio();
-						audio_.set_frequency_low<0>(*value);
+						audio_.set_frequency_low<0>(value);
 					break;
 					case 0xff0f:
-						ff0f_ = *value;
+						ff0f_ = value;
 						update_audio();
-						audio_.set_frequency_low<1>(*value);
+						audio_.set_frequency_low<1>(value);
 					break;
 					case 0xff10:
-						ff10_ = *value;
+						ff10_ = value;
 						update_audio();
-						audio_.set_frequency_high<1>(*value);
+						audio_.set_frequency_high<1>(value);
 					break;
 					case 0xff11:
-						ff11_ = *value;
+						ff11_ = value;
 						update_audio();
-						audio_.set_control(*value);
+						audio_.set_control(value);
 					break;
 					case 0xff12:
-						ff12_ = *value & 0x3f;
-						video_.write<0xff12>(*value);
+						ff12_ = value & 0x3f;
+						video_.write<0xff12>(value);
 
-						if((*value & 4)) {
+						if((value & 4)) {
 							page_video_rom();
 						} else {
 							page_video_ram();
 						}
 
 						update_audio();
-						audio_.set_frequency_high<0>(*value);
+						audio_.set_frequency_high<0>(value);
 					break;
 					case 0xff13:
-						ff13_ = *value & 0xfe;
-						video_.write<0xff13>(*value);
+						ff13_ = value & 0xfe;
+						video_.write<0xff13>(value);
 					break;
-					case 0xff14:	video_.write<0xff14>(*value);	break;
-					case 0xff15:	video_.write<0xff15>(*value);	break;
-					case 0xff16:	video_.write<0xff16>(*value);	break;
-					case 0xff17:	video_.write<0xff17>(*value);	break;
-					case 0xff18:	video_.write<0xff18>(*value);	break;
-					case 0xff19:	video_.write<0xff19>(*value);	break;
-					case 0xff1a:	video_.write<0xff1a>(*value);	break;
-					case 0xff1b:	video_.write<0xff1b>(*value);	break;
-					case 0xff1c:	video_.write<0xff1c>(*value);	break;
-					case 0xff1d:	video_.write<0xff1d>(*value);	break;
-					case 0xff1e:	video_.write<0xff1e>(*value);	break;
-					case 0xff1f:	video_.write<0xff1f>(*value);	break;
+					case 0xff14:	video_.write<0xff14>(value);	break;
+					case 0xff15:	video_.write<0xff15>(value);	break;
+					case 0xff16:	video_.write<0xff16>(value);	break;
+					case 0xff17:	video_.write<0xff17>(value);	break;
+					case 0xff18:	video_.write<0xff18>(value);	break;
+					case 0xff19:	video_.write<0xff19>(value);	break;
+					case 0xff1a:	video_.write<0xff1a>(value);	break;
+					case 0xff1b:	video_.write<0xff1b>(value);	break;
+					case 0xff1c:	video_.write<0xff1c>(value);	break;
+					case 0xff1d:	video_.write<0xff1d>(value);	break;
+					case 0xff1e:	video_.write<0xff1e>(value);	break;
+					case 0xff1f:	video_.write<0xff1f>(value);	break;
 
 					case 0xff3e:	page_cpu_rom();					break;
 					case 0xff3f:	page_cpu_ram();					break;
 
 					default:
-						logger.info().append("TODO: TED write at %04x", address);
+						Logger::info().append("TODO: TED write at %04x", address);
 						is_hit = false;
 				}
 			}
@@ -627,8 +625,12 @@ public:
 	}
 
 private:
-	using Processor = CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, true>;
-	Processor m6502_;
+	struct M6502Traits {
+		static constexpr auto uses_ready_line = true;
+		static constexpr auto pause_precision = CPU::MOS6502Mk2::PausePrecision::BetweenInstructions;
+		using BusHandlerT = ConcreteMachine;
+	};
+	CPU::MOS6502Mk2::Processor<CPU::MOS6502Mk2::Model::M6502, M6502Traits> m6502_;
 
 	Outputs::Speaker::Speaker *get_speaker() override {
 		return &speaker_;
@@ -638,11 +640,11 @@ private:
 		if(c1541_) c1541_->set_activity_observer(observer);
 	}
 
-	void set_irq_line(bool active) override {
-		m6502_.set_irq_line(active);
+	void set_irq_line(const bool active) override {
+		m6502_.template set<CPU::MOS6502Mk2::Line::IRQ>(active);
 	}
-	void set_ready_line(bool active) override {
-		m6502_.set_ready_line(active);
+	void set_ready_line(const bool active) override {
+		m6502_.template set<CPU::MOS6502Mk2::Line::Ready>(active);
 	}
 
 	void page_video_rom() {
@@ -789,26 +791,19 @@ private:
 	// TODO: substantially simplify the below; at the minute it's a
 	// literal transcription of the original as a simple first step.
 	void read_dipole() {
-		using Register = CPU::MOS6502::Register;
-		using Flag = CPU::MOS6502::Flag;
+		using Flag = CPU::MOS6502Mk2::Flag;
 
 		//
 		// Get registers now and ensure they'll be written back at function exit.
 		//
-		CPU::MOS6502Esque::LazyFlags flags(uint8_t(m6502_.value_of(Register::Flags)));
-		uint8_t x, y, a;
-		uint8_t s = uint8_t(m6502_.value_of(Register::StackPointer));
+		auto registers = m6502_.registers();
 		struct ScopeGuard {
 			ScopeGuard(std::function<void(void)> at_exit) : at_exit_(at_exit) {}
 			~ScopeGuard() {	at_exit_();	}
 		private:
 			std::function<void(void)> at_exit_;
-		} registers([&] {
-			m6502_.set_value_of(Register::Flags, flags.get());
-			m6502_.set_value_of(Register::A, a);
-			m6502_.set_value_of(Register::X, x);
-			m6502_.set_value_of(Register::Y, y);
-			m6502_.set_value_of(Register::StackPointer, s);
+		} store_registers([&] {
+			m6502_.set_registers(registers);
 		});
 
 		//
@@ -823,38 +818,38 @@ private:
 		// 6502 pseudo-ops.
 		//
 		const auto ldabs = [&] (uint8_t &target, const uint16_t address) {
-			flags.set_nz(target = map_.read(address));
+			registers.flags.set_per<Flag::NegativeZero>(target = map_.read(address));
 		};
 		const auto ldimm = [&] (uint8_t &target, const uint8_t value) {
-			flags.set_nz(target = value);
+			registers.flags.set_per<Flag::NegativeZero>(target = value);
 		};
 		const auto pha = [&] () {
-			map_.write(0x100 + s) = a;
-			--s;
+			map_.write(0x100 + registers.s) = registers.a;
+			--registers.s;
 		};
 		const auto pla = [&] () {
-			++s;
-			a = map_.read(0x100 + s);
+			++registers.s;
+			registers.a = map_.read(0x100 + registers.s);
 		};
 		const auto bit = [&] (const uint8_t value) {
-			flags.zero_result = a & value;
-			flags.negative_result = value;
-			flags.overflow = value & CPU::MOS6502Esque::Flag::Overflow;
+			registers.flags.set_per<Flag::Zero>(registers.a & value);
+			registers.flags.set_per<Flag::Negative>(value);
+			registers.flags.set_per<Flag::Overflow>(value);
 		};
 		const auto cmp = [&] (const uint8_t value) {
-			const uint16_t temp16 = a - value;
-			flags.set_nz(uint8_t(temp16));
-			flags.carry = ((~temp16) >> 8)&1;
+			const uint16_t temp16 = registers.a - value;
+			registers.flags.set_per<Flag::NegativeZero>(uint8_t(temp16));
+			registers.flags.set_per<Flag::Carry>(((~temp16) >> 8)&1);
 		};
 		const auto andimm = [&] (const uint8_t value) {
-			a &= value;
-			flags.set_nz(a);
+			registers.a &= value;
+			registers.flags.set_per<Flag::NegativeZero>(registers.a);
 		};
 		const auto ne = [&]() -> bool {
-			return flags.zero_result;
+			return !registers.flags.get<Flag::Zero>();
 		};
 		const auto eq = [&]() -> bool {
-			return !flags.zero_result;
+			return registers.flags.get<Flag::Zero>();
 		};
 
 		//
@@ -863,7 +858,7 @@ private:
 		const auto dipok = [&] {
 			//       clc             	; everything's fine
 			//       rts
-			flags.carry = 0;
+			registers.flags.set_per<Flag::Carry>(0);
 		};
 		const auto rshort = [&] {
 			//       bit  tshrtd     	; got a short
@@ -879,7 +874,7 @@ private:
 		const auto rderr1 = [&] {
 			//       sec             	; i'm confused
 			//       rts
-			flags.carry = Flag::Carry;
+			registers.flags.set_per<Flag::Carry>(Flag::Carry);
 		};
 
 		//
@@ -892,8 +887,8 @@ private:
 		//rddipl
 		//       ldx  dsamp1     	; setup x,y with 1st sample point
 		//       ldy  dsamp1+1
-		ldabs(x, dsamp1);
-		ldabs(y, dsamp1 + 1);
+		ldabs(registers.x, dsamp1);
+		ldabs(registers.y, dsamp1 + 1);
 		advance_cycles(8);
 
 		//badeg1
@@ -902,9 +897,9 @@ private:
 			//       pha
 			//       lda  dsamp2
 			//       pha
-			ldabs(a, dsamp2 + 1);
+			ldabs(registers.a, dsamp2 + 1);
 			pha();
-			ldabs(a, dsamp2);
+			ldabs(registers.a, dsamp2);
 			pha();
 			advance_cycles(14);
 
@@ -912,7 +907,7 @@ private:
 			//rwtl   			; wait till rd line is high
 			//       bit  port	[= $0001]
 			//       beq  rwtl       	; !ls!
-			ldimm(a, 0x10);
+			ldimm(registers.a, 0x10);
 			advance_cycles(2);
 			do {
 				bit(io_input());
@@ -934,8 +929,8 @@ private:
 
 			//       stx  timr2l
 			//       sty  timr2h
-			timers_.write<2>(x);
-			timers_.write<3>(y);
+			timers_.write<2>(registers.x);
+			timers_.write<3>(registers.y);
 			advance_cycles(8);
 
 
@@ -946,9 +941,9 @@ private:
 			//       pla
 			//       sta  timr3h     	;go! ...tb
 			pla();
-			timers_.write<4>(a);
+			timers_.write<4>(registers.a);
 			pla();
-			timers_.write<5>(a);
+			timers_.write<5>(registers.a);
 			advance_cycles(14);
 
 
@@ -956,8 +951,8 @@ private:
 			//
 			//       lda  #$50       	; clr ta,tb
 			//       sta  tedirq
-			ldimm(a, 0x50);
-			interrupts_.set_status(a);
+			ldimm(registers.a, 0x50);
+			interrupts_.set_status(registers.a);
 			advance_cycles(6);
 
 
@@ -970,7 +965,7 @@ private:
 			//       and  #$10       	; a look at that edge again
 			//       bne  badeg1     	; woa! got a bad edge trigger  !ls!
 			do {
-				ldimm(a, io_input());
+				ldimm(registers.a, io_input());
 				cmp(io_input());
 				if(advance_cycles(9)) {
 					return;
@@ -993,7 +988,7 @@ private:
 
 		//       lda  #$10
 		//wata   			; wait for ta to timeout
-		ldimm(a, 0x10);
+		ldimm(registers.a, 0x10);
 		advance_cycles(3);
 		do {
 			//       bit  port       	; kuldge, kludge, kludge !!! <<><>>
@@ -1021,7 +1016,7 @@ private:
 		do {
 			//       lda  port
 			//       cmp  port
-			ldimm(a, io_input());
+			ldimm(registers.a, io_input());
 			cmp(io_input());
 
 			if(advance_cycles(9)) {
@@ -1049,7 +1044,7 @@ private:
 		//
 		//; wait for tb to timeout
 		//; now do the dipole sample #2
-		ldimm(a, 0x40);
+		ldimm(registers.a, 0x40);
 		advance_cycles(3);
 		do {
 			bit(interrupts_.status());
@@ -1064,7 +1059,7 @@ private:
 		//       cmp  port
 		//       bne  casdb3
 		do {
-			ldimm(a, io_input());
+			ldimm(registers.a, io_input());
 			cmp(io_input());
 			if(advance_cycles(9)) {
 				return;
@@ -1085,10 +1080,10 @@ private:
 		//       sta  timr2l
 		//       lda  zcell+1
 		//       sta  timr2h
-		ldabs(a, zcell);
-		timers_.write<2>(a);
-		ldabs(a, zcell + 1);
-		timers_.write<3>(y);
+		ldabs(registers.a, zcell);
+		timers_.write<2>(registers.a);
+		ldabs(registers.a, zcell + 1);
+		timers_.write<3>(registers.y);
 		advance_cycles(16);
 
 
@@ -1097,9 +1092,9 @@ private:
 		//       lda  #$10
 		//       sta  tedirq	; verify +180 half of word dipole
 		//       lda  #$10
-		ldimm(a, 0x10);
-		interrupts_.set_status(a);
-		ldimm(a, 0x10);
+		ldimm(registers.a, 0x10);
+		interrupts_.set_status(registers.a);
+		ldimm(registers.a, 0x10);
 		advance_cycles(8);
 
 		//wata2
@@ -1117,7 +1112,7 @@ private:
 		//       cmp  port
 		//       bne  casdb4
 		do {
-			ldimm(a, io_input());
+			ldimm(registers.a, io_input());
 			cmp(io_input());
 			if(advance_cycles(9)) {
 				return;
@@ -1165,7 +1160,7 @@ private:
 
 	// MARK: - Confidence.
 	Analyser::Dynamic::ConfidenceCounter confidence_;
-	float get_confidence() final { return confidence_.get_confidence(); }
+	float get_confidence() final { return confidence_.confidence(); }
 	std::string debug_type() final {
 		return "Plus4";
 	}
@@ -1174,7 +1169,7 @@ private:
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 		options->output = get_video_signal_configurable();
-		options->quickload = allow_fast_tape_hack_;
+		options->quick_load = allow_fast_tape_hack_;
 		return options;
 	}
 
@@ -1182,7 +1177,7 @@ private:
 		const auto options = dynamic_cast<Options *>(str.get());
 
 		set_video_signal_configurable(options->output);
-		allow_fast_tape_hack_ = options->quickload;
+		allow_fast_tape_hack_ = options->quick_load;
 		set_use_fast_tape();
 	}
 };

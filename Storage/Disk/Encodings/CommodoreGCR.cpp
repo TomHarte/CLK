@@ -12,7 +12,8 @@
 using namespace Storage;
 
 Time Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(const unsigned int time_zone) {
-	// the speed zone divides a 4Mhz clock by 13, 14, 15 or 16, with higher-numbered zones being faster (i.e. each bit taking less time)
+	// The speed zone divides a 4Mhz clock by 13, 14, 15 or 16, with higher-numbered zones being
+	// faster (i.e. each bit taking less time).
 	return Time(16 - time_zone, 4000000u);
 }
 

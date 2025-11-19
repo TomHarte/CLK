@@ -40,6 +40,7 @@ protected:
 		Communicates to the PLL the expected length of a bit as a fraction of a second.
 	*/
 	void set_expected_bit_length(Time bit_length);
+	Time expected_bit_length();
 
 	/*!
 		Advances the drive by @c number_of_cycles cycles.
@@ -85,9 +86,15 @@ protected:
 
 	/*!
 		Should be implemented by subclasses if they implement writing; communicates that
-		all bits supplied to write_bit have now been written.
+		all bits supplied to `write_bit` have now been written.
 	*/
 	virtual void process_write_completed() override;
+
+	/*!
+		Can be implemented by subclasses that perform writing; indicates that the final
+		bit previously provided to the drive has started its output.
+	*/
+	virtual void is_writing_final_bit() override;
 
 	/*!
 		Puts the controller and the drive returned by get_drive() into write mode, supplying to
@@ -99,7 +106,7 @@ protected:
 		@param clamp_to_index_hole If @c true then writing will automatically be truncated by
 		the index hole. Writing will continue over the index hole otherwise.
 	*/
-	void begin_writing(bool clamp_to_index_hole);
+	void begin_writing(bool clamp_to_index_hole, bool synthesise_initial_writing_events);
 
 	/*!
 		Puts the drive returned by get_drive() out of write mode, and marks the controller

@@ -62,7 +62,7 @@ public:
 	void *raw_pointer() final;
 
 private:
-	void did_run_machines(MultiTimedMachine *) final;
+	void did_run_machines(MultiTimedMachine &) final;
 
 	std::vector<std::unique_ptr<DynamicMachine>> machines_;
 	std::recursive_mutex machines_mutex_;

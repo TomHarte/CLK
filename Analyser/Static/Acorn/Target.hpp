@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Analyser/Static/StaticAnalyser.hpp"
+#include "Reflection/Enum.hpp"
 #include "Reflection/Struct.hpp"
 #include <string>
 
@@ -33,6 +34,32 @@ private:
 		DeclareField(has_dfs);
 		DeclareField(has_ap6_rom);
 		DeclareField(has_sideways_ram);
+	}
+};
+
+struct BBCMicroTarget: public ::Analyser::Static::Target, public Reflection::StructImpl<BBCMicroTarget> {
+	std::string loading_command;
+	bool should_shift_restart = false;
+
+	bool has_1770dfs = false;
+	bool has_adfs = false;
+	bool has_sideways_ram = true;
+	bool has_beebsid = false;
+
+	ReflectableEnum(TubeProcessor, None, WDC65C02, Z80);
+	TubeProcessor tube_processor = TubeProcessor::None;
+
+	BBCMicroTarget() : Analyser::Static::Target(Machine::BBCMicro) {}
+
+private:
+	friend Reflection::StructImpl<BBCMicroTarget>;
+	void declare_fields() {
+		DeclareField(has_1770dfs);
+		DeclareField(has_adfs);
+		DeclareField(has_sideways_ram);
+		DeclareField(has_beebsid);
+		AnnounceEnum(TubeProcessor);
+		DeclareField(tube_processor);
 	}
 };
 

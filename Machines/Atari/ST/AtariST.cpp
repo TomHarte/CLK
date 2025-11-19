@@ -36,7 +36,7 @@
 #include "Analyser/Static/AtariST/Target.hpp"
 
 namespace {
-Log::Logger<Log::Source::AtariST> logger;
+using Logger = Log::Logger<Log::Source::AtariST>;
 }
 
 namespace Atari {
@@ -93,7 +93,7 @@ public:
 			ram_.size() >> 1
 		);
 
-		constexpr ROM::Name rom_name = ROM::Name::AtariSTTOS100;
+		static constexpr ROM::Name rom_name = ROM::Name::AtariSTTOS100;
 		ROM::Request request(rom_name);
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
@@ -144,7 +144,7 @@ public:
 	}
 
 	~ConcreteMachine() {
-		audio_queue_.flush();
+		audio_queue_.lock_flush();
 	}
 
 	// MARK: CRTMachine::Machine
@@ -188,7 +188,7 @@ public:
 
 		// Check for assertion of reset.
 		if(cycle.operation & CPU::MC68000::Operation::Reset) {
-			logger.error().append("Unhandled Reset");
+			Logger::error().append("Unhandled Reset");
 		}
 
 		// A null cycle leaves nothing else to do.
@@ -561,7 +561,7 @@ private:
 	void acia6850_did_change_interrupt_status(Motorola::ACIA::ACIA *) final {
 		set_gpip_input();
 	}
-	void dma_controller_did_change_output(DMAController *) final {
+	void dma_controller_did_change_output(DMAController &) final {
 		set_gpip_input();
 
 		// Filty hack, here! Should: set the 68000's bus request line. But until

@@ -35,6 +35,12 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 	// MARK: - Atari ST properties
 	@IBOutlet var atariSTMemorySizeButton: NSPopUpButton!
 
+	// MARK: - BBC Micro properties
+	@IBOutlet var bbcDFSButton: NSButton!
+	@IBOutlet var bbcADFSButton: NSButton!
+	@IBOutlet var bbcSidewaysRAMButton: NSButton!
+	@IBOutlet var bbcSecondProcessorButton: NSPopUpButton!
+
 	// MARK: - CPC properties
 	@IBOutlet var cpcModelTypeButton: NSPopUpButton!
 
@@ -90,11 +96,8 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 	func establishStoredOptions() {
 		let standardUserDefaults = UserDefaults.standard
 
-		// Set up data soure.
-
-		// TEMPORARY: remove the Apple IIgs and PC compatible options.
-		// Neither is yet a fully-working machine.
 		#if !DEBUG
+		// Remove options that are not yet fully working, except in debug builds.
 		for hidden in ["appleiigs"] {
 			let tabIndex = machineSelector.indexOfTabViewItem(withIdentifier: hidden)
 			machineSelector.removeTabViewItem(machineSelector.tabViewItem(at: tabIndex))
@@ -129,6 +132,12 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 		// Atari ST settings
 		atariSTMemorySizeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.atariSTMemorySize"))
+
+		// BBC Micro settings
+		bbcDFSButton.state = standardUserDefaults.bool(forKey: "new.bbcDFS") ? .on : .off
+		bbcADFSButton.state = standardUserDefaults.bool(forKey: "new.bbcADFS") ? .on : .off
+		bbcSidewaysRAMButton.state = standardUserDefaults.bool(forKey: "new.bbcSidewaysRAM") ? .on : .off
+		bbcSecondProcessorButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.bbcSecondProcessor"))
 
 		// CPC settings
 		cpcModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.cpcModel"))
@@ -203,6 +212,12 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
 		// Atari ST settings
 		standardUserDefaults.set(atariSTMemorySizeButton.selectedTag(), forKey: "new.atariSTMemorySize")
+
+		// BBC Micro settings
+		standardUserDefaults.set(bbcDFSButton.state == .on, forKey: "new.bbcDFS")
+		standardUserDefaults.set(bbcADFSButton.state == .on, forKey: "new.bbcADFS")
+		standardUserDefaults.set(bbcSidewaysRAMButton.state == .on, forKey: "new.bbcSidewaysRAM")
+		standardUserDefaults.set(bbcSecondProcessorButton.selectedTag(), forKey: "new.bbcSecondProcessor")
 
 		// CPC settings
 		standardUserDefaults.set(cpcModelTypeButton.selectedTag(), forKey: "new.cpcModel")
@@ -332,6 +347,20 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 			case "atarist":
 				let memorySize = Kilobytes(atariSTMemorySizeButton.selectedTag())
 				return CSStaticAnalyser(atariSTMemorySize: memorySize)
+
+			case "bbcmicro":
+				var secondProcessor: CSMachineBBCMicroSecondProcessor = .processorNone
+				switch bbcSecondProcessorButton.selectedTag() {
+					case 6502:	secondProcessor = .processor65C02
+					case 80:	secondProcessor = .processorZ80
+					case 0:		fallthrough
+					default:	secondProcessor = .processorNone
+				}
+				return CSStaticAnalyser(
+					bbcMicroDFS: bbcDFSButton.state == .on,
+					adfs: bbcADFSButton.state == .on,
+					sidewaysRAM: bbcSidewaysRAMButton.state == .on,
+					secondProcessor: secondProcessor)
 
 			case "c16plus4":
 				let hasC1541 = plus4HasC1541Button.state == .on

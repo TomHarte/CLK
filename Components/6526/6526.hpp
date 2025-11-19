@@ -83,7 +83,7 @@ private:
 
 	bool serial_line_did_produce_bit(Serial::Line<true> *line, int bit) final;
 
-	Log::Logger<Log::Source::MOS6526> log;
+	using Logger = Log::Logger<Log::Source::MOS6526>;
 };
 
 }

@@ -60,11 +60,11 @@ private:
 	bool overrun_ = false;
 };
 
-constexpr uint8_t x(uint8_t v) { return v >> 6; }
-constexpr uint8_t y(uint8_t v) { return (v >> 3) & 7; }
-constexpr uint8_t q(uint8_t v) { return (v >> 3) & 1; }
-constexpr uint8_t p(uint8_t v) { return (v >> 4) & 3; }
-constexpr uint8_t z(uint8_t v) { return v & 7; }
+constexpr uint8_t x(const uint8_t v) { return v >> 6; }
+constexpr uint8_t y(const uint8_t v) { return (v >> 3) & 7; }
+constexpr uint8_t q(const uint8_t v) { return (v >> 3) & 1; }
+constexpr uint8_t p(const uint8_t v) { return (v >> 4) & 3; }
+constexpr uint8_t z(const uint8_t v) { return v & 7; }
 
 Instruction::Condition condition_table[] = {
 	Instruction::Condition::NZ,		Instruction::Condition::Z,
@@ -92,7 +92,7 @@ Instruction::Location RegisterTableEntry(
 	Instruction &instruction,
 	const bool needs_indirect_offset
 ) {
-	constexpr Instruction::Location register_table[] = {
+	static constexpr Instruction::Location register_table[] = {
 		Instruction::Location::B,	Instruction::Location::C,
 		Instruction::Location::D,	Instruction::Location::E,
 		Instruction::Location::H,	Instruction::Location::L,

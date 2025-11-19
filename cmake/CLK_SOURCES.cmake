@@ -58,8 +58,11 @@ set(CLK_SOURCES
 	Components/KonamiSCC/KonamiSCC.cpp
 	Components/OPx/OPLL.cpp
 	Components/RP5C01/RP5C01.cpp
+	Components/SAA5050/SAA5050.cpp
+	Components/SID/SID.cpp
 	Components/SN76489/SN76489.cpp
 	Components/Serial/Line.cpp
+	Components/uPD7002/uPD7002.cpp
 
 	Inputs/Keyboard.cpp
 
@@ -72,6 +75,7 @@ set(CLK_SOURCES
 	InstructionSets/x86/Instruction.cpp
 
 	Machines/Acorn/Archimedes/Archimedes.cpp
+	Machines/Acorn/BBCMicro/BBCMicro.cpp
 	Machines/Acorn/Electron/Electron.cpp
 	Machines/Acorn/Electron/Keyboard.cpp
 	Machines/Acorn/Electron/Plus3.cpp
@@ -195,6 +199,7 @@ set(CLK_SOURCES
 	Storage/Disk/DiskImage/Formats/HFE.cpp
 	Storage/Disk/DiskImage/Formats/IMD.cpp
 	Storage/Disk/DiskImage/Formats/IPF.cpp
+	Storage/Disk/DiskImage/Formats/JFD.cpp
 	Storage/Disk/DiskImage/Formats/MFMSectorDump.cpp
 	Storage/Disk/DiskImage/Formats/MSA.cpp
 	Storage/Disk/DiskImage/Formats/MacintoshIMG.cpp
@@ -225,6 +230,7 @@ set(CLK_SOURCES
 	Storage/MassStorage/Formats/DSK.cpp
 	Storage/MassStorage/Formats/HDV.cpp
 	Storage/MassStorage/Formats/HFV.cpp
+	Storage/MassStorage/Formats/VHD.cpp
 	Storage/MassStorage/MassStorageDevice.cpp
 	Storage/MassStorage/SCSI/DirectAccessDevice.cpp
 	Storage/MassStorage/SCSI/SCSI.cpp

@@ -12,7 +12,7 @@
 
 // TODO: if this is a PCMTrack with only one segment and that segment's bit rate is within tolerance,
 // just return a copy of that segment.
-Storage::Disk::PCMSegment Storage::Disk::track_serialisation(const Track &track, Time length_of_a_bit) {
+Storage::Disk::PCMSegment Storage::Disk::track_serialisation(const Track &track, const Time length_of_a_bit) {
 	unsigned int history_size = 16;
 	std::unique_ptr<Track> track_copy(track.clone());
 

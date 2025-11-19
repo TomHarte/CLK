@@ -37,19 +37,20 @@
 namespace Electron {
 
 template <bool has_scsi_bus> class ConcreteMachine:
-	public Machine,
-	public MachineTypes::TimedMachine,
-	public MachineTypes::ScanProducer,
-	public MachineTypes::AudioProducer,
-	public MachineTypes::MediaTarget,
-	public MachineTypes::MappedKeyboardMachine,
+	public Activity::Source,
+	public ClockingHint::Observer,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
-	public Tape::Delegate,
-	public Utility::TypeRecipient<CharacterMapper>,
-	public Activity::Source,
+	public Machine,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MediaChangeObserver,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::TimedMachine,
 	public SCSI::Bus::Observer,
-	public ClockingHint::Observer {
+	public Tape::Delegate,
+	public Utility::TypeRecipient<CharacterMapper> {
 public:
 	ConcreteMachine(const Analyser::Static::Acorn::ElectronTarget &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			m6502_(*this),
@@ -136,13 +137,13 @@ public:
 		}
 
 		if(has_scsi_bus) {
-			scsi_bus_.add_observer(this);
+			scsi_bus_.add_observer(*this);
 			scsi_bus_.set_clocking_hint_observer(this);
 		}
 	}
 
 	~ConcreteMachine() {
-		audio_queue_.flush();
+		audio_queue_.lock_flush();
 	}
 
 	void set_key_state(uint16_t key, bool isPressed) final {
@@ -212,20 +213,26 @@ public:
 		return !media.empty();
 	}
 
-	forceinline Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
-		Cycles cycles{1};
+	ChangeEffect effect_for_file_did_change(const std::string &file_name) const override {
+		const auto disk = plus3_->disk(file_name);
+		return disk && disk->has_written() ? ChangeEffect::None : ChangeEffect::RestartMachine;
+	}
 
+	std::pair<Cycles, uint8_t> run_for_access(const uint16_t address) {
 		if(address < 0x8000) {
-			cycles = video_.ram_delay();
-		} else {
-			if((address & 0xff00) == 0xfe00) {
-				cycles = video_.io_delay();
-			}
+			return video_.run_until_ram_slot();
 		}
 
-		if(const auto video_interrupts = video_.run_for(cycles); video_interrupts) {
-			signal_interrupt(video_interrupts);
+		if((address & 0xff00) == 0xfe00) {
+			return video_.run_until_io_slot();
 		}
+
+		return std::make_pair(Cycles(1), video_.run_for(Cycles(1)));
+	}
+
+	forceinline Cycles perform_bus_operation(const CPU::MOS6502::BusOperation operation, const uint16_t address, uint8_t *const value) {
+		const auto [cycles, video_interrupts] = run_for_access(address);
+		signal_interrupt(video_interrupts);
 
 		cycles_since_audio_update_ += cycles;
 		if(cycles_since_audio_update_ > Cycles(16384)) update_audio();
@@ -234,7 +241,7 @@ public:
 		if(typer_) typer_->run_for(cycles);
 		if(plus3_) plus3_->run_for(cycles * 4);
 		if(shift_restart_counter_) {
-			shift_restart_counter_ -= cycles.as<int>();
+			shift_restart_counter_ -= cycles.template as<int>();
 			if(shift_restart_counter_ <= 0) {
 				shift_restart_counter_ = 0;
 				m6502_.set_power_on(true);
@@ -364,7 +371,7 @@ public:
 							scsi_data_ = *value;
 							push_scsi_output();
 						} else {
-							*value = SCSI::data_lines(scsi_bus_.get_state());
+							*value = SCSI::data_lines(scsi_bus_.state());
 							push_scsi_output();
 						}
 					}
@@ -388,7 +395,7 @@ public:
 						//	b2:	0
 						//	b1:	SCSI BSY
 						//	b0: SCSI MSG
-						const auto state = scsi_bus_.get_state();
+						const auto state = scsi_bus_.state();
 						*value =
 							(state & SCSI::Line::Control ? 0x80 : 0x00) |
 							(state & SCSI::Line::Input ? 0x40 : 0x00) |
@@ -399,7 +406,7 @@ public:
 
 						// Empirical guess: this is also the trigger to affect busy/request/acknowledge
 						// signalling. Maybe?
-						if(scsi_select_ && scsi_bus_.get_state() & SCSI::Line::Busy) {
+						if(scsi_select_ && scsi_bus_.state() & SCSI::Line::Busy) {
 							scsi_select_ = false;
 							push_scsi_output();
 						}
@@ -532,7 +539,7 @@ public:
 		m6502_.run_for(cycles);
 	}
 
-	void scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double) final {
+	void scsi_bus_did_change(SCSI::Bus &, const SCSI::BusState new_state, double) final {
 		// Release acknowledge when request is released.
 		if(scsi_acknowledge_ && !(new_state & SCSI::Line::Request)) {
 			scsi_acknowledge_ = false;
@@ -554,7 +561,7 @@ public:
 		scsi_is_clocked_ = preference != ClockingHint::Preference::None;
 	}
 
-	void tape_did_change_interrupt_status(Tape *) final {
+	void tape_did_change_interrupt_status(Tape &) final {
 		interrupt_status_ = (interrupt_status_ & ~(Interrupt::TransmitDataEmpty | Interrupt::ReceiveDataFull | Interrupt::HighToneDetect)) | tape_.get_interrupt_status();
 		evaluate_interrupts();
 	}
@@ -592,7 +599,7 @@ public:
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 		options->output = get_video_signal_configurable();
-		options->quickload = allow_fast_tape_hack_;
+		options->quick_load = allow_fast_tape_hack_;
 		return options;
 	}
 
@@ -600,7 +607,7 @@ public:
 		const auto options = dynamic_cast<Options *>(str.get());
 
 		set_video_signal_configurable(options->output);
-		allow_fast_tape_hack_ = options->quickload;
+		allow_fast_tape_hack_ = options->quick_load;
 		set_use_fast_tape_hack();
 	}
 
@@ -640,13 +647,9 @@ private:
 		Sets the contents of @c slot to @c data. If @c is_writeable is @c true then writing to the slot
 		is enabled: it acts as if it were sideways RAM. Otherwise the slot is modelled as containing ROM.
 	*/
-	void set_rom(ROM slot, const std::vector<uint8_t> &data, bool is_writeable) {
+	void set_rom(const ROM slot, const std::vector<uint8_t> &data, const bool is_writeable) {
 		uint8_t *target = nullptr;
 		switch(slot) {
-			case ROM::DFS:		dfs_ = data;			return;
-			case ROM::ADFS1:	adfs1_ = data;			return;
-			case ROM::ADFS2:	adfs2_ = data;			return;
-
 			case ROM::OS:		target = os_;			break;
 			default:
 				target = roms_[int(slot)];
@@ -717,7 +720,6 @@ private:
 	bool rom_inserted_[16] = {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};
 	bool rom_write_masks_[16] = {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};
 	uint8_t os_[16384], ram_[32768];
-	std::vector<uint8_t> dfs_, adfs1_, adfs2_;
 
 	// Paging
 	int active_rom_ = int(ROM::Slot0);
@@ -760,7 +762,7 @@ private:
 	bool scsi_interrupt_mask_ = false;
 	void push_scsi_output() {
 		scsi_bus_.set_device_output(scsi_device_,
-			(scsi_bus_.get_state()&SCSI::Line::Input ? 0 : scsi_data_) |
+			(scsi_bus_.state()&SCSI::Line::Input ? 0 : scsi_data_) |
 			(scsi_select_ ? SCSI::Line::SelectTarget : 0) |
 			(scsi_acknowledge_ ? SCSI::Line::Acknowledge : 0)
 		);
@@ -776,7 +778,7 @@ private:
 	bool speaker_is_enabled_ = false;
 
 	// MARK: - Caps Lock status and the activity observer.
-	const std::string caps_led = "CAPS";
+	static inline const std::string caps_led = "CAPS";
 	bool caps_led_state_ = false;
 	Activity::Observer *activity_observer_ = nullptr;
 };

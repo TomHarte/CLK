@@ -23,7 +23,7 @@ namespace {
 constexpr unsigned int CRTCyclesPerLine = 1365;
 constexpr unsigned int CRTCyclesDivider = 4;
 
-Log::Logger<Log::Source::TMS9918> logger;
+using Logger = Log::Logger<Log::Source::TMS9918>;
 
 }
 
@@ -74,9 +74,9 @@ TMS9918<personality>::TMS9918() {
 	this->crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 
 	if constexpr (is_yamaha_vdp(personality)) {
-		this->crt_.set_visible_area(Outputs::Display::Rect(0.07f, 0.065f, 0.875f, 0.875f));
+		this->crt_.set_fixed_framing(Outputs::Display::Rect(0.07f, 0.065f, 0.875f, 0.875f));
 	} else {
-		this->crt_.set_visible_area(Outputs::Display::Rect(0.07f, 0.0375f, 0.875f, 0.875f));
+		this->crt_.set_fixed_framing(Outputs::Display::Rect(0.07f, 0.0375f, 0.875f, 0.875f));
 	}
 
 	// The TMS remains in-phase with the NTSC colour clock; this is an empirical measurement
@@ -226,7 +226,7 @@ void TMS9918<personality>::run_for(const HalfCycles cycles) {
 				// TODO: where did this magic constant come from? https://www.smspower.org/forums/17970-RoadRashHow#111000 mentioned in passing
 				// that "the vertical scroll register is latched at the start of the active display" and this is two clocks before that, so it's
 				// not uncompelling. I can just no longer find my source.
-				constexpr auto latch_time = LineLayout<personality>::EndOfLeftBorder - 2;
+				static constexpr auto latch_time = LineLayout<personality>::EndOfLeftBorder - 2;
 				static_assert(latch_time > 0);
 				if(this->fetch_pointer_.column < latch_time && end_column >= latch_time) {
 					if(!this->fetch_pointer_.row) {
@@ -683,13 +683,7 @@ void Base<personality>::output_border(int cycles, [[maybe_unused]] const uint32_
 		return;
 	}
 
-	// If the border colour is 0, that can be communicated
-	// more efficiently as an explicit blank.
-	if(border_colour) {
-		crt_.output_level<uint32_t>(cycles, border_colour);
-	} else {
-		crt_.output_blank(cycles);
-	}
+	crt_.output_level<uint32_t>(cycles, border_colour);
 }
 
 // MARK: - External interface.
@@ -843,7 +837,7 @@ void Base<personality>::commit_register(int reg, const uint8_t value) {
 				Storage<personality>::solid_background_ = value & 0x20;
 				Storage<personality>::sprites_enabled_ = !(value & 0x02);
 				if(value & 0x01) {
-					logger.error().append("TODO: Yamaha greyscale");
+					Logger::error().append("TODO: Yamaha greyscale");
 				}
 				// b7: "1 = input on colour bus, enable mouse; 1 = output on colour bus, disable mouse" [documentation clearly in error]
 				// b6: 1 = enable light pen
@@ -860,7 +854,7 @@ void Base<personality>::commit_register(int reg, const uint8_t value) {
 				// TODO: on the Yamaha, at least, tie this interrupt overtly to vertical state.
 
 				if(value & 0x08) {
-					logger.error().append("TODO: Yamaha interlace mode");
+					Logger::error().append("TODO: Yamaha interlace mode");
 				}
 
 				// b7: 1 = 212 lines of pixels; 0 = 192
@@ -924,7 +918,7 @@ void Base<personality>::commit_register(int reg, const uint8_t value) {
 			case 20:
 			case 21:
 			case 22:
-//				logger.error().append("TODO: Yamaha colour burst selection; %02x", value);
+//				Logger::error().append("TODO: Yamaha colour burst selection; %02x", value);
 				// Documentation is "fill with 0s for no colour burst; magic pattern for colour burst"
 			break;
 
@@ -1010,7 +1004,7 @@ void Base<personality>::commit_register(int reg, const uint8_t value) {
 				// Kill the command immediately if it's done in zero operations
 				// (e.g. a line of length 0).
 				if(!Storage<personality>::command_ && (value >> 4)) {
-					logger.error().append("TODO: Yamaha command %02x", value);
+					Logger::error().append("TODO: Yamaha command %02x", value);
 				}
 
 				// Seed timing information if a command was found.
@@ -1211,7 +1205,7 @@ uint8_t TMS9918<personality>::read(const int address) {
 template <Personality personality>
 int Base<personality>::fetch_line() const {
 	// This is the proper Master System value; TODO: what's correct for Yamaha, etc?
-	constexpr int row_change_position = 31;
+	static constexpr int row_change_position = 31;
 
 	return
 		(this->fetch_pointer_.column < row_change_position)

@@ -101,10 +101,11 @@ bool Sprite::advance_dma(int offset, int y, bool is_first_line) {
 }
 
 template <int sprite> void TwoSpriteShifter::load(
-	uint16_t lsb,
-	uint16_t msb,
-	int delay) {
-	constexpr int sprite_shift = sprite << 1;
+	const uint16_t lsb,
+	const uint16_t msb,
+	const int delay
+) {
+	static constexpr int sprite_shift = sprite << 1;
 	const int delay_shift = delay << 2;
 
 	// Clear out any current sprite pixels; this is a reload.

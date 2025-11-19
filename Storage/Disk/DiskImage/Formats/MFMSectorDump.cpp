@@ -31,7 +31,7 @@ std::unique_ptr<Track> MFMSectorDump::track_at_position(Track::Address address) 
 
 	{
 		std::lock_guard lock_guard(file_.file_access_mutex());
-		file_.seek(file_offset, SEEK_SET);
+		file_.seek(file_offset, Whence::SET);
 		sectors = file_.read(size);
 	}
 
@@ -64,7 +64,7 @@ void MFMSectorDump::set_tracks(const std::map<Track::Address, std::unique_ptr<Tr
 
 		std::lock_guard lock_guard(file_.file_access_mutex());
 		file_.ensure_is_at_least_length(file_offset);
-		file_.seek(file_offset, SEEK_SET);
+		file_.seek(file_offset, Whence::SET);
 		file_.write(parsed_track);
 	}
 	file_.flush();

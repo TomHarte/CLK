@@ -19,7 +19,7 @@ using namespace Storage::Disk;
 G64::G64(const std::string &file_name) :
 		file_(file_name) {
 	// read and check the file signature
-	if(!file_.check_signature("GCR-1541")) throw Error::InvalidFormat;
+	if(!file_.check_signature<SignatureType::String>("GCR-1541")) throw Error::InvalidFormat;
 
 	// check the version number
 	int version = file_.get();
@@ -38,7 +38,7 @@ HeadPosition G64::maximum_head_position() const {
 
 std::unique_ptr<Track> G64::track_at_position(const Track::Address address) const {
 	// seek to this track's entry in the track table
-	file_.seek(long((address.position.as_half() * 4) + 0xc), SEEK_SET);
+	file_.seek(long((address.position.as_half() * 4) + 0xc), Whence::SET);
 
 	// read the track offset
 	const auto track_offset = file_.get_le<uint32_t>();
@@ -47,7 +47,7 @@ std::unique_ptr<Track> G64::track_at_position(const Track::Address address) cons
 	if(!track_offset) return nullptr;
 
 	// seek to the track start
-	file_.seek(long(track_offset), SEEK_SET);
+	file_.seek(long(track_offset), Whence::SET);
 
 	// get the real track length
 	const auto track_length = file_.get_le<uint16_t>();
@@ -56,7 +56,7 @@ std::unique_ptr<Track> G64::track_at_position(const Track::Address address) cons
 	const std::vector<uint8_t> track_contents = file_.read(track_length);
 
 	// seek to this track's entry in the speed zone table
-	file_.seek(long((address.position.as_half() * 4) + 0x15c), SEEK_SET);
+	file_.seek(long((address.position.as_half() * 4) + 0x15c), Whence::SET);
 
 	// read the speed zone offsrt
 	const auto speed_zone_offset = file_.get_le<uint32_t>();
@@ -64,7 +64,7 @@ std::unique_ptr<Track> G64::track_at_position(const Track::Address address) cons
 	// if the speed zone is not constant, create a track based on the whole table; otherwise create one that's constant
 	if(speed_zone_offset > 3) {
 		// seek to start of speed zone
-		file_.seek(long(speed_zone_offset), SEEK_SET);
+		file_.seek(long(speed_zone_offset), Whence::SET);
 
 		// read the speed zone bytes
 		const uint16_t speed_zone_length = (track_length + 3) >> 2;

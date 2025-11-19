@@ -412,7 +412,7 @@ template <typename Type> bool get(const Struct &target, const std::string &name,
 
 	// If the type is a double and stored type is a float, cast upward.
 	if constexpr (std::is_floating_point<Type>::value) {
-		constexpr size_t size = sizeof(Type);
+		static constexpr size_t size = sizeof(Type);
 		const bool target_is_floating_point = TypeInfo::is_floating_point(target_type);
 		const size_t target_size = TypeInfo::size(target_type);
 

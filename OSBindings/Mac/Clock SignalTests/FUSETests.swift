@@ -117,7 +117,7 @@ fileprivate struct RegisterState {
 		interruptMode = Int(machine.value(for: .IM))
 
 		isHalted = machine.isHalted
-		tStates = 0			// TODO	 (?)
+		tStates = 0			// TODO (?)
 		memptr = machine.value(for: .memPtr)
 	}
 }

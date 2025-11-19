@@ -28,7 +28,7 @@ template <typename Performer> struct TaskQueueStorage {
 
 protected:
 	void update() {
-		auto time_now = Time::nanos_now();
+		const auto time_now = Time::nanos_now();
 		performer.perform(time_now - last_fired_);
 		last_fired_ = time_now;
 	}
@@ -64,12 +64,17 @@ template <> struct TaskQueueStorage<void> {
 	action occupies the asynchronous thread for long enough. So it is not true that @c perform will be
 	called once per action.
 */
-template <bool perform_automatically, bool start_immediately = true, typename Performer = void> class AsyncTaskQueue: public TaskQueueStorage<Performer> {
+template <
+	bool perform_automatically,
+	bool start_immediately = true,
+	typename Performer = void
+>
+class AsyncTaskQueue: public TaskQueueStorage<Performer> {
 public:
 	template <typename... Args> AsyncTaskQueue(Args&&... args) :
 		TaskQueueStorage<Performer>(std::forward<Args>(args)...) {
 		if constexpr (start_immediately) {
-			start();
+			start_impl();
 		}
 	}
 
@@ -84,7 +89,7 @@ public:
 	/// on the same thread as the performer, after the performer has been updated
 	/// to 'now'.
 	void enqueue(const std::function<void(void)> &post_action) {
-		std::lock_guard guard(condition_mutex_);
+		const std::lock_guard guard(condition_mutex_);
 		actions_.push_back(post_action);
 
 		if constexpr (perform_automatically) {
@@ -92,8 +97,15 @@ public:
 		}
 	}
 
+	/// @returns The number of items currently enqueued.
+	size_t size() {
+		const std::lock_guard guard(condition_mutex_);
+		return actions_.size();
+	}
+
 	/// Causes any enqueued actions that are not yet scheduled to be scheduled.
 	void perform() {
+		static_assert(!perform_automatically);
 		if(actions_.empty()) {
 			return;
 		}
@@ -106,7 +118,7 @@ public:
 	/// The queue cannot be restarted; this is a destructive action.
 	void stop() {
 		if(thread_.joinable()) {
-			should_quit_ = true;
+			should_quit_.store(true, std::memory_order_relaxed);
 			enqueue([] {});
 			if constexpr (!perform_automatically) {
 				perform();
@@ -119,36 +131,13 @@ public:
 	///
 	/// This is not guaranteed safely to restart a stopped queue.
 	void start() {
-		thread_ = std::thread{
-			[this] {
-				ActionVector actions;
-
-				// Continue until told to quit.
-				while(!should_quit_) {
-					// Wait for new actions to be signalled, and grab them.
-					std::unique_lock lock(condition_mutex_);
-					while(actions_.empty() && !should_quit_) {
-						condition_.wait(lock);
-					}
-					std::swap(actions, actions_);
-					lock.unlock();
-
-					// Update to now (which is possibly a no-op).
-					TaskQueueStorage<Performer>::update();
-
-					// Perform the actions and destroy them.
-					for(const auto &action: actions) {
-						action();
-					}
-					actions.clear();
-				}
-			}
-		};
+		static_assert(!start_immediately);
+		start_impl();
 	}
 
 	/// Schedules any remaining unscheduled work, then blocks synchronously
 	/// until all scheduled work has been performed.
-	void flush() {
+	void lock_flush() {
 		std::mutex flush_mutex;
 		std::condition_variable flush_condition;
 		bool has_run = false;
@@ -167,11 +156,56 @@ public:
 		flush_condition.wait(lock, [&has_run] { return has_run; });
 	}
 
+	/// Schedules any remaining unscheduled work, then spins
+	/// until all scheduled work has been performed, placing a memory barrier
+	/// in between.
+	void spin_flush() {
+		std::atomic<bool> has_run = false;
+
+		enqueue([&has_run] () {
+			has_run.store(true, std::memory_order::release);
+		});
+
+		if constexpr (!perform_automatically) {
+			perform();
+		}
+
+		while(!has_run.load(std::memory_order::acquire));
+	}
+
 	~AsyncTaskQueue() {
 		stop();
 	}
 
 private:
+	void start_impl() {
+		thread_ = std::thread{
+			[this] {
+				ActionVector actions;
+
+				// Continue until told to quit.
+				while(!should_quit_.load(std::memory_order_relaxed)) {
+					// Wait for new actions to be signalled, and grab them.
+					std::unique_lock lock(condition_mutex_);
+					condition_.wait(lock, [&] {
+						return !actions_.empty() || should_quit_.load(std::memory_order_relaxed);
+					});
+					std::swap(actions, actions_);
+					lock.unlock();
+
+					// Update to now (which is possibly a no-op).
+					TaskQueueStorage<Performer>::update();
+
+					// Perform the actions and destroy them.
+					for(const auto &action: actions) {
+						action();
+					}
+					actions.clear();
+				}
+			}
+		};
+	}
+
 	// The list of actions waiting be performed. These will be elided,
 	// increasing their latency, if the emulation thread falls behind.
 	using ActionVector = std::vector<std::function<void(void)>>;

@@ -60,7 +60,7 @@ const auto ascii_signature = signature<0xea>;
 }
 
 CAS::CAS(const std::string &file_name) {
-	Storage::FileHolder file(file_name, FileHolder::FileMode::Read);
+	Storage::FileHolder file(file_name, FileMode::Read);
 
 	enum class Mode {
 		Seeking,
@@ -80,7 +80,7 @@ CAS::CAS(const std::string &file_name) {
 			// Check for other 1fs in this stream, and repeat from there if any.
 			for(size_t c = 1; c < 8; ++c) {
 				if(signature[c] == 0x1f) {
-					file.seek(header_position + long(c), SEEK_SET);
+					file.seek(header_position + long(c), Whence::SET);
 					break;
 				} else {
 					// Attach any unexpected bytes to the back of the most recent chunk.
@@ -105,7 +105,7 @@ CAS::CAS(const std::string &file_name) {
 		switch(parsing_mode) {
 			case Mode::Seeking: {
 				if(is_ascii || is_binary || is_basic) {
-					file.seek(header_position + 8, SEEK_SET);
+					file.seek(header_position + 8, Whence::SET);
 					chunks_.emplace_back(!chunks_.empty(), true, file.read(10 + 6));
 
 					if(is_ascii)	parsing_mode = Mode::ASCII;
@@ -113,10 +113,10 @@ CAS::CAS(const std::string &file_name) {
 					if(is_basic)	parsing_mode = Mode::BASIC;
 				} else {
 					// Raw data appears now. Grab its length and keep going.
-					file.seek(header_position + 8, SEEK_SET);
+					file.seek(header_position + 8, Whence::SET);
 					const auto length = file.get_le<uint16_t>();
 
-					file.seek(header_position + 8, SEEK_SET);
+					file.seek(header_position + 8, Whence::SET);
 					chunks_.emplace_back(false, false, file.read(size_t(length) + 2));
 				}
 			} break;
@@ -124,10 +124,10 @@ CAS::CAS(const std::string &file_name) {
 			case Mode::ASCII:
 				// Keep reading ASCII in 256-byte segments until a non-ASCII chunk arrives.
 				if(is_binary || is_basic || is_ascii) {
-					file.seek(header_position, SEEK_SET);
+					file.seek(header_position, Whence::SET);
 					parsing_mode = Mode::Seeking;
 				} else {
-					file.seek(header_position + 8, SEEK_SET);
+					file.seek(header_position + 8, Whence::SET);
 					chunks_.emplace_back(false, false, file.read(256));
 				}
 			break;
@@ -135,11 +135,11 @@ CAS::CAS(const std::string &file_name) {
 			case Mode::Binary: {
 				// Get the start and end addresses in order to figure out how much data
 				// is here.
-				file.seek(header_position + 8, SEEK_SET);
+				file.seek(header_position + 8, Whence::SET);
 				const auto start_address = file.get_le<uint16_t>();
 				const auto end_address = file.get_le<uint16_t>();
 
-				file.seek(header_position + 8, SEEK_SET);
+				file.seek(header_position + 8, Whence::SET);
 				const auto length = end_address - start_address + 1;
 				chunks_.emplace_back(false, false, file.read(size_t(length) + 6));
 
@@ -149,18 +149,18 @@ CAS::CAS(const std::string &file_name) {
 			case Mode::BASIC: {
 				// Horror of horrors, this will mean actually following the BASIC
 				// linked list of line contents.
-				file.seek(header_position + 8, SEEK_SET);
+				file.seek(header_position + 8, Whence::SET);
 				uint16_t address = 0x8001;	// the BASIC start address.
 				while(true) {
 					const auto next_line_address = file.get_le<uint16_t>();
 					if(!next_line_address || file.eof()) break;
-					file.seek(next_line_address - address - 2, SEEK_CUR);
+					file.seek(next_line_address - address - 2, Whence::CUR);
 					address = next_line_address;
 				}
 				const auto length = (file.tell() - 1) - (header_position + 8);
 
 				// Create the chunk and return to regular parsing.
-				file.seek(header_position + 8, SEEK_SET);
+				file.seek(header_position + 8, Whence::SET);
 				chunks_.emplace_back(false, false, file.read(size_t(length)));
 				parsing_mode = Mode::Seeking;
 			} break;

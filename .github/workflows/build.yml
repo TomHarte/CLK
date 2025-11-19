@@ -17,7 +17,9 @@ jobs:
         xcode-version: latest-stable
     - name: Make
       working-directory: OSBindings/Mac
-      run: xcodebuild CODE_SIGN_IDENTITY=-
+      run: |
+        xcodebuild -downloadComponent MetalToolchain
+        xcodebuild CODE_SIGN_IDENTITY=-
 
   build-sdl-cmake:
     name: SDL UI / cmake / ${{ matrix.os }}
@@ -37,6 +39,7 @@ jobs:
             sudo apt-get --fix-missing install cmake gcc-10 libsdl2-dev
             ;;
           macOS)
+            brew uninstall cmake
             brew install cmake sdl2
             ;;
         esac

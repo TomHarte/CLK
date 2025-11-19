@@ -10,6 +10,7 @@
 
 #include "Resolver.hpp"
 #include "Stack.hpp"
+#include "InstructionSets/x86/TaskStateSegment.hpp"
 #include "InstructionSets/x86/AccessType.hpp"
 
 #include <type_traits>
@@ -105,59 +106,73 @@ void jump_absolute(
 	context.flow_controller.template jump<uint16_t>(target);
 }
 
-template <typename AddressT, typename InstructionT, typename ContextT>
+template <typename AddressT, typename ContextT>
 void call_far(
-	InstructionT &instruction,
+	const uint16_t segment,
+	const AddressT offset,
 	ContextT &context
 ) {
-	// TODO: eliminate 16-bit assumption below.
-	const Source source_segment = instruction.data_segment();
-	context.memory.preauthorise_stack_write(sizeof(uint16_t) * 2);
+	context.segments.preauthorise_call(
+		Source::CS,
+		offset,
+		[&] {
+			context.memory.preauthorise_stack_write(sizeof(uint16_t) * 2, sizeof(uint16_t));
+			push<uint16_t, true>(context.registers.cs(), context);
+			push<uint16_t, true>(context.registers.ip(), context);
+			context.flow_controller.template jump<AddressT>(segment, offset);
+		},
+		[&] (const SegmentDescriptor &descriptor) {
+			(void)descriptor;
+			printf("TODO: protected mode far call");
+		}
+	);
+}
 
-	uint16_t source_address;
+template <typename AddressT, InstructionType type, typename ContextT>
+void call_far(
+	const Instruction<type> &instruction,
+	ContextT &context
+) {
+	const Source source_segment = instruction.data_segment();
+
+	AddressT source_address;
 	const auto pointer = instruction.destination();
 	switch(pointer.source()) {
 		default:
 		case Source::Immediate:
-			push<uint16_t, true>(context.registers.cs(), context);
-			push<uint16_t, true>(context.registers.ip(), context);
-			context.flow_controller.template jump<uint16_t>(instruction.segment(), instruction.offset());
+			call_far(instruction.segment(), instruction.offset(), context);
 		return;
 
 		case Source::Indirect:
 			source_address = uint16_t(
-				address<Source::Indirect, uint16_t, AccessType::Read>(instruction, pointer, context)
+				address<Source::Indirect, AddressT, AccessType::Read>(instruction, pointer, context)
 			);
 		break;
 		case Source::IndirectNoBase:
 			source_address = uint16_t(
-				address<Source::IndirectNoBase, uint16_t, AccessType::Read>(instruction, pointer, context)
+				address<Source::IndirectNoBase, AddressT, AccessType::Read>(instruction, pointer, context)
 			);
 		break;
 		case Source::DirectAddress:
 			source_address = uint16_t(
-				address<Source::DirectAddress, uint16_t, AccessType::Read>(instruction, pointer, context)
+				address<Source::DirectAddress, AddressT, AccessType::Read>(instruction, pointer, context)
 			);
 		break;
 	}
 
-	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) * 2);
+//	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) + sizeof(AddressT));
 	const auto offset =
-		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+		context.memory.template access<AddressT, AccessType::Read>(source_segment, source_address);
 	source_address += 2;
 	const auto segment =
-		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+		context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 
-	// At least on an 8086, the stack writes occur after the target address read.
-	push<uint16_t, true>(context.registers.cs(), context);
-	push<uint16_t, true>(context.registers.ip(), context);
-
-	context.flow_controller.template jump<AddressT>(segment, offset);
+	call_far(segment, offset, context);
 }
 
-template <typename InstructionT, typename ContextT>
+template <InstructionType type, typename ContextT>
 void jump_far(
-	InstructionT &instruction,
+	const Instruction<type> &instruction,
 	ContextT &context
 ) {
 	// TODO: eliminate 16-bit assumption below.
@@ -187,13 +202,13 @@ void jump_far(
 	}
 
 	const Source source_segment = instruction.data_segment();
-	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) * 2);
+//	context.memory.preauthorise_read(source_segment, source_address, sizeof(uint16_t) * 2);
 
 	const auto offset =
-		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+		context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	source_address += 2;
 	const auto segment =
-		context.memory.template access<uint16_t, AccessType::PreauthorisedRead>(source_segment, source_address);
+		context.memory.template access<uint16_t, AccessType::Read>(source_segment, source_address);
 	context.flow_controller.template jump<uint16_t>(segment, offset);
 }
 
@@ -202,7 +217,7 @@ void iret(
 	ContextT &context
 ) {
 	// TODO: all modes other than 16-bit real mode.
-	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 3);
+	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 3, sizeof(uint16_t));
 	const auto ip = pop<uint16_t, true>(context);
 	const auto cs = pop<uint16_t, true>(context);
 	context.flags.set(pop<uint16_t, true>(context));
@@ -224,7 +239,7 @@ void ret_far(
 	const InstructionT instruction,
 	ContextT &context
 ) {
-	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 2);
+	context.memory.preauthorise_stack_read(sizeof(uint16_t) * 2, sizeof(uint16_t));
 	const auto ip = pop<uint16_t, true>(context);
 	const auto cs = pop<uint16_t, true>(context);
 	context.registers.sp() += instruction.operand();
@@ -236,10 +251,11 @@ void into(
 	ContextT &context
 ) {
 	if(context.flags.template flag<Flag::Overflow>()) {
+		static constexpr auto exception = Exception::exception<Vector::Overflow>();
 		if constexpr (uses_8086_exceptions(ContextT::model)) {
-			interrupt(Interrupt::Overflow, context);
+			interrupt(exception, context);
 		} else {
-			throw Exception(Interrupt::Overflow);
+			throw exception;
 		}
 	}
 }
@@ -247,24 +263,24 @@ void into(
 template <typename IntT, typename AddressT, typename InstructionT, typename ContextT>
 void bound(
 	const InstructionT &instruction,
-	read_t<AddressT> destination,
+	read_t<IntT> destination,
 	read_t<AddressT> source,
 	ContextT &context
 ) {
 	using sIntT = typename std::make_signed<IntT>::type;
 
 	const auto source_segment = instruction.data_segment();
-	context.memory.preauthorise_read(source_segment, source, 2*sizeof(IntT));
 	const auto lower_bound =
-		sIntT(context.memory.template access<IntT, AccessType::PreauthorisedRead>(source_segment, source));
+		sIntT(context.memory.template access<IntT, AccessType::Read>(source_segment, source));
 	const auto upper_bound =
-		sIntT(context.memory.template access<IntT, AccessType::PreauthorisedRead>(source_segment, IntT(source + 2)));
+		sIntT(context.memory.template access<IntT, AccessType::Read>(source_segment, IntT(source + 2)));
 
 	if(sIntT(destination) < lower_bound || sIntT(destination) > upper_bound) {
+		static constexpr auto exception = Exception::exception<Vector::BoundRangeExceeded>();
 		if constexpr (uses_8086_exceptions(ContextT::model)) {
-			interrupt(Interrupt::BoundRangeExceeded, context);
+			interrupt(exception, context);
 		} else {
-			throw Exception(Interrupt::BoundRangeExceeded);
+			throw exception;
 		}
 	}
 }

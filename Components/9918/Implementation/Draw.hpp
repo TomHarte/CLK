@@ -93,8 +93,8 @@ void Base<personality>::draw_sprites(
 		assert(!buffer.is_filling);
 	}
 
-	constexpr uint32_t sprite_colour_selection_masks[2] = {0x00000000, 0xffffffff};
-	constexpr int colour_masks[16] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+	static constexpr uint32_t sprite_colour_selection_masks[2] = {0x00000000, 0xffffffff};
+	static constexpr int colour_masks[16] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 	const int sprite_width = sprites_16x16_ ? 16 : 8;
 	const int shifter_target = sprite_width << 1;
 	const int pixel_width = sprites_magnified_ ? sprite_width << 1 : sprite_width;
@@ -526,7 +526,7 @@ void Base<personality>::draw_yamaha(const uint8_t y, int start, int end) {
 		}
 	}
 
-	constexpr std::array<uint32_t, 16> graphics7_sprite_palette = {
+	static constexpr std::array<uint32_t, 16> graphics7_sprite_palette = {
 		palette_pack(0b00000000, 0b00000000, 0b00000000),	palette_pack(0b00000000, 0b00000000, 0b01001001),
 		palette_pack(0b00000000, 0b01101101, 0b00000000),	palette_pack(0b00000000, 0b01101101, 0b01001001),
 		palette_pack(0b01101101, 0b00000000, 0b00000000),	palette_pack(0b01101101, 0b00000000, 0b01001001),

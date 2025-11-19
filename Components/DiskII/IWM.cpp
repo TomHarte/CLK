@@ -24,7 +24,7 @@ namespace {
 	constexpr int SEL		= 1 << 8;	/*	This is an additional input, not available on a Disk II, with a
 											confusingly-similar name to SELECT but a distinct purpose. */
 
-	Log::Logger<Log::Source::IWM> logger;
+	using Logger = Log::Logger<Log::Source::IWM>;
 }
 
 IWM::IWM(int clock_rate) :
@@ -53,7 +53,7 @@ uint8_t IWM::read(const int address) {
 
 	switch(state_ & (Q6 | Q7 | ENABLE)) {
 		default:
-			logger.info().append("Invalid read\n");
+			Logger::info().append("Invalid read\n");
 		return 0xff;
 
 		case 0:
@@ -62,9 +62,11 @@ uint8_t IWM::read(const int address) {
 
 			if(data_register_ & 0x80) {
 				data_register_ = 0;
-//				logger.info().append("Reading data: %02x", result);
+//				Logger::info().append("Reading data: %02x", result);
+			} else {
+//				Logger::info().append("Spurious read?");
 			}
-//			logger.info().append("Reading data register: %02x", result);
+//			Logger::info().append("Reading data register: %02x", result);
 
 			return result;
 		}
@@ -97,7 +99,7 @@ uint8_t IWM::read(const int address) {
 				bit 6: 1 = write state (0 = underrun has occurred; 1 = no underrun so far).
 				bit 7: 1 = write data buffer ready for data (1 = ready; 0 = busy).
 			*/
-//			logger.info().append("Reading write handshake: %02x", 0x3f | write_handshake_);
+//			Logger::info().append("Reading write handshake: %02x", 0x3f | write_handshake_);
 		return 0x3f | write_handshake_;
 	}
 
@@ -128,9 +130,9 @@ void IWM::write(const int address, const uint8_t input) {
 
 			// TEMPORARY. To test for the unimplemented mode.
 			if(input&0x2) {
-				logger.info().append("Switched to asynchronous mode");
+				Logger::info().append("Switched to asynchronous mode");
 			} else {
-				logger.info().append("Switched to synchronous mode");
+				Logger::info().append("Switched to synchronous mode");
 			}
 
 			switch(mode_ & 0x18) {
@@ -139,8 +141,8 @@ void IWM::write(const int address, const uint8_t input) {
 				case 0x10:		bit_length_ = Cycles(32);		break;	// slow mode, 8Mhz
 				case 0x18:		bit_length_ = Cycles(16);		break;	// fast mode, 8Mhz
 			}
-			logger.info().append("Mode is now %02x", mode_);
-			logger.info().append("New bit length is %d", bit_length_.as<int>());
+			Logger::info().append("Mode is now %02x", mode_);
+			Logger::info().append("New bit length is %d", bit_length_.as<int>());
 		break;
 
 		case Q7|Q6|ENABLE:	// Write data register.
@@ -254,7 +256,7 @@ void IWM::run_for(const Cycles cycles) {
 					drives_[active_drive_]->run_for(Cycles(1));
 					++cycles_since_shift_;
 					if(cycles_since_shift_ == bit_length_ + error_margin) {
-//						logger.info().append("Shifting 0 at %d ", cycles_since_shift_.as<int>());
+//						Logger::info().append("Shifting 0 at %d ", cycles_since_shift_.as<int>());
 						propose_shift(0);
 					}
 				}
@@ -288,11 +290,11 @@ void IWM::run_for(const Cycles cycles) {
 					if(!(write_handshake_ & 0x80)) {
 						shift_register_ = next_output_;
 						output_bits_remaining_ = 8;
-//						logger.info().append("Next byte: %02x", shift_register_);
+//						Logger::info().append("Next byte: %02x", shift_register_);
 					} else {
 						write_handshake_ &= ~0x40;
 						if(drives_[active_drive_]) drives_[active_drive_]->end_writing();
-						logger.info().append("Overrun; done.");
+						Logger::info().append("Overrun; done.");
 						output_bits_remaining_ = 1;
 					}
 
@@ -344,11 +346,13 @@ void IWM::select_shift_mode() {
 
 	// If writing mode just began, set the drive into write mode and cue up the first output byte.
 	if(old_shift_mode != ShiftMode::Writing && shift_mode_ == ShiftMode::Writing) {
-		if(drives_[active_drive_]) drives_[active_drive_]->begin_writing(Storage::Time(1, clock_rate_ / bit_length_.as_integral()), false);
+		if(drives_[active_drive_]) {
+			drives_[active_drive_]->begin_writing(Storage::Time(1, clock_rate_ / bit_length_.as_integral()), false, false);
+		}
 		shift_register_ = next_output_;
 		write_handshake_ |= 0x80 | 0x40;
 		output_bits_remaining_ = 8;
-		logger.info().append("Seeding output with %02x", shift_register_);
+		Logger::info().append("Seeding output with %02x", shift_register_);
 	}
 }
 
@@ -362,7 +366,7 @@ void IWM::process_event(const Storage::Disk::Drive::Event &event) {
 	switch(event.type) {
 		case Storage::Disk::Track::Event::IndexHole: return;
 		case Storage::Disk::Track::Event::FluxTransition:
-//			logger.info().append("Shifting 1 at %d", cycles_since_shift_.as<int>());
+//			Logger::info().append("Shifting 1 at %d", cycles_since_shift_.as<int>());
 			propose_shift(1);
 		break;
 	}
@@ -371,8 +375,8 @@ void IWM::process_event(const Storage::Disk::Drive::Event &event) {
 void IWM::propose_shift(const uint8_t bit) {
 	// TODO: synchronous mode.
 
-//	logger.info().append("Shifting at %d", cycles_since_shift_.as<int>());
-//	logger.info().append("Shifting input");
+//	Logger::info().append("Shifting at %d", cycles_since_shift_.as<int>());
+//	Logger::info().append("Shifting input");
 
 	// See above for text from the IWM patent, column 7, around line 35 onwards.
 	// The error_margin here implements the 'before' part of that contract.
@@ -387,7 +391,7 @@ void IWM::propose_shift(const uint8_t bit) {
 
 	shift_register_ = uint8_t((shift_register_ << 1) | bit);
 	if(shift_register_ & 0x80) {
-//		if(data_register_ & 0x80) logger.info().append("Byte missed");
+//		if(data_register_ & 0x80) Logger::info().append("Byte missed");
 		data_register_ = shift_register_;
 		shift_register_ = 0;
 	}

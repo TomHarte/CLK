@@ -77,7 +77,7 @@ using namespace CPU::MOS6502;
 
 ProcessorStorage::ProcessorStorage(Personality personality) {
 	const InstructionList operations_6502[] = {
-		/* 0x00 BRK */			Program(CycleIncPCPushPCH, CyclePushPCL, OperationBRKPickVector, OperationSetOperandFromFlagsWithBRKSet, CyclePushOperand, OperationSetIRQFlags, CycleReadVectorLow, CycleReadVectorHigh),
+		/* 0x00 BRK */			Program(CycleIncPCPushPCH, CyclePushPCL, OperationBRKPickVector, OperationSetOperandFromFlagsWithBRKSet, CyclePushOperand, OperationSetInterruptFlags, CycleReadVectorLow, CycleReadVectorHigh),
 		/* 0x01 ORA x, ind */	IndexedIndirectRead(OperationORA),
 		/* 0x02 JAM */			JAM,																	/* 0x03 ASO x, ind */	IndexedIndirectReadModifyWrite(OperationASO),
 		/* 0x04 NOP zpg */		ZeroNop(),																/* 0x05 ORA zpg */		ZeroRead(OperationORA),
@@ -228,7 +228,7 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 			CycleNoWritePush,
 			OperationRSTPickVector,
 			CycleNoWritePush,
-			OperationSetNMIRSTFlags,
+			OperationSetInterruptFlags,
 			CycleReadVectorLow,
 			CycleReadVectorHigh
 		),
@@ -242,7 +242,7 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 			OperationBRKPickVector,
 			OperationSetOperandFromFlags,
 			CyclePushOperand,
-			OperationSetIRQFlags,
+			OperationSetInterruptFlags,
 			CycleReadVectorLow,
 			CycleReadVectorHigh
 		),
@@ -256,7 +256,7 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 			OperationNMIPickVector,
 			OperationSetOperandFromFlags,
 			CyclePushOperand,
-			OperationSetNMIRSTFlags,
+			OperationSetInterruptFlags,
 			CycleReadVectorLow,
 			CycleReadVectorHigh
 		),

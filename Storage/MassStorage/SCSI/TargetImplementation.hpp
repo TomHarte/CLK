@@ -8,14 +8,15 @@
 
 #pragma once
 
-template <typename Executor> Target<Executor>::Target(Bus &bus, int scsi_id) :
+template <typename Executor> Target<Executor>::Target(Bus &bus, const int scsi_id) :
 	bus_(bus),
 	scsi_id_mask_(BusState(1 << scsi_id)),
 	scsi_bus_device_id_(bus.add_device()) {
-	bus.add_observer(this);
+	bus.add_observer(*this);
 }
 
-template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, BusState new_state, double time_since_change) {
+template <typename Executor>
+void Target<Executor>::scsi_bus_did_change(Bus &, const BusState new_state, const double time_since_change) {
 	/*
 		"The target determines that it is selected when the SEL# signal
 		and its SCSI ID bit are active and the BSY# and I#/O signals
@@ -154,7 +155,7 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 	}
 }
 
-template <typename Executor> void Target<Executor>::begin_command(uint8_t first_byte) {
+template <typename Executor> void Target<Executor>::begin_command(const uint8_t first_byte) {
 	// The logic below is valid for SCSI-1. TODO: other SCSIs.
 	switch(first_byte >> 5) {
 		default: break;
@@ -172,15 +173,15 @@ template <typename Executor> void Target<Executor>::begin_command(uint8_t first_
 
 namespace {
 
-constexpr uint8_t G0(uint8_t opcode) {	return 0x00 | opcode;	}
-constexpr uint8_t G1(uint8_t opcode) {	return 0x20 | opcode;	}
-constexpr uint8_t G5(uint8_t opcode) {	return 0xa0 | opcode;	}
+constexpr uint8_t G0(const uint8_t opcode) {	return 0x00 | opcode;	}
+constexpr uint8_t G1(const uint8_t opcode) {	return 0x20 | opcode;	}
+constexpr uint8_t G5(const uint8_t opcode) {	return 0xa0 | opcode;	}
 
 }
 
 template <typename Executor> bool Target<Executor>::dispatch_command() {
 	CommandState arguments(command_, data_);
-	log_.info().append("---Command %02x---", command_[0]);
+	Logger::info().append("---Command %02x---", command_[0]);
 
 	switch(command_[0]) {
 		default:		return false;
@@ -217,7 +218,7 @@ template <typename Executor> bool Target<Executor>::dispatch_command() {
 	return false;
 }
 
-template <typename Executor> void Target<Executor>::send_data(std::vector<uint8_t> &&data, continuation next) {
+template <typename Executor> void Target<Executor>::send_data(std::vector<uint8_t> &&data, const continuation next) {
 	// Data out phase: control and message all reset, input set.
 	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
 	bus_state_ |= Line::Input;
@@ -230,7 +231,7 @@ template <typename Executor> void Target<Executor>::send_data(std::vector<uint8_
 	set_device_output(bus_state_);
 }
 
-template <typename Executor> void Target<Executor>::receive_data(size_t length, continuation next) {
+template <typename Executor> void Target<Executor>::receive_data(const size_t length, const continuation next) {
 	// Data out phase: control, input and message all reset.
 	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
 
@@ -242,7 +243,7 @@ template <typename Executor> void Target<Executor>::receive_data(size_t length, 
 	set_device_output(bus_state_);
 }
 
-template <typename Executor> void Target<Executor>::send_status(Status status, continuation next) {
+template <typename Executor> void Target<Executor>::send_status(const Status status, const continuation next) {
 	// Status phase: message reset, control and input set.
 	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
 	bus_state_ |= Line::Input | Line::Control;
@@ -255,7 +256,7 @@ template <typename Executor> void Target<Executor>::send_status(Status status, c
 	set_device_output(bus_state_);
 }
 
-template <typename Executor> void Target<Executor>::send_message(Message message, continuation next) {
+template <typename Executor> void Target<Executor>::send_message(const Message message, const continuation next) {
 	// Message in phase: message, control and input set.
 	bus_state_ |= Line::Message | Line::Control | Line::Input;
 
@@ -275,5 +276,5 @@ template <typename Executor> void Target<Executor>::end_command() {
 	bus_state_ = DefaultBusState;
 	set_device_output(bus_state_);
 
-	log_.info().append("---Done---");
+	Logger::info().append("---Done---");
 }

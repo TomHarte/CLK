@@ -35,8 +35,10 @@ class VideoBase: public VideoSwitches<Cycles> {
 	public:
 		VideoBase(bool is_iie, std::function<void(Cycles)> &&target);
 
+		void establish_framing();
+
 		/// Sets the scan target.
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
+		void set_scan_target(Outputs::Display::ScanTarget *);
 
 		/// Gets the current scan status.
 		Outputs::Display::ScanStatus get_scaled_scan_status() const;
@@ -119,8 +121,11 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 public:
 	/// Constructs an instance of the video feed; a CRT is also created.
 	Video(BusHandler &bus_handler) :
-		VideoBase(is_iie, [this] (Cycles cycles) { advance(cycles); }),
-		bus_handler_(bus_handler) {}
+		VideoBase(is_iie, [this] (const Cycles cycles) { advance(cycles); }),
+		bus_handler_(bus_handler)
+	{
+		establish_framing();
+	}
 
 	/*!
 		Obtains the last value the video read prior to time now+offset, according to the *current*
@@ -260,16 +265,16 @@ private:
 		Implicitly adds an extra half a colour clock at the end of
 		line.
 	*/
-	void advance(Cycles cycles) {
+	void advance(const Cycles cycles) {
 		/*
 			Addressing scheme used throughout is that column 0 is the first column with pixels in it;
 			row 0 is the first row with pixels in it.
 
 			A frame is oriented around 65 cycles across, 262 lines down.
 		*/
-		constexpr int first_sync_line = 220;	// A complete guess. Information needed.
-		constexpr int first_sync_column = 49;	// Also a guess.
-		constexpr int sync_length = 4;			// One of the two likely candidates.
+		static constexpr int first_sync_line = 220;	// A complete guess. Information needed.
+		static constexpr int first_sync_column = 49;	// Also a guess.
+		static constexpr int sync_length = 4;			// One of the two likely candidates.
 
 		int int_cycles = int(cycles.as_integral());
 		while(int_cycles) {
@@ -471,9 +476,9 @@ private:
 						// Supply the real phase value if this is an Apple build.
 						// TODO: eliminate UGLY HACK.
 #if defined(__APPLE__) && !defined(IGNORE_APPLE)
-						constexpr uint8_t phase = 224;
+						static constexpr uint8_t phase = 224;
 #else
-						constexpr uint8_t phase = 192;
+						static constexpr uint8_t phase = 192;
 #endif
 
 						crt_.output_colour_burst((colour_burst_end - colour_burst_start) * 14, phase);

@@ -17,6 +17,8 @@
 
 #include <array>
 
+//extern bool should_log;
+
 namespace PCCompatible {
 
 enum class AccessResult {
@@ -52,8 +54,8 @@ public:
 	void write(const uint8_t value) {
 		switch(address) {
 			default: {
-				constexpr int channel = (address >> 1) & 3;
-				constexpr bool is_count = address & 1;
+				static constexpr int channel = (address >> 1) & 3;
+				static constexpr bool is_count = address & 1;
 
 				next_access_low_ ^= true;
 				if(next_access_low_) {
@@ -85,8 +87,8 @@ public:
 	uint8_t read() {
 		switch(address) {
 			default: {
-				constexpr int channel = (address >> 1) & 3;
-				constexpr bool is_count = address & 1;
+				static constexpr int channel = (address >> 1) & 3;
+				static constexpr bool is_count = address & 1;
 
 				next_access_low_ ^= true;
 				if(next_access_low_) {
@@ -102,9 +104,9 @@ public:
 						return channels_[channel].address.halves.low;
 					}
 				}
-			 }
-			 case 0x8:	return status();
-			 case 0xd:	return temporary_register();
+			}
+			case 0x8:	return status();
+			case 0xd:	return temporary_register();
 		}
 	}
 
@@ -245,11 +247,19 @@ private:
 template <bool is_pair>
 class DMAPages {
 public:
+	int count = 0;
+
 	template <int index>
 	void set_page(const uint8_t value) {
 		pages_[page_for_index(index)] = value;
+
 		if(index == 0x00) {
-			log_.info().append("%02x", value);
+			Logger::info().append("%02x", value);
+
+//			if(value == 0x3c) {
+//				++count;
+//				should_log |= count == 2;
+//			}
 		}
 	}
 
@@ -264,8 +274,7 @@ public:
 
 private:
 	uint8_t pages_[16]{};
-
-	Log::Logger<Log::Source::PCPOST> log_;
+	using Logger = Log::Logger<Log::Source::PCPOST>;
 
 	static constexpr int page_for_index(const int index) {
 		switch(index) {

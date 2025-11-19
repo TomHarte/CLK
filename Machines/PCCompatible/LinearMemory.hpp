@@ -24,6 +24,27 @@ namespace PCCompatible {
 // TODO: send writes to the ROM area off to nowhere.
 // TODO: support banked sections for EGA/VGA and possibly EMS purposes.
 
+struct DummyValue {
+public:
+	template <typename IntT>
+	IntT &value() {
+		if constexpr (std::is_same_v<IntT, uint32_t>) {
+			return dummies_.dummy32;
+		} else if constexpr (std::is_same_v<IntT, uint16_t>) {
+			return dummies_.dummy16;
+		} else if constexpr (std::is_same_v<IntT, uint8_t>) {
+			return dummies_.dummy8;
+		}
+	}
+
+private:
+	union {
+		uint32_t dummy32;
+		uint16_t dummy16;
+		uint8_t dummy8;
+	} dummies_;
+};
+
 template <size_t MaxAddressV>
 struct LinearPool {
 	static constexpr size_t MaxAddress = MaxAddressV;
@@ -49,6 +70,7 @@ struct LinearPool {
 
 	template <typename IntT>
 	IntT read(const uint32_t address) {
+		if(address >= MaxAddressV) return IntT(~0);
 		return *reinterpret_cast<IntT *>(&memory[address]);
 	}
 
@@ -149,7 +171,12 @@ private:
 template <InstructionSet::x86::Model model, typename Enable = void> struct LinearMemory;
 
 template <InstructionSet::x86::Model model>
-struct LinearMemory<model, std::enable_if_t<model <= InstructionSet::x86::Model::i80186>>: public SplitHolder, public LinearPool<1 << 20> {
+struct LinearMemory<model, std::enable_if_t<model <= InstructionSet::x86::Model::i80186>>:
+	public SplitHolder,
+	public LinearPool<1 << 20>
+{
+	static constexpr bool RequiresPreauthorisation = false;
+
 	template <typename IntT, AccessType type>
 	typename InstructionSet::x86::Accessor<IntT, type>::type access(
 		uint32_t address,
@@ -220,10 +247,16 @@ struct LinearMemory<model, std::enable_if_t<model <= InstructionSet::x86::Model:
 		// It's safe just to write then.
 		*reinterpret_cast<IntT *>(&memory[address]) = value;
 	}
+
+	void preauthorise_read(uint32_t, uint32_t) {}
+	void preauthorise_write(uint32_t, uint32_t) {}
 };
 
+// TODO: increase template parameter to LinearPool, which is the base RAM size.
 template <>
-struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 24> {
+struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 20> {
+	static constexpr bool RequiresPreauthorisation = true;
+
 	LinearMemory() {
 		set_a20_enabled(true);
 	}
@@ -242,7 +275,9 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 	typename InstructionSet::x86::Accessor<IntT, type>::type access(
 		uint32_t address, uint32_t
 	) {
-		// 80286: never split (probably?).
+		if(MaxAddress != (1 << 24) && (address & address_mask_) >= MaxAddress) {
+			return dummy_.value<IntT>();
+		}
 		return *reinterpret_cast<IntT *>(&memory[address & address_mask_]);
 	}
 
@@ -251,13 +286,16 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 		uint32_t address, uint32_t
 	) const {
 		static_assert(!is_writeable(type));
-
-		// 80286: never split (probably?).
+		if(MaxAddress != (1 << 24) && (address & address_mask_) >= MaxAddress) {
+			return dummy_.value<IntT>();
+		}
 		return *reinterpret_cast<const IntT *>(&memory[address & address_mask_]);
 	}
 
 	template <typename IntT>
-	void write_back() {}
+	void write_back() {
+		dummy_.value<IntT>() = IntT(~0);
+	}
 
 	template <typename IntT>
 	void preauthorised_write(
@@ -265,11 +303,16 @@ struct LinearMemory<InstructionSet::x86::Model::i80286>: public LinearPool<1 << 
 		const uint32_t,
 		IntT value
 	) {
+		if(MaxAddress != (1 << 24) && (address & address_mask_) >= MaxAddress) return;
 		*reinterpret_cast<IntT *>(&memory[address & address_mask_]) = value;
 	}
 
+	void preauthorise_read(uint32_t, uint32_t) {}
+	void preauthorise_write(uint32_t, uint32_t) {}
+
 private:
 	uint32_t address_mask_;
+	inline static DummyValue dummy_;
 };
 
 }

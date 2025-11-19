@@ -23,7 +23,7 @@ FAT::Volume::CHS FAT::Volume::chs_for_sector(int sector) const {
 		track / head_count,
 		track % head_count,
 		1 + (sector % sectors_per_track)
-	 };
+	};
 }
 
 int FAT::Volume::sector_for_cluster(uint16_t cluster) const {

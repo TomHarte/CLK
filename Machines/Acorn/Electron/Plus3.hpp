@@ -11,6 +11,8 @@
 #include "Components/1770/1770.hpp"
 #include "Activity/Observer.hpp"
 
+#include <string>
+
 namespace Electron {
 
 class Plus3 final : public WD::WD1770 {
@@ -18,6 +20,7 @@ public:
 	Plus3();
 
 	void set_disk(std::shared_ptr<Storage::Disk::Disk>, size_t drive);
+	const Storage::Disk::Disk *disk(const std::string &);
 	void set_control_register(uint8_t control);
 	void set_activity_observer(Activity::Observer *);
 

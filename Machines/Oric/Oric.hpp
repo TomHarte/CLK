@@ -26,19 +26,19 @@ struct Machine {
 
 	class Options:
 		public Reflection::StructImpl<Options>,
-		public Configurable::DisplayOption<Options>,
-		public Configurable::QuickloadOption<Options>
+		public Configurable::Options::Display<Options>,
+		public Configurable::Options::QuickLoad<Options>
 	{
-		friend Configurable::DisplayOption<Options>;
-		friend Configurable::QuickloadOption<Options>;
+		friend Configurable::Options::Display<Options>;
+		friend Configurable::Options::QuickLoad<Options>;
 	public:
-		Options(Configurable::OptionsType type) :
-			Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ?
+		Options(const Configurable::OptionsType type) :
+			Configurable::Options::Display<Options>(type == Configurable::OptionsType::UserFriendly ?
 				Configurable::Display::RGB : Configurable::Display::CompositeColour),
-			Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {}
+			Configurable::Options::QuickLoad<Options>(type == Configurable::OptionsType::UserFriendly) {}
 
 	private:
-		Options() : Options(Configurable::OptionsType::UserFriendly) {}
+		Options() : Options( Configurable::OptionsType::UserFriendly) {}
 
 		friend Reflection::StructImpl<Options>;
 		void declare_fields() {

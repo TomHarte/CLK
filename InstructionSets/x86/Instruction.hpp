@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "Exceptions.hpp"
 #include "Model.hpp"
 
 #include <cstddef>
@@ -414,11 +415,11 @@ template <DataSize size> struct DataSizeType { using type = uint8_t; };
 template <> struct DataSizeType<DataSize::Word> { using type = uint16_t; };
 template <> struct DataSizeType<DataSize::DWord> { using type = uint32_t; };
 
-constexpr int byte_size(DataSize size) {
+constexpr int byte_size(const DataSize size) {
 	return (1 << int(size)) & 7;
 }
 
-constexpr int bit_size(DataSize size) {
+constexpr int bit_size(const DataSize size) {
 	return (8 << int(size)) & 0x3f;
 }
 
@@ -430,15 +431,15 @@ enum class AddressSize: uint8_t {
 template <AddressSize size> struct AddressSizeType { using type = uint16_t; };
 template <> struct AddressSizeType<AddressSize::b32> { using type = uint32_t; };
 
-constexpr DataSize data_size(AddressSize size) {
+constexpr DataSize data_size(const AddressSize size) {
 	return DataSize(int(size) + 1);
 }
 
-constexpr int byte_size(AddressSize size) {
+constexpr int byte_size(const AddressSize size) {
 	return 2 << int(size);
 }
 
-constexpr int bit_size(AddressSize size) {
+constexpr int bit_size(const AddressSize size) {
 	return 16 << int(size);
 }
 
@@ -505,6 +506,10 @@ constexpr bool is_register(const Source source) {
 constexpr bool is_segment_register(const Source source) {
 	return is_register(source) && source >= Source::ES;
 }
+constexpr bool is_address(const Source source) {
+	// TODO: is there any reason not to swap DirectAddress and Immediate to simplify this?
+	return source == Source::Indirect || source == Source::IndirectNoBase || source == Source::DirectAddress;
+}
 
 enum class Repetition: uint8_t {
 	None, RepE, RepNE, Rep,
@@ -512,7 +517,7 @@ enum class Repetition: uint8_t {
 
 /// @returns @c true if @c operation supports repetition mode @c repetition; @c false otherwise.
 template <Model model>
-constexpr Operation rep_operation(Operation operation, Repetition repetition) {
+constexpr Operation rep_operation(const Operation operation, const Repetition repetition) {
 	switch(operation) {
 		case Operation::IDIV:
 			if constexpr (model == Model::i8086) {
@@ -565,15 +570,15 @@ constexpr Operation rep_operation(Operation operation, Repetition repetition) {
 class ScaleIndexBase {
 public:
 	constexpr ScaleIndexBase() noexcept = default;
-	constexpr ScaleIndexBase(uint8_t sib) noexcept : sib_(sib) {}
-	constexpr ScaleIndexBase(int scale, Source index, Source base) noexcept :
+	constexpr ScaleIndexBase(const uint8_t sib) noexcept : sib_(sib) {}
+	constexpr ScaleIndexBase(const int scale, const Source index, const Source base) noexcept :
 		sib_(uint8_t(
 			scale << 6 |
 			(int(index != Source::None ? index : Source::eSP) << 3) |
 			int(base)
 		)) {}
-	constexpr ScaleIndexBase(Source index, Source base) noexcept : ScaleIndexBase(0, index, base) {}
-	constexpr explicit ScaleIndexBase(Source base) noexcept : ScaleIndexBase(0, Source::None, base) {}
+	constexpr ScaleIndexBase(const Source index, const Source base) noexcept : ScaleIndexBase(0, index, base) {}
+	constexpr explicit ScaleIndexBase(const Source base) noexcept : ScaleIndexBase(0, Source::None, base) {}
 
 	/// @returns the power of two by which to multiply @c index() before adding it to @c base().
 	constexpr int scale() const {
@@ -634,18 +639,18 @@ static_assert(alignof(ScaleIndexBase) == 1);
 class DataPointer {
 public:
 	/// Constricts a DataPointer referring to the given source; it shouldn't be ::Indirect.
-	constexpr DataPointer(Source source) noexcept : source_(source) {}
+	constexpr DataPointer(const Source source) noexcept : source_(source) {}
 
 	/// Constricts a DataPointer with a source of ::Indirect and the specified sib.
-	constexpr DataPointer(ScaleIndexBase sib) noexcept : sib_(sib) {}
+	constexpr DataPointer(const ScaleIndexBase sib) noexcept : sib_(sib) {}
 
 	/// Constructs a DataPointer with a source and SIB; use the source to indicate
 	/// whether the base field of the SIB is effective.
-	constexpr DataPointer(Source source, ScaleIndexBase sib) noexcept : source_(source), sib_(sib) {}
+	constexpr DataPointer(const Source source, const ScaleIndexBase sib) noexcept : source_(source), sib_(sib) {}
 
 	/// Constructs an indirect DataPointer referencing the given base, index and scale.
 	/// Automatically maps Source::Indirect to Source::IndirectNoBase if base is Source::None.
-	constexpr DataPointer(Source base, Source index, int scale) noexcept :
+	constexpr DataPointer(const Source base, const Source index, const int scale) noexcept :
 		source_(base != Source::None ? Source::Indirect : Source::IndirectNoBase),
 		sib_(scale, index, base) {}
 
@@ -697,14 +702,14 @@ private:
 	ScaleIndexBase sib_;
 };
 
-template<bool is_32bit> class Instruction {
+template<InstructionType type> class Instruction {
 public:
-	using DisplacementT = typename std::conditional<is_32bit, int32_t, int16_t>::type;
-	using ImmediateT = typename std::conditional<is_32bit, uint32_t, uint16_t>::type;
+	using DisplacementT = DisplacementT<type>::type;
+	using ImmediateT = ImmediateT<type>::type;
 	using AddressT = ImmediateT;
 
 	constexpr Instruction() noexcept = default;
-	constexpr Instruction(Operation operation) noexcept :
+	constexpr Instruction(const Operation operation) noexcept :
 		Instruction(
 			operation,
 			Source::None,
@@ -718,16 +723,16 @@ public:
 			0
 	) {}
 	constexpr Instruction(
-		Operation operation,
-		Source source,
-		Source destination,
-		ScaleIndexBase sib,
-		bool lock,
-		AddressSize address_size,
-		Source segment_override,
-		DataSize data_size,
-		DisplacementT displacement,
-		ImmediateT operand) noexcept :
+		const Operation operation,
+		const Source source,
+		const Source destination,
+		const ScaleIndexBase sib,
+		const bool lock,
+		const AddressSize address_size,
+		const Source segment_override,
+		const DataSize data_size,
+		const DisplacementT displacement,
+		const ImmediateT operand) noexcept :
 			operation_(operation),
 			mem_exts_source_(uint8_t(
 				(int(address_size) << 7) |
@@ -763,14 +768,23 @@ public:
 		source_data_dest_sib_ |= (int(segment)&7) << 10;
 	}
 
+	/// Instantiates an Instruction as a particular GPF. This was originally intended to support decoding of
+	/// overlong instructions.
+	constexpr Instruction(const ExceptionCode gpf_code) noexcept :
+		operation_(Operation::Invalid),
+		mem_exts_source_(1),
+		source_data_dest_sib_(uint16_t(gpf_code)) {}
+
 	/// @returns The number of bytes used for meaningful content within this class. A receiver must use at least @c sizeof(Instruction) bytes
 	/// to store an @c Instruction but is permitted to reuse the trailing sizeof(Instruction) - packing_size() for any purpose it likes. Teleologically,
 	/// this allows a denser packing of instructions into containers.
 	constexpr size_t packing_size() const	{
 		return
-			offsetof(Instruction<is_32bit>, extensions_) +
+			offsetof(Instruction<type>, extensions_) +
 			(has_displacement() + has_operand()) * sizeof(ImmediateT);
 	}
+
+	static constexpr size_t minimum_packing_size() { return offsetof(Instruction<type>, extensions_); }
 
 	/// @returns The @c Operation performed by this instruction.
 	constexpr Operation operation() const {
@@ -849,12 +863,23 @@ public:
 	}
 
 	/// @returns The dynamic storage size argument supplied to an ENTER.
-	constexpr ImmediateT dynamic_storage_size() const	{
+	constexpr ImmediateT dynamic_storage_size() const {
 		return offset();
 	}
 
+	/// If this Instruction's operation is ::Invalid, indicates whether the proper exception
+	/// to throw is a GPF rather than an InvalidOpcode.
+	constexpr bool invalid_is_gpf() const {
+		return mem_exts_source_ & 1;
+	}
+
+	/// If this Instruction represents a GPF, indicates the corresponding exception code.
+	constexpr ExceptionCode gpf_exception_code() const {
+		return ExceptionCode(source_data_dest_sib_);
+	}
+
 	// Standard comparison operator.
-	constexpr bool operator ==(const Instruction<is_32bit> &rhs) const {
+	constexpr bool operator ==(const Instruction<type> &rhs) const {
 		if(	operation_ != rhs.operation_ ||
 			mem_exts_source_ != rhs.mem_exts_source_ ||
 			source_data_dest_sib_ != rhs.source_data_dest_sib_) {
@@ -920,20 +945,22 @@ private:
 	};
 };
 
-static_assert(sizeof(Instruction<true>) <= 16);
-static_assert(sizeof(Instruction<false>) <= 10);
+static_assert(Instruction<InstructionType::Bits32>::minimum_packing_size() <= 4);
+static_assert(Instruction<InstructionType::Bits16>::minimum_packing_size() <= 4);
+static_assert(sizeof(Instruction<InstructionType::Bits32>) <= 16);
+static_assert(sizeof(Instruction<InstructionType::Bits16>) <= 10);
 
 //
 // Disassembly aids.
 //
 
 /// @returns @c true if @c operation uses a @c displacement().
-bool has_displacement(Operation operation);
+bool has_displacement(const Operation operation);
 
 /// @returns The maximum number of operands to print in a disassembly of @c operation;
 ///		i.e. 2 for both source() and destination(), 1 for source() alone, 0 for neither. This is a maximum
 ///		only — if either source is Source::None then it should not be printed.
-int max_displayed_operands(Operation operation);
+int max_displayed_operands(const Operation operation);
 
 /// Provides the idiomatic name of the @c Operation given an operation @c DataSize and processor @c Model.
 std::string to_string(Operation, DataSize, Model);
@@ -951,13 +978,13 @@ std::string to_string(Source, DataSize);
 ///
 /// See notes below re: @c offset_length and @c immediate_length.
 /// If @c operation_size is the default value of @c ::None, it'll be taken from the @c instruction.
-template <bool is_32bit>
+template <InstructionType type>
 std::string to_string(
-	DataPointer pointer,
-	Instruction<is_32bit> instruction,
-	int offset_length,
-	int immediate_length,
-	DataSize operation_size = InstructionSet::x86::DataSize::None
+	const DataPointer pointer,
+	const Instruction<type> instruction,
+	const int offset_length,
+	const int immediate_length,
+	const DataSize operation_size = InstructionSet::x86::DataSize::None
 );
 
 /// Provides the printable version of @c instruction.
@@ -966,10 +993,10 @@ std::string to_string(
 ///
 /// If @c offset_length is '2' or '4', truncates any printed offset to 2 or 4 digits if it is compatible with being that length.
 /// If @c immediate_length is '2' or '4', truncates any printed immediate value to 2 or 4 digits if it is compatible with being that length.
-template<bool is_32bit>
+template <InstructionType type>
 std::string to_string(
-	std::pair<int, Instruction<is_32bit>> instruction,
-	Model model,
-	int offset_length = 0,
-	int immediate_length = 0);
+	const std::pair<int, Instruction<type>> instruction,
+	const Model model,
+	const int offset_length = 0,
+	const int immediate_length = 0);
 }

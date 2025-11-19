@@ -16,8 +16,17 @@
 
 #include <algorithm>
 #include <cstring>
+#include <unordered_set>
 
 namespace {
+
+std::string rtrimmed(const std::string &input) {
+	auto trimmed = input;
+	trimmed.erase(std::find_if(trimmed.rbegin(), trimmed.rend(), [](const char ch) {
+		return !std::isspace(ch);
+	}).base(), trimmed.end());
+	return trimmed;
+}
 
 bool strcmp_insensitive(const char *a, const char *b) {
 	if(std::strlen(a) != std::strlen(b)) return false;
@@ -104,58 +113,85 @@ void InspectCatalogue(
 		return;
 	}
 
-	// If only one file is [potentially] BASIC, run that one; otherwise if only one has a suffix
-	// that AMSDOS allows to be omitted, pick that one.
-	int basic_files = 0;
-	int implicit_suffixed_files = 0;
+	const auto run_name = [&]() -> std::optional<std::string> {
+		// Collect:
+		//
+		//	1. a set of all files that can be run without specifying an extension plus their appearance counts;
+		//	2. a set of all BASIC file names.
+		std::unordered_map<std::string, int> candidates;
+		std::unordered_set<std::string> basic_names;
+		for(std::size_t c = 0; c < candidate_files.size(); c++) {
+			// Files with nothing but spaces in their name can't be loaded by the user, so disregard them.
+			if(
+				(candidate_files[c]->type == "   " && candidate_files[c]->name == "        ") ||
+				!is_implied_extension(candidate_files[c]->type)
+			) {
+				continue;
+			}
 
-	std::size_t last_basic_file = 0;
-	std::size_t last_implicit_suffixed_file = 0;
-
-	for(std::size_t c = 0; c < candidate_files.size(); c++) {
-		// Files with nothing but spaces in their name can't be loaded by the user, so disregard them.
-		if(candidate_files[c]->type == "   " && candidate_files[c]->name == "        ")
-			continue;
-
-		// Check for whether this is [potentially] BASIC.
-		if(candidate_files[c]->data.size() >= 128 && !((candidate_files[c]->data[18] >> 1) & 7)) {
-			basic_files++;
-			last_basic_file = c;
-		}
-
-		// Check suffix for emptiness.
-		if(is_implied_extension(candidate_files[c]->type)) {
-			implicit_suffixed_files++;
-			last_implicit_suffixed_file = c;
-		}
-	}
-	if(basic_files == 1 || implicit_suffixed_files == 1) {
-		std::size_t selected_file = (basic_files == 1) ? last_basic_file : last_implicit_suffixed_file;
-		target->loading_command = RunCommandFor(*candidate_files[selected_file]);
-		return;
-	}
-
-	// One more guess: if only one remaining candidate file has a different name than the others,
-	// assume it is intended to stand out.
-	std::map<std::string, int> name_counts;
-	std::map<std::string, std::size_t> indices_by_name;
-	std::size_t index = 0;
-	for(const auto &file : candidate_files) {
-		name_counts[file->name]++;
-		indices_by_name[file->name] = index;
-		index++;
-	}
-	if(name_counts.size() == 2) {
-		for(const auto &pair : name_counts) {
-			if(pair.second == 1) {
-				target->loading_command = RunCommandFor(*candidate_files[indices_by_name[pair.first]]);
-				return;
+			++candidates[candidate_files[c]->name];
+			if(candidate_files[c]->data.size() >= 128 && !((candidate_files[c]->data[18] >> 1) & 7)) {
+				basic_names.insert(candidate_files[c]->name);
 			}
 		}
-	}
 
-	// Desperation.
-	target->loading_command = "cat\n";
+		// Only one candidate total.
+		if(candidates.size() == 1) {
+			return candidates.begin()->first;
+		}
+
+		// Only one BASIC candidate.
+		if(basic_names.size() == 1) {
+			return *basic_names.begin();
+		}
+
+		// Exactly two candidate names, but only one is a unique name.
+		if(candidates.size() == 2) {
+			const auto item1 = candidates.begin();
+			const auto item2 = std::next(item1);
+
+			if(item1->second == 1 && item2->second != 1) {
+				return item1->first;
+			}
+			if(item2->second == 1 && item1->second != 1) {
+				return item2->first;
+			}
+		}
+
+		// Remove from candidates anything that is just a suffixed version of
+		// another name, as long as the other name is three or more characters.
+		std::vector<std::string> to_remove;
+		for(const auto &lhs: candidates) {
+			const auto trimmed = rtrimmed(lhs.first);
+			if(trimmed.size() < 3) {
+				continue;
+			}
+
+			for(const auto &rhs: candidates) {
+				if(lhs.first == rhs.first) {
+					continue;
+				}
+
+				if(rhs.first.find(trimmed) == 0) {
+					to_remove.push_back(rhs.first);
+				}
+			}
+		}
+		for(const auto &candidate: to_remove) {
+			candidates.erase(candidate);
+		}
+		if(candidates.size() == 1) {
+			return candidates.begin()->first;
+		}
+
+		return {};
+	} ();
+
+	if(run_name.has_value()) {
+		target->loading_command = "run\"" + rtrimmed(*run_name) + "\n";
+	} else {
+		target->loading_command = "cat\n";
+	}
 }
 
 bool CheckBootSector(

@@ -94,6 +94,7 @@ typedef NS_ENUM(NSInteger, CSMachineChangeEffect) {
 @property (nonatomic, assign) CSMachineVideoSignal videoSignal;
 @property (nonatomic, assign) BOOL useAutomaticTapeMotorControl;
 @property (nonatomic, assign) BOOL useQuickBootingHack;
+@property (nonatomic, assign) BOOL useDynamicCropping;
 
 - (BOOL)supportsVideoSignal:(CSMachineVideoSignal)videoSignal;
 

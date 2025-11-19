@@ -27,8 +27,17 @@ struct Video {
 		sound_(sound),
 		ram_(ram),
 		crt_(Outputs::Display::InputDataType::Red4Green4Blue4) {
+		const auto cycles_per_line = static_cast<int>(24'000'000 / (312 * 50));
+		crt_.set_new_timing(
+			cycles_per_line,
+			312,								/* Height of display. */
+			Outputs::CRT::PAL::ColourSpace,
+			Outputs::CRT::PAL::ColourCycleNumerator,
+			Outputs::CRT::PAL::ColourCycleDenominator,
+			Outputs::CRT::PAL::VerticalSyncLength,
+			Outputs::CRT::PAL::AlternatesPhase);
 		set_clock_divider(3);
-		crt_.set_visible_area(Outputs::Display::Rect(0.041f, 0.04f, 0.95f, 0.95f));
+		crt_.set_fixed_framing(Outputs::Display::Rect(0.041f, 0.04f, 0.95f, 0.95f));
 		crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 	}
 
@@ -122,7 +131,7 @@ struct Video {
 			break;
 
 			default:
-				logger.error().append("TODO: unrecognised VIDC write of %08x", value);
+				Logger::error().append("TODO: unrecognised VIDC write of %08x", value);
 			break;
 		}
 	}
@@ -210,7 +219,7 @@ struct Video {
 			case Phase::StartInterlacedSync:	tick_horizontal<Phase::StartInterlacedSync>();		break;
 			case Phase::EndInterlacedSync:		tick_horizontal<Phase::EndInterlacedSync>();		break;
 		}
-		++time_in_phase_;
+		time_in_phase_ += clock_divider_;
 	}
 
 	/// @returns @c true if a vertical retrace interrupt has been signalled since the last call to @c interrupt(); @c false otherwise.
@@ -269,7 +278,7 @@ struct Video {
 	}
 
 private:
-	Log::Logger<Log::Source::ARMIOC> logger;
+	using Logger = Log::Logger<Log::Source::ARMIOC>;
 	InterruptObserverT &interrupt_observer_;
 	ClockRateObserverT &clock_rate_observer_;
 	SoundT &sound_;
@@ -476,15 +485,6 @@ private:
 		}
 
 		clock_divider_ = divider;
-		const auto cycles_per_line = static_cast<int>(24'000'000 / (divider * 312 * 50));
-		crt_.set_new_timing(
-			cycles_per_line,
-			312,								/* Height of display. */
-			Outputs::CRT::PAL::ColourSpace,
-			Outputs::CRT::PAL::ColourCycleNumerator,
-			Outputs::CRT::PAL::ColourCycleDenominator,
-			Outputs::CRT::PAL::VerticalSyncLength,
-			Outputs::CRT::PAL::AlternatesPhase);
 		clock_rate_observer_.update_clock_rates();
 	}
 

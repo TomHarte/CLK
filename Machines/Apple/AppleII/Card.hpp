@@ -100,8 +100,8 @@ class Card {
 		virtual bool irq() { return false; }
 
 		struct Delegate {
-			virtual void card_did_change_select_constraints(Card *card) = 0;
-			virtual void card_did_change_interrupt_flags(Card *card) = 0;
+			virtual void card_did_change_select_constraints(Card &) = 0;
+			virtual void card_did_change_interrupt_flags(Card &) = 0;
 		};
 		void set_delegate(Delegate *delegate) {
 			delegate_ = delegate;
@@ -113,7 +113,7 @@ class Card {
 		void set_select_constraints(int constraints) {
 			if(constraints == select_constraints_) return;
 			select_constraints_ = constraints;
-			if(delegate_) delegate_->card_did_change_select_constraints(this);
+			if(delegate_) delegate_->card_did_change_select_constraints(*this);
 		}
 };
 

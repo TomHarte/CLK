@@ -103,7 +103,6 @@ private:
 		CRTCOutputter() :
 			crt(910, 8, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red2Green2Blue2)
 		{
-			crt.set_visible_area(Outputs::Display::Rect(0.097f, 0.095f, 0.82f, 0.82f));
 			crt.set_display_type(Outputs::Display::DisplayType::RGB);
 		}
 
@@ -192,11 +191,7 @@ private:
 					switch(output_state) {
 						case OutputState::Sync:			crt.output_sync(count * active_clock_divider);							break;
 						case OutputState::Border:
-							if(active_border_colour) {
-								crt.output_blank(count * active_clock_divider);
-							} else {
-								crt.output_level<uint8_t>(count * active_clock_divider, active_border_colour);
-							}
+							crt.output_level<uint8_t>(count * active_clock_divider, active_border_colour);
 						break;
 						case OutputState::ColourBurst:	crt.output_colour_burst(count * active_clock_divider, colour_phase);	break;
 						case OutputState::Pixels:		flush_pixels();															break;
@@ -258,8 +253,8 @@ private:
 			//
 			// Meanwhile, row address is used as a substitute 14th address line.
 			const auto base_address =
-				((state.refresh_address & 0xfff) << 1) +
-				((state.row_address & 1) << 13);
+				((state.refresh.get() & 0xfff) << 1) +
+				((state.line.get() & 1) << 13);
 			const uint8_t bitmap[] = {
 				ram[base_address],
 				ram[base_address + 1],
@@ -295,16 +290,16 @@ private:
 		}
 
 		void serialise_text(const Motorola::CRTC::BusState &state) {
-			const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0x3fff];
-			const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0x3fff];
-			const uint8_t row = font[(glyph * 8) + state.row_address];
+			const uint8_t attributes = ram[((state.refresh.get() << 1) + 1) & 0x3fff];
+			const uint8_t glyph = ram[((state.refresh.get() << 1) + 0) & 0x3fff];
+			const uint8_t row = font[(glyph * 8) + state.line.get()];
 
 			uint8_t colours[2] = { rgb(attributes >> 4), rgbi(attributes) };
 
 			// Apply blink or background intensity.
 			if(control_ & 0x20) {
 				// Set both colours to black if within a blink; otherwise consider a yellow-to-brown conversion.
-				if((attributes & 0x80) && (state.field_count & 16)) {
+				if((attributes & 0x80) && state.field_count.bit<4>()) {
 					colours[0] = colours[1] = 0;
 				} else {
 					colours[0] = yellow_to_brown(colours[0]);
@@ -416,12 +411,12 @@ private:
 		}
 
 		/// @returns The brightened (i.e. high intensity) version of @c source.
-		constexpr uint8_t bright(const uint8_t source) {
+		static constexpr uint8_t bright(const uint8_t source) {
 			return source | (source >> 1);
 		}
 
 		/// Maps the RGB TTL triplet @c source to an appropriate output colour.
-		constexpr uint8_t rgb(const uint8_t source) {
+		static constexpr uint8_t rgb(const uint8_t source) {
 			return uint8_t(
 				((source & 0x01) << 1) |
 				((source & 0x02) << 2) |

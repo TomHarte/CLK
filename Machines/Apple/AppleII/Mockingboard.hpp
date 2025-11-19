@@ -86,7 +86,7 @@ public:
 	}
 
 	void did_change_interrupt_flags() {
-		delegate_->card_did_change_interrupt_flags(this);
+		delegate_->card_did_change_interrupt_flags(*this);
 	}
 
 private:

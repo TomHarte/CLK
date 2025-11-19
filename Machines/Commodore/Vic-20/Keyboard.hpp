@@ -13,8 +13,11 @@
 
 namespace Commodore::Vic20 {
 
+constexpr uint16_t key(const int line, const int mask) {
+	return uint16_t((mask << 3) | line);
+}
+
 enum Key: uint16_t {
-#define key(line, mask) (((mask) << 3) | (line))
 	Key2		= key(7, 0x01),		Key4		= key(7, 0x02),		Key6			= key(7, 0x04),		Key8		= key(7, 0x08),
 	Key0		= key(7, 0x10),		KeyDash		= key(7, 0x20),		KeyHome			= key(7, 0x40),		KeyF7		= key(7, 0x80),
 	KeyQ		= key(6, 0x01),		KeyE		= key(6, 0x02),		KeyT			= key(6, 0x04),		KeyU		= key(6, 0x08),
@@ -33,16 +36,15 @@ enum Key: uint16_t {
 	Key9		= key(0, 0x10),		KeyPlus		= key(0, 0x20),		KeyGBP			= key(0, 0x40),		KeyDelete	= key(0, 0x80),
 
 	// Virtual keys.
-	KeyUp		= 0xfff0,
-	KeyLeft		= 0xfff1,
-	KeyF2		= 0xfff2,
-	KeyF4		= 0xfff3,
-	KeyF6		= 0xfff4,
-	KeyF8		= 0xfff5,
+	KeyUp		= 0xfe00,
+	KeyLeft,
+	KeyF2,
+	KeyF4,
+	KeyF6,
+	KeyF8,
 
 	// Physical keys not within the usual matrix.
-	KeyRestore	= 0xfffd,
-#undef key
+	KeyRestore,
 };
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {

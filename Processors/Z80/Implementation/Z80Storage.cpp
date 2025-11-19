@@ -363,7 +363,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 		DEC_INC_DEC_LD(de_, de_.halves.low),
 
 		/* 0x1f RRA */			Sequence({MicroOp::RRA}),
-		/* 0x20 JR NZ */		JR(TestNZ),							 /* 0x21 LD HL, nn */	Sequence(Read16Inc(pc_, index)),
+		/* 0x20 JR NZ */		JR(TestNZ),							/* 0x21 LD HL, nn */	Sequence(Read16Inc(pc_, index)),
 		/* 0x22 LD (nn), HL */	Sequence(Read16Inc(pc_, memptr_), Write16(memptr_, index)),
 
 		/* 0x23 INC HL;	0x24 INC H;	0x25 DEC H;	0x26 LD H, n */

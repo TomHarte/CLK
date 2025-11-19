@@ -160,6 +160,25 @@
 	return self;
 }
 
+- (instancetype)initWithBBCMicroDFS:(BOOL)dfs adfs:(BOOL)adfs sidewaysRAM:(BOOL)sidewaysRAM secondProcessor:(CSMachineBBCMicroSecondProcessor)secondProcessor {
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::Acorn::BBCMicroTarget;
+		auto target = std::make_unique<Target>();
+		target->has_1770dfs = dfs;
+		target->has_adfs = adfs;
+		target->has_sideways_ram = sidewaysRAM;
+
+		switch(secondProcessor) {
+			case CSMachineBBCMicroSecondProcessorNone:	target->tube_processor = Target::TubeProcessor::None;		break;
+			case CSMachineBBCMicroSecondProcessor65C02:	target->tube_processor = Target::TubeProcessor::WDC65C02;	break;
+			case CSMachineBBCMicroSecondProcessorZ80:	target->tube_processor = Target::TubeProcessor::Z80;		break;
+		}
+		_targets.push_back(std::move(target));
+	}
+	return self;
+}
+
 - (instancetype)initWithCommodoreTEDModel:(CSMachineCommodoreTEDModel)model hasC1541:(BOOL)hasC1541 {
 	self = [super init];
 	if(self) {
@@ -390,12 +409,15 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 // MARK: - NIB mapping
 
 - (NSString *)optionsNibName {
+	// TODO: the below could be worked out dynamically, I think. It's a bit of a hangover from before configuration
+	// options were reflective.
 	switch(_targets.front()->machine) {
-		case Analyser::Machine::AmstradCPC:		return @"CompositeOptions";
+		case Analyser::Machine::AmstradCPC:		return @"CompositeDynamicCropOptions";
 		case Analyser::Machine::Archimedes:		return @"QuickLoadOptions";
 		case Analyser::Machine::AppleII:		return @"AppleIIOptions";
 		case Analyser::Machine::Atari2600:		return @"Atari2600Options";
 		case Analyser::Machine::AtariST:		return @"CompositeOptions";
+		case Analyser::Machine::BBCMicro:		return @"DynamicCropOptions";
 		case Analyser::Machine::ColecoVision:	return @"CompositeOptions";
 		case Analyser::Machine::Electron:		return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::Enterprise:		return @"CompositeOptions";

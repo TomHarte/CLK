@@ -22,20 +22,23 @@ namespace ROM {
 enum Name {
 	None,
 
-	// Acorn Electron.
+	// Acorn Archimedes.
+	AcornArthur030,
+	AcornRISCOS200,
+	AcornRISCOS311,
+	AcornRISCOS319,
+
+	// Acorn 8-bit.
 	AcornBASICII,
+
+	// Acorn Electron.
 	AcornElectronMOS100,
 	PRESADFSSlot1,
 	PRESADFSSlot2,
 	AcornADFS,
 	PRESAdvancedPlus6,
 	Acorn1770DFS,
-
-	// Acorn Archimedes.
-	AcornArthur030,
-	AcornRISCOS200,
-	AcornRISCOS311,
-	AcornRISCOS319,
+	AcornIDEADFS103,
 
 	// Amiga.
 	AmigaKickstart10,
@@ -76,6 +79,15 @@ enum Name {
 	// Atari ST.
 	AtariSTTOS100,
 	AtariSTTOS104,
+
+	// BBC Micro.
+	BBCMicroMOS12,
+	BBCMicro8271DFS09,
+	BBCMicro1770DFS226,
+	BBCMicroADFS130,
+	BBCMicroAdvancedDiscToolkit140,
+	BBCMicro6502Tube110,
+	BBCMicroZ80Tube122,
 
 	// ColecoVision.
 	ColecoVisionBIOS,
@@ -136,7 +148,7 @@ enum Name {
 	OricMicrodisc,
 	Oric8DOSBoot,
 
-	// PCCompatible.
+	// PC Compatible.
 	PCCompatibleGLaBIOS,
 	PCCompatibleGLaTICK,
 	PCCompatiblePhoenix80286BIOS,
@@ -149,6 +161,8 @@ enum Name {
 	PCCompatibleCGAFont,
 	PCCompatibleEGABIOS,
 	PCCompatibleVGABIOS,
+
+	IBMBASIC110,
 
 	// Plus 4.
 	Plus4KernelPALv3,
@@ -221,8 +235,20 @@ struct Description {
 
 private:
 	template <typename FileNameT, typename CRC32T> Description(
-		Name name, std::string machine_name, std::string descriptive_name, FileNameT file_names, size_t size, CRC32T crc32s = uint32_t(0)
-	) : name{name}, machine_name{machine_name}, descriptive_name{descriptive_name}, file_names{file_names}, size{size}, crc32s{crc32s} {
+		const Name name,
+		const char *machine_name,
+		const char *descriptive_name,
+		const FileNameT &file_names,
+		const size_t size,
+		const CRC32T crc32s = uint32_t(0)
+	) :
+		name{name},
+		machine_name{machine_name},
+		descriptive_name{descriptive_name},
+		file_names{file_names},
+		size{size},
+		crc32s{crc32s}
+	{
 		// Slightly lazy: deal with the case where the constructor wasn't provided with any
 		// CRCs by spotting that the set has exactly one member, which has value 0. The alternative
 		// would be to provide a partial specialisation that never put anything into the set.
@@ -230,6 +256,8 @@ private:
 			this->crc32s.clear();
 		}
 	}
+
+	static const std::vector<Description> &all_roms();
 };
 
 /// @returns a vector of all possible instances of ROM::Description — i.e. descriptions of every ROM

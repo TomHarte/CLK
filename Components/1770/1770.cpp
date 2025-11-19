@@ -8,11 +8,11 @@
 
 #include "1770.hpp"
 
-#include "Storage/Disk/Encodings/MFM/Constants.hpp"
 #include "Outputs/Log.hpp"
+#include "Storage/Disk/Encodings/MFM/Constants.hpp"
 
 namespace {
-Log::Logger<Log::Source::WDFDC> logger;
+using Logger = Log::Logger<Log::Source::WDFDC>;
 }
 
 using namespace WD;
@@ -31,10 +31,10 @@ void WD1770::write(const int address, const uint8_t value) {
 			if((value&0xf0) == 0xd0) {
 				if(value == 0xd0) {
 					// Force interrupt **immediately**.
-					logger.info().append("Force interrupt immediately");
+					Logger::info().append("Force interrupt immediately");
 					posit_event(int(Event1770::ForceInterrupt));
 				} else {
-					logger.error().append("TODO: force interrupt");
+					Logger::error().append("TODO: force interrupt");
 					update_status([] (Status &status) {
 						status.type = Status::One;
 					});
@@ -101,19 +101,20 @@ uint8_t WD1770::read(const int address) {
 				if(status_.type == Status::One)
 					status |= (status_.spin_up ? Flag::SpinUp : 0);
 			}
-//			logger.info().append("Returned status %02x of type %d", status, 1+int(status_.type));
+//			Logger::info().append("Returned status %02x of type %d", status, 1+int(status_.type));
 			return status;
 		}
 		case 1:
-			logger.info().append("Returned track %d", track_);
+			Logger::info().append("Returned track %d", track_);
 			return track_;
 		case 2:
-			logger.info().append("Returned sector %d", sector_);
+			Logger::info().append("Returned sector %d", sector_);
 			return sector_;
 		case 3:
 			update_status([] (Status &status) {
 				status.data_request = false;
 			});
+//			Logger::info().append("Returned data %02x; [drq:%d]", data_, status_.data_request);
 		return data_;
 	}
 }
@@ -132,17 +133,34 @@ void WD1770::run_for(const Cycles cycles) {
 	}
 }
 
+#include <iostream>
+
 void WD1770::posit_event(const int new_event_type) {
-#define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = int(mask); return; case __LINE__:
-#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; delay_time_ = ms * 8000; WAIT_FOR_EVENT(Event1770::Timer);
-#define WAIT_FOR_BYTES(count)	distance_into_section_ = 0; \
-								WAIT_FOR_EVENT(Event::Token); \
-								if(get_latest_token().type == Token::Byte) ++distance_into_section_; \
-								if(distance_into_section_ < count) { \
-									return;	\
-								}
-#define BEGIN_SECTION()	switch(resume_point_) { default:
-#define END_SECTION()	(void)0; }
+#define WAIT_FOR_EVENT(mask) {							\
+	interesting_event_mask_ = int(mask);				\
+	static constexpr int location = __COUNTER__ + 1;	\
+	resume_point_ = location;							\
+	return;												\
+	case location:										\
+		(void)0;										\
+}
+
+#define WAIT_FOR_TIME(ms)				\
+	delay_time_ = ms * 8000;			\
+	WAIT_FOR_EVENT(Event1770::Timer);
+
+#define WAIT_FOR_BYTES(count)											\
+	distance_into_section_ = 0;											\
+	WAIT_FOR_EVENT(Event::Token);										\
+	distance_into_section_ += get_latest_token().type == Token::Byte;	\
+	if(distance_into_section_ < count) {								\
+		RESUME_WAIT(Event::Token);										\
+	}
+
+#define RESUME_WAIT(mask)		interesting_event_mask_ = int(mask); return;
+
+#define BEGIN_SECTION()			switch(resume_point_) { default:
+#define END_SECTION()			(void)0; }
 
 	const auto READ_ID = [&] {
 		if(new_event_type == int(Event::Token)) {
@@ -183,7 +201,7 @@ void WD1770::posit_event(const int new_event_type) {
 
 	if(new_event_type == int(Event1770::ForceInterrupt)) {
 		interesting_event_mask_ = 0;
-		resume_point_ = 0;
+		resume_point_ = IdleResumePoint;
 		update_status([] (Status &status) {
 			status.type = Status::One;
 			status.data_request = false;
@@ -214,9 +232,9 @@ void WD1770::posit_event(const int new_event_type) {
 	BEGIN_SECTION()
 
 	// Wait for a new command, branch to the appropriate handler.
-	case 0:
+	case IdleResumePoint:
 	wait_for_command:
-		logger.info().append("Idle...");
+		Logger::info().append("Idle...");
 		set_data_mode(DataMode::Scanning);
 		index_hole_count_ = 0;
 
@@ -233,7 +251,7 @@ void WD1770::posit_event(const int new_event_type) {
 			status.track_zero = false;	// Always reset by a non-type 1; so reset regardless and set properly later.
 		});
 
-		logger.info().append("Starting %02x", command_);
+		Logger::info().append("Starting %02x", command_);
 
 		if(!(command_ & 0x80)) goto begin_type_1;
 		if(!(command_ & 0x40)) goto begin_type_2;
@@ -263,7 +281,7 @@ void WD1770::posit_event(const int new_event_type) {
 			status.data_request = false;
 		});
 
-		logger.info().append("Step/Seek/Restore with track %d data %d", track_, data_);
+		Logger::info().append("Step/Seek/Restore with track %d data %d", track_, data_);
 		if(!has_motor_on_line() && !has_head_load_line()) goto test_type1_type;
 
 		if(has_motor_on_line()) goto begin_type1_spin_up;
@@ -343,7 +361,7 @@ void WD1770::posit_event(const int new_event_type) {
 		READ_ID();
 
 		if(index_hole_count_ == 6) {
-			logger.info().append("Nothing found to verify");
+			Logger::info().append("Nothing found to verify");
 			update_status([] (Status &status) {
 				status.seek_error = true;
 			});
@@ -361,7 +379,7 @@ void WD1770::posit_event(const int new_event_type) {
 			}
 
 			if(header_[0] == track_) {
-				logger.info().append("Reached track %d", track_);
+				Logger::info().append("Reached track %d", track_);
 				update_status([] (Status &status) {
 					status.crc_error = false;
 				});
@@ -434,7 +452,7 @@ void WD1770::posit_event(const int new_event_type) {
 		READ_ID();
 
 		if(index_hole_count_ == 5) {
-			logger.info().append("Failed to find sector %d", sector_);
+			Logger::info().append("Failed to find sector %d", sector_);
 			update_status([] (Status &status) {
 				status.record_not_found = true;
 			});
@@ -444,12 +462,12 @@ void WD1770::posit_event(const int new_event_type) {
 			distance_into_section_ = 0;
 			set_data_mode(DataMode::Scanning);
 
-			logger.info().append("Considering %d/%d", header_[0], header_[2]);
+			Logger::info().append("Considering %d/%d", header_[0], header_[2]);
 			if(		header_[0] == track_ && header_[2] == sector_ &&
 					(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1])) {
-				logger.info().append("Found %d/%d", header_[0], header_[2]);
+				Logger::info().append("Found %d/%d", header_[0], header_[2]);
 				if(get_crc_generator().get_value()) {
-					logger.info().append("CRC error; back to searching");
+					Logger::info().append("CRC error; back to searching");
 					update_status([] (Status &status) {
 						status.crc_error = true;
 					});
@@ -507,18 +525,18 @@ void WD1770::posit_event(const int new_event_type) {
 			set_data_mode(DataMode::Scanning);
 
 			if(get_crc_generator().get_value()) {
-				logger.info().append("CRC error; terminating");
+				Logger::info().append("CRC error; terminating");
 				update_status([] (Status &status) {
 					status.crc_error = true;
 				});
 				goto wait_for_command;
 			}
 
-			logger.info().append("Finished reading sector %d", sector_);
+			Logger::info().append("Finished reading sector %d", sector_);
 
 			if(command_ & 0x10) {
 				sector_++;
-				logger.info().append("Advancing to search for sector %d", sector_);
+				Logger::info().append("Advancing to search for sector %d", sector_);
 				goto test_type2_write_protection;
 			}
 			goto wait_for_command;
@@ -544,7 +562,7 @@ void WD1770::posit_event(const int new_event_type) {
 		}
 
 		set_data_mode(DataMode::Writing);
-		begin_writing(false);
+		begin_writing(false, false);
 		for(int c = 0; c < (get_is_double_density() ? 12 : 6); c++) {
 			write_byte(0);
 		}
@@ -602,7 +620,7 @@ void WD1770::posit_event(const int new_event_type) {
 			sector_++;
 			goto test_type2_write_protection;
 		}
-		logger.info().append("Wrote sector %d", sector_);
+		Logger::info().append("Wrote sector %d", sector_);
 		goto wait_for_command;
 
 
@@ -737,7 +755,7 @@ void WD1770::posit_event(const int new_event_type) {
 		}
 
 		WAIT_FOR_EVENT(Event1770::IndexHoleTarget);
-		begin_writing(true);
+		begin_writing(true, false);
 		index_hole_count_ = 0;
 
 	write_track_write_loop:
@@ -820,7 +838,7 @@ void WD1770::update_status(const std::function<void(Status &)> updater) {
 			(status_.busy != old_status.busy) ||
 			(status_.data_request != old_status.data_request) ||
 			(status_.interrupt_request != old_status.interrupt_request);
-		if(did_change) delegate_->wd1770_did_change_output(this);
+		if(did_change) delegate_->wd1770_did_change_output(*this);
 	} else updater(status_);
 
 	if(status_.busy != old_status.busy) update_clocking_observer();

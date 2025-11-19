@@ -13,9 +13,7 @@
 using namespace I2C;
 
 namespace {
-
-Log::Logger<Log::Source::I2C> logger;
-
+using Logger = Log::Logger<Log::Source::I2C>;
 }
 
 void Bus::set_data(const bool pulled) {
@@ -52,7 +50,7 @@ void Bus::set_clock_data(const bool clock_pulled, const bool data_pulled) {
 	if(peripheral_bits_) {
 		// Trailing edge of clock => bit has been consumed.
 		if(!prior_clock && clock_) {
-			logger.info().append("<< %d", (peripheral_response_ >> 7) & 1);
+			Logger::info().append("<< %d", (peripheral_response_ >> 7) & 1);
 			--peripheral_bits_;
 			peripheral_response_ <<= 1;
 
@@ -68,10 +66,10 @@ void Bus::set_clock_data(const bool clock_pulled, const bool data_pulled) {
 		// A data transition outside of a clock cycle implies a start or stop.
 		in_bit_ = false;
 		if(data_) {
-			logger.info().append("S");
+			Logger::info().append("S");
 			signal(Event::Start);
 		} else {
-			logger.info().append("W");
+			Logger::info().append("W");
 			signal(Event::Stop);
 		}
 	} else if(clock_ != prior_clock) {
@@ -85,10 +83,10 @@ void Bus::set_clock_data(const bool clock_pulled, const bool data_pulled) {
 			in_bit_ = false;
 
 			if(data_) {
-				logger.info().append("0");
+				Logger::info().append("0");
 				signal(Event::Zero);
 			} else {
-				logger.info().append("1");
+				Logger::info().append("1");
 				signal(Event::One);
 			}
 		}

@@ -62,6 +62,13 @@ public:
 
 			case 0x8: return outputter_.control();
 
+			case 0xa:
+				// b3: live video output
+				// b0: 1 if horizontal retrace is active
+			return
+				(crtc_.get_bus_state().vsync ? 0x8 : 0x0) |
+				0xf0;
+
 			default: return 0xff;
 		}
 	}
@@ -89,7 +96,6 @@ private:
 			// TODO: really this should be a Luminance8 and set an appropriate modal tint colour;
 			// consider whether that's worth building into the scan target.
 		{
-			crt.set_visible_area(Outputs::Display::Rect(0.028f, 0.025f, 0.98f, 0.98f));
 			crt.set_display_type(Outputs::Display::DisplayType::RGB);
 		}
 
@@ -151,9 +157,9 @@ private:
 						pixel_pointer[4] =	pixel_pointer[5] =	pixel_pointer[6] =	pixel_pointer[7] =
 						pixel_pointer[8] =	low_intensity;
 					} else {
-						const uint8_t attributes = ram[((state.refresh_address << 1) + 1) & 0xfff];
-						const uint8_t glyph = ram[((state.refresh_address << 1) + 0) & 0xfff];
-						uint8_t row = font[(glyph * 14) + state.row_address];
+						const uint8_t attributes = ram[((state.refresh.get() << 1) + 1) & 0xfff];
+						const uint8_t glyph = ram[((state.refresh.get() << 1) + 0) & 0xfff];
+						uint8_t row = font[(glyph * 14) + state.line.get()];
 
 						const uint8_t intensity = (attributes & 0x08) ? high_intensity : low_intensity;
 						uint8_t blank = off;
@@ -171,12 +177,12 @@ private:
 						}
 
 						// Apply blink if enabled.
-						if((control_ & 0x20) && (attributes & 0x80) && (state.field_count & 16)) {
+						if((control_ & 0x20) && (attributes & 0x80) && state.field_count.bit<4>()) {
 							row ^= 0xff;
 							blank = (blank == off) ? intensity : off;
 						}
 
-						if(((attributes & 7) == 1) && state.row_address == 13) {
+						if(((attributes & 7) == 1) && state.line.get() == 13) {
 							// Draw as underline.
 							std::fill(pixel_pointer, pixel_pointer + 9, intensity);
 						} else {

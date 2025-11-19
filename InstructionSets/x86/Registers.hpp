@@ -8,18 +8,21 @@
 
 #pragma once
 
-#include "InstructionSets/x86/Descriptors.hpp"
-#include "InstructionSets/x86/MachineStatus.hpp"
-#include "InstructionSets/x86/Model.hpp"
+#include "Descriptors.hpp"
+#include "MachineStatus.hpp"
+#include "Model.hpp"
+
 #include "Numeric/RegisterSizes.hpp"
 
-namespace PCCompatible {
+#include <cassert>
 
-template <InstructionSet::x86::Model>
+namespace InstructionSet::x86 {
+
+template <Model>
 struct Registers;
 
 template <>
-struct Registers<InstructionSet::x86::Model::i8086> {
+struct Registers<Model::i8086> {
 public:
 	static constexpr bool is_32bit = false;
 
@@ -57,7 +60,7 @@ public:
 	uint16_t cs() const	{	return segments_[Source::CS];	}
 	uint16_t ds() const	{	return segments_[Source::DS];	}
 	uint16_t ss() const	{	return segments_[Source::SS];	}
-	uint16_t segment(const InstructionSet::x86::Source segment) const {
+	uint16_t segment(const Source segment) const {
 		return segments_[segment];
 	}
 
@@ -66,9 +69,9 @@ public:
 		ip_ = 0;
 	}
 
-private:
-	using Source = InstructionSet::x86::Source;
+	auto operator <=> (const Registers &rhs) const = default;
 
+private:
 	CPU::RegisterPair16 ax_;
 	CPU::RegisterPair16 cx_;
 	CPU::RegisterPair16 dx_;
@@ -79,53 +82,72 @@ private:
 	uint16_t si_;
 	uint16_t di_;
 	uint16_t ip_;
-	InstructionSet::x86::SegmentRegisterSet<uint16_t> segments_;
+	SegmentRegisterSet<uint16_t> segments_;
 };
 
 template <>
-struct Registers<InstructionSet::x86::Model::i80186>: public Registers<InstructionSet::x86::Model::i8086> {};
+struct Registers<Model::i80186>: public Registers<Model::i8086> {};
 
 template <>
-struct Registers<InstructionSet::x86::Model::i80286>: public Registers<InstructionSet::x86::Model::i80186> {
+struct Registers<Model::i80286>: public Registers<Model::i80186> {
 public:
 	void reset() {
-		Registers<InstructionSet::x86::Model::i80186>::reset();
+		Registers<Model::i80186>::reset();
 		machine_status_ = 0;
+		interrupt_ = DescriptorTablePointer{
+			.limit = 256 * 4,
+			.base = 0
+		};
 	}
 
 	uint16_t msw() const {	return machine_status_;	}
 	void set_msw(const uint16_t msw) {
 		machine_status_ =
-			(machine_status_ & InstructionSet::x86::MachineStatus::ProtectedModeEnable) |
+			(machine_status_ & MachineStatus::ProtectedModeEnable) |
 			msw;
 	}
 
-	using DescriptorTable = InstructionSet::x86::DescriptorTable;
-	using DescriptorTableLocation = InstructionSet::x86::DescriptorTablePointer;
+	uint16_t task_state() const { return task_state_; }
+	void set_task_state(const uint16_t tsr) {
+		task_state_ = tsr;
+	}
 
-	template <DescriptorTable table>
-	void set(const DescriptorTableLocation location) {
-		static constexpr bool is_global = table == DescriptorTable::Global;
-		static_assert(is_global || table == DescriptorTable::Interrupt);
-		auto &target = is_global ? global_ : interrupt_;
-		target = location;
+	uint16_t ldtr() const {	return ldtr_;	}
+	void set_ldtr(const uint16_t ldtr) {
+		ldtr_ = ldtr;
+	}
+
+	int privilege_level() const {
+		return 0;	// TODO.
+	}
+	void set_privilege_level(int) {
+		// TODO.
 	}
 
 	template <DescriptorTable table>
-	const DescriptorTableLocation &get() const {
-		if constexpr (table == DescriptorTable::Global) {
-			return global_;
-		} else if constexpr (table == DescriptorTable::Interrupt) {
-			return interrupt_;
-		} else {
-			static_assert(table == DescriptorTable::Local);
-			return local_;
+	void set(const DescriptorTablePointer location) {
+		switch(table) {
+			case DescriptorTable::Local:		local_ = location;		break;
+			case DescriptorTable::Global:		global_ = location;		break;
+			case DescriptorTable::Interrupt:	interrupt_ = location;	break;
+		}
+	}
+
+	template <DescriptorTable table>
+	const DescriptorTablePointer &get() const {
+		switch(table) {
+			case DescriptorTable::Local:		return local_;
+			case DescriptorTable::Global:		return global_;
+			default:
+				assert(table == DescriptorTable::Interrupt);
+				return interrupt_;
 		}
 	}
 
 private:
 	uint16_t machine_status_;
-	DescriptorTableLocation global_, interrupt_, local_;
+	DescriptorTablePointer global_, interrupt_, local_;
+	uint16_t ldtr_, task_state_;
 };
 
 }

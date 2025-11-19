@@ -10,11 +10,16 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 
 #include "Outputs/ScanTarget.hpp"
-#include "Internals/Flywheel.hpp"
+#include "Outputs/CRT/Internals/Flywheel.hpp"
+#include "Outputs/CRT/Internals/RectAccumulator.hpp"
+
+#include "Numeric/CubicCurve.hpp"
 
 namespace Outputs::CRT {
 
@@ -43,10 +48,8 @@ static constexpr bool AlternatesPhase = false;
 }
 
 class CRT;
-
-class Delegate {
-	public:
-		virtual void crt_did_end_batch_of_frames(CRT *crt, int number_of_frames, int number_of_unexpected_vertical_syncs) = 0;
+struct Delegate {
+	virtual void crt_did_end_batch_of_frames(CRT &, int frames, int unexpected_vertical_syncs) = 0;
 };
 
 /*!	Models a class 2d analogue output device, accepting a serial stream of data including syncs
@@ -55,60 +58,6 @@ class Delegate {
 	colour phase for colour composite video.
 */
 class CRT {
-private:
-	// The incoming clock lengths will be multiplied by @c time_multiplier_; this increases
-	// precision across the line.
-	int time_multiplier_ = 1;
-
-	// Two flywheels regulate scanning; the vertical will have a range much greater than the horizontal;
-	// the output divider is what that'll need to be divided by to reduce it into a 16-bit range as
-	// posted on to the scan target.
-	std::unique_ptr<Flywheel> horizontal_flywheel_, vertical_flywheel_;
-	int vertical_flywheel_output_divider_ = 1;
-	int cycles_since_horizontal_sync_ = 0;
-	Display::ScanTarget::Scan::EndPoint end_point(uint16_t data_offset);
-
-	struct Scan {
-		enum Type {
-			Sync, Level, Data, Blank, ColourBurst
-		} type = Scan::Blank;
-		int number_of_cycles = 0, number_of_samples = 0;
-		uint8_t phase = 0, amplitude = 0;
-	};
-	void output_scan(const Scan *scan);
-
-	uint8_t colour_burst_amplitude_ = 30;
-	int colour_burst_phase_adjustment_ = 0xff;
-
-	int64_t phase_denominator_ = 1;
-	int64_t phase_numerator_ = 0;
-	int64_t colour_cycle_numerator_ = 1;
-	bool is_alternate_line_ = false, phase_alternates_ = false, should_be_alternate_line_ = false;
-
-	void advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_requested, const Scan::Type type, int number_of_samples);
-	Flywheel::SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, int cycles_to_run_for, int *cycles_advanced);
-	Flywheel::SyncEvent get_next_horizontal_sync_event(bool hsync_is_requested, int cycles_to_run_for, int *cycles_advanced);
-
-	Delegate *delegate_ = nullptr;
-	int frames_since_last_delegate_call_ = 0;
-
-	bool is_receiving_sync_ = false;			// @c true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync); @c false otherwise.
-	bool is_accumulating_sync_ = false;			// @c true if a sync level has triggered the suspicion that a vertical sync might be in progress; @c false otherwise.
-	bool is_refusing_sync_ = false;				// @c true once a vertical sync has been detected, until a prolonged period of non-sync has ended suspicion of an ongoing vertical sync.
-	int sync_capacitor_charge_threshold_ = 0;	// Charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync.
-	int cycles_of_sync_ = 0;					// The number of cycles since the potential vertical sync began.
-	int cycles_since_sync_ = 0;					// The number of cycles since last in sync, for defeating the possibility of this being a vertical sync.
-
-	int cycles_per_line_ = 1;
-
-	Outputs::Display::ScanTarget *scan_target_ = &Outputs::Display::NullScanTarget::singleton;
-	Outputs::Display::ScanTarget::Modals scan_target_modals_;
-	static constexpr uint8_t DefaultAmplitude = 41;	// Based upon a black level to maximum excursion and positive burst peak of: NTSC: 882 & 143; PAL: 933 & 150.
-
-#ifndef NDEBUG
-	size_t allocated_data_length_ = std::numeric_limits<size_t>::min();
-#endif
-
 public:
 	/*!	Constructs the CRT with a specified clock rate, height and colour subcarrier frequency.
 		The requested number of buffers, each with the requested number of bytes per pixel,
@@ -130,18 +79,16 @@ public:
 
 		@param vertical_sync_half_lines The expected length of vertical synchronisation (equalisation pulses aside),
 		in multiples of half a line.
-
-		@param data_type The format that the caller will use for input data.
 	*/
 	CRT(int cycles_per_line,
 		int clocks_per_pixel_greatest_common_divisor,
 		int height_of_display,
-		Outputs::Display::ColourSpace colour_space,
+		Outputs::Display::ColourSpace,
 		int colour_cycle_numerator,
 		int colour_cycle_denominator,
 		int vertical_sync_half_lines,
 		bool should_alternate,
-		Outputs::Display::InputDataType data_type);
+		Outputs::Display::InputDataType);
 
 	/*! Constructs a monitor-style CRT — one that will take only an RGB or monochrome signal, and therefore has
 		no colour space or colour subcarrier frequency. This monitor will automatically map colour bursts to the black level.
@@ -150,15 +97,15 @@ public:
 		int clocks_per_pixel_greatest_common_divisor,
 		int height_of_display,
 		int vertical_sync_half_lines,
-		Outputs::Display::InputDataType data_type);
+		Outputs::Display::InputDataType);
 
 	/*!	Exactly identical to calling the designated constructor with colour subcarrier information
 		looked up by display type.
 	*/
 	CRT(int cycles_per_line,
 		int minimum_cycles_per_pixel,
-		Outputs::Display::Type display_type,
-		Outputs::Display::InputDataType data_type);
+		Outputs::Display::Type,
+		Outputs::Display::InputDataType);
 
 	/*!	Constructs a CRT with no guaranteed expectations as to input signal other than data type;
 		this allows for callers that intend to rely on @c set_new_timing.
@@ -170,7 +117,7 @@ public:
 	void set_new_timing(
 		int cycles_per_line,
 		int height_of_display,
-		Outputs::Display::ColourSpace colour_space,
+		Outputs::Display::ColourSpace,
 		int colour_cycle_numerator,
 		int colour_cycle_denominator,
 		int vertical_sync_half_lines,
@@ -180,15 +127,15 @@ public:
 		as though the new timing had been provided at construction. */
 	void set_new_display_type(
 		int cycles_per_line,
-		Outputs::Display::Type display_type);
+		Outputs::Display::Type);
 
 	/*!	Changes the type of data being supplied as input.
 	*/
-	void set_new_data_type(Outputs::Display::InputDataType data_type);
+	void set_new_data_type(Outputs::Display::InputDataType);
 
 	/*!	Sets the CRT's intended aspect ratio — 4.0/3.0 by default.
 	*/
-	void set_aspect_ratio(float aspect_ratio);
+	void set_aspect_ratio(float);
 
 	/*!	Output at the sync level.
 
@@ -214,7 +161,10 @@ public:
 		@param number_of_cycles The number of cycles to repeat the output for.
 	*/
 	template <typename IntT>
-	void output_level(int number_of_cycles, IntT value) {
+	void output_level(const int number_of_cycles, const IntT value) {
+		level_changes_in_frame_ += value != last_level_;
+		last_level_ = value;
+
 		auto colour_pointer = reinterpret_cast<IntT *>(begin_data(1));
 		if(colour_pointer) *colour_pointer = value;
 		output_level(number_of_cycles);
@@ -231,7 +181,7 @@ public:
 	*/
 	void output_data(int number_of_cycles, size_t number_of_samples);
 
-	/*! A shorthand form for output_data that assumes the number of cycles to output for is the same as the number of samples. */
+	/*! A shorthand form for @c output_data that assumes the number of cycles to output for is the same as the number of samples. */
 	void output_data(int number_of_cycles) {
 		output_data(number_of_cycles, size_t(number_of_cycles));
 	}
@@ -246,7 +196,12 @@ public:
 		@param amplitude The amplitude of the colour burst in 1/255ths of the amplitude of the
 		positive portion of the wave.
 	*/
-	void output_colour_burst(int number_of_cycles, uint8_t phase, bool is_alternate_line = false, uint8_t amplitude = DefaultAmplitude);
+	void output_colour_burst(
+		int number_of_cycles,
+		uint8_t phase,
+		bool is_alternate_line = false,
+		uint8_t amplitude = DefaultAmplitude
+	);
 
 	/*! Outputs a colour burst exactly in phase with CRT expectations using the idiomatic amplitude.
 
@@ -285,7 +240,7 @@ public:
 	}
 
 	/*!	Sets the gamma exponent for the simulated screen. */
-	void set_input_gamma(float gamma);
+	void set_input_gamma(float);
 
 	enum CompositeSourceType {
 		/// The composite function provides continuous output.
@@ -307,16 +262,35 @@ public:
 	*/
 	void set_composite_function_type(CompositeSourceType type, float offset_of_first_sample = 0.0f);
 
-	/*!	Nominates a section of the display to crop to for output. */
-	void set_visible_area(Outputs::Display::Rect visible_area);
+	/*!
+		Indicates that the CRT should adjust the visible frame dynamically.
+
+		@param initial Indicates the initial view rectangle
+	*/
+	void set_dynamic_framing(
+		Outputs::Display::Rect initial,
+		float max_centre_offset_x,
+		float max_centre_offset_y,
+		float maximum_scale = 0.95f,
+		float minimum_scale = 0.6f
+	);
+
+	/*!
+		Indicates that the CRT can calculate ideal framing once up front, and then merely scale between differing amounts of border.
+
+		It will use @c advance to request advances in input until it has managed to pick a suitable window.
+	*/
+	void set_fixed_framing(const std::function<void()> &advance);
+
+	/*!	Indicates that the CRT shall use only exactly the bounds specified. */
+	void set_fixed_framing(Outputs::Display::Rect);
 
 	/*!	@returns The rectangle describing a subset of the display, allowing for sync periods. */
 	Outputs::Display::Rect get_rect_for_area(
 		int first_line_after_sync,
 		int number_of_lines,
 		int first_cycle_after_sync,
-		int number_of_cycles,
-		float aspect_ratio) const;
+		int number_of_cycles) const;
 
 	/*!	Sets the CRT delegate; set to @c nullptr if no delegate is desired. */
 	inline void set_delegate(Delegate *delegate) {
@@ -346,51 +320,143 @@ public:
 
 	/*! Sets the output brightness. */
 	void set_brightness(float);
-};
-
-/*!
-	Provides a CRT delegate that will will observe sync mismatches and, when an appropriate threshold is crossed,
-	ask its receiver to try a different display frequency.
-*/
-template <typename Receiver> class CRTFrequencyMismatchWarner: public Outputs::CRT::Delegate {
-public:
-	CRTFrequencyMismatchWarner(Receiver &receiver) : receiver_(receiver) {}
-
-	void crt_did_end_batch_of_frames(Outputs::CRT::CRT *, int number_of_frames, int number_of_unexpected_vertical_syncs) final {
-		frame_records_[frame_record_pointer_ % frame_records_.size()].number_of_frames = number_of_frames;
-		frame_records_[frame_record_pointer_ % frame_records_.size()].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
-		++frame_record_pointer_;
-
-		if(frame_record_pointer_*2 >= frame_records_.size()*3) {
-			int total_number_of_frames = 0;
-			int total_number_of_unexpected_vertical_syncs = 0;
-			for(const auto &record: frame_records_) {
-				total_number_of_frames += record.number_of_frames;
-				total_number_of_unexpected_vertical_syncs += record.number_of_unexpected_vertical_syncs;
-			}
-
-			if(total_number_of_unexpected_vertical_syncs >= total_number_of_frames >> 1) {
-				reset();
-				receiver_.register_crt_frequency_mismatch();
-			}
-		}
-	}
-
-	void reset() {
-		for(auto &record: frame_records_) {
-			record.number_of_frames = 0;
-			record.number_of_unexpected_vertical_syncs = 0;
-		}
-	}
 
 private:
-	Receiver &receiver_;
-	struct FrameRecord {
-		int number_of_frames = 0;
-		int number_of_unexpected_vertical_syncs = 0;
+	CRT();
+
+	// Incoming clock lengths are multiplied by @c time_multiplier_ to increase precision across the line.
+	int time_multiplier_ = 0;
+
+	// Two flywheels regulate scanning; the vertical with a range much greater than the horizontal.
+	Flywheel horizontal_flywheel_, vertical_flywheel_;
+
+	// A divider to reduce the vertcial flywheel into a 16-bit range.
+	int vertical_flywheel_output_divider_ = 1;
+	int cycles_since_horizontal_sync_ = 0;
+
+	/// Samples the flywheels to generate a raster endpoint, tagging it with the specified @c data_offset.
+	Display::ScanTarget::Scan::EndPoint end_point(uint16_t data_offset);
+
+	struct Scan {
+		enum Type {
+			Sync, Level, Data, Blank, ColourBurst
+		} type = Scan::Blank;
+		int number_of_cycles = 0, number_of_samples = 0;
+		uint8_t phase = 0, amplitude = 0;
 	};
-	std::array<FrameRecord, 4> frame_records_;
-	size_t frame_record_pointer_ = 0;
+	void output_scan(const Scan &scan);
+
+	uint8_t colour_burst_amplitude_ = 30;
+	int colour_burst_phase_adjustment_ = 0xff;
+
+	int64_t phase_denominator_ = 1;
+	int64_t phase_numerator_ = 0;
+	int64_t colour_cycle_numerator_ = 1;
+	bool is_alternate_line_ = false, phase_alternates_ = false, should_be_alternate_line_ = false;
+
+	void advance_cycles(
+		int number_of_cycles,
+		bool hsync_requested,
+		bool vsync_requested,
+		const Scan::Type,
+		int number_of_samples);
+
+	Delegate *delegate_ = nullptr;
+	int frames_since_last_delegate_call_ = 0;
+
+	// @c true exactly if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync).
+	bool is_receiving_sync_ = false;
+
+	// @c true exactly if a sync level has triggered the suspicion that a vertical sync might be in progress.
+	bool is_accumulating_sync_ = false;
+
+	// @c true once a vertical sync has been detected, until a prolonged period of non-sync has ended suspicion
+	// of an ongoing vertical sync. Used to let horizontal sync free-run during vertical
+	bool is_refusing_sync_ = false;
+
+	// Charges up during sync; depletes otherwise. Triggrs vertical sync upon hitting a required threshold.
+	int sync_capacitor_charge_threshold_ = 0;
+
+	// Number of cycles since sync began, while sync lasts.
+	int cycles_of_sync_ = 0;
+
+	// Number of cycles sync last ended. Used to defeat the prospect of vertical sync.
+	int cycles_since_sync_ = 0;
+
+	int cycles_per_line_ = 1;
+
+	Outputs::Display::ScanTarget *scan_target_ = &Outputs::Display::NullScanTarget::singleton;
+	Outputs::Display::ScanTarget::Modals scan_target_modals_;
+
+	// Based upon a black level to maximum excursion and positive burst peak of: NTSC: 882 & 143; PAL: 933 & 150.
+	static constexpr uint8_t DefaultAmplitude = 41;
+
+	// Accumulator for interesting detail from this frame.
+	Outputs::Display::Rect active_rect_;
+	Outputs::Display::Rect border_rect_;
+	int captures_in_rect_ = 0;
+	int level_changes_in_frame_ = 0;
+	uint32_t last_level_ = 0;
+
+	// Current state of cropping rectangle, including any ongoing animation.
+	Outputs::Display::Rect posted_rect_;
+	Outputs::Display::Rect previous_posted_rect_;
+	Numeric::CubicCurve animation_curve_;
+
+	static constexpr int AnimationSteps = 100;
+	static constexpr int NoFrameYet = AnimationSteps + 1;
+	int animation_step_ = NoFrameYet;
+
+	// Configured cropping options.
+	enum class Framing {
+		Dynamic,
+		Static,
+		BorderReactive,
+
+		CalibratingAutomaticFixed,
+	};
+
+	RectAccumulator rect_accumulator_;
+	struct DynamicFramer {
+		// Constraints.
+		Display::Rect framing_bounds;
+		float max_offsets[2]{};
+		float minimum_scale = 0.85f;
+
+		// Output.
+		std::optional<Display::Rect> selection;
+
+		// Logic.
+		void update(
+			Display::Rect rect,
+			const std::optional<Display::Rect> accumulated,
+			const std::optional<Display::Rect> first_reading
+		) {
+			// Constrain to permitted bounds.
+			framing_bounds.constrain(rect, max_offsets[0], max_offsets[1]);
+
+			// Constrain to minimum scale.
+			rect.scale(
+				rect.size.width > minimum_scale ? 1.0f : minimum_scale / rect.size.width,
+				rect.size.height > minimum_scale ? 1.0f : minimum_scale / rect.size.height
+			);
+
+			if(accumulated.has_value()) {
+				selection = accumulated;
+			} else if(first_reading.has_value()) {
+				selection = first_reading;
+			}
+		}
+	} dynamic_framer_;
+	std::optional<Display::Rect> static_frame_;
+
+	Framing framing_ = Framing::CalibratingAutomaticFixed;
+	bool has_first_reading_ = false;
+	void posit(Display::Rect);
+
+#ifndef NDEBUG
+	size_t allocated_data_length_ = std::numeric_limits<size_t>::min();
+#endif
 };
 
 }

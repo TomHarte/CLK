@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Numeric/Carry.hpp"
+#include "AccessType.hpp"
 
 namespace InstructionSet::x86 {
 
@@ -80,6 +81,18 @@ class Flags {
 public:
 	using FlagT = uint32_t;
 
+	Flags(const Model model) {
+		switch(model) {
+			case Model::i8086:
+			case Model::i80186:
+				forced_set_ = 0xf002;
+			break;
+			default:
+				forced_set_ = 0x0002;
+			break;
+		}
+	}
+
 	// Flag getters.
 	template <Flag flag_v> bool flag() const {
 		switch(flag_v) {
@@ -121,7 +134,9 @@ public:
 	/// • Flag::Interrupt: sets interrupt if @c value is non-zero;
 	/// • Flag::Trap: sets interrupt if @c value is non-zero;
 	/// • Flag::Direction: sets direction if @c value is non-zero.
-	template <typename IntT, Flag... flags> void set_from(const IntT value) {
+	template <typename IntT, Flag... flags>
+	requires is_x86_data_type<IntT>
+	void set_from(const IntT value) {
 		for(const auto flag: {flags...}) {
 			switch(flag) {
 				default: break;
@@ -141,7 +156,9 @@ public:
 		set_from<FlagT, flags...>(value);
 	}
 
-	template <typename IntT> IntT carry_bit() const { return carry_ ? 1 : 0; }
+	template <typename IntT>
+	requires is_x86_data_type<IntT>
+	IntT carry_bit() const { return carry_ ? 1 : 0; }
 	bool not_parity_bit() const {
 		// x86 parity always considers the lowest 8-bits only.
 		auto result = static_cast<uint8_t>(parity_);
@@ -151,7 +168,9 @@ public:
 		return result & 1;
 	}
 
-	template <typename IntT> IntT direction() const { return static_cast<IntT>(direction_); }
+	template <typename IntT>
+	requires is_x86_data_type<IntT>
+	IntT direction() const { return static_cast<IntT>(direction_); }
 
 	// Complete value get and set.
 	void set(uint16_t value) {
@@ -170,7 +189,7 @@ public:
 
 	uint16_t get() const {
 		return
-			0xf002 |
+			forced_set_ |
 
 			(flag<Flag::Carry>() ? FlagValue::Carry : 0) |
 			(flag<Flag::AuxiliaryCarry>() ? FlagValue::AuxiliaryCarry : 0) |
@@ -209,22 +228,25 @@ public:
 
 private:
 	// Non-zero => set; zero => unset.
-	uint32_t carry_;
-	uint32_t auxiliary_carry_;
-	uint32_t sign_;
-	uint32_t overflow_;
-	uint32_t trap_;
-	uint32_t interrupt_;
+	uint32_t carry_{};
+	uint32_t auxiliary_carry_{};
+	uint32_t sign_{};
+	uint32_t overflow_{};
+	uint32_t trap_{};
+	uint32_t interrupt_{};
 
 	// +1 = direction flag not set;
 	// -1 = direction flag set.
-	int32_t direction_;
+	int32_t direction_{};
 
 	// Zero => set; non-zero => unset.
-	uint32_t zero_;
+	uint32_t zero_{};
 
 	// Odd number of bits => set; even => unset.
-	uint32_t parity_;
+	uint32_t parity_{};
+
+	// Model specific stuff: bits that are always set, regardless of other state.
+	uint16_t forced_set_{};
 };
 
 }

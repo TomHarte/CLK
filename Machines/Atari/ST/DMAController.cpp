@@ -16,7 +16,7 @@ using namespace Atari::ST;
 
 namespace {
 
-[[maybe_unused]] Log::Logger<Log::Source::AtariSTDMAController> logger;
+using Logger = Log::Logger<Log::Source::AtariSTDMAController>;
 
 enum Control: uint16_t {
 	Direction = 0x100,
@@ -122,7 +122,7 @@ void DMAController::write(int address, uint16_t value) {
 }
 
 void DMAController::set_floppy_drive_selection(bool drive1, bool drive2, bool side2) {
-//	logger.info().append("Selected: %s%s%s", drive1 ? "1" : "-", drive2 ? "2" : "-", side2 ? "s" : "-");
+//	Logger::info().append("Selected: %s%s%s", drive1 ? "1" : "-", drive2 ? "2" : "-", side2 ? "s" : "-");
 	fdc_.set_floppy_drive_selection(drive1, drive2, side2);
 }
 
@@ -135,12 +135,12 @@ void DMAController::run_for(HalfCycles duration) {
 	fdc_.run_for(duration.flush<Cycles>());
 }
 
-void DMAController::wd1770_did_change_output(WD::WD1770 *) {
+void DMAController::wd1770_did_change_output(WD::WD1770 &) {
 	// Check for a change in interrupt state.
 	const bool old_interrupt_line = interrupt_line_;
 	interrupt_line_ = fdc_.get_interrupt_request_line();
 	if(delegate_ && interrupt_line_ != old_interrupt_line) {
-		delegate_->dma_controller_did_change_output(this);
+		delegate_->dma_controller_did_change_output(*this);
 	}
 
 	// Check for a change in DRQ state, if it's the FDC that is currently being watched.
@@ -172,7 +172,7 @@ void DMAController::wd1770_did_change_output(WD::WD1770 *) {
 				// Set bus request.
 				if(!bus_request_line_) {
 					bus_request_line_ = true;
-					if(delegate_) delegate_->dma_controller_did_change_output(this);
+					if(delegate_) delegate_->dma_controller_did_change_output(*this);
 				}
 			}
 		}
@@ -182,7 +182,7 @@ void DMAController::wd1770_did_change_output(WD::WD1770 *) {
 int DMAController::bus_grant(uint16_t *ram, size_t size) {
 	// Being granted the bus negates the request.
 	bus_request_line_ = false;
-	if(delegate_) delegate_->dma_controller_did_change_output(this);
+	if(delegate_) delegate_->dma_controller_did_change_output(*this);
 
 	size <<= 1;	// Convert to bytes.
 	if(control_ & Control::Direction) {

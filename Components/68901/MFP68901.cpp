@@ -14,9 +14,7 @@
 #include "Outputs/Log.hpp"
 
 namespace {
-
-Log::Logger<Log::Source::MFP68901> logger;
-
+using Logger = Log::Logger<Log::Source::MFP68901>;
 }
 
 using namespace Motorola::MFP68901;
@@ -65,11 +63,11 @@ uint8_t MFP68901::read(int address) {
 		case 0x11:	case 0x12:	return get_timer_data(address - 0xf);
 
 		// USART block: TODO.
-		case 0x13:		logger.error().append("Read: sync character generator");	break;
-		case 0x14:		logger.error().append("Read: USART control");				break;
-		case 0x15:		logger.error().append("Read: receiver status");			break;
-		case 0x16:		logger.error().append("Read: transmitter status");		break;
-		case 0x17:		logger.error().append("Read: USART data");				break;
+		case 0x13:		Logger::error().append("Read: sync character generator");	break;
+		case 0x14:		Logger::error().append("Read: USART control");				break;
+		case 0x15:		Logger::error().append("Read: receiver status");			break;
+		case 0x16:		Logger::error().append("Read: transmitter status");			break;
+		case 0x17:		Logger::error().append("Read: USART data");					break;
 	}
 	return 0x00;
 }
@@ -114,7 +112,7 @@ void MFP68901::write(int address, const uint8_t value) {
 		return;
 	}
 
-	constexpr int timer_prescales[] = {
+	static constexpr int timer_prescales[] = {
 		1, 4, 10, 16, 50, 64, 100, 200
 	};
 
@@ -170,11 +168,11 @@ void MFP68901::write(int address, const uint8_t value) {
 		break;
 
 		// USART block: TODO.
-		case 0x13:		logger.error().append("Write: sync character generator");	break;
-		case 0x14:		logger.error().append("Write: USART control");				break;
-		case 0x15:		logger.error().append("Write: receiver status");			break;
-		case 0x16:		logger.error().append("Write: transmitter status");			break;
-		case 0x17:		logger.error().append("Write: USART data");					break;
+		case 0x13:		Logger::error().append("Write: sync character generator");	break;
+		case 0x14:		Logger::error().append("Write: USART control");				break;
+		case 0x15:		Logger::error().append("Write: receiver status");			break;
+		case 0x16:		Logger::error().append("Write: transmitter status");		break;
+		case 0x17:		Logger::error().append("Write: USART data");				break;
 	}
 
 	update_clocking_observer();
@@ -221,7 +219,7 @@ HalfCycles MFP68901::next_sequence_point() {
 // MARK: - Timers
 
 void MFP68901::set_timer_mode(const int timer, const TimerMode mode, const int prescale, const bool reset_timer) {
-	logger.error().append("Timer %d mode set: %d; prescale: %d", timer, mode, prescale);
+	Logger::error().append("Timer %d mode set: %d; prescale: %d", timer, mode, prescale);
 	timers_[timer].mode = mode;
 	if(reset_timer) {
 		timers_[timer].prescale_count = 0;
@@ -399,7 +397,7 @@ int MFP68901::acknowledge_interrupt() {
 
 	int selected = 0;
 	while((1 << selected) != mask) ++selected;
-//	logger.error().append("Interrupt acknowledged: %d", selected);
+//	Logger::error().append("Interrupt acknowledged: %d", selected);
 	return (interrupt_vector_ & 0xf0) | uint8_t(selected);
 }
 

@@ -60,10 +60,9 @@ public:
 */
 class IRQDelegatePortHandler: public PortHandler {
 public:
-	class Delegate {
-		public:
-			/// Indicates that the interrupt status has changed for the IRQDelegatePortHandler provided.
-			virtual void mos6522_did_change_interrupt_status(void *irq_delegate) = 0;
+	struct Delegate {
+		/// Indicates that the interrupt status has changed for the IRQDelegatePortHandler provided.
+		virtual void mos6522_did_change_interrupt_status(void *irq_delegate) = 0;
 	};
 
 	/// Sets the delegate that will receive notification of changes in the interrupt line.

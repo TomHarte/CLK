@@ -10,7 +10,13 @@
 
 using namespace Utility;
 
-Typer::Typer(const std::string &string, HalfCycles delay, HalfCycles frequency, CharacterMapper &character_mapper, Delegate *delegate) :
+Typer::Typer(
+	const std::string &string,
+	const HalfCycles delay,
+	const HalfCycles frequency,
+	CharacterMapper &character_mapper,
+	Delegate *const delegate
+) :
 		frequency_(frequency),
 		counter_(-delay),
 		delegate_(delegate),
@@ -33,7 +39,7 @@ void Typer::run_for(const HalfCycles duration) {
 
 	if(counter_ < 0 && counter_ + duration >= 0) {
 		if(!type_next_character()) {
-			delegate_->typer_reset(this);
+			delegate_->typer_reset(*this);
 		}
 	}
 
@@ -41,7 +47,7 @@ void Typer::run_for(const HalfCycles duration) {
 	while(string_pointer_ < string_.size() && counter_ > frequency_) {
 		counter_ -= frequency_;
 		if(!type_next_character()) {
-			delegate_->typer_reset(this);
+			delegate_->typer_reset(*this);
 		}
 	}
 }
@@ -70,7 +76,7 @@ void Typer::append(const std::string &string) {
 	}
 }
 
-const uint16_t *Typer::sequence_for_character(char c) const {
+const uint16_t *Typer::sequence_for_character(const char c) const {
 	const uint16_t *const sequence = character_mapper_.sequence_for_character(c);
 	if(!sequence || sequence[0] == MachineTypes::MappedKeyboardMachine::KeyNotMapped) {
 		return nullptr;
@@ -96,20 +102,17 @@ uint16_t Typer::try_type_next_character() {
 		delegate_->clear_all_keys();
 		if(character_mapper_.needs_pause_after_reset_all_keys() ||
 			(string_pointer_ > 0 && string_[string_pointer_ - 1] == string_[string_pointer_])) {
-			return 0xffff;	// Arbitrarily. Anything non-zero will do.
+			return MachineTypes::MappedKeyboardMachine::DelaySlot;
 		}
 		++phase_;
 	}
 
-	// If the sequence is over, stop.
-	if(sequence[phase_ - 2] == MachineTypes::MappedKeyboardMachine::KeyEndSequence) {
-		return 0;
+	// Don't forward ::KeyEndSequence.
+	const auto next = sequence[phase_ - 2];
+	if(next != MachineTypes::MappedKeyboardMachine::KeyEndSequence) {
+		delegate_->set_key_state(sequence[phase_ - 2], true);
 	}
-
-	// Otherwise, type the key.
-	delegate_->set_key_state(sequence[phase_ - 2], true);
-
-	return sequence[phase_ - 2];
+	return next;
 }
 
 bool Typer::type_next_character() {
@@ -118,13 +121,14 @@ bool Typer::type_next_character() {
 	while(true) {
 		const uint16_t key_pressed = try_type_next_character();
 
-		if(!key_pressed) {
+		if(key_pressed == MachineTypes::MappedKeyboardMachine::KeyEndSequence) {
 			phase_ = 0;
 			++string_pointer_;
 			if(string_pointer_ == string_.size()) return false;
+			continue;
 		}
 
-		if(key_pressed && character_mapper_.needs_pause_after_key(key_pressed)) {
+		if(character_mapper_.needs_pause_after_key(key_pressed)) {
 			break;
 		}
 	}

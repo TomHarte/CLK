@@ -34,7 +34,7 @@ static void add_sub(const IntT source, IntT &destination, Status &status) {
 	static_assert(!std::numeric_limits<IntT>::is_signed);
 
 	static_assert(operation == Numeric::Operation::Add || operation == Numeric::Operation::Subtract);
-	constexpr bool is_add = operation == Numeric::Operation::Add;
+	static constexpr bool is_add = operation == Numeric::Operation::Add;
 	IntT result = is_add ?
 		destination + source :
 		destination - source;
@@ -313,7 +313,7 @@ void shift(const uint32_t source, IntT &destination, Status &status, FlowControl
 		operation == Operation::LSRb || operation == Operation::LSRw || operation == Operation::LSRl
 	);
 
-	constexpr auto size = Numeric::bit_size<IntT>();
+	static constexpr auto size = Numeric::bit_size<IntT>();
 	const auto shift = shift_count<IntT>(uint8_t(source), flow_controller);
 
 	if(!shift) {
@@ -408,7 +408,7 @@ void rotate(const uint32_t source, IntT &destination, Status &status, FlowContro
 		operation == Operation::RORb || operation == Operation::RORw || operation == Operation::RORl
 	);
 
-	constexpr auto size = Numeric::bit_size<IntT>();
+	static constexpr auto size = Numeric::bit_size<IntT>();
 	auto shift = shift_count<IntT>(uint8_t(source), flow_controller);
 
 	if(!shift) {
@@ -440,7 +440,7 @@ void rox(const uint32_t source, IntT &destination, Status &status, FlowControlle
 		operation == Operation::ROXRb || operation == Operation::ROXRw || operation == Operation::ROXRl
 	);
 
-	constexpr auto size = Numeric::bit_size<IntT>();
+	static constexpr auto size = Numeric::bit_size<IntT>();
 	auto shift = shift_count<IntT>(uint8_t(source), flow_controller) % (size + 1);
 
 	if(!shift) {

@@ -66,9 +66,8 @@ public:
 	/// @returns The current value of the DRQ line output.
 	inline bool get_data_request_line() const		{	return status_.data_request;		}
 
-	class Delegate {
-		public:
-			virtual void wd1770_did_change_output(WD1770 *wd1770) = 0;
+	struct Delegate {
+		virtual void wd1770_did_change_output(WD1770 &) = 0;
 	};
 	inline void set_delegate(Delegate *delegate)	{	delegate_ = delegate;				}
 
@@ -125,8 +124,11 @@ private:
 	};
 	void posit_event(int type);
 	int interesting_event_mask_;
-	int resume_point_ = 0;
 	Cycles::IntType delay_time_ = 0;
+
+	// Current state machine stap pointer.
+	static constexpr int IdleResumePoint = 0;
+	int resume_point_ = IdleResumePoint;
 
 	// ID buffer
 	uint8_t header_[6];

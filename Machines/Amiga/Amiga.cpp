@@ -33,7 +33,7 @@ namespace {
 constexpr int PALClockRate = 7'093'790;
 //constexpr int NTSCClockRate = 7'159'090;
 
-Log::Logger<Log::Source::Amiga> logger;
+using Logger = Log::Logger<Log::Source::Amiga>;
 
 }
 
@@ -57,7 +57,7 @@ public:
 		chipset_(memory_, PALClockRate)
 	{
 		// Temporary: use a hard-coded Kickstart selection.
-		constexpr ROM::Name rom_name = ROM::Name::AmigaA500Kickstart13;
+		static constexpr ROM::Name rom_name = ROM::Name::AmigaA500Kickstart13;
 		ROM::Request request(rom_name);
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
@@ -95,7 +95,7 @@ public:
 		// Check for assertion of reset.
 		if(cycle.operation & CPU::MC68000::Operation::Reset) {
 			memory_.reset();
-			logger.info().append("Reset; PC is around %08x", mc68000_.get_state().registers.program_counter);
+			Logger::info().append("Reset; PC is around %08x", mc68000_.get_state().registers.program_counter);
 		}
 
 		// Autovector interrupts.
@@ -142,7 +142,7 @@ public:
 						if(select_b) chipset_.cia_b.write(reg, cycle.value8_high());
 					}
 
-//						logger.info().append("CIA %d %s %d of %04x", ((address >> 12) & 3)^3, operation & Microcycle::Read ? "read" : "write", reg & 0xf, cycle.value16());
+//					Logger::info().append("CIA %d %s %d of %04x", ((address >> 12) & 3)^3, operation & Microcycle::Read ? "read" : "write", reg & 0xf, cycle.value16());
 				} else if(address >= 0xdf'f000 && address <= 0xdf'f1be) {
 					chipset_.perform(cycle);
 				} else if(address >= 0xe8'0000 && address < 0xe9'0000) {
@@ -160,7 +160,7 @@ public:
 
 					// Log only for the region that is definitely not just ROM this machine doesn't have.
 					if(address < 0xf0'0000) {
-						logger.error().append("Unmapped %s %06x of %04x", cycle.operation & CPU::MC68000::Operation::Read ? "read from " : "write to ", (*cycle.address)&0xffffff, cycle.value16());
+						Logger::error().append("Unmapped %s %06x of %04x", cycle.operation & CPU::MC68000::Operation::Read ? "read from " : "write to ", (*cycle.address)&0xffffff, cycle.value16());
 					}
 				}
 			}

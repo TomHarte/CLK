@@ -9,7 +9,7 @@
 #pragma once
 
 #include "InstructionSets/x86/AccessType.hpp"
-#include "InstructionSets/x86/Interrupts.hpp"
+#include "InstructionSets/x86/Exceptions.hpp"
 #include "InstructionSets/x86/Perform.hpp"
 
 #include "Numeric/Carry.hpp"
@@ -92,11 +92,11 @@ void test(
 	/*
 		The OF and CF flags are cleared to 0.
 		The SF, ZF, and PF flags are set according to the result (see the “Operation” section above).
-		The state of the AF flag is undefined.
+		The state of the AF flag is formally undefined but known to be reset.
 	*/
 	const IntT result = destination & source;
 
-	context.flags.template set_from<Flag::Carry, Flag::Overflow>(0);
+	context.flags.template set_from<Flag::Carry, Flag::Overflow, Flag::AuxiliaryCarry>(0);
 	context.flags.template set_from<IntT, Flag::Zero, Flag::Sign, Flag::ParityOdd>(result);
 }
 
@@ -128,7 +128,7 @@ void mul(
 }
 
 template <typename IntT, typename ContextT>
-void imul(
+void imul_double(
 	modify_t<IntT> destination_high,
 	modify_t<IntT> destination_low,
 	read_t<IntT> source,
@@ -167,16 +167,33 @@ void imul(
 	context.flags.template set_from<Flag::Overflow, Flag::Carry>(destination_high != sign_extension);
 }
 
+template <typename IntT, typename ContextT>
+void imul_single(
+	write_t<IntT> destination,
+	read_t<IntT> source1,
+	read_t<IntT> source2,
+	ContextT &context
+) {
+	using sIntT = typename std::make_signed<IntT>::type;
+	const auto top_part = IntT((sIntT(source1) * sIntT(source2)) >> (8 * sizeof(IntT)));
+	const auto result = IntT(sIntT(source1) * sIntT(source2));
+	destination = result;
+
+	const auto sign_extension = (result & Numeric::top_bit<IntT>()) ? IntT(~0) : 0;
+	context.flags.template set_from<Flag::Overflow, Flag::Carry>(top_part != sign_extension);
+}
+
 template <typename ContextT>
 void divide_error(ContextT &context) {
 	// 8086-style: just segue directly to the interrupt.
 	//
 	// 80286-style: throw the divide error, allowing the caller to insert
 	// additional context (primarily: IP of this instruction, not the next).
+	static constexpr auto exception = Exception::exception<Vector::DivideError>();
 	if constexpr (uses_8086_exceptions(ContextT::model)) {
-		interrupt(Interrupt::DivideError, context);
+		interrupt(exception, context);
 	} else {
-		throw Exception(Interrupt::DivideError);
+		throw exception;
 	}
 }
 
@@ -273,7 +290,7 @@ void idiv(
 					FI;
 				ELSE (* quadword/doubleword operation *)
 					temp ← EDX:EAX / SRC; (* signed division *)
-					IF (temp > 7FFFFFFFH) OR (temp < 80000000H) 	(* if a positive result is greater than 7FFFFFFFH
+					IF (temp > 7FFFFFFFH) OR (temp < 80000000H)		(* if a positive result is greater than 7FFFFFFFH
 																	or a negative result is less than 80000000H *)
 						THEN #DE; (* divide error *) ;
 						ELSE

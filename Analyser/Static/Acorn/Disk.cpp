@@ -44,7 +44,7 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetDFSCatalogue(const std::s
 		case 3: catalogue->bootOption = Catalogue::BootOption::ExecBOOT;	break;
 	}
 
-	for(std::size_t file_offset = 8; file_offset < final_file_offset; file_offset += 8) {
+	for(std::size_t file_offset = 8; file_offset <= final_file_offset; file_offset += 8) {
 		File new_file;
 		char name[10];
 		snprintf(name, 10, "%c.%.7s", names->samples[0][file_offset + 7] & 0x7f, &names->samples[0][file_offset]);

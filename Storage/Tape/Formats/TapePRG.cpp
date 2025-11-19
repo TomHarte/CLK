@@ -49,7 +49,7 @@
 using namespace Storage::Tape;
 
 PRG::PRG(const std::string &file_name) : file_name_(file_name) {
-	FileHolder file(file_name, FileHolder::FileMode::Read);
+	FileHolder file(file_name, FileMode::Read);
 
 	// There's really no way to validate other than that if this file is larger than 64kb,
 	// of if load address + length > 65536 then it's broken.
@@ -68,7 +68,7 @@ std::unique_ptr<FormatSerialiser> PRG::format_serialiser() const {
 }
 
 PRG::Serialiser::Serialiser(const std::string &file_name, uint16_t load_address, uint16_t length) :
-	file_(file_name, FileHolder::FileMode::Read),
+	file_(file_name, FileMode::Read),
 	load_address_(load_address),
 	length_(length),
 	timings_(false)
@@ -100,7 +100,7 @@ Storage::Tape::Pulse PRG::Serialiser::next_pulse() {
 
 void PRG::Serialiser::reset() {
 	bit_phase_ = 3;
-	file_.seek(2, SEEK_SET);
+	file_.seek(2, Whence::SET);
 	file_phase_ = FilePhaseLeadIn;
 	phase_offset_ = 0;
 	copy_mask_ = 0x80;
@@ -111,10 +111,10 @@ bool PRG::Serialiser::is_at_end() const {
 }
 
 void PRG::Serialiser::get_next_output_token() {
-	constexpr int block_length = 192;	// not counting the checksum
-	constexpr int countdown_bytes = 9;
-	constexpr int leadin_length = 20000;
-	constexpr int block_leadin_length = 5000;
+	static constexpr int block_length = 192;	// not counting the checksum
+	static constexpr int countdown_bytes = 9;
+	static constexpr int leadin_length = 20000;
+	static constexpr int block_leadin_length = 5000;
 
 	if(file_phase_ == FilePhaseHeaderDataGap || file_phase_ == FilePhaseAtEnd) {
 		output_token_ = Silence;
@@ -157,7 +157,7 @@ void PRG::Serialiser::get_next_output_token() {
 			break;
 			case FilePhaseData:
 				copy_mask_ ^= 0x80;
-				file_.seek(2, SEEK_SET);
+				file_.seek(2, Whence::SET);
 				if(copy_mask_) {
 					file_phase_ = FilePhaseAtEnd;
 				}

@@ -81,7 +81,7 @@ private:
 					Outputs::Speaker::apply<action>(target[c], StereoSample(conversion_source_[c]));
 				}
 			} else {
-				constexpr bool is_final_source = sizeof...(R) == 0;
+				static constexpr bool is_final_source = sizeof...(R) == 0;
 
 				// Get the rest of the output, if any.
 				if constexpr (!is_final_source) {

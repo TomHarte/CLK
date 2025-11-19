@@ -73,14 +73,14 @@ struct LockProtectedDelegate {
 };
 
 struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockProtectedDelegate {
-	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) final {
+	void speaker_did_complete_samples(Outputs::Speaker::Speaker &speaker, const std::vector<int16_t> &buffer) final {
 		[machineAccessLock lock];
-		[machine speaker:speaker didCompleteSamples:buffer.data() length:(int)buffer.size()];
+		[machine speaker:&speaker didCompleteSamples:buffer.data() length:(int)buffer.size()];
 		[machineAccessLock unlock];
 	}
-	void speaker_did_change_input_clock(Outputs::Speaker::Speaker *speaker) final {
+	void speaker_did_change_input_clock(Outputs::Speaker::Speaker &speaker) final {
 		[machineAccessLock lock];
-		[machine speakerDidChangeInputClock:speaker];
+		[machine speakerDidChangeInputClock:&speaker];
 		[machineAccessLock unlock];
 	}
 };
@@ -667,6 +667,20 @@ struct ActivityObserver: public Activity::Observer {
 		Reflection::set(*options, "quickboot", useQuickBootingHack ? true : false);
 		configurable_device->set_options(options);
 	}
+}
+
+- (void)setUseDynamicCropping:(BOOL)useDynamicCropping {
+	Configurable::Device *configurable_device = _machine->configurable_device();
+	if(!configurable_device) return;
+
+	@synchronized(self) {
+		_useDynamicCropping = useDynamicCropping;
+
+		auto options = configurable_device->get_options();
+		Reflection::set(*options, "dynamiccrop", useDynamicCropping ? true : false);
+		configurable_device->set_options(options);
+	}
+
 }
 
 - (NSString *)userDefaultsPrefix {

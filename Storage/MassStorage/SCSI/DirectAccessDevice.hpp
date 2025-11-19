@@ -21,7 +21,7 @@ public:
 	/*!
 		Sets the backing storage exposed by this direct-access device.
 	*/
-	void set_storage(const std::shared_ptr<Storage::MassStorage::MassStorageDevice> &device);
+	void set_storage(const std::shared_ptr<Storage::MassStorage::MassStorageDevice> &);
 
 	/* SCSI commands. */
 	bool read(const Target::CommandState &, Target::Responder &);

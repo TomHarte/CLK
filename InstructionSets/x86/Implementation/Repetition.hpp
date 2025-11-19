@@ -51,8 +51,28 @@ void cmps(
 		return;
 	}
 
-	IntT lhs = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
-	const IntT rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
+	IntT lhs, rhs;
+	if constexpr (!uses_8086_exceptions(ContextT::model)) {
+		try {
+			rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
+		} catch (const Exception &e) {
+			eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			throw e;
+		}
+
+		try {
+			lhs = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+		} catch (const Exception &e) {
+			eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			repeat<AddressT, repetition>(eCX, context);
+			throw e;
+		}
+
+	} else {
+		rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
+		lhs = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+	}
 	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
 	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
 
@@ -72,11 +92,22 @@ void scas(
 		return;
 	}
 
-	const IntT rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
+	IntT rhs;
+	if(!uses_8086_exceptions(ContextT::model)) {
+		try {
+			rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
+		} catch (const Exception &e) {
+			eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			repeat<AddressT, repetition>(eCX, context);
+			throw e;
+		}
+
+	} else {
+		rhs = context.memory.template access<IntT, AccessType::Read>(Source::ES, eDI);
+	}
+
 	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
-
 	Primitive::sub<false, AccessType::Read, IntT>(eAX, rhs, context);
-
 	repeat<AddressT, repetition>(eCX, context);
 }
 
@@ -92,9 +123,19 @@ void lods(
 		return;
 	}
 
-	eAX = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
-	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+	if(!uses_8086_exceptions(ContextT::model)) {
+		try {
+			eAX = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+		} catch (const Exception &e) {
+			eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			repeat<AddressT, repetition>(eCX, context);
+			throw e;
+		}
+	} else {
+		eAX = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+	}
 
+	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
 	repeat<AddressT, repetition>(eCX, context);
 }
 
@@ -110,12 +151,33 @@ void movs(
 		return;
 	}
 
-	context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) =
-		context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+	if constexpr (!uses_8086_exceptions(ContextT::model)) {
+		IntT temp;
+
+		try {
+			temp = context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+		} catch (const Exception &e) {
+			eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			repeat<AddressT, repetition>(eCX, context);
+			throw e;
+		}
+
+		try {
+			context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = temp;
+		} catch (const Exception &e) {
+			eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			repeat<AddressT, repetition>(eCX, context);
+			repeat<AddressT, repetition>(eCX, context);
+			throw e;
+		}
+	} else {
+		context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) =
+			context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI);
+	}
 
 	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
 	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
-
 	repeat<AddressT, repetition>(eCX, context);
 }
 
@@ -123,16 +185,33 @@ template <typename IntT, typename AddressT, Repetition repetition, typename Cont
 void stos(
 	AddressT &eCX,
 	AddressT &eDI,
-	IntT &eAX,
+	const IntT eAX,
 	ContextT &context
 ) {
 	if(repetition_over<AddressT, repetition>(eCX)) {
 		return;
 	}
 
-	context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = eAX;
-	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
+	if constexpr (!uses_8086_exceptions(ContextT::model)) {
+		try {
+			context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = eAX;
+		} catch (const Exception &e) {
+			// Empirical quirk of at least the 286: DI is adjusted even if the following access throws,
+			// and CX has been adjusted... twice?
+			//
+			// (yes: including even if CX has already hit zero)
+			if constexpr (ContextT::model == Model::i80286) {
+				eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
+				repeat<AddressT, repetition>(eCX, context);
+				repeat<AddressT, repetition>(eCX, context);
+			}
 
+			throw e;
+		}
+	} else {
+		context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = eAX;
+	}
+	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
 	repeat<AddressT, repetition>(eCX, context);
 }
 
@@ -148,12 +227,26 @@ void outs(
 		return;
 	}
 
-	context.io.template out<IntT>(
-		port,
-		context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI)
-	);
-	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+	// TODO: break down as two potentially-throwing steps.
+	if(!uses_8086_exceptions(ContextT::model)) {
+		try {
+			context.io.template out<IntT>(
+				port,
+				context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI)
+			);
+		} catch (const Exception &e) {
+			eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			repeat<AddressT, repetition>(eCX, context);
+			throw e;
+		}
+	} else {
+		context.io.template out<IntT>(
+			port,
+			context.memory.template access<IntT, AccessType::Read>(instruction.data_segment(), eSI)
+		);
+	}
 
+	eSI += context.flags.template direction<AddressT>() * sizeof(IntT);
 	repeat<AddressT, repetition>(eCX, context);
 }
 
@@ -168,9 +261,22 @@ void ins(
 		return;
 	}
 
-	context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = context.io.template in<IntT>(port);
-	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
+	// TODO: break down as two potentially-throwing steps.
+	if(!uses_8086_exceptions(ContextT::model)) {
+		try {
+			context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) =
+				context.io.template in<IntT>(port);
+		} catch (const Exception &e) {
+			eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
+			repeat<AddressT, repetition>(eCX, context);
+			repeat<AddressT, repetition>(eCX, context);
+			throw e;
+		}
+	} else {
+		context.memory.template access<IntT, AccessType::Write>(Source::ES, eDI) = context.io.template in<IntT>(port);
+	}
 
+	eDI += context.flags.template direction<AddressT>() * sizeof(IntT);
 	repeat<AddressT, repetition>(eCX, context);
 }
 

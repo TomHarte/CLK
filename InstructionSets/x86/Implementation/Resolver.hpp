@@ -9,6 +9,7 @@
 #pragma once
 
 #include "InstructionSets/x86/AccessType.hpp"
+#include "InstructionSets/x86/Instruction.hpp"
 
 namespace InstructionSet::x86 {
 
@@ -19,9 +20,10 @@ namespace InstructionSet::x86 {
 ///
 /// If @c source is Source::Immediate then the appropriate portion of @c instrucion's operand
 /// is copied to @c *immediate and @c immediate is returned.
-template <typename IntT, AccessType access, typename InstructionT, typename ContextT>
+template <typename IntT, AccessType access, InstructionType type, typename ContextT>
+requires is_x86_data_type<IntT>
 typename Accessor<IntT, access>::type resolve(
-	const InstructionT &instruction,
+	const Instruction<type> &instruction,
 	const Source source,
 	const DataPointer pointer,
 	ContextT &context,
@@ -31,9 +33,10 @@ typename Accessor<IntT, access>::type resolve(
 
 /// Calculates the absolute address for @c pointer given the registers and memory provided in @c context and taking any
 /// referenced offset from @c instruction.
-template <Source source, typename IntT, AccessType access, typename InstructionT, typename ContextT>
+template <Source source, typename IntT, AccessType access, InstructionType type, typename ContextT>
+requires is_x86_data_type<IntT>
 uint32_t address(
-	InstructionT &instruction,
+	const Instruction<type> &instruction,
 	DataPointer pointer,
 	ContextT &context
 ) {
@@ -44,23 +47,30 @@ uint32_t address(
 	uint32_t address;
 	uint16_t zero = 0;
 	address = resolve<uint16_t, AccessType::Read>(instruction, pointer.index(), pointer, context, &zero);
-	if constexpr (is_32bit(ContextT::model)) {
+	if constexpr (instruction_type(ContextT::model) != InstructionType::Bits16) {
 		address <<= pointer.scale();
 	}
+//	printf("%d + %d", address, instruction.offset());
 	address += instruction.offset();
 
 	if constexpr (source == Source::IndirectNoBase) {
+//		printf("\n");
 		return address;
 	}
-	return address + resolve<uint16_t, AccessType::Read>(instruction, pointer.base(), pointer, context);
+
+	const auto base = resolve<uint16_t, AccessType::Read>(instruction, pointer.base(), pointer, context);
+//	printf("+ %d\n", base);
+	address += base;
+	return address;
 }
 
 /// @returns a pointer to the contents of the register identified by the combination of @c IntT and @c Source if any;
 /// @c nullptr otherwise. @c access is currently unused but is intended to provide the hook upon which updates to
 /// segment registers can be tracked for protected modes.
 template <typename IntT, AccessType access, Source source, typename ContextT>
+requires is_x86_data_type<IntT>
 IntT *register_(ContextT &context) {
-	static constexpr bool supports_dword = is_32bit(ContextT::model);
+	static constexpr bool supports_dword = instruction_type(ContextT::model) != InstructionType::Bits16;
 
 	switch(source) {
 		case Source::eAX:
@@ -116,17 +126,18 @@ IntT *register_(ContextT &context) {
 		case Source::DS:	if constexpr (std::is_same_v<IntT, uint16_t>) return &context.registers.ds(); else return nullptr;
 
 		// 16-bit models don't have FS and GS.
-		case Source::FS:	if constexpr (is_32bit(ContextT::model) && std::is_same_v<IntT, uint16_t>) return &context.registers.fs(); else return nullptr;
-		case Source::GS:	if constexpr (is_32bit(ContextT::model) && std::is_same_v<IntT, uint16_t>) return &context.registers.gs(); else return nullptr;
+		case Source::FS:	if constexpr (supports_dword && std::is_same_v<IntT, uint16_t>) return &context.registers.fs(); else return nullptr;
+		case Source::GS:	if constexpr (supports_dword && std::is_same_v<IntT, uint16_t>) return &context.registers.gs(); else return nullptr;
 
 		default: return nullptr;
 	}
 }
 
 ///Obtains the address described by @c pointer from @c instruction given the registers and memory as described by @c context.
-template <typename IntT, AccessType access, typename InstructionT, typename ContextT>
+template <typename IntT, AccessType access, InstructionType type, typename ContextT>
+requires is_x86_data_type<IntT>
 uint32_t address(
-	InstructionT &instruction,
+	const Instruction<type> &instruction,
 	DataPointer pointer,
 	ContextT &context
 ) {
@@ -149,9 +160,10 @@ uint32_t address(
 }
 
 // See forward declaration, above, for details.
-template <typename IntT, AccessType access, typename InstructionT, typename ContextT>
+template <typename IntT, AccessType access, InstructionType type, typename ContextT>
+requires is_x86_data_type<IntT>
 typename Accessor<IntT, access>::type resolve(
-	const InstructionT &instruction,
+	const Instruction<type> &instruction,
 	const Source source,
 	const DataPointer pointer,
 	ContextT &context,
@@ -201,6 +213,10 @@ typename Accessor<IntT, access>::type resolve(
 	// Do it and exit.
 	//
 	// TODO: support 32-bit addresses.
+
+	//
+	// TODO: validate offset. If it's greater than the address size, fault?
+	//
 	return context.memory.template access<IntT, access>(instruction.data_segment(), uint16_t(target_address));
 }
 

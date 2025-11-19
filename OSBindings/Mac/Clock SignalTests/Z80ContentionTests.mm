@@ -582,7 +582,7 @@ template <typename LHSCollectionT, typename RHSCollectionT>
 }
 
 - (void)testLDiiPlusn {
-	constexpr uint8_t offset = 0x10;
+	static constexpr uint8_t offset = 0x10;
 	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
 		// LD r, (ii+n)
 		{0xdd, 0x46, offset},	{0xdd, 0x4e, offset},
@@ -663,7 +663,7 @@ template <typename LHSCollectionT, typename RHSCollectionT>
 }
 
 - (void)testBITbiin {
-	constexpr uint8_t offset = 0x10;
+	static constexpr uint8_t offset = 0x10;
 	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
 		// BIT b, (ix+d)
 		{0xdd, 0xcb, offset, 0x46},	{0xdd, 0xcb, offset, 0x4e},
@@ -748,7 +748,7 @@ template <typename LHSCollectionT, typename RHSCollectionT>
 }
 
 - (void)testLDiiPlusnn {
-	constexpr uint8_t offset = 0x10;
+	static constexpr uint8_t offset = 0x10;
 	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
 		// LD (ii+n), n
 		{0xdd, 0x36, offset},	{0xfd, 0x36, offset},
@@ -914,7 +914,7 @@ template <typename LHSCollectionT, typename RHSCollectionT>
 }
 
 - (void)testINCDECiin {
-	constexpr uint8_t offset = 0x10;
+	static constexpr uint8_t offset = 0x10;
 	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
 		// INC (ii+n)
 		{0xdd, 0x34, offset},	{0xfd, 0x34, offset},
@@ -949,7 +949,7 @@ template <typename LHSCollectionT, typename RHSCollectionT>
 }
 
 - (void)testSETRESiin {
-	constexpr uint8_t offset = 0x10;
+	static constexpr uint8_t offset = 0x10;
 	for(const auto &sequence : std::vector<std::vector<uint8_t>>{
 		// SET b, (ii+n)
 		{0xdd, 0xcb, offset, 0xc6},	{0xdd, 0xcb, offset, 0xce},
@@ -1301,7 +1301,7 @@ template <typename LHSCollectionT, typename RHSCollectionT>
 		CapturingZ80 z80(sequence);
 
 		// Establish a distinct value for DE.
-		constexpr uint16_t de = 0x9876;
+		static constexpr uint16_t de = 0x9876;
 		z80.set_de(de);
 
 		z80.run_for(16);
@@ -1331,7 +1331,7 @@ template <typename LHSCollectionT, typename RHSCollectionT>
 		CapturingZ80 z80(sequence);
 
 		// Establish a distinct value for DE.
-		constexpr uint16_t de = 0x9876;
+		static constexpr uint16_t de = 0x9876;
 		z80.set_de(de);
 
 		z80.run_for(21);
@@ -1476,7 +1476,7 @@ template <typename LHSCollectionT, typename RHSCollectionT>
 		CapturingZ80 z80(sequence);
 
 		// Establish a distinct value for BC.
-		constexpr uint16_t bc = 0x9876;
+		static constexpr uint16_t bc = 0x9876;
 		z80.set_bc(bc);
 
 		z80.run_for(16);
@@ -1505,7 +1505,7 @@ template <typename LHSCollectionT, typename RHSCollectionT>
 		CapturingZ80 z80(sequence);
 
 		// Establish a distinct value for BC.
-		constexpr uint16_t bc = 0x9876;
+		static constexpr uint16_t bc = 0x9876;
 		z80.set_bc(bc);
 
 		z80.run_for(21);

@@ -21,7 +21,7 @@ using namespace Storage::Disk;
 
 IMD::IMD(const std::string &file_name) : file_(file_name) {
 	// Check for signature.
-	if(!file_.check_signature("IMD")) {
+	if(!file_.check_signature<SignatureType::String>("IMD")) {
 		throw Error::InvalidFormat;
 	}
 
@@ -33,7 +33,7 @@ IMD::IMD(const std::string &file_name) : file_(file_name) {
 		const auto location = file_.tell();
 
 		// Skip mode.
-		file_.seek(1, SEEK_CUR);
+		file_.seek(1, Whence::CUR);
 
 		// Grab relevant fields.
 		const uint8_t cylinder = file_.get();
@@ -53,16 +53,16 @@ IMD::IMD(const std::string &file_name) : file_(file_name) {
 			location);
 
 		// Skip sector numbers.
-		file_.seek(sector_count, SEEK_CUR);
+		file_.seek(sector_count, Whence::CUR);
 
 		// Skip cylinder map.
 		if(head & 0x80) {
-			file_.seek(sector_count, SEEK_CUR);
+			file_.seek(sector_count, Whence::CUR);
 		}
 
 		// Skip head map.
 		if(head & 0x40) {
-			file_.seek(sector_count, SEEK_CUR);
+			file_.seek(sector_count, Whence::CUR);
 		}
 
 		// Skip sectors.
@@ -73,12 +73,12 @@ IMD::IMD(const std::string &file_name) : file_(file_name) {
 
 				// Types with all sector data present.
 				case 0x01:	case 0x03:	case 0x05:	case 0x07:
-					file_.seek(128 << sector_size, SEEK_CUR);
+					file_.seek(128 << sector_size, Whence::CUR);
 				break;
 
 				// Types with a single byte present.
 				case 0x02:	case 0x04:	case 0x06:	case 0x08:
-					file_.seek(1, SEEK_CUR);
+					file_.seek(1, Whence::CUR);
 				break;
 			}
 		}
@@ -109,7 +109,7 @@ std::unique_ptr<Track> IMD::track_at_position(const Track::Address address) cons
 	}
 
 	// Seek to track, parse fully this time.
-	file_.seek(location->second, SEEK_SET);
+	file_.seek(location->second, Whence::SET);
 
 	const uint8_t mode = file_.get();
 	const uint8_t cylinder = file_.get();

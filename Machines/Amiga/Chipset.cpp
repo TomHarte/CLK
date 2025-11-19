@@ -15,7 +15,7 @@
 #include <tuple>
 
 namespace {
-Log::Logger<Log::Source::AmigaChipset> logger;
+using Logger = Log::Logger<Log::Source::AmigaChipset>;
 }
 
 using namespace Amiga;
@@ -46,7 +46,7 @@ Chipset::Chipset(MemoryMap &map, int input_clock_rate) :
 
 	// Very conservatively crop, to roughly the centre 88% of a frame.
 	// This rectange was specifically calibrated around the default Workbench display.
-	crt_.set_visible_area(Outputs::Display::Rect(0.05f, 0.055f, 0.88f, 0.88f));
+	crt_.set_fixed_framing(Outputs::Display::Rect(0.05f, 0.055f, 0.88f, 0.88f));
 }
 
 #undef DMA_CONSTRUCT
@@ -349,7 +349,7 @@ template <int cycle> void Chipset::output() {
 	audio_.output();
 
 	// Trigger any sprite loads encountered.
-	constexpr auto dcycle = cycle << 1;
+	static constexpr auto dcycle = cycle << 1;
 	static_assert(std::tuple_size<decltype(sprites_)>::value % 2 == 0);
 	for(size_t c = 0; c < sprites_.size(); c += 2) {
 		if( sprites_[c].visible &&
@@ -389,12 +389,12 @@ template <int cycle> void Chipset::output() {
 	//
 	// (???)
 
-	constexpr int end_of_pixels	= 15;
-	constexpr int blank1		= 3 + end_of_pixels;
-	constexpr int sync			= 17 + blank1;
-	constexpr int blank2		= 3 + sync;
-	constexpr int burst			= 9 + blank2;
-	constexpr int blank3		= 6 + burst;
+	static constexpr int end_of_pixels	= 15;
+	static constexpr int blank1			= 3 + end_of_pixels;
+	static constexpr int sync			= 17 + blank1;
+	static constexpr int blank2			= 3 + sync;
+	static constexpr int burst			= 9 + blank2;
+	static constexpr int blank3			= 6 + burst;
 	static_assert(blank3 == 53);
 
 #define LINK(location, action, length)	\
@@ -527,7 +527,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 			}
 		}
 
-		constexpr auto BitplaneEnabled = DMAFlag::AllBelow | DMAFlag::Bitplane;
+		static constexpr auto BitplaneEnabled = DMAFlag::AllBelow | DMAFlag::Bitplane;
 		if(
 			horizontal_fetch_ != HorizontalFetch::Stopped &&
 			(dma_control_ & BitplaneEnabled) == BitplaneEnabled &&
@@ -593,7 +593,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		}
 
 		if constexpr (cycle >= 0x08 && cycle < 0x0e) {
-			constexpr auto DiskEnabled = DMAFlag::AllBelow | DMAFlag::Disk;
+			static constexpr auto DiskEnabled = DMAFlag::AllBelow | DMAFlag::Disk;
 			if((dma_control_ & DiskEnabled) == DiskEnabled) {
 				if(disk_.advance_dma()) {
 					return false;
@@ -602,11 +602,11 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		}
 
 		if constexpr (cycle >= 0xe && cycle < 0x16) {
-			constexpr auto channel = (cycle - 0xe) >> 1;
+			static constexpr auto channel = (cycle - 0xe) >> 1;
 			static_assert(channel >= 0 && channel < 4);
 			static_assert(cycle != 0x15 || channel == 3);
 
-			constexpr DMAFlag::FlagT AudioFlags[] = {
+			static constexpr DMAFlag::FlagT AudioFlags[] = {
 				DMAFlag::AllBelow | DMAFlag::AudioChannel0,
 				DMAFlag::AllBelow | DMAFlag::AudioChannel1,
 				DMAFlag::AllBelow | DMAFlag::AudioChannel2,
@@ -621,9 +621,9 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 		}
 
 		if constexpr (cycle >= 0x16 && cycle < 0x36) {
-			constexpr auto SpritesEnabled = DMAFlag::AllBelow | DMAFlag::Sprites;
+			static constexpr auto SpritesEnabled = DMAFlag::AllBelow | DMAFlag::Sprites;
 			if(y_ >= vertical_blank_height_ && (dma_control_ & SpritesEnabled) == SpritesEnabled) {
-				constexpr auto sprite_id = (cycle - 0x16) >> 2;
+				static constexpr auto sprite_id = (cycle - 0x16) >> 2;
 				static_assert(sprite_id >= 0 && sprite_id < std::tuple_size<decltype(sprites_)>::value);
 
 				if(sprites_[sprite_id].advance_dma((~cycle&2) >> 1, y_, y_ == vertical_blank_height_)) {
@@ -634,7 +634,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	} else {
 		// Bitplanes having been dealt with, specific even-cycle responsibility
 		// is just possibly to pass to the Copper.
-		constexpr auto CopperEnabled = DMAFlag::AllBelow | DMAFlag::Copper;
+		static constexpr auto CopperEnabled = DMAFlag::AllBelow | DMAFlag::Copper;
 		if((dma_control_ & CopperEnabled) == CopperEnabled) {
 			if(copper_.advance_dma(uint16_t(((y_ & 0xff) << 8) | cycle), blitter_.get_status())) {
 				return false;
@@ -658,7 +658,7 @@ template <int cycle, bool stop_if_cpu> bool Chipset::perform_cycle() {
 	// All tests pass without immediate completion, and immediate completion just runs the
 	// non-immediate version until the busy flag is disabled. So probably a scheduling or
 	// signalling issue out here.
-	constexpr auto BlitterEnabled = DMAFlag::AllBelow | DMAFlag::Blitter;
+	static constexpr auto BlitterEnabled = DMAFlag::AllBelow | DMAFlag::Blitter;
 	return (dma_control_ & BlitterEnabled) != BlitterEnabled || !blitter_.advance_dma<true>();
 }
 
@@ -868,16 +868,16 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		break;
 
 		case 0x02a:		// VPOSW
-			logger.error().append("TODO: write vertical position high %04x", value);
+			Logger::error().append("TODO: write vertical position high %04x", value);
 		break;
 		case 0x02c:		// VHPOSW
-			logger.error().append("TODO: write vertical position low %04x", value);
+			Logger::error().append("TODO: write vertical position low %04x", value);
 			is_long_field_ = value & 0x8000;
 		break;
 
 		// Joystick/mouse input.
 		case 0x034:		// POTGO
-//			logger.error().append("TODO: pot port start");
+//			Logger::error().append("TODO: pot port start");
 		break;
 
 		// Disk DMA and control.
@@ -886,11 +886,11 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		case 0x024:	disk_.set_length(value);			break;		// DSKLEN
 
 		case 0x026:		// DSKDAT
-			logger.error().append("TODO: disk DMA; %04x to %04x", value, address);
+			Logger::error().append("TODO: disk DMA; %04x to %04x", value, address);
 		break;
 
 		case 0x09e:		// ADKCON
-			logger.info().append("Write disk control");
+			Logger::info().append("Write disk control");
 			ApplySetClear(paula_disk_control_, 0x7fff);
 
 			disk_controller_.set_control(paula_disk_control_);
@@ -904,7 +904,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 
 		// Refresh.
 		case 0x028:		// REFPTR
-			logger.info().append("TODO (maybe): refresh; %04x to %08x", value, address);
+			Logger::info().append("TODO (maybe): refresh; %04x to %08x", value, address);
 		break;
 
 		// Serial port.
@@ -943,7 +943,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		break;
 		case 0x092:		// DDFSTRT
 			if(fetch_window_[0] != value) {
-				logger.info().append("Fetch window start set to %d", value);
+				Logger::info().append("Fetch window start set to %d", value);
 			}
 			fetch_window_[0] = value & 0xfe;
 		break;
@@ -951,7 +951,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 			// TODO: something in my interpretation of ddfstart and ddfstop
 			// means a + 8 is needed below for high-res displays. Investigate.
 			if(fetch_window_[1] != value) {
-				logger.info().append("Fetch window stop set to %d", fetch_window_[1]);
+				Logger::info().append("Fetch window stop set to %d", fetch_window_[1]);
 			}
 			fetch_window_[1] = value & 0xfe;
 		break;
@@ -988,7 +988,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		break;
 
 		case 0x106:		// BPLCON3 (ECS)
-			logger.error().append("TODO: Bitplane control; %04x to %08x", value, address);
+			Logger::error().append("TODO: Bitplane control; %04x to %08x", value, address);
 		break;
 
 		case 0x108:	bitplanes_.set_modulo<0>(value);	break;	// BPL1MOD
@@ -1000,7 +1000,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		case 0x116:
 		case 0x118:
 		case 0x11a:
-			logger.error().append("TODO: Bitplane data; %04x to %08x", value, address);
+			Logger::error().append("TODO: Bitplane data; %04x to %08x", value, address);
 		break;
 
 		// Blitter.
@@ -1055,7 +1055,7 @@ void Chipset::write(uint32_t address, uint16_t value, bool allow_conversion) {
 		case 0x088:	copper_.reload<0>();				break;
 		case 0x08a:	copper_.reload<1>();				break;
 		case 0x08c:
-			logger.error().append("TODO: coprocessor instruction fetch identity %04x", value);
+			Logger::error().append("TODO: coprocessor instruction fetch identity %04x", value);
 		break;
 
 		// Sprites.
@@ -1143,15 +1143,15 @@ uint16_t Chipset::read(uint32_t address, bool allow_conversion) {
 		case 0x00c:	return joystick(0).get_position();		// JOY1DAT
 
 		case 0x016:		// POTGOR / POTINP
-//			logger.error().append("TODO: pot port read");
+//			Logger::error().append("TODO: pot port read");
 		return 0xff00;
 
 		// Disk DMA and control.
 		case 0x010:		// ADKCONR
-			logger.info().append("Read disk control");
+			Logger::info().append("Read disk control");
 		return paula_disk_control_;
 		case 0x01a:		// DSKBYTR
-			logger.error().append("TODO: disk status");
+			Logger::error().append("TODO: disk status");
 			assert(false);	// Not yet implemented.
 		return 0xffff;
 
@@ -1193,7 +1193,7 @@ Chipset::CIAAHandler::CIAAHandler(MemoryMap &map, DiskController &controller, Mo
 void Chipset::CIAAHandler::set_port_output(MOS::MOS6526::Port port, uint8_t value) {
 	if(port) {
 		// CIA A, Port B: Parallel port output.
-		logger.info().append("TODO: parallel output %02x", value);
+		Logger::info().append("TODO: parallel output %02x", value);
 	} else {
 		// CIA A, Port A:
 		//
@@ -1215,7 +1215,7 @@ void Chipset::CIAAHandler::set_port_output(MOS::MOS6526::Port port, uint8_t valu
 
 uint8_t Chipset::CIAAHandler::get_port_input(MOS::MOS6526::Port port) {
 	if(port) {
-		logger.info().append("TODO: parallel input?");
+		Logger::info().append("TODO: parallel input?");
 	} else {
 		// Use the mouse as FIR0, the joystick as FIR1.
 		return
@@ -1255,12 +1255,12 @@ void Chipset::CIABHandler::set_port_output(MOS::MOS6526::Port port, uint8_t valu
 		// b2: SEL
 		// b1: POUT
 		// b0: BUSY
-		logger.error().append("TODO: DTR/RTS/etc: %02x", value);
+		Logger::error().append("TODO: DTR/RTS/etc: %02x", value);
 	}
 }
 
 uint8_t Chipset::CIABHandler::get_port_input(MOS::MOS6526::Port) {
-	logger.error().append("Unexpected: input for CIA B");
+	Logger::error().append("Unexpected: input for CIA B");
 	return 0xff;
 }
 

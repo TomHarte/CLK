@@ -18,8 +18,8 @@
 using namespace InstructionSet::M50740;
 
 namespace {
-	constexpr int port_remap[] = {0, 1, 2, 0, 3};
-	Log::Logger<Log::Source::M50740> logger;
+constexpr int port_remap[] = {0, 1, 2, 0, 3};
+using Logger = Log::Logger<Log::Source::M50740>;
 }
 
 Executor::Executor(PortHandler &port_handler) : port_handler_(port_handler) {
@@ -82,13 +82,13 @@ uint8_t Executor::read(uint16_t address) {
 	port_handler_.run_ports_for(cycles_since_port_handler_.flush<Cycles>());
 	switch(address) {
 		default:
-			logger.error().append("Unrecognised read from %02x", address);
+			Logger::error().append("Unrecognised read from %02x", address);
 		return 0xff;
 
 		// "Port R"; sixteen four-bit ports
 		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
 		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
-			logger.error().append("Unimplemented Port R read from %04x", address);
+			Logger::error().append("Unimplemented Port R read from %04x", address);
 		return 0x00;
 
 		// Ports P0–P3.
@@ -133,7 +133,7 @@ void Executor::write(uint16_t address, const uint8_t value) {
 
 	// ROM 'writes' are almost as easy (albeit unexpected).
 	if(address >= 0x100) {
-		logger.info().append("Attempted ROM write of %02x to %04x", value, address);
+		Logger::info().append("Attempted ROM write of %02x to %04x", value, address);
 		return;
 	}
 
@@ -142,13 +142,13 @@ void Executor::write(uint16_t address, const uint8_t value) {
 
 	switch(address) {
 		default:
-			logger.error().append("Unrecognised write of %02x to %04x", value, address);
+			Logger::error().append("Unrecognised write of %02x to %04x", value, address);
 		break;
 
 		// "Port R"; sixteen four-bit ports
 		case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
 		case 0xd8: case 0xd9: case 0xda: case 0xdb: case 0xdc: case 0xdd: case 0xde: case 0xdf:
-			logger.error().append("Unimplemented Port R write of %02x to %04x", value, address);
+			Logger::error().append("Unimplemented Port R write of %02x to %04x", value, address);
 		break;
 
 		// Ports P0–P3.
@@ -241,7 +241,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 		case Operation::ADC:	case Operation::AND:	case Operation::CMP:	case Operation::EOR:
 		case Operation::LDA:	case Operation::ORA:	case Operation::SBC:
 		{
-			constexpr int t_lengths[] = {
+			static constexpr int t_lengths[] = {
 				0,
 				operation == Operation::LDA ? 2 : (operation == Operation::CMP ? 1 : 3)
 			};
@@ -444,7 +444,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 					case Operation::BBS0:	case Operation::BBS1:	case Operation::BBS2:	case Operation::BBS3:
 					case Operation::BBS4:	case Operation::BBS5:	case Operation::BBS6:	case Operation::BBS7: {
 						if constexpr (operation >= Operation::BBS0 && operation <= Operation::BBS7) {
-							constexpr uint8_t mask = 1 << (int(operation) - int(Operation::BBS0));
+							static constexpr uint8_t mask = 1 << (int(operation) - int(Operation::BBS0));
 							if(value & mask) {
 								set_program_counter(uint16_t(address));
 								subtract_duration(2);
@@ -454,7 +454,7 @@ template <Operation operation, AddressingMode addressing_mode> void Executor::pe
 					case Operation::BBC0:	case Operation::BBC1:	case Operation::BBC2:	case Operation::BBC3:
 					case Operation::BBC4:	case Operation::BBC5:	case Operation::BBC6:	case Operation::BBC7: {
 						if constexpr (operation >= Operation::BBC0 && operation <= Operation::BBC7) {
-							constexpr uint8_t mask = 1 << (int(operation) - int(Operation::BBC0));
+							static constexpr uint8_t mask = 1 << (int(operation) - int(Operation::BBC0));
 							if(!(value & mask)) {
 								set_program_counter(uint16_t(address));
 								subtract_duration(2);
@@ -792,7 +792,7 @@ template <Operation operation> void Executor::perform(uint8_t *operand [[maybe_u
 		*/
 
 		default:
-			logger.error().append("Unimplemented operation: %d", operation);
+			Logger::error().append("Unimplemented operation: %d", operation);
 			assert(false);
 	}
 }
@@ -805,8 +805,9 @@ inline void Executor::subtract_duration(const int duration) {
 	cycles_since_port_handler_ += Cycles(duration);
 
 	// Update timer 1 and 2 prescaler.
-	constexpr int t12_divider = 4;		// A divide by 4 has already been applied before counting instruction lengths; therefore
-										// this additional divide by 4 produces the correct net divide by 16.
+	static constexpr int t12_divider = 4;	// A divide by 4 has already been applied before counting instruction
+											// lengths; therefore this additional divide by 4 produces the correct net
+											// divide by 16.
 
 	timer_divider_ += duration;
 	const int clock_ticks = timer_divider_ / t12_divider;
@@ -835,13 +836,13 @@ inline void Executor::subtract_duration(const int duration) {
 			}
 		} break;
 		case 0x04:
-			logger.error().append("TODO: Timer X; Pulse output mode");
+			Logger::error().append("TODO: Timer X; Pulse output mode");
 		break;
 		case 0x08:
-			logger.error().append("TODO: Timer X; Event counter mode");
+			Logger::error().append("TODO: Timer X; Event counter mode");
 		break;
 		case 0x0c:
-			logger.error().append("TODO: Timer X; Pulse width measurement mode");
+			Logger::error().append("TODO: Timer X; Pulse width measurement mode");
 		break;
 	}
 }

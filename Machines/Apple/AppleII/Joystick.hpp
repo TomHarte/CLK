@@ -38,9 +38,13 @@ public:
 					Input(Input::Fire, 2),
 				}) {}
 
-				void did_set_input(const Input &input, float value) final {
-					if(!input.info.control.index && (input.type == Input::Type::Horizontal || input.type == Input::Type::Vertical))
+				void did_set_input(const Input &input, const float value) final {
+					if(
+						!input.info.control.index &&
+						(input.type == Input::Type::Horizontal || input.type == Input::Type::Vertical)
+					) {
 						axes[(input.type == Input::Type::Horizontal) ? 0 : 1] = 1.0f - value;
+					}
 				}
 
 				void did_set_input(const Input &input, bool value) final {

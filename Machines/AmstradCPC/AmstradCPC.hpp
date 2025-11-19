@@ -8,9 +8,9 @@
 
 #pragma once
 
+#include "Analyser/Static/StaticAnalyser.hpp"
 #include "Configurable/Configurable.hpp"
 #include "Configurable/StandardOptions.hpp"
-#include "Analyser/Static/StaticAnalyser.hpp"
 #include "Machines/ROMMachine.hpp"
 
 #include <memory>
@@ -32,28 +32,33 @@ struct Machine {
 	/// Defines the runtime options available for an Amstrad CPC.
 	class Options:
 		public Reflection::StructImpl<Options>,
-		public Configurable::DisplayOption<Options>,
-		public Configurable::QuickloadOption<Options>
+		public Configurable::Options::Display<Options>,
+		public Configurable::Options::QuickLoad<Options>,
+		public Configurable::Options::DynamicCrop<Options>
 	{
 	public:
 		Options(const Configurable::OptionsType type) :
-			Configurable::DisplayOption<Options>(Configurable::Display::RGB),
-			Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {}
+			Configurable::Options::Display<Options>(Configurable::Display::RGB),
+			Configurable::Options::QuickLoad<Options>(type == Configurable::OptionsType::UserFriendly),
+			Configurable::Options::DynamicCrop<Options>(type == Configurable::OptionsType::UserFriendly) {}
 
 	private:
-		friend Configurable::DisplayOption<Options>;
-		friend Configurable::QuickloadOption<Options>;
+		friend Configurable::Options::Display<Options>;
+		friend Configurable::Options::QuickLoad<Options>;
+		friend Configurable::Options::DynamicCrop<Options>;
 
-		Options() : Options(Configurable::OptionsType::UserFriendly) {}
+		Options() : Options( Configurable::OptionsType::UserFriendly) {}
 
 		friend Reflection::StructImpl<Options>;
 		void declare_fields() {
 			declare_display_option();
 			declare_quickload_option();
+			declare_dynamic_crop_option();
 			limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, -1);
 		}
 	};
 
+	// Provided for running the SHAKER test suite.
 	struct SSMDelegate {
 		virtual void perform(uint16_t) = 0;
 	};

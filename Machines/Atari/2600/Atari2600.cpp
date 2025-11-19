@@ -13,6 +13,8 @@
 
 #include "Machines/MachineTypes.hpp"
 
+#include "Outputs/CRT/MismatchWarner.hpp"
+
 #include "Analyser/Static/Atari2600/Target.hpp"
 
 #include "Cartridges/Atari8k.hpp"
@@ -185,7 +187,7 @@ public:
 	}
 
 	float get_confidence() final {
-		return confidence_counter_.get_confidence();
+		return confidence_counter_.confidence();
 	}
 
 	ChangeEffect effect_for_file_did_change(const std::string &) const final {

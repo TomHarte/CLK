@@ -57,8 +57,8 @@ enum Line: BusState {
 	Request			= 1 << 17,
 };
 
-constexpr double us(double t)	{	return t / 1'000'000.0;		}
-constexpr double ns(double t)	{	return t / 1'000'000'000.0;	}
+constexpr double us(const double t)	{	return t / 1'000'000.0;		}
+constexpr double ns(const double t)	{	return t / 1'000'000'000.0;	}
 
 /// The minimum amount of time that reset must be held for.
 constexpr double ResetHoldTime		= us(25.0);
@@ -94,12 +94,9 @@ constexpr double CableSkew			= ns(10.0);
 /*!
 	@returns The value of the data lines per @c state.
 */
-constexpr uint8_t data_lines(BusState state) {
+constexpr uint8_t data_lines(const BusState state) {
 	return uint8_t(state & 0xff);
 }
-
-#undef ns
-#undef us
 
 class Bus: public ClockingHint::Source, public Activity::Source {
 public:
@@ -114,12 +111,12 @@ public:
 	/*!
 		Sets the current output for @c device.
 	*/
-	void set_device_output(size_t device, BusState output);
+	void set_device_output(size_t device, BusState);
 
 	/*!
 		@returns the current state of the bus.
 	*/
-	BusState get_state() const;
+	BusState state() const;
 
 	struct Observer {
 		/// Reports to an observer that the bus changed from a previous state to @c new_state,
@@ -127,12 +124,12 @@ public:
 		/// intended for comparison with the various constants defined at namespace scope:
 		/// ArbitrationDelay et al. Observers will be notified each time one of the thresholds
 		/// defined by those constants is crossed.
-		virtual void scsi_bus_did_change(Bus *, BusState new_state, double time_since_change) = 0;
+		virtual void scsi_bus_did_change(Bus &, BusState new_state, double time_since_change) = 0;
 	};
 	/*!
 		Adds an observer.
 	*/
-	void add_observer(Observer *);
+	void add_observer(Observer &);
 
 	/*!
 		SCSI buses don't have a clock. But devices on the bus are concerned with time-based factors,
@@ -150,7 +147,7 @@ public:
 	ClockingHint::Preference preferred_clocking() const final;
 
 	// Fulfilling public Activity::Source.
-	void set_activity_observer(Activity::Observer *observer) final;
+	void set_activity_observer(Activity::Observer *) final;
 
 private:
 	HalfCycles time_in_state_;

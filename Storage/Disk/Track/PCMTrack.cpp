@@ -10,9 +10,7 @@
 #include "Outputs/Log.hpp"
 
 namespace {
-
-Log::Logger<Log::Source::PCMTrack> logger;
-
+using Logger = Log::Logger<Log::Source::PCMTrack>;
 }
 
 using namespace Storage::Disk;
@@ -66,7 +64,7 @@ PCMTrack *PCMTrack::resampled_clone(Track *original, size_t bits_per_track) {
 		return pcm_original->resampled_clone(bits_per_track);
 	}
 
-	logger.error().append("NOT IMPLEMENTED: resampling non-PCMTracks");
+	Logger::error().append("NOT IMPLEMENTED: resampling non-PCMTracks");
 	return nullptr;
 }
 

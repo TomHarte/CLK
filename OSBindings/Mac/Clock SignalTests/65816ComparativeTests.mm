@@ -172,7 +172,7 @@ void print_ram(FILE *file, const std::unordered_map<IntT, uint8_t> &data) {
 
 template <CPU::MOS6502Esque::Type type> void generate() {
 	BusHandler<type> handler;
-	constexpr bool has_emulation = has(type, CPU::MOS6502Esque::Register::EmulationFlag);
+	static constexpr bool has_emulation = has(type, CPU::MOS6502Esque::Register::EmulationFlag);
 
 	NSString *const tempDir = NSTemporaryDirectory();
 	NSLog(@"Outputting to %@", tempDir);
@@ -180,7 +180,7 @@ template <CPU::MOS6502Esque::Type type> void generate() {
 	for(int operation = 0; operation < (has_emulation ? 512 : 256); operation++) {
 		// Make tests repeatable, at least for any given instance of
 		// the runtime.
-		constexpr auto type_offset = int(CPU::MOS6502Esque::Type::TWDC65816) - int(type);
+		static constexpr auto type_offset = int(CPU::MOS6502Esque::Type::TWDC65816) - int(type);
 		srand(65816 + operation + type_offset);
 
 		const bool is_emulated = operation & 256;

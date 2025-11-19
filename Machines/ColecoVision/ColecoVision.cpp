@@ -127,7 +127,7 @@ public:
 		joysticks_.emplace_back(new Joystick);
 		joysticks_.emplace_back(new Joystick);
 
-		constexpr ROM::Name rom_name = ROM::Name::ColecoVisionBIOS;
+		static constexpr ROM::Name rom_name = ROM::Name::ColecoVisionBIOS;
 		const ROM::Request request(rom_name);
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
@@ -168,7 +168,7 @@ public:
 	}
 
 	~ConcreteMachine() {
-		audio_queue_.flush();
+		audio_queue_.lock_flush();
 	}
 
 	const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
@@ -354,7 +354,7 @@ public:
 
 	float get_confidence() final {
 		if(pc_zero_accesses_ > 1) return 0.0f;
-		return confidence_counter_.get_confidence();
+		return confidence_counter_.confidence();
 	}
 
 	ChangeEffect effect_for_file_did_change(const std::string &) const final {

@@ -56,8 +56,19 @@ class MachineController: NSObject {
 	@IBAction func setDisplayType(_ sender: NSPopUpButton!) {
 		if let selectedItem = sender.selectedItem {
 			machine.videoSignal = signalForTag(tag: selectedItem.tag)
-			UserDefaults.standard.set(selectedItem.tag, forKey: self.displayTypeUserDefaultsKey)
+			UserDefaults.standard.set(selectedItem.tag, forKey: displayTypeUserDefaultsKey)
 		}
+	}
+
+	// MARK: Dynamic Cropping
+	var dynamicCroppingUserDefaultsKey: String {
+		return prefixedUserDefaultsKey("dynamicCrop")
+	}
+	@IBOutlet var dynamicCropButton: NSButton?
+	@IBAction func setDynamicCrop(_ sender: NSButton!) {
+		let useDynamicCropping = sender.state == .on
+		machine.useDynamicCropping = useDynamicCropping
+		UserDefaults.standard.set(useDynamicCropping, forKey: dynamicCroppingUserDefaultsKey)
 	}
 
 	// MARK: Restoring user defaults
@@ -70,15 +81,21 @@ class MachineController: NSObject {
 		])
 
 		if let fastLoadingButton = self.fastLoadingButton {
-			let useFastLoadingHack = standardUserDefaults.bool(forKey: self.fastLoadingUserDefaultsKey)
+			let useFastLoadingHack = standardUserDefaults.bool(forKey: fastLoadingUserDefaultsKey)
 			machine.useFastLoadingHack = useFastLoadingHack
 			fastLoadingButton.state = useFastLoadingHack ? .on : .off
 		}
 
 		if let fastBootingButton = self.fastBootingButton {
-			let bootQuickly = standardUserDefaults.bool(forKey: self.bootQuicklyUserDefaultsKey)
+			let bootQuickly = standardUserDefaults.bool(forKey: bootQuicklyUserDefaultsKey)
 			machine.useQuickBootingHack = bootQuickly
 			fastBootingButton.state = bootQuickly ? .on : .off
+		}
+
+		if let dynamicCropButton = self.dynamicCropButton {
+			let useDynamicCropping = standardUserDefaults.bool(forKey: dynamicCroppingUserDefaultsKey)
+			machine.useDynamicCropping = useDynamicCropping
+			dynamicCropButton.state = useDynamicCropping ? .on : .off
 		}
 
 		if let displayTypeButton = self.displayTypeButton {

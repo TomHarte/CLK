@@ -50,7 +50,7 @@ namespace {
 
 constexpr int CLOCK_RATE = 7833600;
 constexpr auto KEYBOARD_CLOCK_RATE = HalfCycles(CLOCK_RATE / 100000);
-Log::Logger<Log::Source::Macintosh> logger;
+using Logger = Log::Logger<Log::Source::Macintosh>;
 
 //	Former default PRAM:
 //
@@ -172,7 +172,7 @@ public:
 	}
 
 	~ConcreteMachine() {
-		audio_.queue.flush();
+		audio_.queue.lock_flush();
 	}
 
 	void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
@@ -478,7 +478,7 @@ public:
 
 	// MARK: Interrupt updates.
 
-	void did_change_interrupt_status(Zilog::SCC::z8530 *, bool) final {
+	void did_change_interrupt_status(Zilog::SCC::z8530 &, bool) final {
 		update_interrupt_input();
 	}
 
@@ -506,7 +506,7 @@ public:
 	// MARK: - Configuration options.
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
-		options->quickboot = quickboot_;
+		options->quick_boot = quickboot_;
 		return options;
 	}
 
@@ -515,7 +515,7 @@ public:
 		// It should probably be a construction option.
 
 		const auto options = dynamic_cast<Options *>(str.get());
-		quickboot_ = options->quickboot;
+		quickboot_ = options->quick_boot;
 
 		using Model = Analyser::Static::Macintosh::Target::Model;
 		const bool is_plus_rom = model == Model::Mac512ke || model == Model::MacPlus;
@@ -536,7 +536,7 @@ private:
 		scsi_bus_is_clocked_ = scsi_bus_.preferred_clocking() != ClockingHint::Preference::None;
 	}
 
-	void drive_speed_accumulator_set_drive_speed(DriveSpeedAccumulator *, float speed) final {
+	void drive_speed_accumulator_set_drive_speed(DriveSpeedAccumulator &, const float speed) final {
 		iwm_.flush();
 		drives_[0].set_rotation_speed(speed);
 		drives_[1].set_rotation_speed(speed);
@@ -725,7 +725,7 @@ private:
 			if(port == Port::B && line == Line::Two) {
 				keyboard_.set_input(value);
 			}
-			else logger.error().append("Unhandled 6522 control line output: %c%d", port ? 'B' : 'A', int(line));
+			else Logger::error().append("Unhandled 6522 control line output: %c%d", port ? 'B' : 'A', int(line));
 		}
 
 		void run_for(HalfCycles duration) {

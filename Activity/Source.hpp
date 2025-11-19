@@ -14,7 +14,7 @@ namespace Activity {
 
 class Source {
 public:
-	virtual void set_activity_observer(Observer *observer) = 0;
+	virtual void set_activity_observer(Observer *) = 0;
 };
 
 }

@@ -35,8 +35,7 @@ class ProcessorStorage {
 			CyclePushY,					// pushes Y to the stack
 			CyclePushOperand,			// pushes operand_ to the stack
 
-			OperationSetIRQFlags,		// 6502: sets I; 65C02: sets I and resets D
-			OperationSetNMIRSTFlags,	// 6502: no-op. 65C02: resets D
+			OperationSetInterruptFlags,	// 6502: sets I; 65C02: sets I and resets D
 
 			OperationBRKPickVector,		// 65C02: sets next_address_ to the BRK vector location; 6502: as 65C02 if no NMI is pending; otherwise sets next_address_ to the NMI address and resets the internal NMI-pending flag
 			OperationNMIPickVector,		// sets next_address_ to the NMI vector

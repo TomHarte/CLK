@@ -10,9 +10,10 @@
 
 #include "LinearMemory.hpp"
 #include "ProcessorByModel.hpp"
-#include "Registers.hpp"
 #include "Segments.hpp"
 #include "SegmentedMemory.hpp"
+
+#include "InstructionSets/x86/Registers.hpp"
 
 #include "Analyser/Static/PCCompatible/Target.hpp"
 #include "Outputs/Log.hpp"
@@ -23,9 +24,9 @@ template <Analyser::Static::PCCompatible::Model model>
 class CPUControl {
 public:
 	CPUControl(
-		Registers<processor_model(model)> &registers,
-		Segments<processor_model(model)> &segments,
-		SegmentedMemory<processor_model(model)> &segmented_memory,
+		InstructionSet::x86::Registers<processor_model(model)> &registers,
+		Segments<processor_model(model), LinearMemory<processor_model(model)>> &segments,
+		SegmentedMemory<processor_model(model), LinearMemory<processor_model(model)>> &segmented_memory,
 		LinearMemory<processor_model(model)> &linear_memory
 	) :
 		registers_(registers),
@@ -42,24 +43,30 @@ public:
 
 	void set_a20_enabled(const bool enabled) {
 		// Assumed: this'll be something to set on Memory.
-		log_.info().append("A20 line is now: %d", enabled);
+		Logger::info().append("A20 line is now: %d", enabled);
 		linear_memory_.set_a20_enabled(enabled);
 	}
 
 	void set_mode(const Mode mode) {
+		mode_ = mode;
 		if constexpr (processor_model(model) >= InstructionSet::x86::Model::i80286) {
 			segments_.set_mode(mode);
 			segmented_memory_.set_mode(mode);
 		}
 	}
 
+	Mode mode() const {
+		return mode_;
+	}
+
 private:
-	Registers<processor_model(model)> &registers_;
-	Segments<processor_model(model)> &segments_;
-	SegmentedMemory<processor_model(model)> &segmented_memory_;
+	InstructionSet::x86::Registers<processor_model(model)> &registers_;
+	Segments<processor_model(model), LinearMemory<processor_model(model)>> &segments_;
+	SegmentedMemory<processor_model(model), LinearMemory<processor_model(model)>> &segmented_memory_;
 	LinearMemory<processor_model(model)> &linear_memory_;
 
-	Log::Logger<Log::Source::PCCompatible> log_;
+	using Logger = Log::Logger<Log::Source::PCCompatible>;
+	Mode mode_ = Mode::Real;
 };
 
 

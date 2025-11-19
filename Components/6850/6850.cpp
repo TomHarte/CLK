@@ -8,6 +8,7 @@
 
 #include "6850.hpp"
 
+#include <bit>
 #include <cassert>
 
 using namespace Motorola::ACIA;
@@ -141,11 +142,8 @@ int ACIA::expected_bits() {
 	return 1 + data_bits_ + stop_bits_ + (parity_ != Parity::None);
 }
 
-uint8_t ACIA::parity(uint8_t value) {
-	value ^= value >> 4;
-	value ^= value >> 2;
-	value ^= value >> 1;
-	return value ^ (parity_ == Parity::Even);
+uint8_t ACIA::parity(const uint8_t value) {
+	return (std::popcount(value) & 1) ^ (parity_ == Parity::Even);
 }
 
 bool ACIA::serial_line_did_produce_bit(Serial::Line<false> *, const int bit) {

@@ -23,7 +23,7 @@ namespace InstructionSet::x86 {
 */
 template <Model model> class Decoder {
 public:
-	using InstructionT = Instruction<is_32bit(model)>;
+	using InstructionT = Instruction<instruction_type(model)>;
 
 	/*!
 		@returns an @c Instruction plus a size; a positive size indicates successful decoding of
@@ -349,6 +349,7 @@ private:
 		phase_ = Phase::DisplacementOrOperand;
 		displacement_size_ = DataSize::Word;
 		operand_size_ = DataSize::Byte;
+		operation_size_ = DataSize::Byte;
 	}
 
 	/// Sets up the operation size, oncoming phase and modregrm format for a member of the shift group (i.e. 'group 2').
@@ -366,6 +367,16 @@ private:
 		const auto result = std::make_pair(consumed_, InstructionT());
 		reset_parsing();
 		return result;
+	}
+
+	std::pair<int, typename Decoder<model>::InstructionT> overlong() {
+		const auto consumed = consumed_;
+		reset_parsing();
+		if(consumed == 65536) {
+			return std::make_pair(consumed, InstructionT(Operation::NOP));
+		} else {
+			return std::make_pair(consumed, InstructionT(ExceptionCode()));
+		}
 	}
 };
 

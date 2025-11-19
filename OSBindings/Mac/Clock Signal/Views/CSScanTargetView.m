@@ -236,7 +236,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	}
 	_windowTrackingArea =
 		[[NSTrackingArea alloc]
-		 initWithRect:self.bounds
+			initWithRect:self.bounds
 			options:NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved | NSTrackingActiveWhenFirstResponder
 			owner:self
 			userInfo:nil];

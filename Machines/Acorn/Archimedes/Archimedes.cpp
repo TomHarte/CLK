@@ -52,7 +52,7 @@ class ConcreteMachine:
 	public Configurable::Device
 {
 private:
-	Log::Logger<Log::Source::Archimedes> logger;
+	using Logger = Log::Logger<Log::Source::Archimedes>;
 
 	// This fictitious clock rate just means '24 MIPS, please'; it's divided elsewhere.
 	static constexpr int ClockRate = 24'000'000;
@@ -117,7 +117,7 @@ public:
 	) : executor_(*this, *this, *this) {
 		set_clock_rate(ClockRate);
 
-		constexpr ROM::Name risc_os = ROM::Name::AcornRISCOS311;
+		static constexpr ROM::Name risc_os = ROM::Name::AcornRISCOS311;
 		ROM::Request request(risc_os);
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
@@ -396,13 +396,19 @@ private:
 		//
 		// Mouse scripting; tick at a minimum of frame length.
 		//
-		static constexpr int TickFrequency = 24'000'000 / 50;
+		static constexpr int TickFrequency = ClockRate / 50;	// i.e. 480,000
+		Cycles subtractor = cursor_action_subcycle_;
 		cursor_action_subcycle_ += cycles;
 		auto segments = cursor_action_subcycle_.divide(Cycles(TickFrequency)).as<int>();
 		while(segments--) {
-			Cycles next = Cycles(TickFrequency);
+			//
+			// Run up until end of next window.
+			//
+			Cycles next = Cycles(TickFrequency) - subtractor;
+			subtractor = Cycles(0);
 			if(next > cycles) next = cycles;
 			cycles -= next;
+			run(next);
 
 			if(!cursor_actions_.empty()) {
 				const auto move_to_next = [&]() {
@@ -413,10 +419,10 @@ private:
 				const auto &action = cursor_actions_.front();
 				switch(action.type) {
 					case CursorAction::Type::MoveTo: {
-						// A measure of where within the tip lies within
+						// A measure of where the tip lies within
 						// the default RISC OS cursor.
-						constexpr int ActionPointOffset = 20;
-						constexpr int MaxStep = 24;
+						static constexpr int ActionPointOffset = 20;
+						static constexpr int MaxStep = 24;
 
 						const auto position = executor_.bus.video().cursor_location();
 						if(!position) break;
@@ -457,12 +463,12 @@ private:
 					break;
 				}
 			}
-
-			//
-			// Execution proper.
-			//
-			run(next);
 		}
+
+		//
+		// Discharge residue.
+		//
+		run(cycles);
 	}
 
 	template <bool original_speed>
@@ -509,13 +515,13 @@ private:
 	// MARK: - Configuration options.
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
-		options->quickload = accelerate_loading_;
+		options->quick_load = accelerate_loading_;
 		return options;
 	}
 
 	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
 		const auto options = dynamic_cast<Options *>(str.get());
-		accelerate_loading_ = options->quickload;
+		accelerate_loading_ = options->quick_load;
 	}
 
 	// MARK: - AudioProducer

@@ -9,6 +9,7 @@
 #pragma once
 
 #include <limits>
+#include <type_traits>
 
 namespace Numeric {
 
@@ -17,11 +18,15 @@ enum class Operation {
 	Subtract,
 };
 
+template <int bit, typename IntT>
+concept is_carry_source = (bit <= sizeof(IntT) * 8) && std::is_integral_v<IntT> && std::is_unsigned_v<IntT>;
+
 /// @returns @c true if from @c bit there was:
 ///		• carry after calculating @c lhs + @c rhs if @c is_add is true; or
 ///		• borrow after calculating @c lhs - @c rhs if @c is_add is false;
 /// producing @c result.
 template <Operation operation, int bit, typename IntT>
+requires is_carry_source<bit, IntT>
 constexpr bool carried_out(const IntT lhs, const IntT rhs, const IntT result) {
 	// Additive:
 	//
@@ -49,6 +54,7 @@ constexpr bool carried_out(const IntT lhs, const IntT rhs, const IntT result) {
 ///		• @c lhs - @c rhs;
 ///	producing @c result.
 template <int bit, typename IntT>
+requires is_carry_source<bit, IntT>
 constexpr bool carried_in(const IntT lhs, const IntT rhs, const IntT result) {
 	// 0 and 0 or 1 and 1 => did if 1.
 	// 0 and 1 or 1 and 0 => did if 0.
@@ -57,6 +63,7 @@ constexpr bool carried_in(const IntT lhs, const IntT rhs, const IntT result) {
 
 /// @returns An int of type @c IntT with only the most-significant bit set.
 template <typename IntT>
+requires std::is_integral_v<IntT> && std::is_unsigned_v<IntT>
 constexpr IntT top_bit() {
 	static_assert(!std::numeric_limits<IntT>::is_signed);
 	constexpr IntT max = std::numeric_limits<IntT>::max();
@@ -74,6 +81,7 @@ constexpr int bit_size() {
 ///		• @c lhs - @c rhs (if @c is_add is false)
 /// and the result was @c result. All other bits will be clear.
 template <Operation operation, typename IntT>
+requires std::is_integral_v<IntT> && std::is_unsigned_v<IntT>
 constexpr IntT overflow(const IntT lhs, const IntT rhs, const IntT result) {
 	const IntT output_changed = result ^ lhs;
 	const IntT input_differed = lhs ^ rhs;

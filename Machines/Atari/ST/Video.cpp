@@ -127,10 +127,9 @@ Video::Video() :
 
 	// Show a total of 260 lines; a little short for PAL but a compromise between that and the ST's
 	// usual output height of 200 lines.
-	crt_.set_visible_area(crt_.get_rect_for_area(
+	crt_.set_fixed_framing(crt_.get_rect_for_area(
 		33, 260,
-		480, 1280,
-		4.0f / 3.0f));
+		480, 1280));
 }
 
 void Video::set_ram(uint16_t *ram, size_t size) {
@@ -671,7 +670,7 @@ void Video::VideoStream::shift(int duration) {
 
 // TODO: turn this into a template on current BPP, perhaps? Would avoid reevaluation of the conditional.
 void Video::VideoStream::output_pixels(int duration) {
-	constexpr int allocation_size = 352;	// i.e. 320 plus a spare 32.
+	static constexpr int allocation_size = 352;	// i.e. 320 plus a spare 32.
 
 	// Convert from duration to pixels.
 	int pixels = duration;

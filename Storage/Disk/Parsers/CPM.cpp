@@ -59,9 +59,7 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 		uint8_t number_of_records;
 		std::size_t catalogue_index;
 
-		bool operator < (const CatalogueEntry &rhs) const {
-			return std::tie(user_number, name, type, extent) < std::tie(rhs.user_number, rhs.name, rhs.type, rhs.extent);
-		}
+		auto operator <=>(const CatalogueEntry &) const = default;
 		bool is_same_file(const CatalogueEntry &rhs) const {
 			return std::tie(user_number, name, type) == std::tie(rhs.user_number, rhs.name, rhs.type);
 		}

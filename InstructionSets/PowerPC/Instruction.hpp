@@ -1500,7 +1500,7 @@ struct Instruction {
 
 	/// A 24-bit signed number; provided as already sign extended.
 	int32_t li() const {
-		constexpr uint32_t extensions[2] = {
+		static constexpr uint32_t extensions[2] = {
 			0x0000'0000,
 			0xfc00'0000
 		};

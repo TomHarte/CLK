@@ -11,7 +11,7 @@
 #include "Outputs/Log.hpp"
 
 namespace {
-Log::Logger<Log::Source::NCR5380> logger;
+using Logger = Log::Logger<Log::Source::NCR5380>;
 }
 // TODO:
 //
@@ -25,7 +25,7 @@ NCR5380::NCR5380(SCSI::Bus &bus, const int clock_rate) :
 	bus_(bus),
 	clock_rate_(clock_rate) {
 	device_id_ = bus_.add_device();
-	bus_.add_observer(this);
+	bus_.add_observer(*this);
 
 	// TODO: use clock rate and expected phase. This implementation currently
 	// provides only CPU-driven polling behaviour.
@@ -36,7 +36,7 @@ NCR5380::NCR5380(SCSI::Bus &bus, const int clock_rate) :
 void NCR5380::write(const int address, const uint8_t value, bool) {
 	switch(address & 7) {
 		case 0:
-			logger.info().append("[0] Set current SCSI bus state to %02x", value);
+			Logger::info().append("[0] Set current SCSI bus state to %02x", value);
 
 			data_bus_ = value;
 			if(dma_request_ && dma_operation_ == DMAOperation::Send) {
@@ -45,7 +45,7 @@ void NCR5380::write(const int address, const uint8_t value, bool) {
 		break;
 
 		case 1: {
-			logger.info().append("[1] Initiator command register set: %02x", value);
+			Logger::info().append("[1] Initiator command register set: %02x", value);
 			initiator_command_ = value;
 
 			bus_output_ &= ~(Line::Reset | Line::Acknowledge | Line::Busy | Line::SelectTarget | Line::Attention);
@@ -61,7 +61,7 @@ void NCR5380::write(const int address, const uint8_t value, bool) {
 		} break;
 
 		case 2:
-			logger.info().append("[2] Set mode: %02x", value);
+			Logger::info().append("[2] Set mode: %02x", value);
 			mode_ = value;
 
 			// bit 7: 1 = use block mode DMA mode (if DMA mode is also enabled)
@@ -102,27 +102,27 @@ void NCR5380::write(const int address, const uint8_t value, bool) {
 		break;
 
 		case 3:
-			logger.info().append("[3] Set target command: %02x", value);
+			Logger::info().append("[3] Set target command: %02x", value);
 			target_command_ = value;
 			update_control_output();
 		break;
 
 		case 4:
-			logger.info().append("[4] Set select enabled: %02x", value);
+			Logger::info().append("[4] Set select enabled: %02x", value);
 		break;
 
 		case 5:
-			logger.info().append("[5] Start DMA send: %02x", value);
+			Logger::info().append("[5] Start DMA send: %02x", value);
 			dma_operation_ = DMAOperation::Send;
 		break;
 
 		case 6:
-			logger.info().append("[6] Start DMA target receive: %02x", value);
+			Logger::info().append("[6] Start DMA target receive: %02x", value);
 			dma_operation_ = DMAOperation::TargetReceive;
 		break;
 
 		case 7:
-			logger.info().append("[7] Start DMA initiator receive: %02x", value);
+			Logger::info().append("[7] Start DMA initiator receive: %02x", value);
 			dma_operation_ = DMAOperation::InitiatorReceive;
 		break;
 	}
@@ -146,15 +146,15 @@ void NCR5380::write(const int address, const uint8_t value, bool) {
 uint8_t NCR5380::read(const int address, bool) {
 	switch(address & 7) {
 		case 0:
-			logger.info().append("[0] Get current SCSI bus state: %02x", (bus_.get_state() & 0xff));
+			Logger::info().append("[0] Get current SCSI bus state: %02x", (bus_.state() & 0xff));
 
 			if(dma_request_ && dma_operation_ == DMAOperation::InitiatorReceive) {
 				return dma_acknowledge();
 			}
-		return uint8_t(bus_.get_state());
+		return uint8_t(bus_.state());
 
 		case 1:
-			logger.info().append(
+			Logger::info().append(
 				"[1] Initiator command register get: %c%c",
 				arbitration_in_progress_ ? 'p' : '-',
 				lost_arbitration_ ? 'l' : '-');
@@ -169,15 +169,15 @@ uint8_t NCR5380::read(const int address, bool) {
 			(lost_arbitration_ ? 0x20 : 0x00);
 
 		case 2:
-			logger.info().append("[2] Get mode");
+			Logger::info().append("[2] Get mode");
 		return mode_;
 
 		case 3:
-			logger.info().append("[3] Get target command");
+			Logger::info().append("[3] Get target command");
 		return target_command_;
 
 		case 4: {
-			const auto bus_state = bus_.get_state();
+			const auto bus_state = bus_.state();
 			const uint8_t result =
 				((bus_state & Line::Reset)			? 0x80 : 0x00) |
 				((bus_state & Line::Busy)			? 0x40 : 0x00) |
@@ -187,12 +187,12 @@ uint8_t NCR5380::read(const int address, bool) {
 				((bus_state & Line::Input)			? 0x04 : 0x00) |
 				((bus_state & Line::SelectTarget)	? 0x02 : 0x00) |
 				((bus_state & Line::Parity)			? 0x01 : 0x00);
-			logger.info().append("[4] Get current bus state: %02x", result);
+			Logger::info().append("[4] Get current bus state: %02x", result);
 			return result;
 		}
 
 		case 5: {
-			const auto bus_state = bus_.get_state();
+			const auto bus_state = bus_.state();
 			const uint8_t result =
 				(end_of_dma_ ? 0x80 : 0x00) |
 				((dma_request_ && state_ == ExecutionState::PerformingDMA) ? 0x40 : 0x00)	|
@@ -202,16 +202,16 @@ uint8_t NCR5380::read(const int address, bool) {
 				/* b2 = busy error */
 				((bus_state & Line::Attention) ? 0x02 : 0x00) |
 				((bus_state & Line::Acknowledge) ? 0x01 : 0x00);
-			logger.info().append("[5] Get bus and status: %02x", result);
+			Logger::info().append("[5] Get bus and status: %02x", result);
 			return result;
 		}
 
 		case 6:
-			logger.info().append("[6] Get input data");
+			Logger::info().append("[6] Get input data");
 		return 0xff;
 
 		case 7:
-			logger.info().append("[7] Reset parity/interrupt");
+			Logger::info().append("[7] Reset parity/interrupt");
 			irq_ = false;
 		return 0xff;
 	}
@@ -242,7 +242,7 @@ void NCR5380::update_control_output() {
 	}
 }
 
-void NCR5380::scsi_bus_did_change(SCSI::Bus *, const SCSI::BusState new_state, const double time_since_change) {
+void NCR5380::scsi_bus_did_change(SCSI::Bus &, const SCSI::BusState new_state, const double time_since_change) {
 	/*
 		When connected as an Initiator with DMA Mode True,
 		if the phase lines I//O, C//D, and /MSG do not match the
@@ -350,7 +350,7 @@ bool NCR5380::dma_request() {
 }
 
 uint8_t NCR5380::dma_acknowledge() {
-	const uint8_t bus_state = uint8_t(bus_.get_state());
+	const uint8_t bus_state = uint8_t(bus_.state());
 
 	dma_acknowledge_ = true;
 	dma_request_ = false;
@@ -370,7 +370,7 @@ void NCR5380::dma_acknowledge(const uint8_t value) {
 }
 
 bool NCR5380::phase_matches() const {
-	const auto bus_state = bus_.get_state();
+	const auto bus_state = bus_.state();
 	return
 		(target_output() & (Line::Message | Line::Control | Line::Input)) ==
 		(bus_state & (Line::Message | Line::Control | Line::Input));
