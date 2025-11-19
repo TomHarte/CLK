@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <string>
+
 namespace Storage::FileBundle {
 
 /*!
@@ -19,13 +21,13 @@ namespace Storage::FileBundle {
 	bundles in the future.
 */
 struct FileBundle {
-
-
 };
 
 
-struct LocalFSFileBundle {
-
+struct LocalFSFileBundle: public FileBundle {
+	LocalFSFileBundle(const std::string &to_contain) {
+		(void)to_contain;
+	}
 };
 
 };
