@@ -28,16 +28,21 @@ public:
 
 	HeadPosition maximum_head_position() const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
+	bool is_read_only() const;
+	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &);
 	bool represents(const std::string &) const;
-
-	bool is_read_only() const {
-		return false;
-	}
 
 private:
 	mutable Storage::FileHolder file_;
 	int number_of_tracks_;
 	uint16_t disk_id_;
+
+	struct TrackExtent {
+		long file_offset;
+		int zone;
+		int number_of_sectors;
+	};
+	TrackExtent track_extent(Track::Address) const;
 };
 
 }

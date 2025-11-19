@@ -14,6 +14,7 @@
 
 #include "Storage/Disk/Track/PCMTrack.hpp"
 #include "Storage/Disk/Encodings/CommodoreGCR.hpp"
+#include "Storage/Disk/Track/TrackSerialiser.hpp"
 
 using namespace Storage::Disk;
 
@@ -38,23 +39,42 @@ HeadPosition D64::maximum_head_position() const {
 	return HeadPosition(number_of_tracks_);
 }
 
-std::unique_ptr<Track> D64::track_at_position(const Track::Address address) const {
-	// Figure out where this track starts on the disk.
+bool D64::is_read_only() const {
+	return file_.is_known_read_only();
+}
+
+bool D64::represents(const std::string &name) const {
+	return name == file_.name();
+}
+
+D64::TrackExtent D64::track_extent(const Track::Address address) const {
+	static constexpr int zone_sizes[] = {17, 7, 6, 10};
+	static constexpr int sectors_by_zone[] = {21, 19, 18, 17};
+
 	int offset_to_track = 0;
 	int tracks_to_traverse = address.position.as_int();
-
-	int zone_sizes[] = {17, 7, 6, 10};
-	int sectors_by_zone[] = {21, 19, 18, 17};
 	int zone = 0;
 	for(int current_zone = 0; current_zone < 4; current_zone++) {
-		int tracks_in_this_zone = std::min(tracks_to_traverse, zone_sizes[current_zone]);
-		offset_to_track += tracks_in_this_zone * sectors_by_zone[current_zone];
-		tracks_to_traverse -= tracks_in_this_zone;
-		if(tracks_in_this_zone == zone_sizes[current_zone]) zone++;
+		const int tracks_in_zone = std::min(tracks_to_traverse, zone_sizes[current_zone]);
+		offset_to_track += tracks_in_zone * sectors_by_zone[current_zone];
+		tracks_to_traverse -= tracks_in_zone;
+		if(tracks_in_zone == zone_sizes[current_zone]) {
+			++zone;
+		}
 	}
 
+	return TrackExtent {
+		.file_offset = offset_to_track * 256,
+		.zone = zone,
+		.number_of_sectors = sectors_by_zone[zone]
+	};
+}
+
+std::unique_ptr<Track> D64::track_at_position(const Track::Address address) const {
 	// Seek to start of data.
-	file_.seek(offset_to_track * 256, Whence::SET);
+	const auto extent = track_extent(address);
+	std::lock_guard lock_guard(file_.file_access_mutex());
+	file_.seek(extent.file_offset, Whence::SET);
 
 	// Build up a PCM sampling of the GCR version of this track.
 
@@ -78,17 +98,17 @@ std::unique_ptr<Track> D64::track_at_position(const Track::Address address) cons
 	//
 	// = 349 GCR bytes per sector
 
-	std::size_t track_bytes = 349 * size_t(sectors_by_zone[zone]);
+	std::size_t track_bytes = 349 * size_t(extent.number_of_sectors);
 	std::vector<uint8_t> data(track_bytes);
 
-	for(int sector = 0; sector < sectors_by_zone[zone]; sector++) {
-		uint8_t *sector_data = &data[size_t(sector) * 349];
+	for(int sector = 0; sector < extent.number_of_sectors; sector++) {
+		uint8_t *const sector_data = &data[size_t(sector) * 349];
 		sector_data[0] = sector_data[1] = sector_data[2] = 0xff;
 
-		uint8_t sector_number = uint8_t(sector);						// Sectors count from 0.
-		uint8_t track_number = uint8_t(address.position.as_int() + 1);	// Tracks count from 1.
+		const uint8_t sector_number = uint8_t(sector);						// Sectors count from 0.
+		const uint8_t track_number = uint8_t(address.position.as_int() + 1);	// Tracks count from 1.
 		uint8_t checksum = uint8_t(sector_number ^ track_number ^ disk_id_ ^ (disk_id_ >> 8));
-		uint8_t header_start[4] = {
+		const uint8_t header_start[4] = {
 			0x08, checksum, sector_number, track_number
 		};
 		Encodings::CommodoreGCR::encode_block(&sector_data[3], header_start);
@@ -99,7 +119,7 @@ std::unique_ptr<Track> D64::track_at_position(const Track::Address address) cons
 		Encodings::CommodoreGCR::encode_block(&sector_data[8], header_end);
 
 		// Pad out post-header parts.
-		uint8_t zeros[4] = {0, 0, 0, 0};
+		static constexpr uint8_t zeros[4] = {0, 0, 0, 0};
 		Encodings::CommodoreGCR::encode_block(&sector_data[13], zeros);
 		sector_data[18] = 0x52;
 		sector_data[19] = 0x94;
@@ -111,14 +131,15 @@ std::unique_ptr<Track> D64::track_at_position(const Track::Address address) cons
 
 		// Compute the latest checksum.
 		checksum = 0;
-		for(int c = 0; c < 256; c++)
+		for(int c = 0; c < 256; c++) {
 			checksum ^= source_data[c];
+		}
 
 		// Put in another sync.
 		sector_data[21] = sector_data[22] = sector_data[23] = 0xff;
 
 		// Now start writing in the actual data.
-		uint8_t start_of_data[4] = {
+		const uint8_t start_of_data[4] = {
 			0x07, source_data[0], source_data[1], source_data[2]
 		};
 		Encodings::CommodoreGCR::encode_block(&sector_data[24], start_of_data);
@@ -129,7 +150,7 @@ std::unique_ptr<Track> D64::track_at_position(const Track::Address address) cons
 			target_data_offset += 5;
 			source_data_offset += 4;
 		}
-		uint8_t end_of_data[4] = {
+		const uint8_t end_of_data[4] = {
 			source_data[255], checksum, 0, 0
 		};
 		Encodings::CommodoreGCR::encode_block(&sector_data[target_data_offset], end_of_data);
@@ -138,6 +159,22 @@ std::unique_ptr<Track> D64::track_at_position(const Track::Address address) cons
 	return std::make_unique<PCMTrack>(PCMSegment(data));
 }
 
-bool D64::represents(const std::string &name) const {
-	return name == file_.name();
+void D64::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) {
+	for(const auto &[address, track]: tracks) {
+		const auto extent = track_extent(address);
+
+		// Get bit stream.
+		const auto serialisation =
+			Storage::Disk::track_serialisation(
+				*track,
+				Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(static_cast<unsigned int>(extent.zone))
+			);
+
+		// Decode sectors.
+
+		// TODO: Write.
+		std::lock_guard lock_guard(file_.file_access_mutex());
+//		file_.seek(extent.file_offset, Whence::SET);
+	}
 }
+
