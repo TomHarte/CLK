@@ -36,13 +36,7 @@ public:
 	Drive(int input_clock_rate, int number_of_heads, ReadyType rdy_type = ReadyType::ShugartRDY);
 	virtual ~Drive();
 
-	// TODO: Disallow copying.
-	//
-	// GCC 10 has an issue with the way the DiskII constructs its drive array if these are both
-	// deleted, despite not using the copy constructor.
-	//
-	// This seems to be fixed in GCC 11, so reenable this delete when possible.
-//		Drive(const Drive &) = delete;
+	Drive(const Drive &) = delete;
 	void operator=(const Drive &) = delete;
 
 	/*!
@@ -74,7 +68,7 @@ public:
 	/*!
 		Sets the current read head.
 	*/
-	void set_head(int head);
+	void set_head(int);
 
 	/*!
 		Gets the head count for this disk.
@@ -114,13 +108,16 @@ public:
 
 		@param clamp_to_index_hole If @c true then writing will automatically be truncated by
 		the index hole. Writing will continue over the index hole otherwise.
+
+		@param synthesise_initial_writing_events if @c true then an  @c is_writing_final_bit() /
+		@c process_write_completed() pair will follow without any data having been written.
 	*/
-	void begin_writing(Time bit_length, bool clamp_to_index_hole);
+	void begin_writing(Time bit_length, bool clamp_to_index_hole, bool synthesise_initial_writing_events);
 
 	/*!
 		Writes the bit @c value as the next in the PCM stream initiated by @c begin_writing.
 	*/
-	void write_bit(bool value);
+	void write_bit(bool);
 
 	/*!
 		Ends write mode, switching back to read mode. The drive will stop overwriting events.
@@ -149,7 +146,7 @@ public:
 	*/
 	struct EventDelegate {
 		/// Informs the delegate that @c event has been reached.
-		virtual void process_event(const Event &event) = 0;
+		virtual void process_event(const Event &) = 0;
 
 		/*!
 			If the drive is in write mode, announces that all queued bits have now been written.
@@ -157,8 +154,13 @@ public:
 		*/
 		virtual void process_write_completed() {}
 
+		/*!
+			When in write mode, indicates that output of the final bit has begun.
+		*/
+		virtual void is_writing_final_bit() {}
+
 		/// Informs the delegate of the passing of @c cycles.
-		virtual void advance([[maybe_unused]] Cycles cycles) {}
+		virtual void advance(Cycles) {}
 	};
 
 	/// Sets the current event delegate.

@@ -109,10 +109,7 @@ Cycles MachineBase::perform(const AddressT address, CPU::MOS6502Mk2::data_t<oper
 
 void Machine::run_for(const Cycles cycles) {
 	m6502_.run_for(cycles);
-
-	const bool drive_motor = drive_VIA_port_handler_.motor_enabled();
-	get_drive().set_motor_on(drive_motor);
-	if(drive_motor) {
+	if(get_drive().get_motor_on()) {
 		Storage::Disk::Controller::run_for(cycles);
 	}
 }
@@ -150,18 +147,40 @@ void MachineBase::process_input_bit(const int value) {
 	} else {
 		drive_VIA_port_handler_.set_sync_detected(false);
 	}
-	bit_window_offset_++;
+
+	++bit_window_offset_;
 	if(bit_window_offset_ == 8) {
 		drive_VIA_port_handler_.set_data_input(uint8_t(shift_register_));
 		bit_window_offset_ = 0;
-		if(drive_VIA_port_handler_.should_set_overflow()) {
+		if(set_cpu_overflow_) {
 			m6502_.set<CPU::MOS6502Mk2::Line::Overflow>(true);
 		}
+	} else {
+		m6502_.set<CPU::MOS6502Mk2::Line::Overflow>(false);
 	}
-	else m6502_.set<CPU::MOS6502Mk2::Line::Overflow>(false);
 }
 
-// the 1540 does not recognise index holes
+void MachineBase::is_writing_final_bit() {
+	if(set_cpu_overflow_) {
+		m6502_.set<CPU::MOS6502Mk2::Line::Overflow>(true);
+	}
+}
+
+void MachineBase::process_write_completed() {
+	m6502_.set<CPU::MOS6502Mk2::Line::Overflow>(false);
+	serialise_shift_output();
+}
+
+void MachineBase::serialise_shift_output() {
+	auto &drive = get_drive();
+	uint8_t value = port_a_output_;
+	for(int c = 0; c < 8; c++) {
+		drive.write_bit(value & 0x80);
+		value <<= 1;
+	}
+}
+
+// The 1540 does not recognise index holes.
 void MachineBase::process_index_hole()	{}
 
 // MARK: - Drive VIA delegate
@@ -172,6 +191,29 @@ void MachineBase::drive_via_did_step_head(DriveVIA &, const int direction) {
 
 void MachineBase::drive_via_did_set_data_density(DriveVIA &, const int density) {
 	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(unsigned(density)));
+}
+
+void MachineBase::drive_via_did_set_drive_motor(DriveVIA &, const bool enabled) {
+	get_drive().set_motor_on(enabled);
+}
+
+void MachineBase::drive_via_did_set_write_mode(DriveVIA &, const bool enabled) {
+	if(enabled) {
+		begin_writing(false, true);
+	} else {
+		end_writing();
+	}
+}
+
+void MachineBase::drive_via_set_to_shifter_output(DriveVIA &, const uint8_t value) {
+	port_a_output_ = value;
+}
+
+void MachineBase::drive_via_should_set_cpu_overflow(DriveVIA &, const bool overflow) {
+	set_cpu_overflow_ = overflow;
+	if(!overflow) {
+		m6502_.set<CPU::MOS6502Mk2::Line::Overflow>(false);
+	}
 }
 
 // MARK: - SerialPortVIA
@@ -200,13 +242,17 @@ void SerialPortVIA::set_serial_line_state(
 	const bool value,
 	MOS::MOS6522::MOS6522<SerialPortVIA> &via
 ) {
+	const auto set = [&](const uint8_t mask) {
+		port_b_ = (port_b_ & ~mask) | (value ? 0x00 : mask);
+	};
+
 	switch(line) {
 		default: break;
-		case ::Commodore::Serial::Line::Data:		port_b_ = (port_b_ & ~0x01) | (value ? 0x00 : 0x01);		break;
-		case ::Commodore::Serial::Line::Clock:		port_b_ = (port_b_ & ~0x04) | (value ? 0x00 : 0x04);		break;
+		case ::Commodore::Serial::Line::Data:		set(0x01);		break;
+		case ::Commodore::Serial::Line::Clock:		set(0x04);		break;
 		case ::Commodore::Serial::Line::Attention:
+			set(0x80);
 			attention_level_input_ = !value;
-			port_b_ = (port_b_ & ~0x80) | (value ? 0x00 : 0x80);
 			via.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(!value);
 			update_data_line();
 		break;
@@ -218,7 +264,8 @@ void SerialPortVIA::set_serial_port(Commodore::Serial::Port &port) {
 }
 
 void SerialPortVIA::update_data_line() {
-	// "ATN (Attention) is an input on pin 3 of P2 and P3 that is sensed at PB7 and CA1 of UC3 after being inverted by UA1"
+	// "ATN (Attention) is an input on pin 3 of P2 and P3 that
+	// is sensed at PB7 and CA1 of UC3 after being inverted by UA1"
 	serial_port_->set_output(
 		::Commodore::Serial::Line::Data,
 		Serial::LineLevel(!data_level_output_ && (attention_level_input_ != attention_acknowledge_level_))
@@ -249,24 +296,24 @@ void DriveVIA::set_data_input(const uint8_t value) {
 	port_a_ = value;
 }
 
-bool DriveVIA::should_set_overflow() {
-	return should_set_overflow_;
-}
-
-bool DriveVIA::motor_enabled() {
-	return drive_motor_;
-}
-
 template <MOS::MOS6522::Port port, MOS::MOS6522::Line line>
 void DriveVIA::set_control_line_output(const bool value) {
 	if(port == MOS::MOS6522::Port::A && line == MOS::MOS6522::Line::Two) {
-		should_set_overflow_ = value;
+		if(set_cpu_overflow_ != value) {
+			set_cpu_overflow_ = value;
+			if(delegate_) {
+				delegate_->drive_via_should_set_cpu_overflow(*this, set_cpu_overflow_);
+			}
+		}
 	}
 
 	if(port == MOS::MOS6522::Port::B && line == MOS::MOS6522::Line::Two) {
-		// TODO: 0 = write, 1 = read.
-		if(!value) {
-			printf("NOT IMPLEMENTED: write mode\n");
+		const bool new_write_mode = !value;
+		if(new_write_mode != write_mode_) {
+			write_mode_ = new_write_mode;
+			if(delegate_) {
+				delegate_->drive_via_did_set_write_mode(*this, write_mode_);
+			}
 		}
 	}
 }
@@ -275,7 +322,13 @@ template <>
 void DriveVIA::set_port_output<MOS::MOS6522::Port::B>(const uint8_t value, uint8_t) {
 	if(previous_port_b_output_ != value) {
 		// Record drive motor state.
-		drive_motor_ = value&4;
+		const bool new_drive_motor = value & 4;
+		if(new_drive_motor != drive_motor_) {
+			drive_motor_ = new_drive_motor;
+			if(delegate_) {
+				delegate_->drive_via_did_set_drive_motor(*this, drive_motor_);
+			}
+		}
 
 		// Check for a head step.
 		const int step_difference = ((value&3) - (previous_port_b_output_&3))&3;
@@ -300,7 +353,9 @@ void DriveVIA::set_port_output<MOS::MOS6522::Port::B>(const uint8_t value, uint8
 
 template <>
 void DriveVIA::set_port_output<MOS::MOS6522::Port::A>(const uint8_t value, uint8_t) {
-	printf("TODO: output is %02x\n", value);
+	if(delegate_) {
+		delegate_->drive_via_set_to_shifter_output(*this, value);
+	}
 }
 
 void DriveVIA::set_activity_observer(Activity::Observer *const observer) {

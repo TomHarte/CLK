@@ -82,6 +82,10 @@ public:
 	struct Delegate {
 		virtual void drive_via_did_step_head(DriveVIA &, int direction) = 0;
 		virtual void drive_via_did_set_data_density(DriveVIA &, int density) = 0;
+		virtual void drive_via_did_set_drive_motor(DriveVIA &, bool enabled) = 0;
+		virtual void drive_via_did_set_write_mode(DriveVIA &, bool write) = 0;
+		virtual void drive_via_should_set_cpu_overflow(DriveVIA &, bool overflow) = 0;
+		virtual void drive_via_set_to_shifter_output(DriveVIA &, uint8_t) = 0;
 	};
 	void set_delegate(Delegate *);
 
@@ -91,8 +95,6 @@ public:
 	void set_sync_detected(bool);
 	void set_data_input(uint8_t);
 	void set_is_read_only(bool);
-	bool should_set_overflow();
-	bool motor_enabled();
 
 	template <MOS::MOS6522::Port, MOS::MOS6522::Line>
 	void set_control_line_output(bool value);
@@ -104,8 +106,11 @@ public:
 
 private:
 	uint8_t port_b_ = 0xff, port_a_ = 0xff;
-	bool should_set_overflow_ = false;
+
+	bool set_cpu_overflow_ = false;
 	bool drive_motor_ = false;
+	bool write_mode_ = false;
+
 	uint8_t previous_port_b_output_ = 0;
 	Delegate *delegate_ = nullptr;
 	Activity::Observer *observer_ = nullptr;
@@ -144,8 +149,12 @@ protected:
 	void mos6522_did_change_interrupt_status(void *mos6522) override;
 
 	// to satisfy DriveVIA::Delegate
-	void drive_via_did_step_head(DriveVIA &, int direction) override;
-	void drive_via_did_set_data_density(DriveVIA &, int density) override;
+	void drive_via_did_step_head(DriveVIA &, int) override;
+	void drive_via_did_set_data_density(DriveVIA &, int) override;
+	void drive_via_did_set_drive_motor(DriveVIA &, bool) override;
+	void drive_via_did_set_write_mode(DriveVIA &, bool) override;
+	void drive_via_should_set_cpu_overflow(DriveVIA &, bool) override;
+	void drive_via_set_to_shifter_output(DriveVIA &, uint8_t) override;
 
 	struct M6502Traits {
 		static constexpr auto uses_ready_line = false;
@@ -164,9 +173,15 @@ protected:
 	MOS::MOS6522::MOS6522<DriveVIA> drive_VIA_;
 	MOS::MOS6522::MOS6522<SerialPortVIA> serial_port_VIA_;
 
+	bool set_cpu_overflow_ = false;
 	int shift_register_ = 0, bit_window_offset_;
 	void process_input_bit(int value) override;
 	void process_index_hole() override;
+	void process_write_completed() override;
+	void is_writing_final_bit() override;
+
+	uint8_t port_a_output_ = 0xff;
+	void serialise_shift_output();
 };
 
 }
