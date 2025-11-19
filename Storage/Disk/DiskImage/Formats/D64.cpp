@@ -10,11 +10,13 @@
 
 #include <algorithm>
 #include <cstring>
+#include <set>
 #include <sys/stat.h>
 
 #include "Storage/Disk/Track/PCMTrack.hpp"
 #include "Storage/Disk/Encodings/CommodoreGCR.hpp"
 #include "Storage/Disk/Track/TrackSerialiser.hpp"
+#include "Numeric/SizedInt.hpp"
 
 using namespace Storage::Disk;
 
@@ -48,17 +50,17 @@ bool D64::represents(const std::string &name) const {
 }
 
 D64::TrackExtent D64::track_extent(const Track::Address address) const {
-	static constexpr int zone_sizes[] = {17, 7, 6, 10};
+	static constexpr int tracks_in_zone[] = {17, 7, 6, 10};
 	static constexpr int sectors_by_zone[] = {21, 19, 18, 17};
 
 	int offset_to_track = 0;
 	int tracks_to_traverse = address.position.as_int();
 	int zone = 0;
 	for(int current_zone = 0; current_zone < 4; current_zone++) {
-		const int tracks_in_zone = std::min(tracks_to_traverse, zone_sizes[current_zone]);
-		offset_to_track += tracks_in_zone * sectors_by_zone[current_zone];
-		tracks_to_traverse -= tracks_in_zone;
-		if(tracks_in_zone == zone_sizes[current_zone]) {
+		const int tracks = std::min(tracks_to_traverse, tracks_in_zone[current_zone]);
+		offset_to_track += tracks * sectors_by_zone[current_zone];
+		tracks_to_traverse -= tracks;
+		if(tracks == tracks_in_zone[current_zone]) {
 			++zone;
 		}
 	}
@@ -105,7 +107,7 @@ std::unique_ptr<Track> D64::track_at_position(const Track::Address address) cons
 		uint8_t *const sector_data = &data[size_t(sector) * 349];
 		sector_data[0] = sector_data[1] = sector_data[2] = 0xff;
 
-		const uint8_t sector_number = uint8_t(sector);						// Sectors count from 0.
+		const uint8_t sector_number = uint8_t(sector);							// Sectors count from 0.
 		const uint8_t track_number = uint8_t(address.position.as_int() + 1);	// Tracks count from 1.
 		uint8_t checksum = uint8_t(sector_number ^ track_number ^ disk_id_ ^ (disk_id_ >> 8));
 		const uint8_t header_start[4] = {
@@ -162,19 +164,100 @@ std::unique_ptr<Track> D64::track_at_position(const Track::Address address) cons
 void D64::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) {
 	for(const auto &[address, track]: tracks) {
 		const auto extent = track_extent(address);
+		std::map<int, std::vector<uint8_t>> decoded;
 
 		// Get bit stream.
 		const auto serialisation =
 			Storage::Disk::track_serialisation(
 				*track,
-				Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(static_cast<unsigned int>(extent.zone))
+				Time(1, extent.number_of_sectors * 349 * 8)	// This is relative to a normalised world where
+															// 1 unit of time = 1 track. So don't use
+															// length_of_a_bit_in_time_zone, which is relative to
+															// a wall clock.
 			);
 
 		// Decode sectors.
+		Numeric::SizedInt<10> shifter = 0;
+		int repeats = 2;
+		auto bit = serialisation.data.begin();
+		bool is_ended = false;
+		const auto shift = [&] {
+			shifter = uint16_t((shifter.get() << 1) | *bit);
+			++bit;
 
-		// TODO: Write.
+			if(bit == serialisation.data.end()) {
+				bit = serialisation.data.begin();
+				--repeats;
+				is_ended |= !repeats;
+			}
+		};
+		const auto byte = [&] {
+			for(int c = 0; c < 9; c++) {
+				shift();
+			}
+			const auto result = Encodings::CommodoreGCR::decoding_from_dectet(shifter.get());
+			shift();
+			return uint8_t(result);
+		};
+		const auto block_type = [&] {
+			// Find synchronisation, then get first dectet after that.
+			while(!is_ended && shifter.get() != 0b11111'11111) {
+				shift();
+			}
+			while(!is_ended && shifter.get() == 0b11111'11111) {
+				shift();
+			}
+
+			// Type should be 8 for a header, 7 for some data.
+			return byte();
+		};
+
+		while(!is_ended && decoded.size() != size_t(extent.number_of_sectors)) {
+			// Find a header.
+			const auto header_start = block_type();
+			if(header_start != 0x8) {
+				continue;
+			}
+			const auto checksum = byte();
+			const auto sector_id = byte();
+			const auto track_id = byte();
+			const auto disk_id1 = byte();
+			const auto disk_id2 = byte();
+
+			if(checksum != (sector_id ^ track_id ^ disk_id1 ^ disk_id2)) {
+				continue;
+			}
+			if(sector_id >= extent.number_of_sectors) {
+				continue;
+			}
+
+			// Skip to data.
+			const auto data_start = block_type();
+			if(data_start != 0x7) {
+				continue;
+			}
+
+			// Copy into place if not yet present.
+			uint8_t data_checksum = 0;
+			std::vector<uint8_t> sector_contents(256);
+			for(size_t c = 0; c < 256; c++) {
+				const uint8_t next = byte();
+				data_checksum ^= next;
+				sector_contents[c] = next;
+			}
+
+			if(byte() != data_checksum) {
+				continue;
+			}
+			decoded.emplace(sector_id, std::move(sector_contents));
+		}
+
+		// Write.
 		std::lock_guard lock_guard(file_.file_access_mutex());
-//		file_.seek(extent.file_offset, Whence::SET);
+		for(auto &[sector, contents]: decoded) {
+			file_.seek(extent.file_offset + sector * 256, Whence::SET);
+			file_.write(contents);
+		}
 	}
 }
 
