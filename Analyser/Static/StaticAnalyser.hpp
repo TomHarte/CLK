@@ -12,6 +12,7 @@
 
 #include "Storage/Cartridge/Cartridge.hpp"
 #include "Storage/Disk/Disk.hpp"
+#include "Storage/FileBundle/FileBundle.hpp"
 #include "Storage/MassStorage/MassStorageDevice.hpp"
 #include "Storage/Tape/Tape.hpp"
 #include "Storage/TargetPlatforms.hpp"
@@ -33,9 +34,15 @@ struct Media {
 	std::vector<std::shared_ptr<Storage::Tape::Tape>> tapes;
 	std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> cartridges;
 	std::vector<std::shared_ptr<Storage::MassStorage::MassStorageDevice>> mass_storage_devices;
+	std::vector<std::shared_ptr<Storage::FileBundle::FileBundle>> file_bundles;
 
 	bool empty() const {
-		return disks.empty() && tapes.empty() && cartridges.empty() && mass_storage_devices.empty();
+		return
+			disks.empty() &&
+			tapes.empty() &&
+			cartridges.empty() &&
+			mass_storage_devices.empty() &&
+			file_bundles.empty();
 	}
 
 	Media &operator +=(const Media &rhs) {
@@ -47,6 +54,7 @@ struct Media {
 		append(tapes, rhs.tapes);
 		append(cartridges, rhs.cartridges);
 		append(mass_storage_devices, rhs.mass_storage_devices);
+		append(file_bundles, rhs.file_bundles);
 
 		return *this;
 	}

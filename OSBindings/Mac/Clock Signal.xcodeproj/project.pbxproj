@@ -1148,6 +1148,9 @@
 		4BCE0060227D39AB000CA200 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE005E227D39AB000CA200 /* Video.cpp */; };
 		4BCE1DF125D4C3FA00AE7A2B /* Bus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE1DEF25D4C3FA00AE7A2B /* Bus.cpp */; };
 		4BCE1DF225D4C3FA00AE7A2B /* Bus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE1DEF25D4C3FA00AE7A2B /* Bus.cpp */; };
+		4BCF1ACF2ECE759000109999 /* FileBundle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1ACD2ECE759000109999 /* FileBundle.cpp */; };
+		4BCF1AD02ECE759000109999 /* FileBundle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1ACD2ECE759000109999 /* FileBundle.cpp */; };
+		4BCF1AD12ECE759000109999 /* FileBundle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1ACD2ECE759000109999 /* FileBundle.cpp */; };
 		4BCF1FA41DADC3DD0039D2E7 /* Oric.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */; };
 		4BD0FBC3233706A200148981 /* CSApplication.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD0FBC2233706A200148981 /* CSApplication.m */; };
 		4BD191F52191180E0042E144 /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD191F22191180E0042E144 /* ScanTarget.cpp */; };
@@ -2426,6 +2429,8 @@
 		4BCE005F227D39AB000CA200 /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
 		4BCE1DEF25D4C3FA00AE7A2B /* Bus.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Bus.cpp; sourceTree = "<group>"; };
 		4BCE1DF025D4C3FA00AE7A2B /* Bus.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Bus.hpp; sourceTree = "<group>"; };
+		4BCF1ACC2ECE759000109999 /* FileBundle.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FileBundle.hpp; sourceTree = "<group>"; };
+		4BCF1ACD2ECE759000109999 /* FileBundle.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FileBundle.cpp; sourceTree = "<group>"; };
 		4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Oric.cpp; sourceTree = "<group>"; };
 		4BCF1FA31DADC3DD0039D2E7 /* Oric.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Oric.hpp; sourceTree = "<group>"; };
 		4BD060A51FE49D3C006E14BE /* Speaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Speaker.hpp; sourceTree = "<group>"; };
@@ -3589,6 +3594,7 @@
 				4BEE0A691D72496600532C7B /* Cartridge */,
 				4B8805F81DCFF6CD003085B1 /* Data */,
 				4BAB62AA1D3272D200DF5BA0 /* Disk */,
+				4BCF1ACE2ECE759000109999 /* FileBundle */,
 				4B6AAEA1230E3E1D0078E864 /* MassStorage */,
 				4B8DD3832634D37E00B3C866 /* State */,
 				4B69FB3A1C4D908A00B5F0AA /* Tape */,
@@ -5291,6 +5297,15 @@
 			path = ADB;
 			sourceTree = "<group>";
 		};
+		4BCF1ACE2ECE759000109999 /* FileBundle */ = {
+			isa = PBXGroup;
+			children = (
+				4BCF1ACC2ECE759000109999 /* FileBundle.hpp */,
+				4BCF1ACD2ECE759000109999 /* FileBundle.cpp */,
+			);
+			path = FileBundle;
+			sourceTree = "<group>";
+		};
 		4BCF1FA51DADC3E10039D2E7 /* Oric */ = {
 			isa = PBXGroup;
 			children = (
@@ -6199,6 +6214,7 @@
 				4B65086122F4CFE0009C1100 /* Keyboard.cpp in Sources */,
 				4BBB70A9202014E2002FE009 /* MultiProducer.cpp in Sources */,
 				4B2E86BF25D74F160024F1E9 /* Mouse.cpp in Sources */,
+				4BCF1AD12ECE759000109999 /* FileBundle.cpp in Sources */,
 				4B6ED2F1208E2F8A0047B343 /* WOZ.cpp in Sources */,
 				4B5D5C9825F56FC7001B4623 /* Spectrum.cpp in Sources */,
 				4B7C681727517A59001671EC /* Sprites.cpp in Sources */,
@@ -6499,6 +6515,7 @@
 				4BEDA3BF25B25563000C2DBD /* Decoder.cpp in Sources */,
 				4B051C95266EF50200CA44E8 /* AppleIIController.swift in Sources */,
 				4B4DC82B1D2C27A4003C5BF8 /* SerialBus.cpp in Sources */,
+				4BCF1ACF2ECE759000109999 /* FileBundle.cpp in Sources */,
 				4BE8EB6625C750B50040BC40 /* DAT.cpp in Sources */,
 				4BBFFEE61F7B27F1005F3FEB /* TrackSerialiser.cpp in Sources */,
 				4B8855A52E84D51B00E251DD /* SAA5050.cpp in Sources */,
@@ -6859,6 +6876,7 @@
 				4B778F4023A5F1910000D260 /* z8530.cpp in Sources */,
 				4B778EFD23A5EB8E0000D260 /* AppleDSK.cpp in Sources */,
 				4B7752B728217EF40073E2C5 /* Chipset.cpp in Sources */,
+				4BCF1AD02ECE759000109999 /* FileBundle.cpp in Sources */,
 				4B06AAF72C64606E0034D014 /* DiskII.cpp in Sources */,
 				4B778EFB23A5EB7E0000D260 /* HFE.cpp in Sources */,
 				4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */,
