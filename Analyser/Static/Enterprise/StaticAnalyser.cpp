@@ -33,7 +33,7 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(
 	bool
 ) {
 	// This analyser can comprehend disks only.
-	if(media.disks.empty()) return {};
+	if(media.disks.empty() && media.file_bundles.empty()) return {};
 
 	// Otherwise, assume a return will happen.
 	Analyser::Static::TargetList targets;
@@ -86,7 +86,23 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(
 		}
 	}
 
-	targets.push_back(std::unique_ptr<Analyser::Static::Target>(target));
+	if(!media.file_bundles.empty()) {
+		auto file = media.file_bundles.front()->key_file();
+
+		// Check for a .COM by inspecting the header.
+		const uint16_t type = file.get_le<uint16_t>();
+		const uint16_t size = file.get_le<uint16_t>();
+		// To consider: all the COMs I've seen also now have 12 bytes of 0 padding.
+		// Test that?
+
+		if(type != 0x0500 || size != file.stats().st_size - 16) {
+			target->media.file_bundles.clear();
+		}
+	}
+
+	if(!target->media.empty()) {
+		targets.push_back(std::unique_ptr<Analyser::Static::Target>(target));
+	}
 
 	return targets;
 }
