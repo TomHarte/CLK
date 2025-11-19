@@ -94,7 +94,7 @@ void TapePlayer::set_tape(std::shared_ptr<Storage::Tape::Tape> tape, TargetPlatf
 }
 
 bool TapePlayer::is_at_end() const {
-	return serialiser_->is_at_end();
+	return !serialiser_ || serialiser_->is_at_end();
 }
 
 TapeSerialiser *TapePlayer::serialiser() {
