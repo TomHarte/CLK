@@ -25,7 +25,7 @@ enum class Function: uint8_t {
 	ReadBlock = 6,					// RDBLK
 	WriteCharacter = 7,				// WRCH
 	WriteBlock = 8,					// WRBLK
-	ReadStatus = 9,					// RSTAT
+	ReadChannelStatus = 9,			// RSTAT
 	SetChannelStatus = 10,			// SSTAT
 	SpecialFunction = 11,			// SFUNC
 
@@ -42,6 +42,16 @@ enum class Function: uint8_t {
 	LocateROMs = 26,				// ROMS
 	AllocateChannelBuffer = 27,		// BUFF
 	ReturnErrorMessage = 28,		// ERRMSG
+};
+
+// Page 25.
+enum class DeviceDescriptorFunction: uint8_t {
+	//
+	// Codes are the same as `Function` in the range 1–11.
+	//
+	Interrupt = 0,
+	Initialise = 12,
+	BufferMoved = 13,
 };
 
 // Pages 68–70.
