@@ -1547,7 +1547,6 @@
 		4B322E021F5A29D5004EB04C /* Z80Storage.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Z80Storage.hpp; sourceTree = "<group>"; };
 		4B322E031F5A2E3C004EB04C /* Z80Base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Z80Base.cpp; sourceTree = "<group>"; };
 		4B322E051F5A30F5004EB04C /* Z80Implementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Z80Implementation.hpp; sourceTree = "<group>"; };
-		4B3583DB2DB965FA00A24128 /* HostFS.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = HostFS.hpp; sourceTree = "<group>"; };
 		4B37EE801D7345A6006A09A4 /* BinaryDump.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BinaryDump.cpp; sourceTree = "<group>"; };
 		4B37EE811D7345A6006A09A4 /* BinaryDump.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = BinaryDump.hpp; sourceTree = "<group>"; };
 		4B38F3461F2EC11D00D9235D /* AmstradCPC.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AmstradCPC.cpp; sourceTree = "<group>"; };
@@ -2718,12 +2717,10 @@
 				4BFEA2EE2682A7B900EBF94C /* Dave.hpp */,
 				4B051CA02676F52200CA44E8 /* Enterprise.hpp */,
 				4B051CB52680158600CA44E8 /* EXDos.hpp */,
-				4B3583DB2DB965FA00A24128 /* HostFS.hpp */,
 				4BCF1AD22ECF743500109999 /* EXOSCodes.hpp */,
 				4BCF1AD32ECF884100109999 /* HostFSHandler.hpp */,
 				4B051CAF267C1CA200CA44E8 /* Keyboard.hpp */,
 				4B051CAB26783E2000CA44E8 /* Nick.hpp */,
-				4BCF1AD22ECF743500109999 /* EXOSCodes.hpp */,
 			);
 			path = Enterprise;
 			sourceTree = "<group>";

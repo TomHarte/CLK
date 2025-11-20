@@ -108,11 +108,7 @@ enum class Error: uint8_t {
 	InvalidColourPassedToINKOrPAPER = 0xdb,		// VCOLR
 	InvalidXOrYSizeToOPEN = 0xda,				// VSIZE
 	InvalidVideoModeToOPEN = 0xd9,				// VMODE
-<<<<<<< HEAD
-	BadParameterToDISPLAY = 0xdb				// VDISP, and officially 'naff' rather than 'bad'
-=======
 	BadParameterToDISPLAY = 0xdb,				// VDISP, and officially 'naff' rather than 'bad'
->>>>>>> T
 	NotEnoughRowsInPageToDISPLAY = 0xd7,		// VDSP2
 	AttemptToMoveBeamOffPage = 0xd6,			// VBEAM
 	LineStyleTooBig = 0xd5,						// VLSTY

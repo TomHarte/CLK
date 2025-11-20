@@ -105,6 +105,7 @@ public:
 	ConcreteMachine(const Analyser::Static::Enterprise::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		min_ram_slot_(min_ram_slot(target)),
 		z80_(*this),
+		host_fs_(ram_.data()),	// TODO: is this the correct section?
 		nick_(ram_.end() - 65536),
 		dave_audio_(audio_queue_),
 		speaker_(dave_audio_) {
@@ -238,11 +239,11 @@ public:
 		}
 
 		// Possibly grab the file IO ROM.
-		const auto file_io = roms.find(ROM::Name::EnterpriseEPFILEIO);
-		file_io_rom_.fill(0xff);
-		if(file_io != roms.end()) {
-			memcpy(file_io_rom_.data(), file_io->second.data(), std::min(file_io_rom_.size(), file_io->second.size()));
-			find_file_io_hooks();
+		const auto host_fs = roms.find(ROM::Name::EnterpriseEPFILEIO);
+		host_fs_rom_.fill(0xff);
+		if(host_fs != roms.end()) {
+			memcpy(host_fs_rom_.data(), host_fs->second.data(), std::min(host_fs_rom_.size(), host_fs->second.size()));
+			find_host_fs_hooks();
 		}
 
 		// Seed key state.
@@ -593,7 +594,7 @@ private:
 	std::array<uint8_t, 16 * 1024> basic_;
 	std::array<uint8_t, 16 * 1024> exdos_rom_;
 	std::array<uint8_t, 32 * 1024> epdos_rom_;
-	std::array<uint8_t, 16 * 1024> file_io_rom_;
+	std::array<uint8_t, 16 * 1024> host_fs_rom_;
 	const uint8_t min_ram_slot_;
 
 	const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -618,7 +619,10 @@ private:
 		if(page_rom<slot>(offset, 16, basic_)) return;
 		if(page_rom<slot>(offset, 32, exdos_rom_)) return;
 		if(page_rom<slot>(offset, 48, epdos_rom_)) return;
-		if(page_rom<slot>(offset, 64, file_io_rom_)) return;
+		if(page_rom<slot>(offset, 64, host_fs_rom_)) {
+			// TODO: test_host_fs_traps_.
+			return;
+		}
 
 		// Of whatever size of RAM I've declared above, use only the final portion.
 		// This correlated with Nick always having been handed the final 64kb and,
@@ -638,29 +642,6 @@ private:
 	template <size_t slot> void page(const uint8_t *const read, uint8_t *const write) {
 		read_pointers_[slot] = read ? read - (slot * 0x4000) : nullptr;
 		write_pointers_[slot] = write ? write - (slot * 0x4000) : nullptr;
-	}
-
-	// MARK: - Host file access hooks
-	void find_file_io_hooks() {
-		static constexpr uint8_t syscall[] = {
-			0xed, 0xfe, 0xfe
-		};
-
-		auto begin = file_io_rom_.begin();
-		while(true) {
-			begin = std::search(
-				begin, file_io_rom_.end(),
-				std::begin(syscall), std::end(syscall)
-			);
-
-			if(begin == file_io_rom_.end()) {
-				break;
-			}
-
-			const auto offset = begin - file_io_rom_.begin();
-			printf("Call %d at %02x\n", file_io_rom_[offset + 3], offset);
-			begin += 3;
-		}
 	}
 
 	// MARK: - Memory Timing
@@ -792,6 +773,28 @@ private:
 	HostFSHandler host_fs_;
 	std::unordered_set<uint16_t> trap_locations_;
 	bool test_host_fs_traps_ = false;
+
+	void find_host_fs_hooks() {
+		static constexpr uint8_t syscall[] = {
+			0xed, 0xfe, 0xfe
+		};
+
+		auto begin = host_fs_rom_.begin();
+		while(true) {
+			begin = std::search(
+				begin, host_fs_rom_.end(),
+				std::begin(syscall), std::end(syscall)
+			);
+
+			if(begin == host_fs_rom_.end()) {
+				break;
+			}
+
+			const auto offset = begin - host_fs_rom_.begin();
+			trap_locations_.insert(offset);
+			begin += 3;
+		}
+	}
 
 	// MARK: - Activity Source
 
