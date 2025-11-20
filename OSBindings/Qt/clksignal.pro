@@ -146,6 +146,7 @@ SOURCES += \
 	$$SRC/Storage/Disk/Encodings/MFM/*.cpp \
 	$$SRC/Storage/Disk/Parsers/*.cpp \
 	$$SRC/Storage/Disk/Track/*.cpp \
+	$$SRC/Storage/FileBundle/*.cpp \
 	$$SRC/Storage/MassStorage/*.cpp \
 	$$SRC/Storage/MassStorage/Encodings/*.cpp \
 	$$SRC/Storage/MassStorage/Formats/*.cpp \
@@ -303,6 +304,7 @@ HEADERS += \
 	$$SRC/Storage/Disk/Encodings/MFM/*.hpp \
 	$$SRC/Storage/Disk/Parsers/*.hpp \
 	$$SRC/Storage/Disk/Track/*.hpp \
+	$$SRC/Storage/FileBundle/*.hpp \
 	$$SRC/Storage/MassStorage/*.hpp \
 	$$SRC/Storage/MassStorage/Encodings/*.hpp \
 	$$SRC/Storage/MassStorage/Formats/*.hpp \

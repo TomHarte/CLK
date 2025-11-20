@@ -224,6 +224,7 @@ set(CLK_SOURCES
 	Storage/Disk/Track/PCMTrack.cpp
 	Storage/Disk/Track/TrackSerialiser.cpp
 	Storage/Disk/Track/UnformattedTrack.cpp
+	Storage/FileBundle/FileBundle.cpp
 	Storage/FileHolder.cpp
 	Storage/MassStorage/Encodings/MacintoshVolume.cpp
 	Storage/MassStorage/Formats/DAT.cpp
