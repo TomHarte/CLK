@@ -2431,6 +2431,7 @@
 		4BCE1DF025D4C3FA00AE7A2B /* Bus.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Bus.hpp; sourceTree = "<group>"; };
 		4BCF1ACC2ECE759000109999 /* FileBundle.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FileBundle.hpp; sourceTree = "<group>"; };
 		4BCF1ACD2ECE759000109999 /* FileBundle.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FileBundle.cpp; sourceTree = "<group>"; };
+		4BCF1AD22ECF743500109999 /* EXOSCodes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = EXOSCodes.hpp; sourceTree = "<group>"; };
 		4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Oric.cpp; sourceTree = "<group>"; };
 		4BCF1FA31DADC3DD0039D2E7 /* Oric.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Oric.hpp; sourceTree = "<group>"; };
 		4BD060A51FE49D3C006E14BE /* Speaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Speaker.hpp; sourceTree = "<group>"; };
@@ -2714,6 +2715,7 @@
 				4B3583DB2DB965FA00A24128 /* HostFS.hpp */,
 				4B051CAF267C1CA200CA44E8 /* Keyboard.hpp */,
 				4B051CAB26783E2000CA44E8 /* Nick.hpp */,
+				4BCF1AD22ECF743500109999 /* EXOSCodes.hpp */,
 			);
 			path = Enterprise;
 			sourceTree = "<group>";
