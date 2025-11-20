@@ -89,15 +89,19 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(
 	if(!media.file_bundles.empty()) {
 		auto file = media.file_bundles.front()->key_file();
 
-		// Check for a .COM by inspecting the header.
-		const uint16_t type = file.get_le<uint16_t>();
-		const uint16_t size = file.get_le<uint16_t>();
-		// To consider: all the COMs I've seen also now have 12 bytes of 0 padding.
-		// Test that?
+		if(file.has_value()) {
+			// Check for a .COM by inspecting the header.
+			const uint16_t type = file->get_le<uint16_t>();
+			const uint16_t size = file->get_le<uint16_t>();
+			// To consider: all the COMs I've seen also now have 12 bytes of 0 padding.
+			// Test that?
 
-		if(type != 0x0500 || size != file.stats().st_size - 16) {
-			target->media.file_bundles.clear();
+			if(type != 0x0500 || size != file->stats().st_size - 16) {
+				target->media.file_bundles.clear();
+			}
 		}
+
+		// TODO: look for a key file, similar logic to above.
 	}
 
 	if(!target->media.empty()) {

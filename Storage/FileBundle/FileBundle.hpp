@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Storage/FileHolder.hpp"
+#include <optional>
 #include <string>
 
 namespace Storage::FileBundle {
@@ -22,21 +23,16 @@ namespace Storage::FileBundle {
 	bundles in the future.
 */
 struct FileBundle {
-	virtual FileHolder key_file() = 0;
-	virtual uint32_t open(const std::string &) = 0;
+	virtual std::optional<FileHolder> key_file() = 0;
+	virtual FileHolder open(const std::string &, FileMode) = 0;
 };
 
 
 struct LocalFSFileBundle: public FileBundle {
 	LocalFSFileBundle(const std::string &to_contain) : to_contain_(to_contain) {}
 
-	FileHolder key_file() override {
-		return FileHolder(to_contain_);
-	}
-
-	uint32_t open(const std::string &) override {
-		return 0;
-	}
+	std::optional<FileHolder> key_file() override;
+	FileHolder open(const std::string &, FileMode) override;
 
 private:
 	std::string to_contain_;

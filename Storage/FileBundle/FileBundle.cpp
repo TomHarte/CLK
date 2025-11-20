@@ -7,3 +7,16 @@
 //
 
 #include "FileBundle.hpp"
+
+using namespace Storage::FileBundle;
+
+std::optional<Storage::FileHolder> LocalFSFileBundle::key_file() {
+	return {to_contain_};
+}
+
+Storage::FileHolder LocalFSFileBundle::open(const std::string &name, Storage::FileMode mode) {
+	// TODO: append path. Just cheat for now.
+	(void)name;
+	return {/* name */ to_contain_, mode};
+}
+

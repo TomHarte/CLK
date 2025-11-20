@@ -75,6 +75,7 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
 	public CPU::Z80::BusHandler,
+	public HostFSHandler::MemoryAccessor,
 	public Machine,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
@@ -105,7 +106,7 @@ public:
 	ConcreteMachine(const Analyser::Static::Enterprise::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		min_ram_slot_(min_ram_slot(target)),
 		z80_(*this),
-		host_fs_(ram_.data()),	// TODO: is this the correct section?
+		host_fs_(*this),
 		nick_(ram_.end() - 65536),
 		dave_audio_(audio_queue_),
 		speaker_(dave_audio_) {
@@ -557,7 +558,6 @@ public:
 				}
 			break;
 
-			case PartialMachineCycle::Read:
 			case PartialMachineCycle::ReadOpcode:
 				// Potential segue for the host FS. I'm relying on branch prediction to
 				// avoid this cost almost always.
@@ -582,7 +582,9 @@ public:
 						break;
 					}
 				}
+				[[fallthrough]];
 
+			case PartialMachineCycle::Read:
 				if(read_pointers_[address >> 14]) {
 					*cycle.value = read_pointers_[address >> 14][address];
 				} else {
@@ -807,6 +809,20 @@ private:
 	HostFSHandler host_fs_;
 	std::unordered_set<uint16_t> host_fs_traps_;
 	bool test_host_fs_traps_ = false;
+
+	uint8_t hostfs_read(const uint16_t address) override {
+		if(read_pointers_[address >> 14]) {
+			return read_pointers_[address >> 14][address];
+		} else {
+			return 0xff;
+		}
+	}
+
+	void hostfs_write(const uint16_t address, const uint8_t value) override {
+		if(write_pointers_[address >> 14]) {
+			write_pointers_[address >> 14][address] = value;
+		}
+	}
 
 	void find_host_fs_hooks() {
 		static constexpr uint8_t syscall[] = {

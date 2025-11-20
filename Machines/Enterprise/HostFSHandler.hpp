@@ -17,7 +17,12 @@
 namespace Enterprise {
 
 struct HostFSHandler {
-	HostFSHandler(uint8_t *ram);
+	struct MemoryAccessor {
+		virtual uint8_t hostfs_read(uint16_t) = 0;
+		virtual void hostfs_write(uint16_t, uint8_t) = 0;
+	};
+
+	HostFSHandler(MemoryAccessor &);
 
 	/// Perform the internally-defined @c function given other provided state.
 	/// These function calls mostly align with those in EXOSCodes.hpp
@@ -27,7 +32,7 @@ struct HostFSHandler {
 	void set_file_bundle(std::shared_ptr<Storage::FileBundle::FileBundle> bundle);
 
 private:
-	uint8_t *ram_;
+	MemoryAccessor &accessor_;
 	std::shared_ptr<Storage::FileBundle::FileBundle> bundle_;
 
 	using ChannelHandler = uint8_t;
