@@ -8,16 +8,25 @@
 
 #pragma once
 
+#include "Storage/FileBundle/FileBundle.hpp"
+
 #include <cstdint>
 
 namespace Enterprise {
 
 struct HostFSHandler {
 	HostFSHandler(uint8_t *ram);
+
+	/// Perform the internally-defined @c function given other provided state.
+	/// These function calls mostly align with those in EXOSCodes.hpp
 	void perform(uint8_t function, uint8_t &a, uint16_t &bc, uint16_t &de);
+
+	/// Sets the bundle of files on which this handler should operate.
+	void set_file_bundle(std::shared_ptr<Storage::FileBundle::FileBundle> bundle);
 
 private:
 	uint8_t *ram_;
+	std::shared_ptr<Storage::FileBundle::FileBundle> bundle_;
 };
 
 };

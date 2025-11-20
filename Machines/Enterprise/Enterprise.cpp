@@ -559,6 +559,30 @@ public:
 
 			case PartialMachineCycle::Read:
 			case PartialMachineCycle::ReadOpcode:
+				// Potential segue for the host FS. I'm relying on branch prediction to
+				// avoid this cost almost always.
+				if(test_host_fs_traps_ && (address >> 14) == 3) [[unlikely]] {
+					const auto is_trap = host_fs_traps_.contains(address);
+
+					if(is_trap) {
+						using Register = CPU::Z80::Register;
+
+						uint8_t a = uint8_t(z80_.value_of(Register::A));
+						uint16_t bc = z80_.value_of(Register::BC);
+						uint16_t de = z80_.value_of(Register::DE);
+
+						// Grab function code from where the PC actually is, and return a NOP
+						host_fs_.perform(read_pointers_[address >> 14][address], a, bc, de);
+						*cycle.value = 0x00;	// i.e. NOP.
+
+						z80_.set_value_of(Register::A, a);
+						z80_.set_value_of(Register::BC, bc);
+						z80_.set_value_of(Register::DE, de);
+
+						break;
+					}
+				}
+
 				if(read_pointers_[address >> 14]) {
 					*cycle.value = read_pointers_[address >> 14][address];
 				} else {
@@ -615,12 +639,18 @@ private:
 	template <size_t slot> void page(const uint8_t offset) {
 		pages_[slot] = offset;
 
+		if constexpr (slot == 3) {
+			test_host_fs_traps_ = false;
+		}
+
 		if(page_rom<slot>(offset, 0, exos_)) return;
 		if(page_rom<slot>(offset, 16, basic_)) return;
 		if(page_rom<slot>(offset, 32, exdos_rom_)) return;
 		if(page_rom<slot>(offset, 48, epdos_rom_)) return;
 		if(page_rom<slot>(offset, 64, host_fs_rom_)) {
-			// TODO: test_host_fs_traps_.
+			if constexpr (slot == 3) {
+				test_host_fs_traps_ = true;
+			}
 			return;
 		}
 
@@ -730,6 +760,10 @@ private:
 			}
 		}
 
+		if(!media.file_bundles.empty()) {
+			host_fs_.set_file_bundle(media.file_bundles.front());
+		}
+
 		return true;
 	}
 
@@ -771,7 +805,7 @@ private:
 	// MARK: - Host FS.
 
 	HostFSHandler host_fs_;
-	std::unordered_set<uint16_t> trap_locations_;
+	std::unordered_set<uint16_t> host_fs_traps_;
 	bool test_host_fs_traps_ = false;
 
 	void find_host_fs_hooks() {
@@ -790,9 +824,13 @@ private:
 				break;
 			}
 
-			const auto offset = begin - host_fs_rom_.begin();
-			trap_locations_.insert(offset);
-			begin += 3;
+			const auto offset = begin - host_fs_rom_.begin() + 0xc000;	// ROM will be paged in slot 3, i.e. at $c000.
+			host_fs_traps_.insert(offset);
+
+			// Move function code up to where this trap was, and NOP out the tail.
+			begin[0] = begin[3];
+			begin[1] = begin[2] = begin[3] = 0x00;
+			begin += 4;
 		}
 	}
 

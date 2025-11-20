@@ -19,3 +19,7 @@ void HostFSHandler::perform(uint8_t function, uint8_t &a, uint16_t &bc, uint16_t
 	(void)bc;
 	(void)de;
 }
+
+void HostFSHandler::set_file_bundle(std::shared_ptr<Storage::FileBundle::FileBundle> bundle) {
+	bundle_ = bundle;
+}
