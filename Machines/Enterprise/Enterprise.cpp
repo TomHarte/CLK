@@ -10,6 +10,7 @@
 
 #include "Dave.hpp"
 #include "EXDos.hpp"
+#include "HostFSHandler.hpp"
 #include "Keyboard.hpp"
 #include "Nick.hpp"
 
@@ -22,6 +23,8 @@
 #include "Outputs/Log.hpp"
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "Processors/Z80/Z80.hpp"
+
+#include <unordered_set>
 
 namespace {
 using Logger = Log::Logger<Log::Source::Enterprise>;
@@ -584,6 +587,7 @@ public:
 
 private:
 	// MARK: - Memory layout
+
 	std::array<uint8_t, 256 * 1024> ram_{};
 	std::array<uint8_t, 64 * 1024> exos_;
 	std::array<uint8_t, 16 * 1024> basic_;
@@ -669,6 +673,7 @@ private:
 	bool is_video_[4]{};
 
 	// MARK: - ScanProducer
+
 	void set_scan_target(Outputs::Display::ScanTarget *const scan_target) override {
 		nick_.last_valid()->set_scan_target(scan_target);
 	}
@@ -779,9 +784,17 @@ private:
 	}
 
 	// MARK: - EXDos card.
+
 	EXDos exdos_;
 
+	// MARK: - Host FS.
+
+	HostFSHandler host_fs_;
+	std::unordered_set<uint16_t> trap_locations_;
+	bool test_host_fs_traps_ = false;
+
 	// MARK: - Activity Source
+
 	void set_activity_observer([[maybe_unused]] Activity::Observer *const observer) final {
 		if constexpr (has_disk_controller) {
 			exdos_.set_activity_observer(observer);
@@ -789,6 +802,7 @@ private:
 	}
 
 	// MARK: - Configuration options.
+
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 		options->output = get_video_signal_configurable();

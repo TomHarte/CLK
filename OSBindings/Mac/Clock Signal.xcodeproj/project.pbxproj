@@ -1151,6 +1151,9 @@
 		4BCF1ACF2ECE759000109999 /* FileBundle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1ACD2ECE759000109999 /* FileBundle.cpp */; };
 		4BCF1AD02ECE759000109999 /* FileBundle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1ACD2ECE759000109999 /* FileBundle.cpp */; };
 		4BCF1AD12ECE759000109999 /* FileBundle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1ACD2ECE759000109999 /* FileBundle.cpp */; };
+		4BCF1AD52ECF884100109999 /* HostFSHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1AD42ECF884100109999 /* HostFSHandler.cpp */; };
+		4BCF1AD62ECF884100109999 /* HostFSHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1AD42ECF884100109999 /* HostFSHandler.cpp */; };
+		4BCF1AD72ECF884100109999 /* HostFSHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1AD42ECF884100109999 /* HostFSHandler.cpp */; };
 		4BCF1FA41DADC3DD0039D2E7 /* Oric.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */; };
 		4BD0FBC3233706A200148981 /* CSApplication.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD0FBC2233706A200148981 /* CSApplication.m */; };
 		4BD191F52191180E0042E144 /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD191F22191180E0042E144 /* ScanTarget.cpp */; };
@@ -2432,6 +2435,8 @@
 		4BCF1ACC2ECE759000109999 /* FileBundle.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FileBundle.hpp; sourceTree = "<group>"; };
 		4BCF1ACD2ECE759000109999 /* FileBundle.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FileBundle.cpp; sourceTree = "<group>"; };
 		4BCF1AD22ECF743500109999 /* EXOSCodes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = EXOSCodes.hpp; sourceTree = "<group>"; };
+		4BCF1AD32ECF884100109999 /* HostFSHandler.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = HostFSHandler.hpp; sourceTree = "<group>"; };
+		4BCF1AD42ECF884100109999 /* HostFSHandler.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = HostFSHandler.cpp; sourceTree = "<group>"; };
 		4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Oric.cpp; sourceTree = "<group>"; };
 		4BCF1FA31DADC3DD0039D2E7 /* Oric.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Oric.hpp; sourceTree = "<group>"; };
 		4BD060A51FE49D3C006E14BE /* Speaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Speaker.hpp; sourceTree = "<group>"; };
@@ -2707,12 +2712,15 @@
 				4BFEA2ED2682A7B900EBF94C /* Dave.cpp */,
 				4B051CA12676F52200CA44E8 /* Enterprise.cpp */,
 				4B051CB42680158600CA44E8 /* EXDos.cpp */,
+				4BCF1AD42ECF884100109999 /* HostFSHandler.cpp */,
 				4B051CAE267C1CA200CA44E8 /* Keyboard.cpp */,
 				4B051CAA26783E2000CA44E8 /* Nick.cpp */,
 				4BFEA2EE2682A7B900EBF94C /* Dave.hpp */,
 				4B051CA02676F52200CA44E8 /* Enterprise.hpp */,
 				4B051CB52680158600CA44E8 /* EXDos.hpp */,
 				4B3583DB2DB965FA00A24128 /* HostFS.hpp */,
+				4BCF1AD22ECF743500109999 /* EXOSCodes.hpp */,
+				4BCF1AD32ECF884100109999 /* HostFSHandler.hpp */,
 				4B051CAF267C1CA200CA44E8 /* Keyboard.hpp */,
 				4B051CAB26783E2000CA44E8 /* Nick.hpp */,
 				4BCF1AD22ECF743500109999 /* EXOSCodes.hpp */,
@@ -6359,6 +6367,7 @@
 				4B055AC41FAE9AE80060FFFF /* Keyboard.cpp in Sources */,
 				4B8DF506254E3C9D00F3433C /* ADB.cpp in Sources */,
 				4B055A941FAE85B50060FFFF /* CommodoreROM.cpp in Sources */,
+				4BCF1AD72ECF884100109999 /* HostFSHandler.cpp in Sources */,
 				4BBB70A5202011C2002FE009 /* MultiMediaTarget.cpp in Sources */,
 				4B8318BC22D3E588006DB630 /* DisplayMetrics.cpp in Sources */,
 				4BEDA40E25B2844B000C2DBD /* Decoder.cpp in Sources */,
@@ -6452,6 +6461,7 @@
 				4B1082C42C1F5E7D00B07C5D /* CSL.cpp in Sources */,
 				4B0ACC3023775819008902D0 /* TIASound.cpp in Sources */,
 				4B7136861F78724F008B8ED9 /* Encoder.cpp in Sources */,
+				4BCF1AD62ECF884100109999 /* HostFSHandler.cpp in Sources */,
 				4B0E04EA1FC9E5DA00F43484 /* CAS.cpp in Sources */,
 				4B7A90ED20410A85008514A2 /* StaticAnalyser.cpp in Sources */,
 				4B58601E1F806AB200AEE2E3 /* MFMSectorDump.cpp in Sources */,
@@ -6881,6 +6891,7 @@
 				4BCF1AD02ECE759000109999 /* FileBundle.cpp in Sources */,
 				4B06AAF72C64606E0034D014 /* DiskII.cpp in Sources */,
 				4B778EFB23A5EB7E0000D260 /* HFE.cpp in Sources */,
+				4BCF1AD52ECF884100109999 /* HostFSHandler.cpp in Sources */,
 				4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */,
 				4B0DA67D282DCDF300C12F17 /* Instruction.cpp in Sources */,
 				4B06AAE12C645F8B0034D014 /* Video.cpp in Sources */,
