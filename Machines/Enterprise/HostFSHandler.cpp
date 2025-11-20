@@ -17,8 +17,18 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 	const auto set_error = [&](const EXOS::Error error) {
 		a = uint8_t(error);
 	};
+	const auto set_c = [&](const uint8_t c) {
+		bc = (bc & 0xff00) | c;
+	};
+
 	const auto read_de = [&]() {
 		return accessor_.hostfs_read(de++);
+	};
+	const auto find_channel = [&]() {
+		if(a == 255) {
+			return channels_.end();
+		}
+		return channels_.find(a);
 	};
 
 	switch(function) {
@@ -71,8 +81,8 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 
 		// Page 54.
 		case uint8_t(EXOS::Function::CloseChannel): {
-			auto channel = channels_.find(a);
-			if(a == 255 || channel == channels_.end()) {
+			auto channel = find_channel();
+			if(channel == channels_.end()) {
 				set_error(EXOS::Error::ChannelIllegalOrDoesNotExist);
 				break;
 			}
@@ -80,9 +90,19 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 			set_error(EXOS::Error::NoError);
 			channels_.erase(channel);
 		} break;
-	}
 
-	(void)bc;
+		// Page 55.
+		case uint8_t(EXOS::Function::ReadCharacter):
+			auto channel = find_channel();
+			if(channel == channels_.end()) {
+				set_error(EXOS::Error::ChannelIllegalOrDoesNotExist);
+				break;
+			}
+
+			set_error(EXOS::Error::NoError);
+			set_c(channel->second.get());
+		break;
+	}
 }
 
 void HostFSHandler::set_file_bundle(std::shared_ptr<Storage::FileBundle::FileBundle> bundle) {
