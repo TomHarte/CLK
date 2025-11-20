@@ -13,8 +13,13 @@ using namespace Enterprise;
 
 HostFSHandler::HostFSHandler(uint8_t *ram) : ram_(ram) {}
 
-void HostFSHandler::perform(uint8_t function, uint8_t &a, uint16_t &bc, uint16_t &de) {
-	(void)function;
+void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, uint16_t &de) {
+	switch(function) {
+		default:
+			printf("UNIMPLEMENTED function %d\n", function);
+		break;
+	}
+
 	(void)a;
 	(void)bc;
 	(void)de;
