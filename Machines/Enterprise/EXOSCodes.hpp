@@ -56,6 +56,8 @@ enum class DeviceDescriptorFunction: uint8_t {
 
 // Pages 68–70.
 enum class Error: uint8_t {
+	NoError = 0x00,
+
 	//
 	// General errors returned by the EXOS kernel.
 	//

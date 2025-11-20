@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <unordered_map>
 
 namespace Enterprise {
 
@@ -28,6 +29,9 @@ struct HostFSHandler {
 private:
 	uint8_t *ram_;
 	std::shared_ptr<Storage::FileBundle::FileBundle> bundle_;
+
+	using ChannelHandler = uint8_t;
+	std::unordered_map<ChannelHandler, Storage::FileHolder> channels_;
 };
 
 };
