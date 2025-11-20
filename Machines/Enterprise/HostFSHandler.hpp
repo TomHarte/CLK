@@ -11,6 +11,7 @@
 #include "Storage/FileBundle/FileBundle.hpp"
 
 #include <cstdint>
+#include <memory>
 
 namespace Enterprise {
 
