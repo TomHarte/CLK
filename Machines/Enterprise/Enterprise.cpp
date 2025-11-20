@@ -174,6 +174,12 @@ public:
 			default: break;
 		}
 
+		// Ensure a briddge into the local filing system if requested.
+		const bool needs_host_bridge = !target.media.file_bundles.empty();
+		if(needs_host_bridge) {
+			request = request && ROM::Request(ROM::Name::EnterpriseEPFILEIO);
+		}
+
 		// Get and validate ROMs.
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
@@ -226,6 +232,14 @@ public:
 		const auto exdos = roms.find(ROM::Name::EnterpriseEXDOS);
 		if(exdos != roms.end()) {
 			memcpy(exdos_rom_.data(), exdos->second.data(), std::min(exdos_rom_.size(), exdos->second.size()));
+		}
+
+		// Possibly grab the file IO ROM.
+		const auto file_io = roms.find(ROM::Name::EnterpriseEPFILEIO);
+		file_io_rom_.fill(0xff);
+		if(file_io != roms.end()) {
+			memcpy(file_io_rom_.data(), file_io->second.data(), std::min(file_io_rom_.size(), file_io->second.size()));
+			find_file_io_hooks();
 		}
 
 		// Seed key state.
@@ -575,6 +589,7 @@ private:
 	std::array<uint8_t, 16 * 1024> basic_;
 	std::array<uint8_t, 16 * 1024> exdos_rom_;
 	std::array<uint8_t, 32 * 1024> epdos_rom_;
+	std::array<uint8_t, 16 * 1024> file_io_rom_;
 	const uint8_t min_ram_slot_;
 
 	const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -599,6 +614,7 @@ private:
 		if(page_rom<slot>(offset, 16, basic_)) return;
 		if(page_rom<slot>(offset, 32, exdos_rom_)) return;
 		if(page_rom<slot>(offset, 48, epdos_rom_)) return;
+		if(page_rom<slot>(offset, 64, file_io_rom_)) return;
 
 		// Of whatever size of RAM I've declared above, use only the final portion.
 		// This correlated with Nick always having been handed the final 64kb and,
@@ -620,8 +636,30 @@ private:
 		write_pointers_[slot] = write ? write - (slot * 0x4000) : nullptr;
 	}
 
-	// MARK: - Memory Timing
+	// MARK: - Host file access hooks
+	void find_file_io_hooks() {
+		static constexpr uint8_t syscall[] = {
+			0xed, 0xfe, 0xfe
+		};
 
+		auto begin = file_io_rom_.begin();
+		while(true) {
+			begin = std::search(
+				begin, file_io_rom_.end(),
+				std::begin(syscall), std::end(syscall)
+			);
+
+			if(begin == file_io_rom_.end()) {
+				break;
+			}
+
+			const auto offset = begin - file_io_rom_.begin();
+			printf("Call %d at %02x\n", file_io_rom_[offset + 3], offset);
+			begin += 3;
+		}
+	}
+
+	// MARK: - Memory Timing
 	// The wait mode affects all memory accesses _outside of the video area_.
 	enum class WaitMode {
 		None,
@@ -710,7 +748,6 @@ private:
 	}
 
 	// MARK: - Interrupts
-
 	uint8_t interrupt_mask_ = 0x00, interrupt_state_ = 0x00;
 	void set_interrupts(const uint8_t mask, const HalfCycles offset = HalfCycles(0)) {
 		interrupt_state_ |= uint8_t(mask);
