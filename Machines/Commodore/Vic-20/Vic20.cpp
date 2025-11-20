@@ -456,27 +456,24 @@ public:
 	}
 
 	void set_key_state(const uint16_t key, const bool is_pressed) final {
-		if(key < KeyUp) {
+		const auto apply_shifted = [&](const uint16_t key) {
+			keyboard_via_port_handler_.set_key_state(KeyLShift, is_pressed);
 			keyboard_via_port_handler_.set_key_state(key, is_pressed);
-		} else {
-			switch(key) {
-				case KeyRestore:
-					user_port_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(!is_pressed);
-				break;
-#define ShiftedMap(source, target)	\
-				case source:	\
-					keyboard_via_port_handler_.set_key_state(KeyLShift, is_pressed);	\
-					keyboard_via_port_handler_.set_key_state(target, is_pressed);	\
-				break;
+		};
 
-				ShiftedMap(KeyUp, KeyDown);
-				ShiftedMap(KeyLeft, KeyRight);
-				ShiftedMap(KeyF2, KeyF1);
-				ShiftedMap(KeyF4, KeyF3);
-				ShiftedMap(KeyF6, KeyF5);
-				ShiftedMap(KeyF8, KeyF7);
-#undef ShiftedMap
-			}
+		switch(key) {
+			default:
+				keyboard_via_port_handler_.set_key_state(key, is_pressed);
+			break;
+			case KeyRestore:
+				user_port_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(!is_pressed);
+			break;
+			case KeyUp:		apply_shifted(KeyDown);		break;
+			case KeyLeft:	apply_shifted(KeyRight);	break;
+			case KeyF2:		apply_shifted(KeyF1);		break;
+			case KeyF4:		apply_shifted(KeyF3);		break;
+			case KeyF6:		apply_shifted(KeyF5);		break;
+			case KeyF8:		apply_shifted(KeyF7);		break;
 		}
 	}
 
