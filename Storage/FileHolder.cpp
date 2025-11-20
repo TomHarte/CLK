@@ -13,6 +13,12 @@
 
 using namespace Storage;
 
+FileHolder::FileHolder(FileHolder &&rhs) {
+	file_ = rhs.file_;
+	rhs.file_ = nullptr;
+	// TODO: this leaves the RHS in an invalid state, which isn't appropriate for move semantics.
+}
+
 FileHolder::~FileHolder() {
 	if(file_) std::fclose(file_);
 }

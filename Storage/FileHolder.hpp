@@ -56,9 +56,10 @@ public:
 			Rewrite		opens the file for rewriting; none of the original content is preserved; whatever
 						the caller outputs will replace the existing file.
 
-		@throws ErrorCantOpen if the file cannot be opened.
+		@throws Error::CantOpen if the file cannot be opened.
 	*/
 	FileHolder(const std::string &file_name, FileMode ideal_mode = FileMode::ReadWrite);
+	FileHolder(FileHolder &&);
 
 	/*!
 		Writes @c value using successive @c puts, in little endian order.
