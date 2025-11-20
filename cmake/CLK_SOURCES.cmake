@@ -130,6 +130,7 @@ set(CLK_SOURCES
 	Machines/Enterprise/Dave.cpp
 	Machines/Enterprise/EXDos.cpp
 	Machines/Enterprise/Enterprise.cpp
+	Machines/Enterprise/HostFSHandler.cpp
 	Machines/Enterprise/Keyboard.cpp
 	Machines/Enterprise/Nick.cpp
 	Machines/KeyboardMachine.cpp
