@@ -63,13 +63,14 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 				function == uint8_t(EXOS::Function::CreateChannel) ?
 					Storage::FileMode::Rewrite : Storage::FileMode::ReadWrite;
 
-			set_error(EXOS::Error::NoError);
 			try {
 				channels_.emplace(a, bundle_->open(name, mode));
+				set_error(EXOS::Error::NoError);
 			} catch(Storage::FileHolder::Error) {
 				if(mode == Storage::FileMode::ReadWrite) {
 					try {
 						channels_.emplace(a, bundle_->open(name, Storage::FileMode::Read));
+						set_error(EXOS::Error::NoError);
 					} catch(Storage::FileHolder::Error) {
 						set_error(EXOS::Error::FileDoesNotExist);
 					}
@@ -77,6 +78,8 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 					set_error(EXOS::Error::FileAlreadyExists);
 				}
 			}
+
+			// TODO: FileAlreadyOpen, FileAlreadyExists.
 		} break;
 
 		// Page 54.
@@ -99,8 +102,13 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 				break;
 			}
 
-			set_error(EXOS::Error::NoError);
-			set_c(channel->second.get());
+			const auto next = channel->second.get();
+			if(!channel->second.eof()) {
+				set_error(EXOS::Error::NoError);
+				set_c(next);
+			} else {
+				set_error(EXOS::Error::EndOfFileMetInRead);
+			}
 		break;
 	}
 }
