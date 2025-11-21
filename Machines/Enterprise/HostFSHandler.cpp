@@ -17,8 +17,8 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 	const auto set_error = [&](const EXOS::Error error) {
 		a = uint8_t(error);
 	};
-	const auto set_c = [&](const uint8_t c) {
-		bc = (bc & 0xff00) | c;
+	const auto set_b = [&](const uint8_t ch) {
+		bc = uint16_t((bc & 0xffff) | (ch << 8));
 	};
 
 	const auto read_de = [&]() {
@@ -107,7 +107,7 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 			const auto next = channel->second.get();
 			if(!channel->second.eof()) {
 				set_error(EXOS::Error::NoError);
-				set_c(next);
+				set_b(next);
 			} else {
 				set_error(EXOS::Error::EndOfFileMetInRead);
 			}
