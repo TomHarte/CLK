@@ -32,6 +32,7 @@ struct HostFSHandler {
 	/// Sets the bundle of files on which this handler should operate.
 	void set_file_bundle(std::shared_ptr<Storage::FileBundle::FileBundle> bundle);
 
+	/// @returns A suitable in-client filing system ROM.
 	std::vector<uint8_t> rom();
 
 private:

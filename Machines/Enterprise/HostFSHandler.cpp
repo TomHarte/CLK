@@ -72,14 +72,16 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 						channels_.emplace(a, bundle_->open(name, Storage::FileMode::Read));
 						set_error(EXOS::Error::NoError);
 					} catch(Storage::FileHolder::Error) {
-						set_error(EXOS::Error::FileDoesNotExist);
+//						set_error(EXOS::Error::FileDoesNotExist);
+						set_error(EXOS::Error::InvalidEscapeSequence);
 					}
 				} else {
-					set_error(EXOS::Error::FileAlreadyExists);
+//					set_error(EXOS::Error::FileAlreadyExists);
+					set_error(EXOS::Error::InvalidEscapeSequence);
 				}
 			}
 
-			// TODO: FileAlreadyOpen, FileAlreadyExists.
+			// TODO: what are appropriate error codes?.
 		} break;
 
 		// Page 54.

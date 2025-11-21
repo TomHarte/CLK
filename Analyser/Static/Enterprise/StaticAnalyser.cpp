@@ -98,6 +98,8 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(
 
 			if(type != 0x0500 || size != file->stats().st_size - 16) {
 				target->media.file_bundles.clear();
+			} else {
+				target->loading_command = "run \"file:\"\n";
 			}
 		}
 

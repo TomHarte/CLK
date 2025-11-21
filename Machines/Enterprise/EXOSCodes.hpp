@@ -54,101 +54,106 @@ enum class DeviceDescriptorFunction: uint8_t {
 	BufferMoved = 13,
 };
 
-// Pages 68–70.
 enum class Error: uint8_t {
 	NoError = 0x00,
 
 	//
-	// General errors returned by the EXOS kernel.
+	// General Kernel Errors.
 	//
 	InvalidFunctionCode = 0xff,				// IFUNC
 	FunctionCallNotAllowed = 0xfe,			// ILLFN
-	InvalidFunctionName = 0xfd,				// INAME
+	InvalidString = 0xfd,					// INAME
 	InsufficientStack = 0xfc,				// STACK
 	ChannelIllegalOrDoesNotExist = 0xfb,	// ICHAN
 	DeviceDoesNotExist = 0xfa,				// NODEV
 	ChannelAlreadyExists = 0xf9,			// CHANX
 	NoAllocateBufferCallMade = 0xf8,		// NOBUF
-	BadAllocateBufferParameters = 0xf7,		// BADAL
-	InsufficientRAMForBuffer = 0xf6,		// NORAM
-	InsufficientVideoRAM = 0xf5,			// NOVID
-	NoFreeSegments = 0xf4,					// NOSEG
-	InvalidSegment = 0xf3,					// ISEG
-	InvalidUserBoundary = 0xf2,				// IBOUN
-	InvalidEXOSVariableNumber = 0xf1,		// IVAR
-	InvalidDesviceDescriptorType = 0xf0,	// IDESC
+	InsufficientRAMForBuffer = 0xf7,		// NORAM
+	InsufficientVideoRAM = 0xf6,			// NOVID
+	NoFreeSegments = 0xf5,					// NOSEG
+	InvalidSegment = 0xf4,					// ISEG
+	InvalidUserBoundary = 0xf3,				// IBOUND
+	InvalidEXOSVariableNumber = 0xf2,		// IVAR
+	InvalidDesviceDescriptorType = 0xf1,	// IDESC
+	UnrecognisedCommandString = 0xf0,		// NOSTR
+	InvalidFileHeader = 0xef,				// ASCII
+	UnknownModuleType = 0xee,				// ITYPE
+	InvalidRelocatableModule = 0xed,		// IREL
+	NoModule = 0xec,						// NOMOD
+	InvalidTimeOrDateValue,					// ITIME
 
 	//
-	// General errors returned by various devices.
+	// General Device Errors.
 	//
-	InvalidSpecialFunctionCode = 0xef,		// ISPEC
-	AttemptToOpenSecondChannel = 0xee,		// 2NDCH
-	FunctionNotSupported = 0xed,			// NOFN
-	InvalidEscapeCharacter = 0xec,			// ESC
-	StopKeyPressed = 0xeb,					// STOP
+	InvalidSpecialFunctionCode = 0xea,		// ISPEC
+	AttemptToOpenSecondChannel = 0xe9,		// 2NDCH
+	InvalidUnitNumber = 0xe8,				// IUNIT
+	FunctionNotSupported = 0xe7,			// NOFN
+	InvalidEscapeSequence = 0xe6,			// ESC
+	StopKeyPressed = 0xe5,					// STOP
+	EndOfFileMetInRead = 0xe4,				// EOF
+	ProtectionViolation = 0xe3,				// PROT
 
 	//
-	// File related errors.
+	// Device-Specific Errors.
 	//
-	FileDoesNotExist = 0xea,				// NOFIL
-	FileAlreadyExists = 0xe9,				// EXFIL
-	FileAlreadyOpen = 0xe8,					// FOPEN
-	EndOfFileMetInRead = 0xe7,				// EOF
-	FileIsTooBig = 0xe6,					// FSIZE
-	InvalidFilePointerValue = 0xe5,			// FPTR
-	ProtectionViolation = 0xe4,				// PROT
-
-	//
-	// Keyboard errors.
-	//
-	InvalidFunctionKeyNumber = 0xe3,		// KFKEY
-	RunOutOfFunctionKeySpace = 0xe2,		// KFSPC
-
-	//
-	// Sound errors.
-	//
-	EnvelopeInvalidOrTooBig = 0xe1,				// SENV
-	NotEnoughRoomToDefineEnvelope = 0xe0,		// SENDBF
-	EnvelopeStorageRequestedTooSmall = 0xdf,	// SENFLO
-	SoundQueueFull = 0xde,						// SQFUL
-
-	//
-	// Video errors.
-	//
-	InvalidRowNumberToScroll = 0xdd,			// VROW
-	AttemptToMoveCursorOffPage = 0xdc,			// VCURS
-	InvalidColourPassedToINKOrPAPER = 0xdb,		// VCOLR
-	InvalidXOrYSizeToOPEN = 0xda,				// VSIZE
-	InvalidVideoModeToOPEN = 0xd9,				// VMODE
-	BadParameterToDISPLAY = 0xdb,				// VDISP, and officially 'naff' rather than 'bad'
-	NotEnoughRowsInPageToDISPLAY = 0xd7,		// VDSP2
-	AttemptToMoveBeamOffPage = 0xd6,			// VBEAM
-	LineStyleTooBig = 0xd5,						// VLSTY
-	LineModeTooBig = 0xd4,						// VLMOD
-	CantDisplayCharacterOrGraphic = 0xd3,		// VCHAR
-
-	//
-	// Serial errors.
-	//
-	InvalidBaudRate = 0xd2,						// BAUD
-
-	//
-	// Editor errors.
-	//
-	InvalidVideoPageForOPEN = 0xd1,				// EVID
-	TroubleInCommunicatingWithKeyboard = 0xd0,	// EKEY
-	InvalidCoordinatesForPosition = 0xcf,		// ECURS
-
-	//
-	// Cassette errors.
-	//
-	CRCErrorFromCassetteDriver = 0xce,			// CCRC
-
-	//
-	// Network errors
-	//
-	SerialDeviceOpenCannotUseNetwork = 0xcd,	// SEROP
-	ADDR_NETNotSetUp = 0xcc,					// NOADR
+//	FileDoesNotExist = 0xea,				// NOFIL
+//	FileAlreadyExists = 0xe9,				// EXFIL
+//	FileAlreadyOpen = 0xe8,					// FOPEN
+//	FileIsTooBig = 0xe6,					// FSIZE
+//	InvalidFilePointerValue = 0xe5,			// FPTR
+//
+//	//
+//	// Keyboard errors.
+//	//
+//	InvalidFunctionKeyNumber = 0xe3,		// KFKEY
+//	RunOutOfFunctionKeySpace = 0xe2,		// KFSPC
+//
+//	//
+//	// Sound errors.
+//	//
+//	EnvelopeInvalidOrTooBig = 0xe1,				// SENV
+//	NotEnoughRoomToDefineEnvelope = 0xe0,		// SENDBF
+//	EnvelopeStorageRequestedTooSmall = 0xdf,	// SENFLO
+//	SoundQueueFull = 0xde,						// SQFUL
+//
+//	//
+//	// Video errors.
+//	//
+//	InvalidRowNumberToScroll = 0xdd,			// VROW
+//	AttemptToMoveCursorOffPage = 0xdc,			// VCURS
+//	InvalidColourPassedToINKOrPAPER = 0xdb,		// VCOLR
+//	InvalidXOrYSizeToOPEN = 0xda,				// VSIZE
+//	InvalidVideoModeToOPEN = 0xd9,				// VMODE
+//	BadParameterToDISPLAY = 0xdb,				// VDISP, and officially 'naff' rather than 'bad'
+//	NotEnoughRowsInPageToDISPLAY = 0xd7,		// VDSP2
+//	AttemptToMoveBeamOffPage = 0xd6,			// VBEAM
+//	LineStyleTooBig = 0xd5,						// VLSTY
+//	LineModeTooBig = 0xd4,						// VLMOD
+//	CantDisplayCharacterOrGraphic = 0xd3,		// VCHAR
+//
+//	//
+//	// Serial errors.
+//	//
+//	InvalidBaudRate = 0xd2,						// BAUD
+//
+//	//
+//	// Editor errors.
+//	//
+//	InvalidVideoPageForOPEN = 0xd1,				// EVID
+//	TroubleInCommunicatingWithKeyboard = 0xd0,	// EKEY
+//	InvalidCoordinatesForPosition = 0xcf,		// ECURS
+//
+//	//
+//	// Cassette errors.
+//	//
+//	CRCErrorFromCassetteDriver = 0xce,			// CCRC
+//
+//	//
+//	// Network errors
+//	//
+//	SerialDeviceOpenCannotUseNetwork = 0xcd,	// SEROP
+//	ADDR_NETNotSetUp = 0xcc,					// NOADR
 };
 
 }
