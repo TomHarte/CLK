@@ -90,9 +90,11 @@ allocate_exos_buffer:
 	and a
 	ret z
 
-	; Otherwise, close the file again. What fun!
+	; Otherwise, close the file again, then restore whatever the error was. What fun!
+	ld c, a
 	ld a, b
 	hostfscall 3
+	ld a, c
 	ret
 
 ;
