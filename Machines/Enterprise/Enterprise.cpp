@@ -564,8 +564,6 @@ public:
 				// Potential segue for the host FS. I'm relying on branch prediction to
 				// avoid this cost almost always.
 				if(test_host_fs_traps_ && (address >> 14) == 3) [[unlikely]] {
-					printf("%04x\n", address);
-
 					const auto is_trap = host_fs_traps_.contains(address);
 
 					if(is_trap) {
@@ -577,7 +575,7 @@ public:
 
 						// Grab function code from where the PC actually is, and return a NOP
 						host_fs_.perform(read_pointers_[address >> 14][address], a, bc, de);
-						*cycle.value = 0xc9;	// i.e. RET.
+						*cycle.value = 0x00;	// i.e. NOP.
 
 						z80_.set_value_of(Register::A, a);
 						z80_.set_value_of(Register::BC, bc);

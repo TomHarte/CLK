@@ -13,6 +13,11 @@
 ;		on the device chain
 ;
 
+	hostfscall: macro
+		db 0xed, 0xfe, 0xfe
+		db \0
+	endm
+
 	org 0xc000
 
 	dm "EXOS_ROM"		; Standard ROM signature.
@@ -47,8 +52,130 @@ dispatch:
 		dw	call{@dispatch}
 	NEXT @dispatch
 
-@call: EQU FOR 14
-call{@call}:
-	db 0xed, 0xfe, 0xfe
-	db @call
-NEXT @call
+;
+; Interrupt.
+;
+; The device chain indicates that this ROM doesn't receive interrupts. So no need to escalate.
+;
+call0:
+	ret
+
+;
+; Open channel.
+;
+; EXOS requires the programmer manually to call its function 27 to allocate a channel buffer if
+; it otherwise expects to succeed. So some handling is most easily done within the client machine.
+;
+call1:
+	ld b, a			; Backup the channel number
+	hostfscall 1
+
+allocate_exos_buffer:
+	; Exit immediately if that call already failed.
+	and a
+	ret nz
+
+	; Restore the channel number and otherwise configure to allocate a buffer.
+	push bc
+	ld a, b
+	ld bc, 0
+	ld de, 1
+
+	; EXOS call 27.
+	rst 0x30
+	db 27
+
+	; If there's no error from that, exit.
+	pop bc
+	and a
+	ret z
+
+	; Otherwise, close the file again. What fun!
+	ld a, b
+	hostfscall 3
+	ret
+
+;
+; Create channel.
+;
+call2:
+	ld b, a
+	hostfscall 2
+	jp allocate_exos_buffer
+
+;
+; Close channel.
+;
+call3:
+	hostfscall 3
+	ret
+
+;
+; Destroy channel.
+;
+call4:
+	hostfscall 4
+	ret
+
+;
+; Read character.
+;
+call5:
+	hostfscall 5
+	ret
+
+;
+; Read block.
+;
+call6:
+	hostfscall 6
+	ret
+
+;
+; Write character.
+;
+call7:
+	hostfscall 7
+	ret
+
+;
+; Write block.
+;
+call8:
+	hostfscall 8
+	ret
+
+;
+; Read channel status.
+;
+call9:
+	hostfscall 9
+	ret
+
+;
+; Set channel status.
+;
+call10:
+	hostfscall 10
+	ret
+
+;
+; Special function.
+;
+call11:
+	hostfscall 11
+	ret
+
+;
+; Initialise.
+;
+call12:
+	hostfscall 12
+	ret
+
+;
+; Buffer moved.
+;
+call13:
+	hostfscall 13
+	ret
