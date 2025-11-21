@@ -3,16 +3,16 @@
 ; E.g. pyz80 --obj=hostfs.rom hostfs.z80s
 ;
 
-	org $c000
+	org 0xc000
 
 	dm "EXOS_ROM"		; Standard ROM signature.
 
 	; Pointer to the included device chain, which should be valid when this
 	; ROM is paged at $4000, though when executed from it'll be at $c000.
-	dw $4000 + (device_chain & $3fff)
+	dw 0x4000 + (device_chain & 0x3fff)
 
-	; Startup entry point; there is no startup code.
-	dw 0
+	; ROM entry point; there is no startup code.
+	ret
 
 	dw 0		; XX_NEXT_LOW/HI:	Pointer to start of next device. There is no next device.
 	dw 0		; XX_RAM_LOW/HI:	Amount of host RAM used.
@@ -21,7 +21,7 @@ device_chain_type:
 	db 0		; DD_TYPE:			Type, which must be 0.
 	db 0		; DD_IRQFLAG:		No interrupts required.
 	db 0		; DD_FLAGS:			Not a video device.
-	dw $4000 + (dispatch & $3fff)
+	dw 0x4000 + (dispatch & 0x3fff)
 	db 0		; DD_TAB_LOW/HI/SEG:	
 	db 1		; DD_UNIT_COUNT
 	db 4
