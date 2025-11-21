@@ -125,6 +125,11 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 			}
 
 			while(true) {
+				if(!bc) {
+					set_error(EXOS::Error::NoError);
+					break;
+				}
+
 				const auto next = channel->second.get();
 				if(channel->second.eof()) {
 					set_error(EXOS::Error::EndOfFileMetInRead);
@@ -133,10 +138,6 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 
 				write_de(next);
 				bc--;
-				if(!bc) {
-					set_error(EXOS::Error::NoError);
-					break;
-				}
 			}
 		} break;
 	}
