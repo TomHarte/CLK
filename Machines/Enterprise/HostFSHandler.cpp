@@ -25,7 +25,7 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 		return accessor_.hostfs_read(de++);
 	};
 	const auto write_de = [&](const uint8_t ch) {
-		return accessor_.hostfs_write(de++, ch);
+		return accessor_.hostfs_user_write(de++, ch);
 	};
 	const auto find_channel = [&]() {
 		if(a == 255) {

@@ -118,8 +118,6 @@ enum Name {
 	EnterpriseEPDOS,
 	EnterpriseEXDOS,
 
-	EnterpriseEPFILEIO,
-
 	// Macintosh.
 	Macintosh128k,
 	Macintosh512k,

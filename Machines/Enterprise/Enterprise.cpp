@@ -179,12 +179,6 @@ public:
 			default: break;
 		}
 
-		// Ensure a briddge into the local filing system if requested.
-		const bool needs_host_bridge = !target.media.file_bundles.empty();
-//		if(needs_host_bridge) {
-//			request = request && ROM::Request(ROM::Name::EnterpriseEPFILEIO);
-//		}
-
 		// Get and validate ROMs.
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
@@ -239,11 +233,9 @@ public:
 			memcpy(exdos_rom_.data(), exdos->second.data(), std::min(exdos_rom_.size(), exdos->second.size()));
 		}
 
-		// Possibly grab the file IO ROM.
-//		const auto host_fs = roms.find(ROM::Name::EnterpriseEPFILEIO);
-//		host_fs_rom_.fill(0xff);
-		if(needs_host_bridge) {//host_fs != roms.end()) {
-//			memcpy(host_fs_rom_.data(), host_fs->second.data(), std::min(host_fs_rom_.size(), host_fs->second.size()));
+		// Possibly install the host FS ROM.
+		host_fs_rom_.fill(0xff);
+		if(!target.media.file_bundles.empty()) {
 			const auto rom = host_fs_.rom();
 			std::copy(rom.begin(), rom.end(), host_fs_rom_.begin());
 			find_host_fs_hooks();
@@ -561,6 +553,13 @@ public:
 			break;
 
 			case PartialMachineCycle::ReadOpcode:
+				{
+					static bool print_opcode = false;
+					if(print_opcode) {
+						printf("%04x: %02x\n", address, read_pointers_[address >> 14][address]);
+					}
+				}
+
 				// Potential segue for the host FS. I'm relying on branch prediction to
 				// avoid this cost almost always.
 				if(test_host_fs_traps_ && (address >> 14) == 3) [[unlikely]] {
@@ -625,6 +624,12 @@ private:
 	std::array<uint8_t, 16 * 1024> host_fs_rom_;
 	const uint8_t min_ram_slot_;
 
+	uint8_t *ram_segment(const uint8_t page) {
+		if(page < min_ram_slot_) return nullptr;
+		const auto ram_floor = 4194304 - ram_.size();
+		return &ram_[(page << 14) - ram_floor];
+	}
+
 	const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
 	uint8_t *write_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
 	uint8_t pages_[4] = {0x80, 0x80, 0x80, 0x80};
@@ -663,10 +668,9 @@ private:
 		// at least while the RAM is the first thing declared above, does a little
 		// to benefit data locality. Albeit not in a useful sense.
 		if(offset >= min_ram_slot_) {
-			const auto ram_floor = 4194304 - ram_.size();
-			const size_t address = offset * 0x4000 - ram_floor;
 			is_video_[slot] = offset >= 0xfc;	// TODO: this hard-codes a 64kb video assumption.
-			page<slot>(&ram_[address], &ram_[address]);
+			auto pointer = ram_segment(offset);
+			page<slot>(pointer, pointer);
 			return;
 		}
 
@@ -820,10 +824,14 @@ private:
 		}
 	}
 
-	void hostfs_write(const uint16_t address, const uint8_t value) override {
-		if(write_pointers_[address >> 14]) {
-			write_pointers_[address >> 14][address] = value;
-		}
+	void hostfs_user_write(const uint16_t address, const uint8_t value) override {
+		// "User" writes go to to wherever the user last had paged;
+		// per 5.4 System Segment Usage those pages are stored in memory from
+		// 0xbffc, so grab from there.
+		const auto page_id = address >> 14;
+		const auto page = read_pointers_[0xbffc >> 14] ? read_pointers_[0xbffc >> 14][0xbffc + page_id] : 0xff;
+		const auto offset = address & 0x3fff;
+		ram_segment(page)[offset] = value;
 	}
 
 	void find_host_fs_hooks() {

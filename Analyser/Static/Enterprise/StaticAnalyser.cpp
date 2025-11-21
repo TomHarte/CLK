@@ -96,7 +96,7 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(
 			// To consider: all the COMs I've seen also now have 12 bytes of 0 padding.
 			// Test that?
 
-			if(type != 0x0500 || size != file->stats().st_size - 16) {
+			if(type != 0x0500 || size > file->stats().st_size - 16) {
 				target->media.file_bundles.clear();
 			} else {
 				target->loading_command = "run \"file:\"\n";

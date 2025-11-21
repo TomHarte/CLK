@@ -670,15 +670,6 @@ const std::vector<Description> &Description::all_roms() {
 			0xe6daa0e9u
 		},
 
-		{
-			EnterpriseEPFILEIO,
-			"Enterprise",
-			"the EP128Emu direction FILE IO ROM",
-			"epfileio.rom",
-			16_kb,
-			0x60c79925u
-		},
-
 	//
 	// Macintosh
 	//

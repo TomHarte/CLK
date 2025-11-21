@@ -20,7 +20,10 @@ namespace Enterprise {
 struct HostFSHandler {
 	struct MemoryAccessor {
 		virtual uint8_t hostfs_read(uint16_t) = 0;
-		virtual void hostfs_write(uint16_t, uint8_t) = 0;
+//		virtual void hostfs_write(uint16_t, uint8_t) = 0;
+
+//		virtual uint8_t hostfs_user_read(uint16_t) = 0;
+		virtual void hostfs_user_write(uint16_t, uint8_t) = 0;
 	};
 
 	HostFSHandler(MemoryAccessor &);
