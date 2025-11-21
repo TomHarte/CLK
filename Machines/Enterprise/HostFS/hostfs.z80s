@@ -3,6 +3,16 @@
 ; E.g. pyz80 --obj=hostfs.rom hostfs.z80s
 ;
 
+;
+; Sources:
+;
+;	http://ep.homeserver.hu/Dokumentacio/Konyvek/EXOS_2.1_technikal_information/exos/kernel/Ch9.html
+;		on signature, device chain pointer and ROM entry point
+;
+;	http://ep.homeserver.hu/Dokumentacio/Konyvek/EXOS_2.1_technikal_information/exos/kernel/Ch6.html
+;		on the device chain
+;
+
 	org 0xc000
 
 	dm "EXOS_ROM"		; Standard ROM signature.
@@ -15,14 +25,16 @@
 	ret
 
 	dw 0		; XX_NEXT_LOW/HI:	Pointer to start of next device. There is no next device.
-	dw 0		; XX_RAM_LOW/HI:	Amount of host RAM used.
+	dw 0xfffe	; XX_RAM_LOW/HI:	[(Amount of host RAM used) + 2] negatived.
 	
 device_chain_type:
 	db 0		; DD_TYPE:			Type, which must be 0.
 	db 0		; DD_IRQFLAG:		No interrupts required.
 	db 0		; DD_FLAGS:			Not a video device.
+
 	dw 0x4000 + (dispatch & 0x3fff)
 	db 0		; DD_TAB_LOW/HI/SEG:	
+
 	db 0		; DD_UNIT_COUNT:	?
 	db 4
 	dm "FILE"	; DD_NAME

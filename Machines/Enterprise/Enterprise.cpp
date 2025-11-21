@@ -181,9 +181,9 @@ public:
 
 		// Ensure a briddge into the local filing system if requested.
 		const bool needs_host_bridge = !target.media.file_bundles.empty();
-		if(needs_host_bridge) {
-			request = request && ROM::Request(ROM::Name::EnterpriseEPFILEIO);
-		}
+//		if(needs_host_bridge) {
+//			request = request && ROM::Request(ROM::Name::EnterpriseEPFILEIO);
+//		}
 
 		// Get and validate ROMs.
 		auto roms = rom_fetcher(request);
@@ -240,10 +240,12 @@ public:
 		}
 
 		// Possibly grab the file IO ROM.
-		const auto host_fs = roms.find(ROM::Name::EnterpriseEPFILEIO);
-		host_fs_rom_.fill(0xff);
-		if(host_fs != roms.end()) {
-			memcpy(host_fs_rom_.data(), host_fs->second.data(), std::min(host_fs_rom_.size(), host_fs->second.size()));
+//		const auto host_fs = roms.find(ROM::Name::EnterpriseEPFILEIO);
+//		host_fs_rom_.fill(0xff);
+		if(needs_host_bridge) {//host_fs != roms.end()) {
+//			memcpy(host_fs_rom_.data(), host_fs->second.data(), std::min(host_fs_rom_.size(), host_fs->second.size()));
+			const auto rom = host_fs_.rom();
+			std::copy(rom.begin(), rom.end(), host_fs_rom_.begin());
 			find_host_fs_hooks();
 		}
 
@@ -562,6 +564,8 @@ public:
 				// Potential segue for the host FS. I'm relying on branch prediction to
 				// avoid this cost almost always.
 				if(test_host_fs_traps_ && (address >> 14) == 3) [[unlikely]] {
+					printf("%04x\n", address);
+
 					const auto is_trap = host_fs_traps_.contains(address);
 
 					if(is_trap) {
@@ -573,7 +577,7 @@ public:
 
 						// Grab function code from where the PC actually is, and return a NOP
 						host_fs_.perform(read_pointers_[address >> 14][address], a, bc, de);
-						*cycle.value = 0x00;	// i.e. NOP.
+						*cycle.value = 0xc9;	// i.e. RET.
 
 						z80_.set_value_of(Register::A, a);
 						z80_.set_value_of(Register::BC, bc);

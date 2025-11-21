@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 
 namespace Enterprise {
 
@@ -30,6 +31,8 @@ struct HostFSHandler {
 
 	/// Sets the bundle of files on which this handler should operate.
 	void set_file_bundle(std::shared_ptr<Storage::FileBundle::FileBundle> bundle);
+
+	std::vector<uint8_t> rom();
 
 private:
 	MemoryAccessor &accessor_;
