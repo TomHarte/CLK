@@ -33,7 +33,7 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 
 	switch(function) {
 		default:
-			printf("UNIMPLEMENTED function %d\n", function);
+			printf("UNIMPLEMENTED function %d with A:%02x BC:%04x DE:%04x\n", function, a, bc, de);
 		break;
 
 		case uint8_t(EXOS::DeviceDescriptorFunction::Initialise):
