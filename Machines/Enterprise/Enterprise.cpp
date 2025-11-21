@@ -626,7 +626,9 @@ private:
 
 	uint8_t *ram_segment(const uint8_t page) {
 		if(page < min_ram_slot_) return nullptr;
-		const auto ram_floor = 4194304 - ram_.size();
+		const auto ram_floor = (0x100 << 14) - ram_.size();
+			// Each segment is 2^14 bytes long and there are 256 of them. So the Enterprise has a 22-bit address space.
+			// RAM is at the end of that range; `ram_floor` is the 22-bit address at which RAM starts.
 		return &ram_[(page << 14) - ram_floor];
 	}
 
