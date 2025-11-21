@@ -23,7 +23,7 @@ device_chain_type:
 	db 0		; DD_FLAGS:			Not a video device.
 	dw 0x4000 + (dispatch & 0x3fff)
 	db 0		; DD_TAB_LOW/HI/SEG:	
-	db 1		; DD_UNIT_COUNT
+	db 0		; DD_UNIT_COUNT:	?
 	db 4
 	dm "FILE"	; DD_NAME
 
@@ -31,4 +31,12 @@ device_chain:
 	dw  device_chain - device_chain_type
 
 dispatch:
-	dw	23
+	@dispatch: EQU FOR 14
+		dw	call{@dispatch}
+	NEXT @dispatch
+
+@call: EQU FOR 14
+call{@call}:
+	db 0xed, 0xfe, 0xfe
+	db @call
+NEXT @call
