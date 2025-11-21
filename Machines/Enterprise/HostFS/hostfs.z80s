@@ -27,6 +27,10 @@
 	dw 0x4000 + (device_chain & 0x3fff)
 
 	; ROM entry point; there is no startup code.
+	;
+	; Possibly TODO: use EXOS call 19 to set this as the default filing system.
+	; Disk dives do this, it's not unprecedented.
+	;
 	ret
 
 	dw 0		; XX_NEXT_LOW/HI:	Pointer to start of next device. There is no next device.
