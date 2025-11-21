@@ -24,6 +24,9 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 	const auto read_de = [&]() {
 		return accessor_.hostfs_read(de++);
 	};
+	const auto write_de = [&](const uint8_t ch) {
+		return accessor_.hostfs_write(de++, ch);
+	};
 	const auto find_channel = [&]() {
 		if(a == 255) {
 			return channels_.end();
@@ -97,7 +100,7 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 		} break;
 
 		// Page 55.
-		case uint8_t(EXOS::Function::ReadCharacter):
+		case uint8_t(EXOS::Function::ReadCharacter): {
 			auto channel = find_channel();
 			if(channel == channels_.end()) {
 				set_error(EXOS::Error::ChannelIllegalOrDoesNotExist);
@@ -111,7 +114,31 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 			} else {
 				set_error(EXOS::Error::EndOfFileMetInRead);
 			}
-		break;
+		} break;
+
+		// Page 55.
+		case uint8_t(EXOS::Function::ReadBlock): {
+			auto channel = find_channel();
+			if(channel == channels_.end()) {
+				set_error(EXOS::Error::ChannelIllegalOrDoesNotExist);
+				break;
+			}
+
+			set_error(EXOS::Error::NoError);
+			while(true) {
+				const auto next = channel->second.get();
+				if(!channel->second.eof()) {
+					bc--;
+					write_de(next);
+					if(!bc) {
+						break;
+					}
+				} else {
+					set_error(EXOS::Error::EndOfFileMetInRead);
+					break;
+				}
+			}
+		} break;
 	}
 }
 
