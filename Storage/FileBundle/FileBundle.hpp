@@ -23,7 +23,7 @@ namespace Storage::FileBundle {
 	bundles in the future.
 */
 struct FileBundle {
-	virtual std::optional<FileHolder> key_file() = 0;
+	virtual std::optional<FileHolder> key_file(FileMode) = 0;
 	virtual FileHolder open(const std::string &, FileMode) = 0;
 };
 
@@ -31,7 +31,7 @@ struct FileBundle {
 struct LocalFSFileBundle: public FileBundle {
 	LocalFSFileBundle(const std::string &to_contain) : to_contain_(to_contain) {}
 
-	std::optional<FileHolder> key_file() override;
+	std::optional<FileHolder> key_file(FileMode) override;
 	FileHolder open(const std::string &, FileMode) override;
 
 private:

@@ -10,8 +10,8 @@
 
 using namespace Storage::FileBundle;
 
-std::optional<Storage::FileHolder> LocalFSFileBundle::key_file() {
-	return {to_contain_};
+std::optional<Storage::FileHolder> LocalFSFileBundle::key_file(const Storage::FileMode mode) {
+	return Storage::FileHolder(to_contain_, mode);
 }
 
 Storage::FileHolder LocalFSFileBundle::open(const std::string &name, Storage::FileMode mode) {

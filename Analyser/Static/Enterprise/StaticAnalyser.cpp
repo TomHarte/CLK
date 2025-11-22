@@ -87,7 +87,7 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(
 	}
 
 	if(!media.file_bundles.empty()) {
-		auto file = media.file_bundles.front()->key_file();
+		auto file = media.file_bundles.front()->key_file(Storage::FileMode::Read);
 
 		if(file.has_value()) {
 			// Check for a .COM by inspecting the header.

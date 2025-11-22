@@ -106,10 +106,10 @@ public:
 	ConcreteMachine(const Analyser::Static::Enterprise::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		min_ram_slot_(min_ram_slot(target)),
 		z80_(*this),
-		host_fs_(*this),
 		nick_(ram_.end() - 65536),
 		dave_audio_(audio_queue_),
-		speaker_(dave_audio_) {
+		speaker_(dave_audio_),
+		host_fs_(*this) {
 
 		// Request a clock of 4Mhz; this'll be mapped upwards for Nick and downwards for Dave elsewhere.
 		set_clock_rate(clock_rate);
