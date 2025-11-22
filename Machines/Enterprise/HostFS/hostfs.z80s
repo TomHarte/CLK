@@ -13,6 +13,13 @@
 ;		on the device chain
 ;
 
+
+	;
+	; This code adapts the same mechanism for a host call as that used by EP128Emu's FILE IO ROM.
+	; My original thinking was that one could be substituted for the other to permit comparative testing.
+	; EP128 has a couple of emulator-specific call codes that I don't implement though, and otherwise
+	; doesn't seem to work in this emulator. And likely the converse holds.
+	;
 	hostfscall: macro
 		db 0xed, 0xfe, 0xfe
 		db \0
