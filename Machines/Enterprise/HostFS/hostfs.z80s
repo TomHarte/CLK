@@ -26,11 +26,7 @@
 	; ROM is paged at $4000, though when executed from it'll be at $c000.
 	dw 0x4000 + (device_chain & 0x3fff)
 
-	; ROM entry point; there is no startup code.
-	;
-	; Possibly TODO: use EXOS call 19 to set this as the default filing system.
-	; Disk dives do this, it's not unprecedented.
-	;
+	; ROM entry point; handle nothing.
 	ret
 
 	dw 0		; XX_NEXT_LOW/HI:	Pointer to start of next device. There is no next device.
@@ -45,6 +41,7 @@ device_chain_type:
 	db 0		; DD_TAB_LOW/HI/SEG:	
 
 	db 0		; DD_UNIT_COUNT:	?
+device_name:
 	db 4
 	dm "FILE"	; DD_NAME
 
@@ -177,6 +174,15 @@ call11:
 ;
 call12:
 	hostfscall 12
+
+	;
+	; Set this as the default filing system.
+	; Disk dives do this, it's not unprecedented.
+	;
+	ld de, device_name
+	ld c, 1
+	rst 0x30
+	db 19
 	ret
 
 ;
