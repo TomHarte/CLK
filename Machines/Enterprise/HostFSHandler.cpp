@@ -17,103 +17,113 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 	const auto set_error = [&](const EXOS::Error error) {
 		a = uint8_t(error);
 	};
-	const auto set_b = [&](const uint8_t ch) {
-		bc = uint16_t((bc & 0xffff) | (ch << 8));
-	};
-
 	const auto read_de = [&]() {
 		return accessor_.hostfs_read(de++);
+	};
+	const auto read_name = [&]() {
+		// Get name.
+		uint8_t length = read_de();
+		std::string name;
+		while(length--) {
+			name.push_back(char(read_de()));
+		}
+
+		// Use the key file if no name is specified.
+		if(name.empty()) {
+			if(const auto key_file = bundle_->key_file(); key_file.has_value()) {
+				name = *key_file;
+			}
+		}
+
+		return name;
+	};
+	const auto set_b = [&](const uint8_t ch) {
+		bc = uint16_t((bc & 0xffff) | (ch << 8));
 	};
 	const auto write_de = [&](const uint8_t ch) {
 		return accessor_.hostfs_user_write(de++, ch);
 	};
-	const auto find_channel = [&]() {
+
+	//
+	// Functions that don't require an existing channel.
+	//
+	switch(function) {
+		default: break;
+
+		case uint8_t(EXOS::DeviceDescriptorFunction::Initialise):
+			channels_.clear();
+			set_error(EXOS::Error::NoError);
+		return;
+
+		// Page 54.
+		// Emprically: C contains the unit number.
+		case uint8_t(EXOS::Function::OpenChannel): {
+			if(a == 255) {
+				set_error(EXOS::Error::ChannelIllegalOrDoesNotExist);
+				break;
+			}
+			const auto name = read_name();
+
+			try {
+				channels_.emplace(a, bundle_->open(name, Storage::FileMode::ReadWrite));
+				set_error(EXOS::Error::NoError);
+			} catch(Storage::FileHolder::Error) {
+				try {
+					channels_.emplace(a, bundle_->open(name, Storage::FileMode::Read));
+					set_error(EXOS::Error::NoError);
+				} catch(Storage::FileHolder::Error) {
+//					set_error(EXOS::Error::FileDoesNotExist);
+					set_error(EXOS::Error::ProtectionViolation);
+				}
+			}
+		}
+		return;
+
+		// Page 54.
+		case uint8_t(EXOS::Function::CreateChannel): {
+			if(a == 255) {
+				set_error(EXOS::Error::ChannelIllegalOrDoesNotExist);
+				break;
+			}
+			const auto name = read_name();
+
+			try {
+				channels_.emplace(a, bundle_->open(name, Storage::FileMode::Rewrite));
+				set_error(EXOS::Error::NoError);
+			} catch(Storage::FileHolder::Error) {
+//				set_error(EXOS::Error::FileAlreadyExists);
+				set_error(EXOS::Error::ProtectionViolation);
+			}
+		} return;
+	}
+
+	//
+	// Functions from here require a channel already open.
+	//
+	const auto channel = [&]() {
 		if(a == 255) {
 			return channels_.end();
 		}
 		return channels_.find(a);
-	};
+	} ();
+	if(channel == channels_.end()) {
+		set_error(EXOS::Error::ChannelIllegalOrDoesNotExist);
+		return;
+	}
 
 	switch(function) {
 		default:
 			printf("UNIMPLEMENTED function %d with A:%02x BC:%04x DE:%04x\n", function, a, bc, de);
 		break;
 
-		case uint8_t(EXOS::DeviceDescriptorFunction::Initialise):
-			channels_.clear();
-			set_error(EXOS::Error::NoError);
-		break;
-
 		// Page 54.
-		// Emprically: C contains the unit number.
-		case uint8_t(EXOS::Function::OpenChannel):
-		case uint8_t(EXOS::Function::CreateChannel): {
-			if(a == 255) {
-				set_error(EXOS::Error::ChannelIllegalOrDoesNotExist);
-				break;
-			}
-
-			// Get name.
-			uint8_t length = read_de();
-			std::string name;
-			while(length--) {
-				name.push_back(char(read_de()));
-			}
-
-			// Use the key file if no name is specified.
-			if(name.empty()) {
-				if(const auto key_file = bundle_->key_file(); key_file.has_value()) {
-					name = *key_file;
-				}
-			}
-
-			// The only difference between open and create is that the former is
-			// meant to append.
-			const auto mode =
-				function == uint8_t(EXOS::Function::CreateChannel) ?
-					Storage::FileMode::Rewrite : Storage::FileMode::ReadWrite;
-
-			try {
-				channels_.emplace(a, bundle_->open(name, mode));
-				set_error(EXOS::Error::NoError);
-			} catch(Storage::FileHolder::Error) {
-				if(mode == Storage::FileMode::ReadWrite) {
-					try {
-						channels_.emplace(a, bundle_->open(name, Storage::FileMode::Read));
-						set_error(EXOS::Error::NoError);
-					} catch(Storage::FileHolder::Error) {
-//						set_error(EXOS::Error::FileDoesNotExist);
-						set_error(EXOS::Error::InvalidEscapeSequence);
-					}
-				} else {
-//					set_error(EXOS::Error::FileAlreadyExists);
-					set_error(EXOS::Error::InvalidEscapeSequence);
-				}
-			}
-
-			// TODO: what are appropriate error codes?.
-		} break;
-
-		// Page 54.
-		case uint8_t(EXOS::Function::CloseChannel): {
-			auto channel = find_channel();
-			if(channel == channels_.end()) {
-				set_error(EXOS::Error::ChannelIllegalOrDoesNotExist);
-				break;
-			}
-
+		case uint8_t(EXOS::Function::CloseChannel):
 			set_error(EXOS::Error::NoError);
 			channels_.erase(channel);
-		} break;
+		break;
 
 		// Page 55.
 		case uint8_t(EXOS::Function::ReadCharacter): {
-			auto channel = find_channel();
-			if(channel == channels_.end()) {
-				set_error(EXOS::Error::ChannelIllegalOrDoesNotExist);
-				break;
-			}
-
 			const auto next = channel->second.get();
 			if(channel->second.eof()) {
 				set_error(EXOS::Error::EndOfFileMetInRead);
@@ -125,12 +135,6 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 
 		// Page 55.
 		case uint8_t(EXOS::Function::ReadBlock): {
-			auto channel = find_channel();
-			if(channel == channels_.end()) {
-				set_error(EXOS::Error::ChannelIllegalOrDoesNotExist);
-				break;
-			}
-
 			auto &file = channel->second;
 			set_error(EXOS::Error::NoError);
 			while(bc) {
