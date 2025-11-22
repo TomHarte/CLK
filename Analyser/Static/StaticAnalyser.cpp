@@ -213,8 +213,8 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::AcornADF>>(TargetPlatform::Acorn, "adf");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::AmigaADF>>(TargetPlatform::Amiga, "adf");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::AcornADF>>(TargetPlatform::Acorn, "adl");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::JFD>>(TargetPlatform::Archimedes, "jfd");
 
+	accumulator.try_standard<FileBundle::LocalFSFileBundle>(TargetPlatform::Enterprise, "bas");
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::AllCartridge, "bin");
 
 	accumulator.try_standard<Tape::CAS>(TargetPlatform::MSX, "cas");
@@ -263,6 +263,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 		TargetPlatform::Amiga | TargetPlatform::AtariST | TargetPlatform::AmstradCPC | TargetPlatform::ZXSpectrum,
 		"ipf");
 
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::JFD>>(TargetPlatform::Archimedes, "jfd");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::MSA>>(TargetPlatform::AtariST, "msa");
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::MSX, "mx2");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::NIB>>(TargetPlatform::DiskII, "nib");

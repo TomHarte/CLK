@@ -60,6 +60,13 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 				name.push_back(char(read_de()));
 			}
 
+			// Use the key file if no name is specified.
+			if(name.empty()) {
+				if(const auto key_file = bundle_->key_file(); key_file.has_value()) {
+					name = *key_file;
+				}
+			}
+
 			// The only difference between open and create is that the former is
 			// meant to append.
 			const auto mode =

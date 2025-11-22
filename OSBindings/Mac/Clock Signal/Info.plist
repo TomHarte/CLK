@@ -811,6 +811,7 @@
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>com</string>
+				<string>bas</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string></string>
