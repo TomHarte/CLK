@@ -18,6 +18,11 @@
 		db \0
 	endm
 
+	exoscall: macro
+		rst 0x30
+		db \0
+	endm
+
 	org 0xc000
 
 	dm "EXOS_ROM"		; Standard ROM signature.
@@ -70,28 +75,10 @@ call0:
 call1:
 	ld b, a			; Backup the channel number
 	hostfscall 1
+	call allocate_exos_buffer
+	ret z			; Exit on success.
 
-allocate_exos_buffer:
-	; Exit immediately if that call already failed.
-	and a
-	ret nz
-
-	; Restore the channel number and otherwise configure to allocate a buffer.
-	push bc
-	ld a, b
-	ld bc, 0
-	ld de, 1
-
-	; EXOS call 27.
-	rst 0x30
-	db 27
-
-	; If there's no error from that, exit.
-	pop bc
-	and a
-	ret z
-
-	; Otherwise, close the file again, then restore whatever the error was. What fun!
+	; Otherwise, close the file and return the EXOS error.
 	ld c, a
 	ld a, b
 	hostfscall 3
@@ -104,7 +91,15 @@ allocate_exos_buffer:
 call2:
 	ld b, a
 	hostfscall 2
-	jp allocate_exos_buffer
+	call allocate_exos_buffer
+	ret z			; Exit on success.
+
+	; Otherwise, erase the newly-created file and return the EXOS error.
+	ld c, a
+	ld a, b
+	hostfscall 4
+	ld a, c
+	ret
 
 ;
 ; Close channel.
@@ -181,8 +176,7 @@ call12:
 	;
 	ld de, device_name
 	ld c, 1
-	rst 0x30
-	db 19
+	exoscall 19
 	ret
 
 ;
@@ -190,4 +184,25 @@ call12:
 ;
 call13:
 	hostfscall 13
+	ret
+
+;
+; Attempts to allocate EXOS storage for a channel.
+; Returns Z set for success, clear for failure.
+;
+allocate_exos_buffer:
+	; Exit immediately if that call already failed.
+	and a
+	ret nz
+
+	; Restore the channel number and otherwise configure to allocate a buffer.
+	push bc
+	ld a, b
+	ld bc, 0
+	ld de, 1
+	exoscall 27
+
+	; If there's no error from that, exit.
+	pop bc
+	and a
 	ret
