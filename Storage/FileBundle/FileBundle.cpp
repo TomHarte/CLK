@@ -24,6 +24,6 @@ std::optional<std::string> LocalFSFileBundle::key_file() {
 	return key_file_;
 }
 
-Storage::FileHolder LocalFSFileBundle::open(const std::string &name, Storage::FileMode mode) {
+Storage::FileHolder LocalFSFileBundle::open(const std::string &name, const Storage::FileMode mode) {
 	return Storage::FileHolder(base_path_ + name, mode);
 }

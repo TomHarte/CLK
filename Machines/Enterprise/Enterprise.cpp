@@ -629,7 +629,7 @@ private:
 		const auto ram_floor = (0x100 << 14) - ram_.size();
 			// Each segment is 2^14 bytes long and there are 256 of them. So the Enterprise has a 22-bit address space.
 			// RAM is at the end of that range; `ram_floor` is the 22-bit address at which RAM starts.
-		return &ram_[size_t((page << 14) - ram_floor)];
+		return &ram_[size_t((page << 14)) - ram_floor];
 	}
 
 	const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -831,7 +831,7 @@ private:
 		// per 5.4 System Segment Usage those pages are stored in memory from
 		// 0xbffc, so grab from there.
 		const auto page_id = address >> 14;
-		const auto page = read_pointers_[0xbffc >> 14] ? read_pointers_[0xbffc >> 14][0xbffc + page_id] : 0xff;
+		const uint8_t page = read_pointers_[0xbffc >> 14] ? read_pointers_[0xbffc >> 14][0xbffc + page_id] : 0xff;
 		const auto offset = address & 0x3fff;
 		ram_segment(page)[offset] = value;
 	}
@@ -853,7 +853,7 @@ private:
 			}
 
 			const auto offset = begin - host_fs_rom_.begin() + 0xc000;	// ROM will be paged in slot 3, i.e. at $c000.
-			host_fs_traps_.insert(offset);
+			host_fs_traps_.insert(uint16_t(offset));
 
 			// Move function code up to where this trap was, and NOP out the tail.
 			begin[0] = begin[3];
