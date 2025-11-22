@@ -144,7 +144,7 @@ public:
 	std::size_t write(const uint8_t *, std::size_t);
 
 	/*! Moves @c bytes from the anchor indicated by @c whence: SEEK_SET, SEEK_CUR or SEEK_END. */
-	void seek(long offset, Whence);
+	bool seek(long offset, Whence);
 
 	/*! @returns The current cursor position within this file. */
 	long tell() const;

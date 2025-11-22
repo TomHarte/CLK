@@ -20,6 +20,9 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 	const auto set_b = [&](const uint8_t ch) {
 		bc = uint16_t((bc & 0xffff) | (ch << 8));
 	};
+	const auto set_c = [&](const uint8_t ch) {
+		bc = (bc & 0xff00) | (ch);
+	};
 	const auto b = [&]() -> uint8_t {
 		return bc >> 8;
 	};
@@ -181,9 +184,44 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 		break;
 
 		// Page 56.
-		case uint8_t(EXOS::Function::SetChannelStatus):
-			// TODO.
-		break;
+		case uint8_t(EXOS::Function::SetChannelStatus): {
+			if(bc & 4) {
+				// Protection byte is not supported.
+				set_error(EXOS::Error::FunctionNotSupported);
+				break;
+			}
+
+			if(bc & 1) {	// User is requesting a seek.
+				auto pointer = de;
+				uint32_t file_pointer;
+				file_pointer = accessor_.hostfs_user_read(pointer++);
+				file_pointer |= uint32_t(accessor_.hostfs_user_read(pointer++) << 8);
+				file_pointer |= uint32_t(accessor_.hostfs_user_read(pointer++) << 16);
+				file_pointer |= uint32_t(accessor_.hostfs_user_read(pointer++) << 24);
+
+				if(!file.seek(file_pointer, Storage::Whence::SET)) {
+					set_error(EXOS::Error::EndOfFileMetInRead);
+					break;
+				}
+			}
+
+			// Fill in both position and length.
+			set_c(3);
+			const uint32_t file_pointer = uint32_t(file.tell());
+			const uint32_t file_length = uint32_t(file.stats().st_size);
+
+			auto pointer = de;
+			const auto write = [&](const uint32_t source) {
+				accessor_.hostfs_user_write(pointer++, uint8_t(source >> 0));
+				accessor_.hostfs_user_write(pointer++, uint8_t(source >> 8));
+				accessor_.hostfs_user_write(pointer++, uint8_t(source >> 16));
+				accessor_.hostfs_user_write(pointer++, uint8_t(source >> 24));
+			};
+			write(file_pointer);
+			write(file_length);
+
+			set_error(EXOS::Error::NoError);
+		} break;
 	}
 }
 
