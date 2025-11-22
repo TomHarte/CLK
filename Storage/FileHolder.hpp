@@ -117,8 +117,11 @@ public:
 	/*! Reads a single byte from @c file. */
 	uint8_t get();
 
-	/*! Writes a single byte from @c file. */
-	void put(uint8_t);
+	/*!
+		Writes a single byte from @c file.
+		@returns @c true on success; @c false on failure.
+	*/
+	bool put(uint8_t);
 
 	/*! Writes @c value a total of @c repeats times. */
 	void putn(std::size_t repeats, uint8_t value);

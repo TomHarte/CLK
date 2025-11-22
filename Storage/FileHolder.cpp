@@ -51,8 +51,8 @@ uint8_t FileHolder::get() {
 	return uint8_t(std::fgetc(file_));
 }
 
-void FileHolder::put(const uint8_t value) {
-	std::fputc(value, file_);
+bool FileHolder::put(const uint8_t value) {
+	return std::fputc(value, file_) == value;
 }
 
 void FileHolder::putn(std::size_t repeats, const uint8_t value) {

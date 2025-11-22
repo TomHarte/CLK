@@ -19,10 +19,13 @@ namespace Enterprise {
 
 struct HostFSHandler {
 	struct MemoryAccessor {
+		// Accessors that read from however the Z80's 64kb is currently laid out.
 		virtual uint8_t hostfs_read(uint16_t) = 0;
 //		virtual void hostfs_write(uint16_t, uint8_t) = 0;
 
-//		virtual uint8_t hostfs_user_read(uint16_t) = 0;
+		// Accessors that read from 'user' address space, i.e. the 64kb Z80 address space as currently
+		// mapped according to the user's preference.
+		virtual uint8_t hostfs_user_read(uint16_t) = 0;
 		virtual void hostfs_user_write(uint16_t, uint8_t) = 0;
 	};
 

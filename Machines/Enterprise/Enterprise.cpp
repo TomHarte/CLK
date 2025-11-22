@@ -826,14 +826,22 @@ private:
 		}
 	}
 
-	void hostfs_user_write(const uint16_t address, const uint8_t value) override {
-		// "User" writes go to to wherever the user last had paged;
+	uint8_t &user_ram(const uint16_t address) {
+		// "User" accesses go to to wherever the user last had paged;
 		// per 5.4 System Segment Usage those pages are stored in memory from
 		// 0xbffc, so grab from there.
 		const auto page_id = address >> 14;
 		const uint8_t page = read_pointers_[0xbffc >> 14] ? read_pointers_[0xbffc >> 14][0xbffc + page_id] : 0xff;
 		const auto offset = address & 0x3fff;
-		ram_segment(page)[offset] = value;
+		return ram_segment(page)[offset];
+	}
+
+	uint8_t hostfs_user_read(const uint16_t address) override {
+		return user_ram(address);
+	}
+
+	void hostfs_user_write(const uint16_t address, const uint8_t value) override {
+		user_ram(address) = value;
 	}
 
 	void find_host_fs_hooks() {
