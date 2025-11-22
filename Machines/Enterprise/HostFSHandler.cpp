@@ -17,15 +17,18 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 	const auto set_error = [&](const EXOS::Error error) {
 		a = uint8_t(error);
 	};
-	const auto read_de = [&]() {
-		return accessor_.hostfs_read(de++);
+	const auto set_b = [&](const uint8_t ch) {
+		bc = uint16_t((bc & 0xffff) | (ch << 8));
+	};
+	const auto b = [&]() -> uint8_t {
+		return bc >> 8;
 	};
 	const auto read_name = [&]() {
 		// Get name.
-		uint8_t length = read_de();
+		uint8_t length = accessor_.hostfs_read(de++);
 		std::string name;
 		while(length--) {
-			name.push_back(char(read_de()));
+			name.push_back(char(accessor_.hostfs_read(de++)));
 		}
 
 		// Use the key file if no name is specified.
@@ -36,15 +39,6 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 		}
 
 		return name;
-	};
-	const auto set_b = [&](const uint8_t ch) {
-		bc = uint16_t((bc & 0xffff) | (ch << 8));
-	};
-	const auto b = [&]() -> uint8_t {
-		return bc >> 8;
-	};
-	const auto write_de = [&](const uint8_t ch) {
-		return accessor_.hostfs_user_write(de++, ch);
 	};
 
 	//
@@ -113,12 +107,7 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 	//
 	// Functions from here require a channel already open.
 	//
-	const auto channel = [&]() {
-		if(a == 255) {
-			return channels_.end();
-		}
-		return channels_.find(a);
-	} ();
+	const auto channel = channels_.find(a);
 	if(channel == channels_.end()) {
 		set_error(EXOS::Error::ChannelIllegalOrDoesNotExist);
 		return;
@@ -166,7 +155,7 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 					break;
 				}
 
-				write_de(next);
+				accessor_.hostfs_user_write(de++, next);
 				--bc;
 			}
 		} break;
