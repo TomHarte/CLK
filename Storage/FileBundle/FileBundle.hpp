@@ -25,6 +25,7 @@ namespace Storage::FileBundle {
 struct FileBundle {
 	virtual std::optional<std::string> key_file() = 0;
 	virtual FileHolder open(const std::string &, FileMode) = 0;
+	virtual bool erase(const std::string &) = 0;
 };
 
 
@@ -33,6 +34,7 @@ struct LocalFSFileBundle: public FileBundle {
 
 	std::optional<std::string> key_file() override;
 	FileHolder open(const std::string &, FileMode) override;
+	bool erase(const std::string &) override;
 
 private:
 	std::string key_file_;

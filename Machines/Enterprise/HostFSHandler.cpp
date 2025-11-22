@@ -128,6 +128,17 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 			channels_.erase(channel);
 		break;
 
+		// Page 54.
+		case uint8_t(EXOS::Function::DestroyChannel): {
+			const auto name = file.name();
+			channels_.erase(channel);
+			if(bundle_->erase(name)) {
+				set_error(EXOS::Error::NoError);
+			} else {
+				set_error(EXOS::Error::ProtectionViolation);
+			}
+		} break;
+
 		// Page 55.
 		case uint8_t(EXOS::Function::ReadCharacter): {
 			const auto next = file.get();

@@ -8,6 +8,8 @@
 
 #include "FileBundle.hpp"
 
+#include <cstdio>
+
 using namespace Storage::FileBundle;
 
 LocalFSFileBundle::LocalFSFileBundle(const std::string &to_contain) {
@@ -26,4 +28,8 @@ std::optional<std::string> LocalFSFileBundle::key_file() {
 
 Storage::FileHolder LocalFSFileBundle::open(const std::string &name, const Storage::FileMode mode) {
 	return Storage::FileHolder(base_path_ + name, mode);
+}
+
+bool LocalFSFileBundle::erase(const std::string &name) {
+	return !remove((base_path_ + name).c_str());
 }
