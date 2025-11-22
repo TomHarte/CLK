@@ -1,0 +1,215 @@
+;
+; Designed for assembly with pyz80, https://github.com/simonowen/pyz80/
+; E.g. pyz80 --obj=hostfs.rom hostfs.z80s
+;
+
+;
+; Sources:
+;
+;	http://ep.homeserver.hu/Dokumentacio/Konyvek/EXOS_2.1_technikal_information/exos/kernel/Ch9.html
+;		on signature, device chain pointer and ROM entry point
+;
+;	http://ep.homeserver.hu/Dokumentacio/Konyvek/EXOS_2.1_technikal_information/exos/kernel/Ch6.html
+;		on the device chain
+;
+
+
+	;
+	; This code adapts the same mechanism for a host call as that used by EP128Emu's FILE IO ROM.
+	; My original thinking was that one could be substituted for the other to permit comparative testing.
+	; EP128 has a couple of emulator-specific call codes that I don't implement though, and otherwise
+	; doesn't seem to work in this emulator. And likely the converse holds.
+	;
+	hostfscall: macro
+		db 0xed, 0xfe, 0xfe
+		db \0
+	endm
+
+	exoscall: macro
+		rst 0x30
+		db \0
+	endm
+
+	org 0xc000
+
+	dm "EXOS_ROM"		; Standard ROM signature.
+
+	; Pointer to the included device chain, which should be valid when this
+	; ROM is paged at $4000, though when executed from it'll be at $c000.
+	dw 0x4000 + (device_chain & 0x3fff)
+
+	; ROM entry point; handle nothing.
+	ret
+
+	dw 0		; XX_NEXT_LOW/HI:	Pointer to start of next device. There is no next device.
+	dw 0xfffe	; XX_RAM_LOW/HI:	[(Amount of host RAM used) + 2] negatived.
+	
+device_chain_type:
+	db 0		; DD_TYPE:			Type, which must be 0.
+	db 0		; DD_IRQFLAG:		No interrupts required.
+	db 0		; DD_FLAGS:			Not a video device.
+
+	dw 0x4000 + (dispatch & 0x3fff)
+	db 0		; DD_TAB_LOW/HI/SEG:	
+
+	db 0		; DD_UNIT_COUNT:	?
+device_name:
+	db 4
+	dm "FILE"	; DD_NAME
+
+device_chain:
+	dw  device_chain - device_chain_type
+
+dispatch:
+	@dispatch: EQU FOR 14
+		dw	call{@dispatch}
+	NEXT @dispatch
+
+;
+; Interrupt.
+;
+; The device chain indicates that this ROM doesn't receive interrupts. So no need to escalate.
+;
+call0:
+	ret
+
+;
+; Open channel.
+;
+; EXOS requires the programmer manually to call its function 27 to allocate a channel buffer if
+; it otherwise expects to succeed. So some handling is most easily done within the client machine.
+;
+call1:
+	ld b, a			; Backup the channel number
+	hostfscall 1
+	call allocate_exos_buffer
+	ret z			; Exit on success.
+
+	; Otherwise, close the file and return the EXOS error.
+	ld c, a
+	ld a, b
+	hostfscall 3
+	ld a, c
+	ret
+
+;
+; Create channel.
+;
+call2:
+	ld b, a
+	hostfscall 2
+	call allocate_exos_buffer
+	ret z			; Exit on success.
+
+	; Otherwise, erase the newly-created file and return the EXOS error.
+	ld c, a
+	ld a, b
+	hostfscall 4
+	ld a, c
+	ret
+
+;
+; Close channel.
+;
+call3:
+	hostfscall 3
+	ret
+
+;
+; Destroy channel.
+;
+call4:
+	hostfscall 4
+	ret
+
+;
+; Read character.
+;
+call5:
+	hostfscall 5
+	ret
+
+;
+; Read block.
+;
+call6:
+	hostfscall 6
+	ret
+
+;
+; Write character.
+;
+call7:
+	hostfscall 7
+	ret
+
+;
+; Write block.
+;
+call8:
+	hostfscall 8
+	ret
+
+;
+; Read channel status.
+;
+call9:
+	hostfscall 9
+	ret
+
+;
+; Set channel status.
+;
+call10:
+	hostfscall 10
+	ret
+
+;
+; Special function.
+;
+call11:
+	hostfscall 11
+	ret
+
+;
+; Initialise.
+;
+call12:
+	hostfscall 12
+
+	;
+	; Set this as the default filing system.
+	; Disk dives do this, it's not unprecedented.
+	;
+	ld de, device_name
+	ld c, 1
+	exoscall 19
+	ret
+
+;
+; Buffer moved.
+;
+call13:
+	hostfscall 13
+	ret
+
+;
+; Attempts to allocate EXOS storage for a channel.
+; Returns Z set for success, clear for failure.
+;
+allocate_exos_buffer:
+	; Exit immediately if that call already failed.
+	and a
+	ret nz
+
+	; Restore the channel number and otherwise configure to allocate a buffer.
+	push bc
+	ld a, b
+	ld bc, 0
+	ld de, 1
+	exoscall 27
+
+	; If there's no error from that, exit.
+	pop bc
+	and a
+	ret

@@ -13,6 +13,12 @@
 
 using namespace Storage;
 
+FileHolder::FileHolder(FileHolder &&rhs) {
+	file_ = rhs.file_;
+	rhs.file_ = nullptr;
+	// TODO: this leaves the RHS in an invalid state, which isn't appropriate for move semantics.
+}
+
 FileHolder::~FileHolder() {
 	if(file_) std::fclose(file_);
 }
@@ -45,8 +51,8 @@ uint8_t FileHolder::get() {
 	return uint8_t(std::fgetc(file_));
 }
 
-void FileHolder::put(const uint8_t value) {
-	std::fputc(value, file_);
+bool FileHolder::put(const uint8_t value) {
+	return std::fputc(value, file_) == value;
 }
 
 void FileHolder::putn(std::size_t repeats, const uint8_t value) {
@@ -71,9 +77,9 @@ std::size_t FileHolder::write(const uint8_t *buffer, const std::size_t size) {
 	return std::fwrite(buffer, 1, size, file_);
 }
 
-void FileHolder::seek(const long offset, const Whence whence) {
-	[[maybe_unused]] const auto result = std::fseek(file_, offset, int(whence));
-	assert(!result);
+bool FileHolder::seek(const long offset, const Whence whence) {
+	const auto result = std::fseek(file_, offset, int(whence));
+	return !result;
 }
 
 long FileHolder::tell() const {

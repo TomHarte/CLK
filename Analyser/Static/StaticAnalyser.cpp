@@ -63,6 +63,9 @@
 #include "Storage/Disk/DiskImage/Formats/STX.hpp"
 #include "Storage/Disk/DiskImage/Formats/WOZ.hpp"
 
+// File Bundles.
+#include "Storage/FileBundle/FileBundle.hpp"
+
 // Mass Storage Devices (i.e. usually, hard disks)
 #include "Storage/MassStorage/Formats/DAT.hpp"
 #include "Storage/MassStorage/Formats/DSK.hpp"
@@ -123,6 +126,8 @@ public:
 			media.cartridges.push_back(instance);
 		} else if constexpr (std::is_base_of_v<Storage::MassStorage::MassStorageDevice, InstanceT>) {
 			media.mass_storage_devices.push_back(instance);
+		} else if constexpr (std::is_base_of_v<Storage::FileBundle::FileBundle, InstanceT>) {
+			media.file_bundles.push_back(instance);
 		} else {
 			static_assert(always_false_v<InstanceT>, "Unexpected type encountered.");
 		}
@@ -208,13 +213,14 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::AcornADF>>(TargetPlatform::Acorn, "adf");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::AmigaADF>>(TargetPlatform::Amiga, "adf");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::AcornADF>>(TargetPlatform::Acorn, "adl");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::JFD>>(TargetPlatform::Archimedes, "jfd");
 
+	accumulator.try_standard<FileBundle::LocalFSFileBundle>(TargetPlatform::Enterprise, "bas");
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::AllCartridge, "bin");
 
 	accumulator.try_standard<Tape::CAS>(TargetPlatform::MSX, "cas");
 	accumulator.try_standard<Tape::TZX>(TargetPlatform::AmstradCPC, "cdt");
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Coleco, "col");
+	accumulator.try_standard<FileBundle::LocalFSFileBundle>(TargetPlatform::Enterprise, "com");
 	accumulator.try_standard<Tape::CSW>(TargetPlatform::AllTape, "csw");
 
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::D64>>(TargetPlatform::Commodore8bit, "d64");
@@ -257,6 +263,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 		TargetPlatform::Amiga | TargetPlatform::AtariST | TargetPlatform::AmstradCPC | TargetPlatform::ZXSpectrum,
 		"ipf");
 
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::JFD>>(TargetPlatform::Archimedes, "jfd");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::MSA>>(TargetPlatform::AtariST, "msa");
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::MSX, "mx2");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::NIB>>(TargetPlatform::DiskII, "nib");

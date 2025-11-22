@@ -10,6 +10,7 @@
 
 #include "Dave.hpp"
 #include "EXDos.hpp"
+#include "HostFSHandler.hpp"
 #include "Keyboard.hpp"
 #include "Nick.hpp"
 
@@ -22,6 +23,8 @@
 #include "Outputs/Log.hpp"
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "Processors/Z80/Z80.hpp"
+
+#include <unordered_set>
 
 namespace {
 using Logger = Log::Logger<Log::Source::Enterprise>;
@@ -72,6 +75,7 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
 	public CPU::Z80::BusHandler,
+	public HostFSHandler::MemoryAccessor,
 	public Machine,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
@@ -104,7 +108,8 @@ public:
 		z80_(*this),
 		nick_(ram_.end() - 65536),
 		dave_audio_(audio_queue_),
-		speaker_(dave_audio_) {
+		speaker_(dave_audio_),
+		host_fs_(*this) {
 
 		// Request a clock of 4Mhz; this'll be mapped upwards for Nick and downwards for Dave elsewhere.
 		set_clock_rate(clock_rate);
@@ -226,6 +231,14 @@ public:
 		const auto exdos = roms.find(ROM::Name::EnterpriseEXDOS);
 		if(exdos != roms.end()) {
 			memcpy(exdos_rom_.data(), exdos->second.data(), std::min(exdos_rom_.size(), exdos->second.size()));
+		}
+
+		// Possibly install the host FS ROM.
+		host_fs_rom_.fill(0xff);
+		if(!target.media.file_bundles.empty()) {
+			const auto rom = host_fs_.rom();
+			std::copy(rom.begin(), rom.end(), host_fs_rom_.begin());
+			find_host_fs_hooks();
 		}
 
 		// Seed key state.
@@ -539,8 +552,40 @@ public:
 				}
 			break;
 
-			case PartialMachineCycle::Read:
 			case PartialMachineCycle::ReadOpcode:
+				{
+					static bool print_opcode = false;
+					if(print_opcode) {
+						printf("%04x: %02x\n", address, read_pointers_[address >> 14][address]);
+					}
+				}
+
+				// Potential segue for the host FS. I'm relying on branch prediction to
+				// avoid this cost almost always.
+				if(test_host_fs_traps_ && (address >> 14) == 3) [[unlikely]] {
+					const auto is_trap = host_fs_traps_.contains(address);
+
+					if(is_trap) {
+						using Register = CPU::Z80::Register;
+
+						uint8_t a = uint8_t(z80_.value_of(Register::A));
+						uint16_t bc = z80_.value_of(Register::BC);
+						uint16_t de = z80_.value_of(Register::DE);
+
+						// Grab function code from where the PC actually is, and return a NOP
+						host_fs_.perform(read_pointers_[address >> 14][address], a, bc, de);
+						*cycle.value = 0x00;	// i.e. NOP.
+
+						z80_.set_value_of(Register::A, a);
+						z80_.set_value_of(Register::BC, bc);
+						z80_.set_value_of(Register::DE, de);
+
+						break;
+					}
+				}
+				[[fallthrough]];
+
+			case PartialMachineCycle::Read:
 				if(read_pointers_[address >> 14]) {
 					*cycle.value = read_pointers_[address >> 14][address];
 				} else {
@@ -570,12 +615,22 @@ public:
 
 private:
 	// MARK: - Memory layout
+
 	std::array<uint8_t, 256 * 1024> ram_{};
 	std::array<uint8_t, 64 * 1024> exos_;
 	std::array<uint8_t, 16 * 1024> basic_;
 	std::array<uint8_t, 16 * 1024> exdos_rom_;
 	std::array<uint8_t, 32 * 1024> epdos_rom_;
+	std::array<uint8_t, 16 * 1024> host_fs_rom_;
 	const uint8_t min_ram_slot_;
+
+	uint8_t *ram_segment(const uint8_t page) {
+		if(page < min_ram_slot_) return nullptr;
+		const auto ram_floor = (0x100 << 14) - ram_.size();
+			// Each segment is 2^14 bytes long and there are 256 of them. So the Enterprise has a 22-bit address space.
+			// RAM is at the end of that range; `ram_floor` is the 22-bit address at which RAM starts.
+		return &ram_[size_t((page << 14)) - ram_floor];
+	}
 
 	const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
 	uint8_t *write_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -595,20 +650,29 @@ private:
 	template <size_t slot> void page(const uint8_t offset) {
 		pages_[slot] = offset;
 
+		if constexpr (slot == 3) {
+			test_host_fs_traps_ = false;
+		}
+
 		if(page_rom<slot>(offset, 0, exos_)) return;
 		if(page_rom<slot>(offset, 16, basic_)) return;
 		if(page_rom<slot>(offset, 32, exdos_rom_)) return;
 		if(page_rom<slot>(offset, 48, epdos_rom_)) return;
+		if(page_rom<slot>(offset, 64, host_fs_rom_)) {
+			if constexpr (slot == 3) {
+				test_host_fs_traps_ = true;
+			}
+			return;
+		}
 
 		// Of whatever size of RAM I've declared above, use only the final portion.
 		// This correlated with Nick always having been handed the final 64kb and,
 		// at least while the RAM is the first thing declared above, does a little
 		// to benefit data locality. Albeit not in a useful sense.
 		if(offset >= min_ram_slot_) {
-			const auto ram_floor = 4194304 - ram_.size();
-			const size_t address = offset * 0x4000 - ram_floor;
 			is_video_[slot] = offset >= 0xfc;	// TODO: this hard-codes a 64kb video assumption.
-			page<slot>(&ram_[address], &ram_[address]);
+			auto pointer = ram_segment(offset);
+			page<slot>(pointer, pointer);
 			return;
 		}
 
@@ -621,7 +685,6 @@ private:
 	}
 
 	// MARK: - Memory Timing
-
 	// The wait mode affects all memory accesses _outside of the video area_.
 	enum class WaitMode {
 		None,
@@ -631,6 +694,7 @@ private:
 	bool is_video_[4]{};
 
 	// MARK: - ScanProducer
+
 	void set_scan_target(Outputs::Display::ScanTarget *const scan_target) override {
 		nick_.last_valid()->set_scan_target(scan_target);
 	}
@@ -706,11 +770,14 @@ private:
 			}
 		}
 
+		if(!media.file_bundles.empty()) {
+			host_fs_.set_file_bundle(media.file_bundles.front());
+		}
+
 		return true;
 	}
 
 	// MARK: - Interrupts
-
 	uint8_t interrupt_mask_ = 0x00, interrupt_state_ = 0x00;
 	void set_interrupts(const uint8_t mask, const HalfCycles offset = HalfCycles(0)) {
 		interrupt_state_ |= uint8_t(mask);
@@ -742,9 +809,69 @@ private:
 	}
 
 	// MARK: - EXDos card.
+
 	EXDos exdos_;
 
+	// MARK: - Host FS.
+
+	HostFSHandler host_fs_;
+	std::unordered_set<uint16_t> host_fs_traps_;
+	bool test_host_fs_traps_ = false;
+
+	uint8_t hostfs_read(const uint16_t address) override {
+		if(read_pointers_[address >> 14]) {
+			return read_pointers_[address >> 14][address];
+		} else {
+			return 0xff;
+		}
+	}
+
+	uint8_t &user_ram(const uint16_t address) {
+		// "User" accesses go to to wherever the user last had paged;
+		// per 5.4 System Segment Usage those pages are stored in memory from
+		// 0xbffc, so grab from there.
+		const auto page_id = address >> 14;
+		const uint8_t page = read_pointers_[0xbffc >> 14] ? read_pointers_[0xbffc >> 14][0xbffc + page_id] : 0xff;
+		const auto offset = address & 0x3fff;
+		return ram_segment(page)[offset];
+	}
+
+	uint8_t hostfs_user_read(const uint16_t address) override {
+		return user_ram(address);
+	}
+
+	void hostfs_user_write(const uint16_t address, const uint8_t value) override {
+		user_ram(address) = value;
+	}
+
+	void find_host_fs_hooks() {
+		static constexpr uint8_t syscall[] = {
+			0xed, 0xfe, 0xfe
+		};
+
+		auto begin = host_fs_rom_.begin();
+		while(true) {
+			begin = std::search(
+				begin, host_fs_rom_.end(),
+				std::begin(syscall), std::end(syscall)
+			);
+
+			if(begin == host_fs_rom_.end()) {
+				break;
+			}
+
+			const auto offset = begin - host_fs_rom_.begin() + 0xc000;	// ROM will be paged in slot 3, i.e. at $c000.
+			host_fs_traps_.insert(uint16_t(offset));
+
+			// Move function code up to where this trap was, and NOP out the tail.
+			begin[0] = begin[3];
+			begin[1] = begin[2] = begin[3] = 0x00;
+			begin += 4;
+		}
+	}
+
 	// MARK: - Activity Source
+
 	void set_activity_observer([[maybe_unused]] Activity::Observer *const observer) final {
 		if constexpr (has_disk_controller) {
 			exdos_.set_activity_observer(observer);
@@ -752,6 +879,7 @@ private:
 	}
 
 	// MARK: - Configuration options.
+
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 		options->output = get_video_signal_configurable();

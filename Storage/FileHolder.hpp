@@ -56,9 +56,10 @@ public:
 			Rewrite		opens the file for rewriting; none of the original content is preserved; whatever
 						the caller outputs will replace the existing file.
 
-		@throws ErrorCantOpen if the file cannot be opened.
+		@throws Error::CantOpen if the file cannot be opened.
 	*/
 	FileHolder(const std::string &file_name, FileMode ideal_mode = FileMode::ReadWrite);
+	FileHolder(FileHolder &&);
 
 	/*!
 		Writes @c value using successive @c puts, in little endian order.
@@ -116,8 +117,11 @@ public:
 	/*! Reads a single byte from @c file. */
 	uint8_t get();
 
-	/*! Writes a single byte from @c file. */
-	void put(uint8_t);
+	/*!
+		Writes a single byte from @c file.
+		@returns @c true on success; @c false on failure.
+	*/
+	bool put(uint8_t);
 
 	/*! Writes @c value a total of @c repeats times. */
 	void putn(std::size_t repeats, uint8_t value);
@@ -140,7 +144,7 @@ public:
 	std::size_t write(const uint8_t *, std::size_t);
 
 	/*! Moves @c bytes from the anchor indicated by @c whence: SEEK_SET, SEEK_CUR or SEEK_END. */
-	void seek(long offset, Whence);
+	bool seek(long offset, Whence);
 
 	/*! @returns The current cursor position within this file. */
 	long tell() const;

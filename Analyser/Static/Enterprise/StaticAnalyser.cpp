@@ -33,7 +33,7 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(
 	bool
 ) {
 	// This analyser can comprehend disks only.
-	if(media.disks.empty()) return {};
+	if(media.disks.empty() && media.file_bundles.empty()) return {};
 
 	// Otherwise, assume a return will happen.
 	Analyser::Static::TargetList targets;
@@ -86,7 +86,36 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(
 		}
 	}
 
-	targets.push_back(std::unique_ptr<Analyser::Static::Target>(target));
+	if(!media.file_bundles.empty()) {
+		auto &bundle = *media.file_bundles.front();
+		const auto key = bundle.key_file();
+
+		if(key.has_value()) {
+			auto file = bundle.open(*key, Storage::FileMode::Read);
+
+			enum class FileType: uint16_t {
+				COM = 0x0500,
+				BAS = 0x0400,
+			};
+
+			// Check for a .COM by inspecting the header.
+			const auto type = FileType(file.get_le<uint16_t>());
+			const uint16_t size = file.get_le<uint16_t>();
+			// There are then 12 bytes of 0 padding that could be tested for.
+
+			if((type != FileType::COM && type != FileType::BAS) || size > file.stats().st_size - 16) {
+				target->media.file_bundles.clear();
+			} else {
+				target->loading_command = "run \"file:\"\n";
+			}
+		}
+
+		// TODO: look for a key file, similar logic to above.
+	}
+
+	if(!target->media.empty()) {
+		targets.push_back(std::unique_ptr<Analyser::Static::Target>(target));
+	}
 
 	return targets;
 }
