@@ -23,11 +23,17 @@ namespace Storage::FileBundle {
 	bundles in the future.
 */
 struct FileBundle {
+	struct PermissionDelegate {
+		virtual void validate_open(const std::string &, FileMode) = 0;
+		virtual void validate_erase(const std::string &) = 0;
+	};
+
 	virtual std::optional<std::string> key_file() = 0;
 	virtual FileHolder open(const std::string &, FileMode) = 0;
 	virtual bool erase(const std::string &) = 0;
 
 	virtual std::optional<std::string> base_path() = 0;
+	virtual void set_permission_delegate(PermissionDelegate *) = 0;
 };
 
 
@@ -39,10 +45,12 @@ struct LocalFSFileBundle: public FileBundle {
 	bool erase(const std::string &) override;
 
 	std::optional<std::string> base_path() override;
+	void set_permission_delegate(PermissionDelegate *) override;
 
 private:
 	std::string key_file_;
 	std::string base_path_;
+	PermissionDelegate *permission_delegate_ = nullptr;
 };
 
 };

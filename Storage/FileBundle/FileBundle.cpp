@@ -26,11 +26,23 @@ std::optional<std::string> LocalFSFileBundle::key_file() {
 	return key_file_;
 }
 
+void LocalFSFileBundle::set_permission_delegate(PermissionDelegate *const delegate) {
+	permission_delegate_ = delegate;
+}
+
 Storage::FileHolder LocalFSFileBundle::open(const std::string &name, const Storage::FileMode mode) {
-	return Storage::FileHolder(base_path_ + name, mode);
+	const auto full_name = base_path_ + name;
+	if(permission_delegate_) {
+		permission_delegate_->validate_open(full_name, mode);
+	}
+	return Storage::FileHolder(full_name, mode);
 }
 
 bool LocalFSFileBundle::erase(const std::string &name) {
+	const auto full_name = base_path_ + name;
+	if(permission_delegate_) {
+		permission_delegate_->validate_erase(full_name);
+	}
 	return !remove((base_path_ + name).c_str());
 }
 
