@@ -88,26 +88,20 @@
 		request.prompt = @"Grant Permission";
 		request.message = @"Please Grant Permission For Full Folder Access";
 		request.canChooseFiles = NO;
-		request.allowsOtherFileTypes = NO;
 		request.allowsMultipleSelection = NO;
 		request.canChooseDirectories = YES;
-		request.canCreateDirectories = NO;
+		[request setDirectoryURL:[NSURL fileURLWithPath:pathName isDirectory:YES]];
 
-		// TODO: Add an accessoryView, the better to explain?
+		request.accessoryView = [NSTextField labelWithString:@"Can I be forced to appear?"];
+		// TODO: use delegate further to shepherd user.
 
-		NSString *parent = [pathName stringByDeletingLastPathComponent];
-		[request setDirectoryURL:[NSURL fileURLWithPath:parent isDirectory:YES]];
-//		[request setNameFieldStringValue:[pathName lastPathComponent]];
-
-		// TODO: is there some way to select the relevant folder by default?
-
-		[request runModal];
+		const auto response = [request runModal];
+		if(response != NSModalResponseOK) {
+			continue;
+		}
 
 		// Possibly substitute the base path, in case the one returned
 		// is an indirection out of the sandbox.
-		if(request.URLs.count == 0) {
-			continue;
-		}
 		if(![request.URL isEqual:[NSURL fileURLWithPath:pathName]]) {
 			NSLog(@"Need to substitute: %@", request.URL);
 		}
