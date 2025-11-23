@@ -92,7 +92,13 @@
 		request.canChooseDirectories = YES;
 		[request setDirectoryURL:[NSURL fileURLWithPath:pathName isDirectory:YES]];
 
-		request.accessoryView = [NSTextField labelWithString:@"Can I be forced to appear?"];
+		request.accessoryView = [NSTextField labelWithString:
+			@"Clock Signal is sandboxed; it cannot access any of your files without explicit permission.\n"
+			@"The type of program you are loading might require access to other files in its directory, which this "
+			@"application does not currently have permission to do.\n"
+			@"Please select 'Grant Permission' to give it permission to do so."
+		];
+		request.accessoryViewDisclosed = YES;
 		// TODO: use delegate further to shepherd user.
 
 		const auto response = [request runModal];
