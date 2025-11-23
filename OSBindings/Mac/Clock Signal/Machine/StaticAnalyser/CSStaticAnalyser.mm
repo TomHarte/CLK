@@ -30,6 +30,77 @@
 
 #import "Clock_Signal-Swift.h"
 
+namespace {
+
+struct PermissionDelegate: public Storage::FileBundle::FileBundle::PermissionDelegate {
+	void validate_open(const std::string &, Storage::FileMode) {
+		// TODO.
+//		// (1) Does this file bundle have a base path?
+//		const auto path = bundle->base_path();
+//		if(!path.has_value()) {
+//			continue;
+//		}
+//		NSString *pathName = [NSString stringWithUTF8String:path->c_str()];
+//
+//		// (2) Can everything in that base path already be freely read?
+//		NSError *error;
+//		NSArray<NSString *> *allFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:pathName error:&error];
+//		BOOL hasFullAccess = YES;
+//		for(NSString *file in allFiles) {
+//			FILE *pilot = fopen([[pathName stringByAppendingPathComponent:file] UTF8String], "rb");
+//			if(!pilot) {
+//				hasFullAccess = NO;
+//				break;
+//			}
+//			fclose(pilot);
+//		}
+//		if(hasFullAccess) {
+//			continue;
+//		}
+//
+//		// (3) Ask the user for permission.
+//		NSOpenPanel *request = [NSOpenPanel openPanel];
+//		request.prompt = @"Grant Permission";
+//		request.message = @"Please Grant Permission For Full Folder Access";
+//		request.canChooseFiles = NO;
+//		request.allowsMultipleSelection = NO;
+//		request.canChooseDirectories = YES;
+//		[request setDirectoryURL:[NSURL fileURLWithPath:pathName isDirectory:YES]];
+//
+//		request.accessoryView = [NSTextField labelWithString:
+//			@"Clock Signal is sandboxed; it cannot access any of your files without explicit permission.\n"
+//			@"The type of program you are loading might require access to other files in its directory, which this "
+//			@"application does not currently have permission to do.\n"
+//			@"Please select 'Grant Permission' to give it permission to do so."
+//		];
+//		request.accessoryViewDisclosed = YES;
+//		// TODO: use delegate further to shepherd user.
+//
+//		const auto response = [request runModal];
+//		if(response != NSModalResponseOK) {
+//			continue;
+//		}
+//
+//		// Possibly substitute the base path, in case the one returned
+//		// is an indirection out of the sandbox.
+//		if(![request.URL isEqual:[NSURL fileURLWithPath:pathName]]) {
+//			NSLog(@"Need to substitute: %@", request.URL);
+//		}
+//
+//		// TODO: bookmarkDataWithOptions on the URL, and store that somewhere for
+//		// later retrieval. Then try that again if the same directory presents itself.
+	}
+	void validate_erase(const std::string &) {
+		// Currently a no-op, as it so happens that the only machine that currently
+		// uses a file bundle is the Enterprise, and its semantics involve opening
+		// a file before it can be erased.
+	}
+};
+
+PermissionDelegate permission_delegate;
+
+}
+
 @implementation CSMediaSet {
 	Analyser::Static::Media _media;
 }
@@ -58,62 +129,9 @@
 	[machine applyMedia:_media];
 }
 
-- (void)obtainPermissions {
+- (void)addPermissionHandler {
 	for(const auto &bundle: _media.file_bundles) {
-		// (1) Does this file bundle have a base path?
-		const auto path = bundle->base_path();
-		if(!path.has_value()) {
-			continue;
-		}
-		NSString *pathName = [NSString stringWithUTF8String:path->c_str()];
-
-		// (2) Can everything in that base path already be freely read?
-		NSError *error;
-		NSArray<NSString *> *allFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:pathName error:&error];
-		BOOL hasFullAccess = YES;
-		for(NSString *file in allFiles) {
-			FILE *pilot = fopen([[pathName stringByAppendingPathComponent:file] UTF8String], "rb");
-			if(!pilot) {
-				hasFullAccess = NO;
-				break;
-			}
-			fclose(pilot);
-		}
-		if(hasFullAccess) {
-			continue;
-		}
-
-		// (3) Ask the user for permission.
-		NSOpenPanel *request = [NSOpenPanel openPanel];
-		request.prompt = @"Grant Permission";
-		request.message = @"Please Grant Permission For Full Folder Access";
-		request.canChooseFiles = NO;
-		request.allowsMultipleSelection = NO;
-		request.canChooseDirectories = YES;
-		[request setDirectoryURL:[NSURL fileURLWithPath:pathName isDirectory:YES]];
-
-		request.accessoryView = [NSTextField labelWithString:
-			@"Clock Signal is sandboxed; it cannot access any of your files without explicit permission.\n"
-			@"The type of program you are loading might require access to other files in its directory, which this "
-			@"application does not currently have permission to do.\n"
-			@"Please select 'Grant Permission' to give it permission to do so."
-		];
-		request.accessoryViewDisclosed = YES;
-		// TODO: use delegate further to shepherd user.
-
-		const auto response = [request runModal];
-		if(response != NSModalResponseOK) {
-			continue;
-		}
-
-		// Possibly substitute the base path, in case the one returned
-		// is an indirection out of the sandbox.
-		if(![request.URL isEqual:[NSURL fileURLWithPath:pathName]]) {
-			NSLog(@"Need to substitute: %@", request.URL);
-		}
-
-		// TODO: bookmarkDataWithOptions on the URL, and store that somewhere for
-		// later retrieval. Then try that again if the same directory presents itself.
+		bundle->set_permission_delegate(&permission_delegate);
 	}
 }
 

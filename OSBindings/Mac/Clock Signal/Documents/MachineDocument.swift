@@ -350,7 +350,7 @@ class MachineDocument:
 	}
 
 	private func checkPermisions(_ mediaSet: CSMediaSet) {
-		mediaSet.obtainPermissions()
+		mediaSet.addPermissionHandler()
 	}
 
 	// MARK: - Input Management.

@@ -16,7 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (instancetype)initWithFileAtURL:(NSURL *)url;
 - (void)applyToMachine:(CSMachine *)machine;
-- (void)obtainPermissions;
+- (void)addPermissionHandler;
 
 @property(nonatomic, readonly) BOOL empty;
 
