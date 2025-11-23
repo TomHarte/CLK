@@ -12,6 +12,16 @@ NS_ASSUME_NONNULL_BEGIN
 
 @class CSMachine;
 
+@interface CSMediaSet : NSObject
+
+- (instancetype)initWithFileAtURL:(NSURL *)url;
+- (void)applyToMachine:(CSMachine *)machine;
+- (void)obtainPermissions;
+
+@property(nonatomic, readonly) BOOL empty;
+
+@end
+
 typedef NS_ENUM(NSInteger, CSMachineAmigaModel) {
 	CSMachineAmigaModelA500,
 };
@@ -171,15 +181,7 @@ typedef int Kilobytes;
 
 @property(nonatomic, readonly, nullable) NSString *optionsNibName;
 @property(nonatomic, readonly) NSString *displayName;
-
-@end
-
-@interface CSMediaSet : NSObject
-
-- (instancetype)initWithFileAtURL:(NSURL *)url;
-- (void)applyToMachine:(CSMachine *)machine;
-
-@property(nonatomic, readonly) BOOL empty;
+@property(nonatomic, readonly, nonnull) CSMediaSet *mediaSet;
 
 @end
 

@@ -30,6 +30,95 @@
 
 #import "Clock_Signal-Swift.h"
 
+@implementation CSMediaSet {
+	Analyser::Static::Media _media;
+}
+
+- (instancetype)initWithMedia:(Analyser::Static::Media)media {
+	self = [super init];
+	if(self) {
+		_media = media;
+	}
+	return self;
+}
+
+- (instancetype)initWithFileAtURL:(NSURL *)url {
+	self = [super init];
+	if(self) {
+		_media = Analyser::Static::GetMedia([url fileSystemRepresentation]);
+	}
+	return self;
+}
+
+- (BOOL)empty {
+	return _media.empty();
+}
+
+- (void)applyToMachine:(CSMachine *)machine {
+	[machine applyMedia:_media];
+}
+
+- (void)obtainPermissions {
+	for(const auto &bundle: _media.file_bundles) {
+		// (1) Does this file bundle have a base path?
+		const auto path = bundle->base_path();
+		if(!path.has_value()) {
+			continue;
+		}
+		NSString *pathName = [NSString stringWithUTF8String:path->c_str()];
+
+		// (2) Can everything in that base path already be freely read?
+		NSError *error;
+		NSArray<NSString *> *allFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:pathName error:&error];
+		BOOL hasFullAccess = YES;
+		for(NSString *file in allFiles) {
+			FILE *pilot = fopen([[pathName stringByAppendingPathComponent:file] UTF8String], "rb");
+			if(!pilot) {
+				hasFullAccess = NO;
+				break;
+			}
+			fclose(pilot);
+		}
+		if(hasFullAccess) {
+			continue;
+		}
+
+		// (3) Ask the user for permission.
+		NSOpenPanel *request = [NSOpenPanel openPanel];
+		request.prompt = @"Grant Permission";
+		request.message = @"Please Grant Permission For Full Folder Access";
+		request.canChooseFiles = NO;
+		request.allowsOtherFileTypes = NO;
+		request.allowsMultipleSelection = NO;
+		request.canChooseDirectories = YES;
+		request.canCreateDirectories = NO;
+
+		// TODO: Add an accessoryView, the better to explain?
+
+		NSString *parent = [pathName stringByDeletingLastPathComponent];
+		[request setDirectoryURL:[NSURL fileURLWithPath:parent isDirectory:YES]];
+//		[request setNameFieldStringValue:[pathName lastPathComponent]];
+
+		// TODO: is there some way to select the relevant folder by default?
+
+		[request runModal];
+
+		// Possibly substitute the base path, in case the one returned
+		// is an indirection out of the sandbox.
+		if(request.URLs.count == 0) {
+			continue;
+		}
+		if(![request.URL isEqual:[NSURL fileURLWithPath:pathName]]) {
+			NSLog(@"Need to substitute: %@", request.URL);
+		}
+
+		// TODO: bookmarkDataWithOptions on the URL, and store that somewhere for
+		// later retrieval. Then try that again if the same directory presents itself.
+	}
+}
+
+@end
+
 @implementation CSStaticAnalyser {
 	Analyser::Static::TargetList _targets;
 }
@@ -438,26 +527,12 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 	return _targets;
 }
 
-@end
-
-@implementation CSMediaSet {
-	Analyser::Static::Media _media;
-}
-
-- (instancetype)initWithFileAtURL:(NSURL *)url {
-	self = [super init];
-	if(self) {
-		_media = Analyser::Static::GetMedia([url fileSystemRepresentation]);
+- (nonnull CSMediaSet *)mediaSet {
+	Analyser::Static::Media net;
+	for(const auto &target: _targets) {
+		net += target->media;
 	}
-	return self;
-}
-
-- (void)applyToMachine:(CSMachine *)machine {
-	[machine applyMedia:_media];
-}
-
-- (BOOL)empty {
-	return _media.empty();
+	return [[CSMediaSet alloc] initWithMedia:net];
 }
 
 @end

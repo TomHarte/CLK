@@ -33,3 +33,7 @@ Storage::FileHolder LocalFSFileBundle::open(const std::string &name, const Stora
 bool LocalFSFileBundle::erase(const std::string &name) {
 	return !remove((base_path_ + name).c_str());
 }
+
+std::optional<std::string> LocalFSFileBundle::base_path() {
+	return base_path_;
+}

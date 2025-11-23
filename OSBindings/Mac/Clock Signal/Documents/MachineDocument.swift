@@ -68,6 +68,7 @@ class MachineDocument:
 	var fileObserver: CSFileContentChangeObserver?
 	override func read(from url: URL, ofType typeName: String) throws {
 		if let analyser = CSStaticAnalyser(fileAt: url) {
+			checkPermisions(analyser.mediaSet)
 			self.displayName = analyser.displayName
 			self.configureAs(analyser)
 			self.fileObserver = CSFileContentChangeObserver.init(url: url, handler: {
@@ -332,6 +333,7 @@ class MachineDocument:
 	private func insertFile(_ URL: URL) {
 		// Try to insert media.
 		let mediaSet = CSMediaSet(fileAt: URL)
+		checkPermisions(mediaSet)
 		if !mediaSet.empty {
 			mediaSet.apply(to: self.machine)
 			return
@@ -345,6 +347,10 @@ class MachineDocument:
 			self.scanTargetView.willChangeScanTargetOwner()
 			configureAs(newMachine)
 		}
+	}
+
+	private func checkPermisions(_ mediaSet: CSMediaSet) {
+		mediaSet.obtainPermissions()
 	}
 
 	// MARK: - Input Management.
