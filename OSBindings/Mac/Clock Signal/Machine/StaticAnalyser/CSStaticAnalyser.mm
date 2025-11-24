@@ -106,10 +106,10 @@ struct PermissionDelegate: public Storage::FileBundle::FileBundle::PermissionDel
 
 		// Possibly substitute the base path, in case the one returned
 		// is an indirection out of the sandbox.
-		if(![selectedURL isEqual:[url URLByDeletingLastPathComponent]]) {
-			NSLog(@"Substituting base path: %@", selectedURL.path);
-			bundle.set_base_path(std::string(selectedURL.path.UTF8String));
-		}
+//		if(![selectedURL isEqual:[url URLByDeletingLastPathComponent]]) {
+//			NSLog(@"Substituting base path: %@", selectedURL.path);
+//			bundle.set_base_path(std::string(selectedURL.path.UTF8String));
+//		}
 
 		// Store bookmark data for potential later retrieval.
 		// That amounts to this application remembering the user's permission.
