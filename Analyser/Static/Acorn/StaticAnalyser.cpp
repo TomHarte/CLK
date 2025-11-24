@@ -96,6 +96,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	auto targetArchimedes = std::make_unique<ArchimedesTarget>();
 	int bbc_hits = 0;
 	int electron_hits = 0;
+	int beebsid_hits = 0;
 	bool format_prefers_bbc = false;
 
 	// Copy appropriate cartridges to the 8-bit targets.
@@ -198,7 +199,12 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 					"SRUNLOCK", "SRWIPE", "TUBE", "TYPE", "UNLOCK", "UNPLUG", "UROMS",
 					"VERIFY", "ZERO"
 				}) {
-					if(std::search(file.data.begin(), file.data.end(), command, command+strlen(command)) != file.data.end()) {
+					if(std::search(
+						file.data.begin(),
+						file.data.end(),
+						command,
+						command + strlen(command)
+					) != file.data.end()) {
 						targetElectron->has_ap6_rom = true;
 						targetElectron->has_sideways_ram = true;
 					}
@@ -206,7 +212,6 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 
 				// Look for any 'BBC indicators', i.e. direct access to BBC-specific hardware.
 				// Also currently a dense search.
-
 				const auto hits = [&](const std::initializer_list<uint16_t> collection) {
 					int hits = 0;
 					for(const auto address: collection) {
@@ -252,6 +257,18 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 					0xfe09, 0xfe0a, 0xfe0b,
 					0xfe0c, 0xfe0d, 0xfe0e,
 					0xfe0f,
+				});
+
+				// While here, look for attempted SID accesses.
+				beebsid_hits += hits({
+					// ULA addresses that aren't also the BBC's CRTC.
+					0xfc20, 0xfc21, 0xfc22,	0xfc23,
+					0xfc24, 0xfc25, 0xfc26,	0xfc27,
+					0xfc28, 0xfc29, 0xfc2a,	0xfc2b,
+					0xfc2c, 0xfc2d, 0xfc2e,	0xfc2f,
+					0xfc30, 0xfc31, 0xfc32,	0xfc33,
+					0xfc34, 0xfc35, 0xfc36,	0xfc37,
+					0xfc38,
 				});
 			}
 		} else if(adfs_catalogue) {
@@ -315,6 +332,9 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 			targetElectron->loading_command = "*CAT\n";
 		}
 	}
+
+	// Make a BeebSID guess.
+	targetBBC->has_beebsid = beebsid_hits > 20;
 
 	TargetList targets;
 	if(!targetElectron->media.empty() && !targetBBC->media.empty()) {
