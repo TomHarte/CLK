@@ -22,8 +22,19 @@ LocalFSFileBundle::LocalFSFileBundle(const std::string &to_contain) {
 	}
 }
 
-std::optional<std::string> LocalFSFileBundle::key_file() {
+std::optional<std::string> LocalFSFileBundle::key_file() const {
 	return key_file_;
+}
+
+std::optional<std::string> LocalFSFileBundle::base_path() const {
+	return base_path_;
+}
+
+void LocalFSFileBundle::set_base_path(const std::string &path) {
+	base_path_ = path;
+	if(base_path_.back() != '/') {
+		base_path_ += '/';
+	}
 }
 
 void LocalFSFileBundle::set_permission_delegate(PermissionDelegate *const delegate) {
@@ -31,21 +42,15 @@ void LocalFSFileBundle::set_permission_delegate(PermissionDelegate *const delega
 }
 
 Storage::FileHolder LocalFSFileBundle::open(const std::string &name, const Storage::FileMode mode) {
-	const auto full_name = base_path_ + name;
 	if(permission_delegate_) {
-		permission_delegate_->validate_open(full_name, mode);
+		permission_delegate_->validate_open(*this, base_path_ + name, mode);
 	}
-	return Storage::FileHolder(full_name, mode);
+	return Storage::FileHolder(base_path_ + name, mode);
 }
 
 bool LocalFSFileBundle::erase(const std::string &name) {
-	const auto full_name = base_path_ + name;
 	if(permission_delegate_) {
-		permission_delegate_->validate_erase(full_name);
+		permission_delegate_->validate_erase(*this, base_path_ + name);
 	}
 	return !remove((base_path_ + name).c_str());
-}
-
-std::optional<std::string> LocalFSFileBundle::base_path() {
-	return base_path_;
 }

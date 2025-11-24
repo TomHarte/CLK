@@ -24,27 +24,29 @@ namespace Storage::FileBundle {
 */
 struct FileBundle {
 	struct PermissionDelegate {
-		virtual void validate_open(const std::string &, FileMode) = 0;
-		virtual void validate_erase(const std::string &) = 0;
+		virtual void validate_open(FileBundle &, const std::string &, FileMode) = 0;
+		virtual void validate_erase(FileBundle &, const std::string &) = 0;
 	};
 
-	virtual std::optional<std::string> key_file() = 0;
+	virtual std::optional<std::string> key_file() const = 0;
 	virtual FileHolder open(const std::string &, FileMode) = 0;
 	virtual bool erase(const std::string &) = 0;
 
-	virtual std::optional<std::string> base_path() = 0;
-	virtual void set_permission_delegate(PermissionDelegate *) = 0;
+	virtual std::optional<std::string> base_path() const { return std::nullopt; }
+	virtual void set_base_path(const std::string &) {}
+	virtual void set_permission_delegate(PermissionDelegate *) {}
 };
 
 
 struct LocalFSFileBundle: public FileBundle {
 	LocalFSFileBundle(const std::string &to_contain);
 
-	std::optional<std::string> key_file() override;
+	std::optional<std::string> key_file() const override;
 	FileHolder open(const std::string &, FileMode) override;
 	bool erase(const std::string &) override;
 
-	std::optional<std::string> base_path() override;
+	std::optional<std::string> base_path() const override;
+	void set_base_path(const std::string &) override;
 	void set_permission_delegate(PermissionDelegate *) override;
 
 private:

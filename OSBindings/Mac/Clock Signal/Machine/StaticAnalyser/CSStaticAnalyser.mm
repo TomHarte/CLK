@@ -33,64 +33,96 @@
 namespace {
 
 struct PermissionDelegate: public Storage::FileBundle::FileBundle::PermissionDelegate {
-	void validate_open(const std::string &, Storage::FileMode) {
-		// TODO.
-//		// (1) Does this file bundle have a base path?
-//		const auto path = bundle->base_path();
-//		if(!path.has_value()) {
-//			continue;
-//		}
-//		NSString *pathName = [NSString stringWithUTF8String:path->c_str()];
-//
-//		// (2) Can everything in that base path already be freely read?
-//		NSError *error;
-//		NSArray<NSString *> *allFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:pathName error:&error];
-//		BOOL hasFullAccess = YES;
-//		for(NSString *file in allFiles) {
-//			FILE *pilot = fopen([[pathName stringByAppendingPathComponent:file] UTF8String], "rb");
-//			if(!pilot) {
-//				hasFullAccess = NO;
-//				break;
-//			}
-//			fclose(pilot);
-//		}
-//		if(hasFullAccess) {
-//			continue;
-//		}
-//
-//		// (3) Ask the user for permission.
-//		NSOpenPanel *request = [NSOpenPanel openPanel];
-//		request.prompt = @"Grant Permission";
-//		request.message = @"Please Grant Permission For Full Folder Access";
-//		request.canChooseFiles = NO;
-//		request.allowsMultipleSelection = NO;
-//		request.canChooseDirectories = YES;
-//		[request setDirectoryURL:[NSURL fileURLWithPath:pathName isDirectory:YES]];
-//
-//		request.accessoryView = [NSTextField labelWithString:
-//			@"Clock Signal is sandboxed; it cannot access any of your files without explicit permission.\n"
-//			@"The type of program you are loading might require access to other files in its directory, which this "
-//			@"application does not currently have permission to do.\n"
-//			@"Please select 'Grant Permission' to give it permission to do so."
-//		];
-//		request.accessoryViewDisclosed = YES;
-//		// TODO: use delegate further to shepherd user.
-//
-//		const auto response = [request runModal];
-//		if(response != NSModalResponseOK) {
-//			continue;
-//		}
-//
-//		// Possibly substitute the base path, in case the one returned
-//		// is an indirection out of the sandbox.
-//		if(![request.URL isEqual:[NSURL fileURLWithPath:pathName]]) {
-//			NSLog(@"Need to substitute: %@", request.URL);
-//		}
-//
-//		// TODO: bookmarkDataWithOptions on the URL, and store that somewhere for
-//		// later retrieval. Then try that again if the same directory presents itself.
+	void validate_open(Storage::FileBundle::FileBundle &bundle, const std::string &path, Storage::FileMode) {
+		NSData *bookmarkData;
+		NSString *stringPath = [NSString stringWithUTF8String:path.c_str()];
+		NSURL *url = [NSURL fileURLWithPath:stringPath isDirectory:NO];
+		NSString *bookmarkKey = [[url URLByDeletingLastPathComponent] absoluteString];
+
+		while(true) {
+			// If the file can already be read, no further action required.
+			// That is, given that the macOS sandbox doesn't differentiate read/write access once permission is granted.
+			NSError *error;
+			NSFileHandle *file = [NSFileHandle fileHandleForReadingFromURL:url error:&error];
+			if(file) {
+				return;
+			}
+
+			// Was failure to open due to permissions?
+			if(
+				error.domain != NSCocoaErrorDomain ||
+				(
+					// These are all the permission-related errors defined in NSCocoaErrorDomain.
+					error.code != NSFileReadNoPermissionError &&
+					error.code != NSFileWriteNoPermissionError &&
+					error.code != NSCloudSharingNoPermissionError
+				)
+			) {
+				return;
+			}
+
+			// Was a bookmark already tried?
+			if(bookmarkData) {
+				break;
+			}
+
+			// Check for an existing bookmark.
+			bookmarkData = [[NSUserDefaults standardUserDefaults] objectForKey:bookmarkKey];
+			if(bookmarkData) {
+				NSURL *accessURL =
+					[NSURL
+						URLByResolvingBookmarkData:bookmarkData
+						options:NSURLBookmarkResolutionWithSecurityScope | NSURLBookmarkResolutionWithoutUI
+						relativeToURL:nil
+						bookmarkDataIsStale:nil
+						error:nil];
+				[accessURL startAccessingSecurityScopedResource];
+			}
+		}
+
+		__block NSURL *selectedURL;
+
+		// Ask the user for permission.
+		dispatch_sync(dispatch_get_main_queue(), ^{
+			NSOpenPanel *request = [NSOpenPanel openPanel];
+			request.prompt = @"Grant Permission";
+			request.message = @"Please Grant Permission For Full Folder Access";
+			request.canChooseFiles = NO;
+			request.allowsMultipleSelection = NO;
+			request.canChooseDirectories = YES;
+			[request setDirectoryURL:[url URLByDeletingLastPathComponent]];
+
+			request.accessoryView = [NSTextField labelWithString:[NSString stringWithFormat:
+				@"Clock Signal cannot access your files without explicit permission but "
+				@"%s is trying to use additional files in its folder.\n"
+				@"Please select 'Grant Permission' if you are willing to let it to do so.",
+					bundle.key_file()->c_str()
+			]];
+			request.accessoryViewDisclosed = YES;
+			[request runModal];
+
+			selectedURL = request.URL;
+		});
+
+		// Possibly substitute the base path, in case the one returned
+		// is an indirection out of the sandbox.
+		if(![selectedURL isEqual:[url URLByDeletingLastPathComponent]]) {
+			NSLog(@"Substituting base path: %@", selectedURL.path);
+			bundle.set_base_path(std::string(selectedURL.path.UTF8String));
+		}
+
+		// Store bookmark data for potential later retrieval.
+		// That amounts to this application remembering the user's permission.
+		NSError *error;
+		[[NSUserDefaults standardUserDefaults]
+			setObject:[selectedURL
+				bookmarkDataWithOptions:NSURLBookmarkCreationWithSecurityScope
+				includingResourceValuesForKeys:nil
+				relativeToURL:nil
+				error:&error]
+			forKey:bookmarkKey];
 	}
-	void validate_erase(const std::string &) {
+	void validate_erase(Storage::FileBundle::FileBundle &, const std::string &) {
 		// Currently a no-op, as it so happens that the only machine that currently
 		// uses a file bundle is the Enterprise, and its semantics involve opening
 		// a file before it can be erased.
