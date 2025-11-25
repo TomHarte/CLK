@@ -15,7 +15,7 @@ import Cocoa
 // in the interface builder easier.
 //
 // I accept that I'll have to rethink this again if the machine list keeps growing.
-class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
+class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPathControlDelegate {
 	@IBOutlet var machineSelector: NSTabView!
 	@IBOutlet var machineNameTable: NSTableView!
 
@@ -57,6 +57,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 	@IBOutlet var enterpriseEXOSButton: NSPopUpButton!
 	@IBOutlet var enterpriseBASICButton: NSPopUpButton!
 	@IBOutlet var enterpriseDOSButton: NSPopUpButton!
+
+	@IBOutlet var enterpriseExposePathButton: NSButton!
+	@IBOutlet var enterprisePathControl: NSPathControl!
 
 	// MARK: - Macintosh properties
 	@IBOutlet var macintoshModelTypeButton: NSPopUpButton!
@@ -157,6 +160,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		enterpriseBASICButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.enterpriseBASICVersion"))
 		enterpriseDOSButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.enterpriseDOS"))
 
+		enterpriseExposePathButton.state = standardUserDefaults.bool(forKey: "new.enterpriseExposeLocalPath") ? .on : .off
+		establishPathControl(enterprisePathControl, userDefaultsKey: "new.enterpriseExposedLocalPath")
+
 		// Macintosh settings
 		macintoshModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.macintoshModel"))
 
@@ -237,6 +243,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		standardUserDefaults.set(enterpriseEXOSButton.selectedTag(), forKey: "new.enterpriseEXOSVersion")
 		standardUserDefaults.set(enterpriseBASICButton.selectedTag(), forKey: "new.enterpriseBASICVersion")
 		standardUserDefaults.set(enterpriseDOSButton.selectedTag(), forKey: "new.enterpriseDOS")
+
+		standardUserDefaults.set(enterpriseExposePathButton.state == .on, forKey: "new.enterpriseExposeLocalPath")
+		storePathControl(enterprisePathControl, userDefaultsKey: "new.enterpriseExposedLocalPath")
 
 		// Macintosh settings
 		standardUserDefaults.set(macintoshModelTypeButton.selectedTag(), forKey: "new.macintoshModel")
@@ -430,7 +439,8 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 					speed: speed,
 					exosVersion: exos,
 					basicVersion: basic,
-					dos: dos
+					dos: dos,
+					exposedLocalPath: enterpriseExposePathButton.state == .on ? enterprisePathControl.url : nil
 				)
 
 			case "mac":
@@ -530,6 +540,37 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 				return CSStaticAnalyser(zx81MemorySize: Kilobytes(zx81MemorySizeButton.selectedTag()))
 
 			default: return CSStaticAnalyser()
+		}
+	}
+
+	// MARK: - NSPathControlDelegate (and paths in general)
+
+	func pathControl(_ pathControl: NSPathControl, willDisplay openPanel: NSOpenPanel) {
+		openPanel.canChooseFiles = false
+		openPanel.canChooseDirectories = true
+	}
+
+	func pathControl(_ pathControl: NSPathControl, validateDrop info: any NSDraggingInfo) -> NSDragOperation {
+		// TODO: accept if the pasteboard contains NSURLPboardType or NSFilenamesPboardType,
+		// and if the referenced file is a directory.
+
+		return NSDragOperation.link
+	}
+
+	func establishPathControl(_ pathControl: NSPathControl, userDefaultsKey: String) {
+		pathControl.url = FileManager.default.homeDirectoryForCurrentUser
+		if let bookmarkData = UserDefaults.standard.data(forKey: userDefaultsKey) {
+			var isStale: Bool = false
+			if let url = try? URL(resolvingBookmarkData: bookmarkData, bookmarkDataIsStale: &isStale) {
+				enterprisePathControl.url = url
+			}
+		}
+	}
+
+	func storePathControl(_ pathControl: NSPathControl, userDefaultsKey: String) {
+		let url = pathControl.url
+		if let bookmarkData = try? url?.bookmarkData(options: [.withSecurityScope]) {
+			UserDefaults.standard.set(bookmarkData, forKey: userDefaultsKey)
 		}
 	}
 }

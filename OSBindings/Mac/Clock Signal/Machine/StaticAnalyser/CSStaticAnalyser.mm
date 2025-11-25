@@ -28,6 +28,8 @@
 #include "Analyser/Static/ZX8081/Target.hpp"
 #include "Analyser/Static/ZXSpectrum/Target.hpp"
 
+#include "Storage/FileBundle/FileBundle.hpp"
+
 #import "Clock_Signal-Swift.h"
 
 namespace {
@@ -92,24 +94,32 @@ struct PermissionDelegate: public Storage::FileBundle::FileBundle::PermissionDel
 			request.canChooseDirectories = YES;
 			[request setDirectoryURL:[url URLByDeletingLastPathComponent]];
 
-			request.accessoryView = [NSTextField labelWithString:[NSString stringWithFormat:
-				@"Clock Signal cannot access your files without explicit permission but "
-				@"%s is trying to use additional files in its folder.\n"
-				@"Please select 'Grant Permission' if you are willing to let it to do so.",
-					bundle.key_file()->c_str()
-			]];
+			request.accessoryView = [NSTextField labelWithString:[&] {
+				const auto key_file = bundle.key_file();
+
+				if(key_file) {
+					return [NSString stringWithFormat:
+						@"Clock Signal cannot access your files without explicit permission but "
+						@"%s is trying to use additional files in its folder.\n"
+						@"Please select 'Grant Permission' if you are willing to let it to do so.",
+							key_file->c_str()
+					];
+				} else {
+					assert(bundle.base_path().has_value());
+					return [NSString stringWithFormat:
+						@"Clock Signal cannot access your files without explicit permission but "
+						@"your emulated machine is trying to use additional files from %s.\n"
+						@"Please select 'Grant Permission' if you are willing to let it to do so.",
+							bundle.base_path()->c_str()
+					];
+				}
+			}()];
+
 			request.accessoryViewDisclosed = YES;
 			[request runModal];
 
 			selectedURL = request.URL;
 		});
-
-		// Possibly substitute the base path, in case the one returned
-		// is an indirection out of the sandbox.
-//		if(![selectedURL isEqual:[url URLByDeletingLastPathComponent]]) {
-//			NSLog(@"Substituting base path: %@", selectedURL.path);
-//			bundle.set_base_path(std::string(selectedURL.path.UTF8String));
-//		}
 
 		// Store bookmark data for potential later retrieval.
 		// That amounts to this application remembering the user's permission.
@@ -367,6 +377,7 @@ PermissionDelegate permission_delegate;
 	exosVersion:(CSMachineEnterpriseEXOS)exosVersion
 	basicVersion:(CSMachineEnterpriseBASIC)basicVersion
 	dos:(CSMachineEnterpriseDOS)dos
+	exposedLocalPath:(nullable NSURL *)path
 {
 	self = [super init];
 	if(self) {
@@ -405,6 +416,12 @@ PermissionDelegate permission_delegate;
 			case CSMachineEnterpriseDOSEXDOS:		target->dos = Target::DOS::EXDOS;					break;
 			default:
 			case CSMachineEnterpriseDOSNone:		target->dos = Target::DOS::None;					break;
+		}
+
+		if(path) {
+			const auto bundle = std::make_shared<Storage::FileBundle::LocalFSFileBundle>(path.path.UTF8String);
+			bundle->set_permission_delegate(&permission_delegate);
+			target->media.file_bundles.push_back(std::move(bundle));
 		}
 
 		_targets.push_back(std::move(target));

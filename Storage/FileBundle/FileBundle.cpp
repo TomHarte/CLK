@@ -9,20 +9,31 @@
 #include "FileBundle.hpp"
 
 #include <cstdio>
+#include <sys/stat.h>
 
 using namespace Storage::FileBundle;
 
 LocalFSFileBundle::LocalFSFileBundle(const std::string &to_contain) {
-	const auto last_separator = to_contain.find_last_of("/\\");
-	if(last_separator == std::string::npos) {
-		key_file_ = to_contain;
+	struct stat stats;
+	stat(to_contain.c_str(), &stats);
+
+	if(S_ISDIR(stats.st_mode)) {
+		set_base_path(to_contain);
 	} else {
-		base_path_ = to_contain.substr(0, last_separator + 1);
-		key_file_ = to_contain.substr(last_separator + 1);
+		const auto last_separator = to_contain.find_last_of("/\\");
+		if(last_separator == std::string::npos) {
+			key_file_ = to_contain;
+		} else {
+			base_path_ = to_contain.substr(0, last_separator + 1);
+			key_file_ = to_contain.substr(last_separator + 1);
+		}
 	}
 }
 
 std::optional<std::string> LocalFSFileBundle::key_file() const {
+	if(key_file_.empty()) {
+		return std::nullopt;
+	}
 	return key_file_;
 }
 

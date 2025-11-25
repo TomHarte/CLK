@@ -195,7 +195,8 @@ typedef int Kilobytes;
 	speed:(CSMachineEnterpriseSpeed)speed
 	exosVersion:(CSMachineEnterpriseEXOS)exosVersion
 	basicVersion:(CSMachineEnterpriseBASIC)basicVersion
-	dos:(CSMachineEnterpriseDOS)dos;
+	dos:(CSMachineEnterpriseDOS)dos
+	exposedLocalPath:(nullable NSURL *)path;
 
 - (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model;
 
