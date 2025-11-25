@@ -39,6 +39,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 	@IBOutlet var bbcDFSButton: NSButton!
 	@IBOutlet var bbcADFSButton: NSButton!
 	@IBOutlet var bbcSidewaysRAMButton: NSButton!
+	@IBOutlet var bbcBeebSIDButton: NSButton!
 	@IBOutlet var bbcSecondProcessorButton: NSPopUpButton!
 
 	// MARK: - CPC properties
@@ -137,6 +138,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		bbcDFSButton.state = standardUserDefaults.bool(forKey: "new.bbcDFS") ? .on : .off
 		bbcADFSButton.state = standardUserDefaults.bool(forKey: "new.bbcADFS") ? .on : .off
 		bbcSidewaysRAMButton.state = standardUserDefaults.bool(forKey: "new.bbcSidewaysRAM") ? .on : .off
+		bbcBeebSIDButton.state = standardUserDefaults.bool(forKey: "new.bbcBeebSID") ? .on : .off
 		bbcSecondProcessorButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.bbcSecondProcessor"))
 
 		// CPC settings
@@ -217,6 +219,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 		standardUserDefaults.set(bbcDFSButton.state == .on, forKey: "new.bbcDFS")
 		standardUserDefaults.set(bbcADFSButton.state == .on, forKey: "new.bbcADFS")
 		standardUserDefaults.set(bbcSidewaysRAMButton.state == .on, forKey: "new.bbcSidewaysRAM")
+		standardUserDefaults.set(bbcBeebSIDButton.state == .on, forKey: "new.bbcBeebSID")
 		standardUserDefaults.set(bbcSecondProcessorButton.selectedTag(), forKey: "new.bbcSecondProcessor")
 
 		// CPC settings
@@ -360,6 +363,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 					bbcMicroDFS: bbcDFSButton.state == .on,
 					adfs: bbcADFSButton.state == .on,
 					sidewaysRAM: bbcSidewaysRAMButton.state == .on,
+					beebSID: bbcBeebSIDButton.state == .on,
 					secondProcessor: secondProcessor)
 
 			case "c16plus4":

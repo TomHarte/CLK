@@ -190,7 +190,10 @@ PermissionDelegate permission_delegate;
 
 // MARK: - Machine-based Initialisers
 
-- (instancetype)initWithAmigaModel:(CSMachineAmigaModel)model chipMemorySize:(Kilobytes)chipMemorySize fastMemorySize:(Kilobytes)fastMemorySize {
+- (instancetype)initWithAmigaModel:(CSMachineAmigaModel)model
+	chipMemorySize:(Kilobytes)chipMemorySize
+	fastMemorySize:(Kilobytes)fastMemorySize
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Amiga::Target;
@@ -232,7 +235,10 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController hasMockingboard:(BOOL)hasMockingboard {
+- (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model
+	diskController:(CSMachineAppleIIDiskController)diskController
+	hasMockingboard:(BOOL)hasMockingboard
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::AppleII::Target;
@@ -255,7 +261,9 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithAppleIIgsModel:(CSMachineAppleIIgsModel)model memorySize:(Kilobytes)memorySize {
+- (instancetype)initWithAppleIIgsModel:(CSMachineAppleIIgsModel)model
+	memorySize:(Kilobytes)memorySize
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::AppleIIgs::Target;
@@ -299,13 +307,19 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithBBCMicroDFS:(BOOL)dfs adfs:(BOOL)adfs sidewaysRAM:(BOOL)sidewaysRAM secondProcessor:(CSMachineBBCMicroSecondProcessor)secondProcessor {
+- (instancetype)initWithBBCMicroDFS:(BOOL)dfs
+	adfs:(BOOL)adfs
+	sidewaysRAM:(BOOL)sidewaysRAM
+	beebSID:(BOOL)beebSID
+	secondProcessor:(CSMachineBBCMicroSecondProcessor)secondProcessor
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Acorn::BBCMicroTarget;
 		auto target = std::make_unique<Target>();
 		target->has_1770dfs = dfs;
 		target->has_adfs = adfs;
+		target->has_beebsid = beebSID;
 		target->has_sideways_ram = sidewaysRAM;
 
 		switch(secondProcessor) {
@@ -318,7 +332,9 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithCommodoreTEDModel:(CSMachineCommodoreTEDModel)model hasC1541:(BOOL)hasC1541 {
+- (instancetype)initWithCommodoreTEDModel:(CSMachineCommodoreTEDModel)model
+	hasC1541:(BOOL)hasC1541
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Commodore::Plus4Target;
@@ -329,7 +345,11 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs ap6:(BOOL)ap6 sidewaysRAM:(BOOL)sidewaysRAM {
+- (instancetype)initWithElectronDFS:(BOOL)dfs
+	adfs:(BOOL)adfs
+	ap6:(BOOL)ap6
+	sidewaysRAM:(BOOL)sidewaysRAM
+{
 	self = [super init];
 	if(self) {
 		auto target = std::make_unique<Analyser::Static::Acorn::ElectronTarget>();
@@ -342,7 +362,12 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model speed:(CSMachineEnterpriseSpeed)speed exosVersion:(CSMachineEnterpriseEXOS)exosVersion basicVersion:(CSMachineEnterpriseBASIC)basicVersion dos:(CSMachineEnterpriseDOS)dos {
+- (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model
+	speed:(CSMachineEnterpriseSpeed)speed
+	exosVersion:(CSMachineEnterpriseEXOS)exosVersion
+	basicVersion:(CSMachineEnterpriseBASIC)basicVersion
+	dos:(CSMachineEnterpriseDOS)dos
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Enterprise::Target;
@@ -407,7 +432,11 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithMSXModel:(CSMachineMSXModel)model region:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive hasMSXMUSIC:(BOOL)hasMSXMUSIC {
+- (instancetype)initWithMSXModel:(CSMachineMSXModel)model
+	region:(CSMachineMSXRegion)region
+	hasDiskDrive:(BOOL)hasDiskDrive
+	hasMSXMUSIC:(BOOL)hasMSXMUSIC
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::MSX::Target;
@@ -428,7 +457,9 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithOricModel:(CSMachineOricModel)model diskInterface:(CSMachineOricDiskInterface)diskInterface {
+- (instancetype)initWithOricModel:(CSMachineOricModel)model
+	diskInterface:(CSMachineOricDiskInterface)diskInterface
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Oric::Target;
@@ -450,7 +481,10 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithPCCompatibleSpeed:(CSPCCompatibleSpeed)speed videoAdaptor:(CSPCCompatibleVideoAdaptor)adaptor {
+
+- (instancetype)initWithPCCompatibleSpeed:(CSPCCompatibleSpeed)speed
+	videoAdaptor:(CSPCCompatibleVideoAdaptor)adaptor
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::PCCompatible::Target;
@@ -486,7 +520,10 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithVic20Region:(CSMachineVic20Region)region memorySize:(Kilobytes)memorySize hasC1540:(BOOL)hasC1540 {
+- (instancetype)initWithVic20Region:(CSMachineVic20Region)region
+	memorySize:(Kilobytes)memorySize
+	hasC1540:(BOOL)hasC1540
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Commodore::Vic20Target;
@@ -520,7 +557,9 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 	}
 }
 
-- (instancetype)initWithZX80MemorySize:(Kilobytes)memorySize useZX81ROM:(BOOL)useZX81ROM {
+- (instancetype)initWithZX80MemorySize:(Kilobytes)memorySize
+	useZX81ROM:(BOOL)useZX81ROM
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::ZX8081::Target;

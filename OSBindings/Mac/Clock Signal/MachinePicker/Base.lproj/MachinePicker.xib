@@ -440,15 +440,15 @@ Gw
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
-                                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lzo-8g-o4S">
-                                            <rect key="frame" x="18" y="211" width="284" height="18"/>
-                                            <buttonCell key="cell" type="check" title="Fill unused ROM banks with sideways RAM" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="JEz-eK-uWp">
+                                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="UgW-vD-OSo">
+                                            <rect key="frame" x="18" y="211" width="110" height="18"/>
+                                            <buttonCell key="cell" type="check" title="With BeebSID" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="ucb-pL-9rx">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="y7H-nu-CPH">
-                                            <rect key="frame" x="20" y="174" width="118" height="16"/>
+                                            <rect key="frame" x="20" y="152" width="118" height="16"/>
                                             <textFieldCell key="cell" lineBreakMode="clipping" title="Second Processor:" id="11b-Ml-o3Y">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -456,7 +456,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="yhA-Dw-hqn">
-                                            <rect key="frame" x="141" y="168" width="81" height="25"/>
+                                            <rect key="frame" x="141" y="146" width="81" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="None" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="Rpc-1u-8X2" id="vk3-Qo-uxV">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="message"/>
@@ -469,18 +469,28 @@ Gw
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
+                                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lzo-8g-o4S">
+                                            <rect key="frame" x="18" y="189" width="284" height="18"/>
+                                            <buttonCell key="cell" type="check" title="Fill unused ROM banks with sideways RAM" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="JEz-eK-uWp">
+                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                        </button>
                                     </subviews>
                                     <constraints>
                                         <constraint firstItem="945-wU-JOH" firstAttribute="leading" secondItem="SRc-2D-95G" secondAttribute="leading" constant="20" symbolic="YES" id="1iM-70-oZq"/>
                                         <constraint firstItem="yhA-Dw-hqn" firstAttribute="top" secondItem="lzo-8g-o4S" secondAttribute="bottom" constant="20" symbolic="YES" id="28I-GC-l4K"/>
                                         <constraint firstItem="y7H-nu-CPH" firstAttribute="leading" secondItem="SRc-2D-95G" secondAttribute="leading" constant="22" id="3yR-gS-ciE"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="yhA-Dw-hqn" secondAttribute="trailing" constant="20" symbolic="YES" id="8V6-jM-LW7"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="UgW-vD-OSo" secondAttribute="trailing" constant="20" symbolic="YES" id="8v9-Ly-7XU"/>
                                         <constraint firstItem="y7H-nu-CPH" firstAttribute="centerY" secondItem="yhA-Dw-hqn" secondAttribute="centerY" id="IUr-qS-L4l"/>
+                                        <constraint firstItem="lzo-8g-o4S" firstAttribute="top" secondItem="UgW-vD-OSo" secondAttribute="bottom" constant="6" symbolic="YES" id="LpK-aW-KOr"/>
+                                        <constraint firstItem="UgW-vD-OSo" firstAttribute="leading" secondItem="SRc-2D-95G" secondAttribute="leading" constant="20" symbolic="YES" id="N2b-ZW-ffU"/>
                                         <constraint firstItem="JqM-IK-FMP" firstAttribute="leading" secondItem="SRc-2D-95G" secondAttribute="leading" constant="20" symbolic="YES" id="NfY-dE-aJw"/>
                                         <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="yhA-Dw-hqn" secondAttribute="bottom" constant="20" symbolic="YES" id="Rg8-zf-0ep"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="lzo-8g-o4S" secondAttribute="trailing" constant="20" symbolic="YES" id="X3p-qJ-ENH"/>
+                                        <constraint firstItem="UgW-vD-OSo" firstAttribute="top" secondItem="945-wU-JOH" secondAttribute="bottom" constant="6" symbolic="YES" id="YqY-Yk-Puc"/>
                                         <constraint firstItem="lzo-8g-o4S" firstAttribute="leading" secondItem="SRc-2D-95G" secondAttribute="leading" constant="20" symbolic="YES" id="b5a-SX-2ty"/>
-                                        <constraint firstItem="lzo-8g-o4S" firstAttribute="top" secondItem="945-wU-JOH" secondAttribute="bottom" constant="6" symbolic="YES" id="d1Y-Ia-IjQ"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="945-wU-JOH" secondAttribute="trailing" constant="20" symbolic="YES" id="dmY-PV-ap4"/>
                                         <constraint firstItem="JqM-IK-FMP" firstAttribute="top" secondItem="SRc-2D-95G" secondAttribute="top" constant="20" symbolic="YES" id="ggl-QH-mV4"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="JqM-IK-FMP" secondAttribute="trailing" constant="20" symbolic="YES" id="mvO-UZ-BtT"/>
@@ -1200,6 +1210,7 @@ Gw
                 <outlet property="appleIIgsModelButton" destination="gcS-uy-mzl" id="Jcc-jC-cV1"/>
                 <outlet property="atariSTMemorySizeButton" destination="QD0-qk-qCa" id="aKa-L6-2Te"/>
                 <outlet property="bbcADFSButton" destination="945-wU-JOH" id="fec-Lp-8F2"/>
+                <outlet property="bbcBeebSIDButton" destination="UgW-vD-OSo" id="k9j-Vc-dyN"/>
                 <outlet property="bbcDFSButton" destination="JqM-IK-FMP" id="ocY-a5-u7h"/>
                 <outlet property="bbcSecondProcessorButton" destination="yhA-Dw-hqn" id="lzf-f5-4iQ"/>
                 <outlet property="bbcSidewaysRAMButton" destination="lzo-8g-o4S" id="3P1-20-Ne7"/>
