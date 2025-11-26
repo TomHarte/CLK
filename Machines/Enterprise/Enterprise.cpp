@@ -632,6 +632,22 @@ private:
 		return &ram_[size_t((page << 14)) - ram_floor];
 	}
 
+	// TODO: more descriptive return result here? Or another function?
+	uint8_t *rom_segment(const uint8_t page) {
+		const auto rom_segment = [&](const uint8_t base, auto &source) -> uint8_t * {
+			if(page < base || page >= base + source.size() / 0x4000) {
+				return nullptr;
+			}
+			return &source[(page - base) * 0x4000];
+		};
+		if(const auto segment = rom_segment(0, exos_); segment) return segment;
+		if(const auto segment = rom_segment(16, basic_); segment) return segment;
+		if(const auto segment = rom_segment(32, exdos_rom_); segment) return segment;
+		if(const auto segment = rom_segment(48, epdos_rom_); segment) return segment;
+		if(const auto segment = rom_segment(64, host_fs_rom_); segment) return segment;
+		return nullptr;
+	}
+
 	const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
 	uint8_t *write_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
 	uint8_t pages_[4] = {0x80, 0x80, 0x80, 0x80};
@@ -650,9 +666,20 @@ private:
 	template <size_t slot> void page(const uint8_t offset) {
 		pages_[slot] = offset;
 
-		if constexpr (slot == 3) {
-			test_host_fs_traps_ = false;
-		}
+//		const auto rom = rom_segment(offset);
+//		if constexpr (slot == 3) {
+//			if(rom) {
+//				test_host_fs_traps_ = std::begin(host_fs_rom_) && test_host_fs_traps_ < std::begin(host_fs_rom_);
+//			} else {
+//				test_host_fs_traps_ = false;
+//			}
+//		}
+//
+//		if(rom) {
+//			page<slot>(&rom[(offset - location) * 0x4000], nullptr);
+//			is_video_[slot] = false;
+//			return;
+//		}
 
 		if(page_rom<slot>(offset, 0, exos_)) return;
 		if(page_rom<slot>(offset, 16, basic_)) return;
@@ -826,22 +853,38 @@ private:
 		}
 	}
 
-	uint8_t &user_ram(const uint16_t address) {
+	uint8_t user_page(const uint16_t address) {
+		const auto page_id = address >> 14;
+		return read_pointers_[0xbffc >> 14] ? read_pointers_[0xbffc >> 14][0xbffc + page_id] : 0xff;
+	}
+
+	uint8_t *user_ram(const uint8_t page, const uint16_t address) {
 		// "User" accesses go to to wherever the user last had paged;
 		// per 5.4 System Segment Usage those pages are stored in memory from
 		// 0xbffc, so grab from there.
-		const auto page_id = address >> 14;
-		const uint8_t page = read_pointers_[0xbffc >> 14] ? read_pointers_[0xbffc >> 14][0xbffc + page_id] : 0xff;
 		const auto offset = address & 0x3fff;
-		return ram_segment(page)[offset];
+		auto segment = ram_segment(page);
+		if(segment) {
+			return &segment[offset];
+		}
+		return nullptr;
 	}
 
 	uint8_t hostfs_user_read(const uint16_t address) override {
-		return user_ram(address);
+		const auto page = user_page(address);
+
+		const auto ram = ram_segment(page);
+		if(ram) return ram[address & 0x3fff];
+
+		const auto rom = rom_segment(page);
+		if(rom) return rom[address & 0x3fff];
+
+		return 0xff;
 	}
 
 	void hostfs_user_write(const uint16_t address, const uint8_t value) override {
-		user_ram(address) = value;
+		const auto ram = user_ram(user_page(address), address);
+		if(ram) *ram = value;
 	}
 
 	void find_host_fs_hooks() {
