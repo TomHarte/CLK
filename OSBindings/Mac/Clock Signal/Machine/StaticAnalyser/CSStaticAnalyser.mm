@@ -42,13 +42,15 @@ struct PermissionDelegate: public Storage::FileBundle::FileBundle::PermissionDel
 		NSString *bookmarkKey = [[url URLByDeletingLastPathComponent] absoluteString];
 
 		while(true) {
-			// If the file can already be read, no further action required.
+			// If the file exists can already be read, no further action required.
 			// That is, given that the macOS sandbox doesn't differentiate read/write access once permission is granted.
 			NSError *error;
 			NSFileHandle *file = [NSFileHandle fileHandleForReadingFromURL:url error:&error];
 			if(file) {
 				return;
 			}
+
+			// TODO: if that file doesn't exist... try anything?
 
 			// Was failure to open due to permissions?
 			if(
@@ -79,6 +81,8 @@ struct PermissionDelegate: public Storage::FileBundle::FileBundle::PermissionDel
 						bookmarkDataIsStale:nil
 						error:nil];
 				[accessURL startAccessingSecurityScopedResource];
+			} else {
+				break;
 			}
 		}
 
