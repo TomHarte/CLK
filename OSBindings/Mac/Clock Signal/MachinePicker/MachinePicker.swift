@@ -551,10 +551,13 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 	}
 
 	func pathControl(_ pathControl: NSPathControl, validateDrop info: any NSDraggingInfo) -> NSDragOperation {
-		// TODO: accept if the pasteboard contains NSURLPboardType or NSFilenamesPboardType,
-		// and if the referenced file is a directory.
-
-		return NSDragOperation.link
+		// Accept only directories.
+		if let url = NSURL(from: info.draggingPasteboard) {
+			if url.hasDirectoryPath {
+				return NSDragOperation.link
+			}
+		}
+		return []
 	}
 
 	func establishPathControl(_ pathControl: NSPathControl, userDefaultsKey: String) {
