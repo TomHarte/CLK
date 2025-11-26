@@ -28,6 +28,8 @@
 #include "Analyser/Static/ZX8081/Target.hpp"
 #include "Analyser/Static/ZXSpectrum/Target.hpp"
 
+#include "Storage/FileBundle/FileBundle.hpp"
+
 #import "Clock_Signal-Swift.h"
 
 namespace {
@@ -92,24 +94,32 @@ struct PermissionDelegate: public Storage::FileBundle::FileBundle::PermissionDel
 			request.canChooseDirectories = YES;
 			[request setDirectoryURL:[url URLByDeletingLastPathComponent]];
 
-			request.accessoryView = [NSTextField labelWithString:[NSString stringWithFormat:
-				@"Clock Signal cannot access your files without explicit permission but "
-				@"%s is trying to use additional files in its folder.\n"
-				@"Please select 'Grant Permission' if you are willing to let it to do so.",
-					bundle.key_file()->c_str()
-			]];
+			request.accessoryView = [NSTextField labelWithString:[&] {
+				const auto key_file = bundle.key_file();
+
+				if(key_file) {
+					return [NSString stringWithFormat:
+						@"Clock Signal cannot access your files without explicit permission but "
+						@"%s is trying to use additional files in its folder.\n"
+						@"Please select 'Grant Permission' if you are willing to let it to do so.",
+							key_file->c_str()
+					];
+				} else {
+					assert(bundle.base_path().has_value());
+					return [NSString stringWithFormat:
+						@"Clock Signal cannot access your files without explicit permission but "
+						@"your emulated machine is trying to use additional files from %s.\n"
+						@"Please select 'Grant Permission' if you are willing to let it to do so.",
+							bundle.base_path()->c_str()
+					];
+				}
+			}()];
+
 			request.accessoryViewDisclosed = YES;
 			[request runModal];
 
 			selectedURL = request.URL;
 		});
-
-		// Possibly substitute the base path, in case the one returned
-		// is an indirection out of the sandbox.
-//		if(![selectedURL isEqual:[url URLByDeletingLastPathComponent]]) {
-//			NSLog(@"Substituting base path: %@", selectedURL.path);
-//			bundle.set_base_path(std::string(selectedURL.path.UTF8String));
-//		}
 
 		// Store bookmark data for potential later retrieval.
 		// That amounts to this application remembering the user's permission.
@@ -190,7 +200,10 @@ PermissionDelegate permission_delegate;
 
 // MARK: - Machine-based Initialisers
 
-- (instancetype)initWithAmigaModel:(CSMachineAmigaModel)model chipMemorySize:(Kilobytes)chipMemorySize fastMemorySize:(Kilobytes)fastMemorySize {
+- (instancetype)initWithAmigaModel:(CSMachineAmigaModel)model
+	chipMemorySize:(Kilobytes)chipMemorySize
+	fastMemorySize:(Kilobytes)fastMemorySize
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Amiga::Target;
@@ -232,7 +245,10 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController hasMockingboard:(BOOL)hasMockingboard {
+- (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model
+	diskController:(CSMachineAppleIIDiskController)diskController
+	hasMockingboard:(BOOL)hasMockingboard
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::AppleII::Target;
@@ -255,7 +271,9 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithAppleIIgsModel:(CSMachineAppleIIgsModel)model memorySize:(Kilobytes)memorySize {
+- (instancetype)initWithAppleIIgsModel:(CSMachineAppleIIgsModel)model
+	memorySize:(Kilobytes)memorySize
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::AppleIIgs::Target;
@@ -299,13 +317,19 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithBBCMicroDFS:(BOOL)dfs adfs:(BOOL)adfs sidewaysRAM:(BOOL)sidewaysRAM secondProcessor:(CSMachineBBCMicroSecondProcessor)secondProcessor {
+- (instancetype)initWithBBCMicroDFS:(BOOL)dfs
+	adfs:(BOOL)adfs
+	sidewaysRAM:(BOOL)sidewaysRAM
+	beebSID:(BOOL)beebSID
+	secondProcessor:(CSMachineBBCMicroSecondProcessor)secondProcessor
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Acorn::BBCMicroTarget;
 		auto target = std::make_unique<Target>();
 		target->has_1770dfs = dfs;
 		target->has_adfs = adfs;
+		target->has_beebsid = beebSID;
 		target->has_sideways_ram = sidewaysRAM;
 
 		switch(secondProcessor) {
@@ -318,7 +342,9 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithCommodoreTEDModel:(CSMachineCommodoreTEDModel)model hasC1541:(BOOL)hasC1541 {
+- (instancetype)initWithCommodoreTEDModel:(CSMachineCommodoreTEDModel)model
+	hasC1541:(BOOL)hasC1541
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Commodore::Plus4Target;
@@ -329,7 +355,11 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs ap6:(BOOL)ap6 sidewaysRAM:(BOOL)sidewaysRAM {
+- (instancetype)initWithElectronDFS:(BOOL)dfs
+	adfs:(BOOL)adfs
+	ap6:(BOOL)ap6
+	sidewaysRAM:(BOOL)sidewaysRAM
+{
 	self = [super init];
 	if(self) {
 		auto target = std::make_unique<Analyser::Static::Acorn::ElectronTarget>();
@@ -342,7 +372,13 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model speed:(CSMachineEnterpriseSpeed)speed exosVersion:(CSMachineEnterpriseEXOS)exosVersion basicVersion:(CSMachineEnterpriseBASIC)basicVersion dos:(CSMachineEnterpriseDOS)dos {
+- (instancetype)initWithEnterpriseModel:(CSMachineEnterpriseModel)model
+	speed:(CSMachineEnterpriseSpeed)speed
+	exosVersion:(CSMachineEnterpriseEXOS)exosVersion
+	basicVersion:(CSMachineEnterpriseBASIC)basicVersion
+	dos:(CSMachineEnterpriseDOS)dos
+	exposedLocalPath:(nullable NSURL *)path
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Enterprise::Target;
@@ -382,6 +418,12 @@ PermissionDelegate permission_delegate;
 			case CSMachineEnterpriseDOSNone:		target->dos = Target::DOS::None;					break;
 		}
 
+		if(path) {
+			const auto bundle = std::make_shared<Storage::FileBundle::LocalFSFileBundle>(path.path.UTF8String);
+			bundle->set_permission_delegate(&permission_delegate);
+			target->media.file_bundles.push_back(std::move(bundle));
+		}
+
 		_targets.push_back(std::move(target));
 	}
 	return self;
@@ -407,7 +449,11 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithMSXModel:(CSMachineMSXModel)model region:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive hasMSXMUSIC:(BOOL)hasMSXMUSIC {
+- (instancetype)initWithMSXModel:(CSMachineMSXModel)model
+	region:(CSMachineMSXRegion)region
+	hasDiskDrive:(BOOL)hasDiskDrive
+	hasMSXMUSIC:(BOOL)hasMSXMUSIC
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::MSX::Target;
@@ -428,7 +474,9 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithOricModel:(CSMachineOricModel)model diskInterface:(CSMachineOricDiskInterface)diskInterface {
+- (instancetype)initWithOricModel:(CSMachineOricModel)model
+	diskInterface:(CSMachineOricDiskInterface)diskInterface
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Oric::Target;
@@ -450,7 +498,10 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithPCCompatibleSpeed:(CSPCCompatibleSpeed)speed videoAdaptor:(CSPCCompatibleVideoAdaptor)adaptor {
+
+- (instancetype)initWithPCCompatibleSpeed:(CSPCCompatibleSpeed)speed
+	videoAdaptor:(CSPCCompatibleVideoAdaptor)adaptor
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::PCCompatible::Target;
@@ -486,7 +537,10 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithVic20Region:(CSMachineVic20Region)region memorySize:(Kilobytes)memorySize hasC1540:(BOOL)hasC1540 {
+- (instancetype)initWithVic20Region:(CSMachineVic20Region)region
+	memorySize:(Kilobytes)memorySize
+	hasC1540:(BOOL)hasC1540
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Commodore::Vic20Target;
@@ -520,7 +574,9 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 	}
 }
 
-- (instancetype)initWithZX80MemorySize:(Kilobytes)memorySize useZX81ROM:(BOOL)useZX81ROM {
+- (instancetype)initWithZX80MemorySize:(Kilobytes)memorySize
+	useZX81ROM:(BOOL)useZX81ROM
+{
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::ZX8081::Target;
