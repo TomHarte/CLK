@@ -632,20 +632,37 @@ private:
 		return &ram_[size_t((page << 14)) - ram_floor];
 	}
 
-	// TODO: more descriptive return result here? Or another function?
-	uint8_t *rom_segment(const uint8_t page) {
-		const auto rom_segment = [&](const uint8_t base, auto &source) -> uint8_t * {
+	struct ROMPage {
+		const uint8_t *rom;
+		uint8_t page_offset;
+
+		operator bool() const {
+			return bool(rom);
+		}
+		uint8_t operator[](const size_t offset) const {
+			return rom[page_offset * 0x4000 + offset];
+		}
+	};
+
+	ROMPage rom_segment(const uint8_t page) {
+		const auto rom_segment = [&](const uint8_t base, auto &source) -> ROMPage {
 			if(page < base || page >= base + source.size() / 0x4000) {
-				return nullptr;
+				return { nullptr, 0 };
 			}
-			return &source[(page - base) * 0x4000];
+			return {
+				source.data(),
+				uint8_t(page - base)
+			};
 		};
-		if(const auto segment = rom_segment(0, exos_); segment) return segment;
-		if(const auto segment = rom_segment(16, basic_); segment) return segment;
-		if(const auto segment = rom_segment(32, exdos_rom_); segment) return segment;
-		if(const auto segment = rom_segment(48, epdos_rom_); segment) return segment;
-		if(const auto segment = rom_segment(64, host_fs_rom_); segment) return segment;
-		return nullptr;
+
+		// This is where I've effectively dictated the overall 22-bit RAM layout.
+		// The first argument before each ROM dictates its starting page.
+		if(const auto segment = rom_segment(0, exos_); segment.rom) return segment;
+		if(const auto segment = rom_segment(16, basic_); segment.rom) return segment;
+		if(const auto segment = rom_segment(32, exdos_rom_); segment.rom) return segment;
+		if(const auto segment = rom_segment(48, epdos_rom_); segment.rom) return segment;
+		if(const auto segment = rom_segment(64, host_fs_rom_); segment.rom) return segment;
+		return { nullptr, 0 };
 	}
 
 	const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -666,29 +683,18 @@ private:
 	template <size_t slot> void page(const uint8_t offset) {
 		pages_[slot] = offset;
 
-//		const auto rom = rom_segment(offset);
-//		if constexpr (slot == 3) {
-//			if(rom) {
-//				test_host_fs_traps_ = std::begin(host_fs_rom_) && test_host_fs_traps_ < std::begin(host_fs_rom_);
-//			} else {
-//				test_host_fs_traps_ = false;
-//			}
-//		}
-//
-//		if(rom) {
-//			page<slot>(&rom[(offset - location) * 0x4000], nullptr);
-//			is_video_[slot] = false;
-//			return;
-//		}
-
-		if(page_rom<slot>(offset, 0, exos_)) return;
-		if(page_rom<slot>(offset, 16, basic_)) return;
-		if(page_rom<slot>(offset, 32, exdos_rom_)) return;
-		if(page_rom<slot>(offset, 48, epdos_rom_)) return;
-		if(page_rom<slot>(offset, 64, host_fs_rom_)) {
-			if constexpr (slot == 3) {
-				test_host_fs_traps_ = true;
+		const auto rom = rom_segment(offset);
+		if constexpr (slot == 3) {
+			if(rom) {
+				test_host_fs_traps_ = rom.rom == host_fs_rom_.data();
+			} else {
+				test_host_fs_traps_ = false;
 			}
+		}
+
+		if(rom) {
+			page<slot>(rom.rom + rom.page_offset * 0x4000, nullptr);
+			is_video_[slot] = false;
 			return;
 		}
 
