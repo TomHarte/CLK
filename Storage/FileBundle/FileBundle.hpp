@@ -23,6 +23,8 @@ namespace Storage::FileBundle {
 	bundles in the future.
 */
 struct FileBundle {
+	virtual ~FileBundle() {}
+
 	struct PermissionDelegate {
 		virtual void validate_open(FileBundle &, const std::string &, FileMode) = 0;
 		virtual void validate_erase(FileBundle &, const std::string &) = 0;
