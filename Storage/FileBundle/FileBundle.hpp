@@ -35,6 +35,8 @@ struct FileBundle {
 	virtual std::optional<std::string> base_path() const { return std::nullopt; }
 	virtual void set_base_path(const std::string &) {}
 	virtual void set_permission_delegate(PermissionDelegate *) {}
+
+	virtual void set_case_insensitive(bool) {}
 };
 
 
@@ -48,6 +50,8 @@ struct LocalFSFileBundle: public FileBundle {
 	std::optional<std::string> base_path() const override;
 	void set_base_path(const std::string &) override;
 	void set_permission_delegate(PermissionDelegate *) override;
+
+	// TODO: implement case insensitive matching.
 
 private:
 	std::string key_file_;
