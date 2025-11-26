@@ -624,6 +624,7 @@ private:
 	std::array<uint8_t, 16 * 1024> host_fs_rom_;
 	const uint8_t min_ram_slot_;
 
+	/// @returns A pointer to the start of the RAM segment representing @c page if any; otherwise @c nullptr.
 	uint8_t *ram_segment(const uint8_t page) {
 		if(page < min_ram_slot_) return nullptr;
 		const auto ram_floor = (0x100 << 14) - ram_.size();
@@ -632,36 +633,68 @@ private:
 		return &ram_[size_t((page << 14)) - ram_floor];
 	}
 
+	struct ROMPage {
+		const uint8_t *rom;
+		uint8_t page_offset;
+
+		operator bool() const {
+			return bool(rom);
+		}
+		uint8_t operator[](const size_t offset) const {
+			return rom[page_offset * 0x4000 + offset];
+		}
+	};
+
+	/// @returns A pointer to the ROM segment representing @c page if any; otherwise an object that converts to bool @c false. The returned object
+	/// names both the start of the ROM and how many pages into it this page rests.
+	ROMPage rom_segment(const uint8_t page) {
+		const auto rom_segment = [&](const uint8_t base, auto &source) -> ROMPage {
+			if(page < base || page >= base + source.size() / 0x4000) {
+				return { nullptr, 0 };
+			}
+			return {
+				source.data(),
+				uint8_t(page - base)
+			};
+		};
+
+		// This is where I've effectively dictated the overall 22-bit RAM layout.
+		// The first argument before each ROM dictates its starting page.
+		if(const auto segment = rom_segment(0, exos_); segment.rom) return segment;
+		if(const auto segment = rom_segment(16, basic_); segment.rom) return segment;
+		if(const auto segment = rom_segment(32, exdos_rom_); segment.rom) return segment;
+		if(const auto segment = rom_segment(48, epdos_rom_); segment.rom) return segment;
+		if(const auto segment = rom_segment(64, host_fs_rom_); segment.rom) return segment;
+		return { nullptr, 0 };
+	}
+
+	// Ephemeral, user-set state, representing the current memory map as viewed from the Z80.
 	const uint8_t *read_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
 	uint8_t *write_pointers_[4] = {nullptr, nullptr, nullptr, nullptr};
 	uint8_t pages_[4] = {0x80, 0x80, 0x80, 0x80};
 
-	template <size_t slot, typename RomT>
-	bool page_rom(const uint8_t offset, const uint8_t location, const RomT &source) {
-		if(offset < location || offset >= location + source.size() / 0x4000) {
-			return false;
-		}
-
-		page<slot>(&source[(offset - location) * 0x4000], nullptr);
-		is_video_[slot] = false;
-		return true;
-	}
-
+	/// Pages whatever is supposed to be at @c offset into memory at @c slot, whether ROM or RAM, and updates the
+	/// @c test_host_fs_traps_ and relevant @c is_video_ flags.
 	template <size_t slot> void page(const uint8_t offset) {
+		const auto apply = [&](const uint8_t *const read, uint8_t *const write) {
+			read_pointers_[slot] = read ? read - (slot * 0x4000) : nullptr;
+			write_pointers_[slot] = write ? write - (slot * 0x4000) : nullptr;
+		};
+
 		pages_[slot] = offset;
 
+		const auto rom = rom_segment(offset);
 		if constexpr (slot == 3) {
-			test_host_fs_traps_ = false;
+			if(rom) {
+				test_host_fs_traps_ = rom.rom == host_fs_rom_.data();
+			} else {
+				test_host_fs_traps_ = false;
+			}
 		}
 
-		if(page_rom<slot>(offset, 0, exos_)) return;
-		if(page_rom<slot>(offset, 16, basic_)) return;
-		if(page_rom<slot>(offset, 32, exdos_rom_)) return;
-		if(page_rom<slot>(offset, 48, epdos_rom_)) return;
-		if(page_rom<slot>(offset, 64, host_fs_rom_)) {
-			if constexpr (slot == 3) {
-				test_host_fs_traps_ = true;
-			}
+		if(rom) {
+			apply(rom.rom + rom.page_offset * 0x4000, nullptr);
+			is_video_[slot] = false;
 			return;
 		}
 
@@ -672,16 +705,11 @@ private:
 		if(offset >= min_ram_slot_) {
 			is_video_[slot] = offset >= 0xfc;	// TODO: this hard-codes a 64kb video assumption.
 			auto pointer = ram_segment(offset);
-			page<slot>(pointer, pointer);
+			apply(pointer, pointer);
 			return;
 		}
 
-		page<slot>(nullptr, nullptr);
-	}
-
-	template <size_t slot> void page(const uint8_t *const read, uint8_t *const write) {
-		read_pointers_[slot] = read ? read - (slot * 0x4000) : nullptr;
-		write_pointers_[slot] = write ? write - (slot * 0x4000) : nullptr;
+		apply(nullptr, nullptr);
 	}
 
 	// MARK: - Memory Timing
@@ -818,6 +846,7 @@ private:
 	std::unordered_set<uint16_t> host_fs_traps_;
 	bool test_host_fs_traps_ = false;
 
+	/// Reads from mamory as currently laid out.
 	uint8_t hostfs_read(const uint16_t address) override {
 		if(read_pointers_[address >> 14]) {
 			return read_pointers_[address >> 14][address];
@@ -826,24 +855,47 @@ private:
 		}
 	}
 
-	uint8_t &user_ram(const uint16_t address) {
+	/// @returns The page that should be used to access memory at @c address within the current user memory map.
+	/// This is purely an EXOS construct. It has no basis in hardware.
+	uint8_t user_page(const uint16_t address) {
+		const auto page_id = address >> 14;
+		return read_pointers_[0xbffc >> 14] ? read_pointers_[0xbffc >> 14][0xbffc + page_id] : 0xff;
+	}
+
+	/// @returns The byte of RAM at @c address in the user memory map, if RAM is paged there. @c nullptr otherwise.
+	uint8_t *user_ram(const uint8_t page, const uint16_t address) {
 		// "User" accesses go to to wherever the user last had paged;
 		// per 5.4 System Segment Usage those pages are stored in memory from
 		// 0xbffc, so grab from there.
-		const auto page_id = address >> 14;
-		const uint8_t page = read_pointers_[0xbffc >> 14] ? read_pointers_[0xbffc >> 14][0xbffc + page_id] : 0xff;
 		const auto offset = address & 0x3fff;
-		return ram_segment(page)[offset];
+		auto segment = ram_segment(page);
+		if(segment) {
+			return &segment[offset];
+		}
+		return nullptr;
 	}
 
+	/// @returns The byte at @c address in the user memory map, whether ROM or RAM.
 	uint8_t hostfs_user_read(const uint16_t address) override {
-		return user_ram(address);
+		const auto page = user_page(address);
+
+		const auto ram = ram_segment(page);
+		if(ram) return ram[address & 0x3fff];
+
+		const auto rom = rom_segment(page);
+		if(rom) return rom[address & 0x3fff];
+
+		return 0xff;
 	}
 
+	/// Writes a byte to an address in the user memory map, if it's RAM. Otherwise acts as a no-op.
 	void hostfs_user_write(const uint16_t address, const uint8_t value) override {
-		user_ram(address) = value;
+		const auto ram = user_ram(user_page(address), address);
+		if(ram) *ram = value;
 	}
 
+	/// Searches @c host_fs_rom_ for high-level hooks and records those addresses into @c host_fs_traps_ with the assumption that the rom will
+	/// be paged at 0xc000. Then covers up the hook with NOPs other than the first byte, which captures the hook code.
 	void find_host_fs_hooks() {
 		static constexpr uint8_t syscall[] = {
 			0xed, 0xfe, 0xfe

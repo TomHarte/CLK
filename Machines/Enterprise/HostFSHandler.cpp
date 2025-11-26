@@ -238,6 +238,7 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 
 void HostFSHandler::set_file_bundle(std::shared_ptr<Storage::FileBundle::FileBundle> bundle) {
 	bundle_ = bundle;
+	bundle_->set_case_insensitive(true);
 }
 
 std::vector<uint8_t> HostFSHandler::rom() {
