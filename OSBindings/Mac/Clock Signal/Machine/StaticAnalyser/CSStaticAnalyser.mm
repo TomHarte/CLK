@@ -35,57 +35,43 @@
 namespace {
 
 struct PermissionDelegate: public Storage::FileBundle::FileBundle::PermissionDelegate {
-	void validate_open(Storage::FileBundle::FileBundle &bundle, const std::string &path, Storage::FileMode) {
+	void validate_open(Storage::FileBundle::FileBundle &bundle, const std::string &path, const Storage::FileMode mode) {
 		NSData *bookmarkData;
 		NSString *stringPath = [NSString stringWithUTF8String:path.c_str()];
 		NSURL *url = [NSURL fileURLWithPath:stringPath isDirectory:NO];
+
+		// Check for and possibly apply an existing bookmark.
 		NSString *bookmarkKey = [[url URLByDeletingLastPathComponent] absoluteString];
-
-		while(true) {
-			// If the file exists can already be read, no further action required.
-			// That is, given that the macOS sandbox doesn't differentiate read/write access once permission is granted.
-			NSError *error;
-			NSFileHandle *file = [NSFileHandle fileHandleForReadingFromURL:url error:&error];
-			if(file) {
-				return;
-			}
-
-			// TODO: if that file doesn't exist... try anything?
-
-			// Was failure to open due to permissions?
-			if(
-				error.domain != NSCocoaErrorDomain ||
-				(
-					// These are all the permission-related errors defined in NSCocoaErrorDomain.
-					error.code != NSFileReadNoPermissionError &&
-					error.code != NSFileWriteNoPermissionError &&
-					error.code != NSCloudSharingNoPermissionError
-				)
-			) {
-				return;
-			}
-
-			// Was a bookmark already tried?
-			if(bookmarkData) {
-				break;
-			}
-
-			// Check for an existing bookmark.
-			bookmarkData = [[NSUserDefaults standardUserDefaults] objectForKey:bookmarkKey];
-			if(bookmarkData) {
-				NSURL *accessURL =
-					[NSURL
-						URLByResolvingBookmarkData:bookmarkData
-						options:NSURLBookmarkResolutionWithSecurityScope | NSURLBookmarkResolutionWithoutUI
-						relativeToURL:nil
-						bookmarkDataIsStale:nil
-						error:nil];
-				[accessURL startAccessingSecurityScopedResource];
-			} else {
-				break;
-			}
+		bookmarkData = [[NSUserDefaults standardUserDefaults] objectForKey:bookmarkKey];
+		if(bookmarkData) {
+			NSURL *accessURL =
+				[NSURL
+					URLByResolvingBookmarkData:bookmarkData
+					options:NSURLBookmarkResolutionWithSecurityScope | NSURLBookmarkResolutionWithoutUI
+					relativeToURL:nil
+					bookmarkDataIsStale:nil
+					error:nil];
+			[accessURL startAccessingSecurityScopedResource];
 		}
 
+		// If the file exists can now be accessed, no further action required.
+		NSFileHandle *file = [&]() {
+			switch(mode) {
+				case Storage::FileMode::ReadWrite:	{
+					NSFileHandle *updating = [NSFileHandle fileHandleForUpdatingURL:url error:nil];
+					if(updating) return updating;
+					[[fallthrough]];
+				}
+				default:
+				case Storage::FileMode::Read:		return [NSFileHandle fileHandleForReadingFromURL:url error:nil];
+				case Storage::FileMode::Rewrite:	return [NSFileHandle fileHandleForWritingToURL:url error:nil];
+			}
+		}();
+		if(file) {
+			return;
+		}
+
+		// Failing that, ask the user for permission and keep the bookmark.
 		__block NSURL *selectedURL;
 
 		// Ask the user for permission.
@@ -136,6 +122,7 @@ struct PermissionDelegate: public Storage::FileBundle::FileBundle::PermissionDel
 				error:&error]
 			forKey:bookmarkKey];
 	}
+
 	void validate_erase(Storage::FileBundle::FileBundle &, const std::string &) {
 		// Currently a no-op, as it so happens that the only machine that currently
 		// uses a file bundle is the Enterprise, and its semantics involve opening
