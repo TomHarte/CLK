@@ -158,9 +158,3 @@ This emulator attempts cycle-accurate emulation of all supported machines. In so
 
 ![macOS Version](READMEImages/MultipleSystems.png)
 ![Qt Version](READMEImages/MultipleSystems-Ubuntu.png)
-
-## Sponsorship
-
-I've been asked several times whether it is possible to sponsor this project; I think that's a poor fit for this emulator's highly-malleable scope, and it makes me uncomfortable because as the author I primarily see only its defects.
-
-An Amazon US wishlist is now attached in the hope of avoiding the question in future. A lot of it is old books now available only secondhand — I like to read about potential future additions well in advance of starting on them. Despite the optimism of some book sellers, please don't purchase anything that is currently listed only at an absurd price; they were sorted by secondhand price when added to the list, with the cheapest being $5.
