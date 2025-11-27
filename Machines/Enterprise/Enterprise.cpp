@@ -28,6 +28,15 @@
 
 namespace {
 using Logger = Log::Logger<Log::Source::Enterprise>;
+
+static constexpr size_t ram_size(const Analyser::Static::Enterprise::Target::Model model) {
+	switch(model) {
+		case Analyser::Static::Enterprise::Target::Model::Enterprise64:		return 64 * 1024;
+		default:
+		case Analyser::Static::Enterprise::Target::Model::Enterprise128:	return 128 * 1024;
+		case Analyser::Static::Enterprise::Target::Model::Enterprise256:	return 256 * 1024;
+	}
+}
 }
 
 namespace Enterprise {
@@ -71,7 +80,11 @@ namespace Enterprise {
 
 */
 
-template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
+template <
+	Analyser::Static::Enterprise::Target::Model model,
+	bool has_disk_controller,
+	bool is_6mhz
+> class ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
 	public CPU::Z80::BusHandler,
@@ -84,17 +97,6 @@ template <bool has_disk_controller, bool is_6mhz> class ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public Utility::TypeRecipient<CharacterMapper> {
 private:
-	constexpr uint8_t min_ram_slot(const Analyser::Static::Enterprise::Target &target) {
-		const auto ram_size = [&] {
-			switch(target.model) {
-				case Analyser::Static::Enterprise::Target::Model::Enterprise64:		return 64*1024;
-				default:
-				case Analyser::Static::Enterprise::Target::Model::Enterprise128:	return 128*1024;
-				case Analyser::Static::Enterprise::Target::Model::Enterprise256:	return 256*1024;
-			}
-		}();
-		return uint8_t(0x100 - ram_size / 0x4000);
-	}
 
 	static constexpr double clock_rate = is_6mhz ? 6'000'000.0 : 4'000'000.0;
 	using NickType =
@@ -104,7 +106,6 @@ private:
 
 public:
 	ConcreteMachine(const Analyser::Static::Enterprise::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-		min_ram_slot_(min_ram_slot(target)),
 		z80_(*this),
 		nick_(ram_.end() - 65536),
 		dave_audio_(audio_queue_),
@@ -616,21 +617,18 @@ public:
 private:
 	// MARK: - Memory layout
 
-	std::array<uint8_t, 256 * 1024> ram_{};
+	std::array<uint8_t, ram_size(model)> ram_{};
 	std::array<uint8_t, 64 * 1024> exos_;
 	std::array<uint8_t, 16 * 1024> basic_;
 	std::array<uint8_t, 16 * 1024> exdos_rom_;
 	std::array<uint8_t, 32 * 1024> epdos_rom_;
 	std::array<uint8_t, 16 * 1024> host_fs_rom_;
-	const uint8_t min_ram_slot_;
+	static constexpr auto MinRAMSlot = uint8_t(0x100 - (ram_size(model) >> 14));
 
 	/// @returns A pointer to the start of the RAM segment representing @c page if any; otherwise @c nullptr.
 	uint8_t *ram_segment(const uint8_t page) {
-		if(page < min_ram_slot_) return nullptr;
-		const auto ram_floor = (0x100 << 14) - ram_.size();
-			// Each segment is 2^14 bytes long and there are 256 of them. So the Enterprise has a 22-bit address space.
-			// RAM is at the end of that range; `ram_floor` is the 22-bit address at which RAM starts.
-		return &ram_[size_t((page << 14)) - ram_floor];
+		if(page < MinRAMSlot) return nullptr;
+		return &ram_[(page - MinRAMSlot) << 14];
 	}
 
 	struct ROMPage {
@@ -698,13 +696,9 @@ private:
 			return;
 		}
 
-		// Of whatever size of RAM I've declared above, use only the final portion.
-		// This correlated with Nick always having been handed the final 64kb and,
-		// at least while the RAM is the first thing declared above, does a little
-		// to benefit data locality. Albeit not in a useful sense.
-		if(offset >= min_ram_slot_) {
+		auto pointer = ram_segment(offset);
+		if(pointer) {
 			is_video_[slot] = offset >= 0xfc;	// TODO: this hard-codes a 64kb video assumption.
-			auto pointer = ram_segment(offset);
 			apply(pointer, pointer);
 			return;
 		}
@@ -950,15 +944,35 @@ using namespace Enterprise;
 
 namespace {
 
+template <bool has_disk_controller, bool is_6mhz>
+std::unique_ptr<Machine> machine(
+	const Analyser::Static::Enterprise::Target &target,
+	const ROMMachine::ROMFetcher &rom_fetcher
+) {
+	switch(target.model) {
+		using enum Analyser::Static::Enterprise::Target::Model;
+
+		case Enterprise64:
+			return std::make_unique<Enterprise::ConcreteMachine<Enterprise64, has_disk_controller, true>>
+				(target, rom_fetcher);
+		case Enterprise128:
+			return std::make_unique<Enterprise::ConcreteMachine<Enterprise128, has_disk_controller, true>>
+				(target, rom_fetcher);
+		case Enterprise256:
+			return std::make_unique<Enterprise::ConcreteMachine<Enterprise256, has_disk_controller, true>>
+				(target, rom_fetcher);
+	}
+}
+
 template <bool has_disk_controller>
 std::unique_ptr<Machine> machine(
 	const Analyser::Static::Enterprise::Target &target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	if(target.speed == Analyser::Static::Enterprise::Target::Speed::SixMHz) {
-		return std::make_unique<Enterprise::ConcreteMachine<has_disk_controller, true>>(target, rom_fetcher);
+		return machine<has_disk_controller, true>(target, rom_fetcher);
 	} else {
-		return std::make_unique<Enterprise::ConcreteMachine<has_disk_controller, false>>(target, rom_fetcher);
+		return machine<has_disk_controller, false>(target, rom_fetcher);
 	}
 }
 
