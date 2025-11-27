@@ -952,6 +952,8 @@ std::unique_ptr<Machine> machine(
 	switch(target.model) {
 		using enum Analyser::Static::Enterprise::Target::Model;
 
+		default: __builtin_unreachable();
+
 		case Enterprise64:
 			return std::make_unique<Enterprise::ConcreteMachine<Enterprise64, has_disk_controller, true>>
 				(target, rom_fetcher);
