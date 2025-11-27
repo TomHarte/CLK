@@ -10,6 +10,8 @@
 
 #include "Sizes.hpp"
 
+#include <concepts>
+
 namespace Numeric {
 
 /*!
@@ -21,42 +23,44 @@ struct SizedInt {
 	using IntT = MinIntForValue<1 << bits>::type;
 	inline static constexpr IntT Mask = (1 << bits) - 1;
 
-	constexpr SizedInt(const IntT start_value) noexcept : counter_(start_value & Mask) {}
+	template <std::integral ConstructionT>
+	constexpr SizedInt(const ConstructionT start_value) noexcept : value_(IntT(start_value & Mask)) {}
+
 	SizedInt() = default;
 
 	template <int begin = 0>
 	IntT get() const {
-		return counter_ >> begin;
+		return value_ >> begin;
 	}
 
-	SizedInt operator +(const SizedInt offset) const {	return SizedInt<bits>(counter_ + offset.counter_); }
-	SizedInt operator -(const SizedInt offset) const {	return SizedInt<bits>(counter_ - offset.counter_); }
-	SizedInt operator &(const SizedInt offset) const {	return SizedInt<bits>(counter_ & offset.counter_); }
-	SizedInt operator |(const SizedInt offset) const {	return SizedInt<bits>(counter_ | offset.counter_); }
-	SizedInt operator ^(const SizedInt offset) const {	return SizedInt<bits>(counter_ ^ offset.counter_); }
-	SizedInt operator >>(const int shift) const {	return SizedInt<bits>(counter_ >> shift);	}
-	SizedInt operator <<(const int shift) const {	return SizedInt<bits>(counter_ << shift);	}
+	SizedInt operator +(const SizedInt offset) const {	return SizedInt<bits>(value_ + offset.value_); }
+	SizedInt operator -(const SizedInt offset) const {	return SizedInt<bits>(value_ - offset.value_); }
+	SizedInt operator &(const SizedInt offset) const {	return SizedInt<bits>(value_ & offset.value_); }
+	SizedInt operator |(const SizedInt offset) const {	return SizedInt<bits>(value_ | offset.value_); }
+	SizedInt operator ^(const SizedInt offset) const {	return SizedInt<bits>(value_ ^ offset.value_); }
+	SizedInt operator >>(const int shift) const {	return SizedInt<bits>(value_ >> shift);	}
+	SizedInt operator <<(const int shift) const {	return SizedInt<bits>(value_ << shift);	}
 
 	SizedInt &operator &=(const SizedInt offset) {
-		counter_ &= offset.counter_;
+		value_ &= offset.value_;
 		return *this;
 	}
 	SizedInt &operator |=(const SizedInt offset) {
-		counter_ |= offset.counter_;
+		value_ |= offset.value_;
 		return *this;
 	}
 	SizedInt &operator ^=(const SizedInt offset) {
-		counter_ ^= offset.counter_;
+		value_ ^= offset.value_;
 		return *this;
 	}
 
 	SizedInt &operator <<=(const int shift) {
-		counter_ = (counter_ << shift) & Mask;
+		value_ = (value_ << shift) & Mask;
 		return *this;
 	}
 
 	SizedInt &operator >>=(const int shift) {
-		counter_ >>= shift;
+		value_ >>= shift;
 		return *this;
 	}
 
@@ -66,17 +70,17 @@ struct SizedInt {
 	}
 
 	SizedInt &operator ++() {
-		counter_ = (counter_ + 1) & Mask;
+		value_ = (value_ + 1) & Mask;
 		return *this;
 	}
 
 	SizedInt &operator +=(const IntT rhs) {
-		counter_ = (counter_ + rhs) & Mask;
+		value_ = (value_ + rhs) & Mask;
 		return *this;
 	}
 
 	bool operator!() const {
-		return !counter_;
+		return !value_;
 	}
 
 	auto operator <=>(const SizedInt &) const = default;
@@ -85,8 +89,8 @@ struct SizedInt {
 	template <int begin, int end>
 	void load(const MinIntForValue<1 << (end - begin)>::type value) {
 		const auto mask = (1 << end) - (1 << begin);
-		counter_ &= ~mask;
-		counter_ |= IntT((value << begin) & mask);
+		value_ &= ~mask;
+		value_ |= IntT((value << begin) & mask);
 	}
 
 	template <int begin, typename IntT>
@@ -97,11 +101,11 @@ struct SizedInt {
 	template <int index>
 	requires (index < bits)
 	bool bit() const {
-		return counter_ & (1 << index);
+		return value_ & (1 << index);
 	}
 
 private:
-	IntT counter_{};
+	IntT value_{};
 };
 
 }
