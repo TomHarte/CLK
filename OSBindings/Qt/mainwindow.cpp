@@ -919,7 +919,8 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 			if(!keyboardMachine) return true;
 
 			auto &keyboard = keyboardMachine->get_keyboard();
-			keyboard.set_key_pressed(*key, event->text().size() ? event->text()[0].toLatin1() : '\0', isPressed, event->isAutoRepeat());
+			const auto text = event->text();
+			keyboard.set_key_pressed(*key, event->text().size() ? text[0].toLatin1() : '\0', isPressed, event->isAutoRepeat());
 			if(keyboard.is_exclusive() || keyboard.observed_keys().find(*key) != keyboard.observed_keys().end()) {
 				return false;
 			}
@@ -945,7 +946,8 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 					case Key::F:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 3), isPressed);	break;
 					default:
 						if(event->text().size()) {
-							joysticks[0]->set_input(Inputs::Joystick::Input(event->text()[0].toLatin1()), isPressed);
+							const auto text = event->text();
+							joysticks[0]->set_input(Inputs::Joystick::Input(text[0].toLatin1()), isPressed);
 						} else {
 							joysticks[0]->set_input(Inputs::Joystick::Input::Fire, isPressed);
 						}
