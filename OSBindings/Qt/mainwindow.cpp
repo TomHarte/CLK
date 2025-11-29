@@ -513,19 +513,17 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 	QAction *rgbAction = nullptr;
 
 	// Add all requested actions.
-#define Add(name, action)								\
-	if(!name.empty()) {									\
-		action = new QAction(tr(name.c_str()), this);	\
-		action->setCheckable(true);						\
-		displayMenu->addAction(action);					\
-	}
-
-	Add(compositeColour, compositeColourAction);
-	Add(compositeMono, compositeMonochromeAction);
-	Add(svideo, sVideoAction);
-	Add(rgb, rgbAction);
-
-#undef Add
+	const auto add = [&](const std::string &name, QAction *(&action)) {
+		if(!name.empty()) {
+			action = new QAction(tr(name.c_str()), this);
+			action->setCheckable(true);
+			displayMenu->addAction(action);
+		}
+	};
+	add(compositeColour, compositeColourAction);
+	add(compositeMono, compositeMonochromeAction);
+	add(svideo, sVideoAction);
+	add(rgb, rgbAction);
 
 	// Get the machine's default setting.
 	auto options = machine->configurable_device()->get_options();
@@ -583,38 +581,37 @@ void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *m
 	auto options = machine->configurable_device()->get_options();
 	Settings settings;
 
-#define Add(offered, text, setting, action)															\
-	if(offered) {																					\
-		action = new QAction(tr(text), this);														\
-		action->setCheckable(true);																	\
-		menu->addAction(action);																	\
-																									\
-		const auto settingName = QString::fromStdString(machinePrefix + "." + setting);				\
-		if(settings.contains(settingName)) {														\
-			const bool isSelected = settings.value(settingName).toBool();							\
-			Reflection::set(*options, setting, isSelected);											\
-		}																							\
-		action->setChecked(Reflection::get<bool>(*options, setting) ? Qt::Checked : Qt::Unchecked);	\
-																									\
-		connect(action, &QAction::triggered, this, [=, this] {										\
-			std::lock_guard lock_guard(machineMutex);												\
-			auto options = machine->configurable_device()->get_options();							\
-			Reflection::set(*options, setting, action->isChecked());								\
-			machine->configurable_device()->set_options(options);									\
-																									\
-			Settings settings;																		\
-			settings.setValue(settingName, action->isChecked());									\
-		});																							\
-	}
+	const auto add = [&](const bool offered, const char *text, const char *setting, QAction *(&action)) {
+		if(offered) {
+			action = new QAction(tr(text), this);
+			action->setCheckable(true);
+			menu->addAction(action);
+
+			const auto settingName = QString::fromStdString(machinePrefix + "." + setting);
+			if(settings.contains(settingName)) {
+				const bool isSelected = settings.value(settingName).toBool();
+				Reflection::set(*options, setting, isSelected);
+			}
+			action->setChecked(Reflection::get<bool>(*options, setting) ? Qt::Checked : Qt::Unchecked);
+
+			connect(action, &QAction::triggered, this, [=, this] {
+				std::lock_guard lock_guard(machineMutex);
+				auto options = machine->configurable_device()->get_options();
+				Reflection::set(*options, setting, action->isChecked());
+				machine->configurable_device()->set_options(options);
+
+				Settings settings;
+				settings.setValue(settingName, action->isChecked());
+			});
+		}
+	};
 
 	QAction *action;
-	Add(offerQuickLoad, "Load Quickly", "quickload", action);
-	Add(offerQuickBoot, "Start Quickly", "quickboot", action);
+	add(offerQuickLoad, "Load Quickly", "quickload", action);
+	add(offerQuickBoot, "Start Quickly", "quickboot", action);
 
 	if(offerAutomaticTapeControl) menu->addSeparator();
-	Add(offerAutomaticTapeControl, "Start and Stop Tape Automatically", "automatic_tape_motor_control", automaticTapeControlAction);
-
-#undef Add
+	add(offerAutomaticTapeControl, "Start and Stop Tape Automatically", "automatic_tape_motor_control", automaticTapeControlAction);
 
 	machine->configurable_device()->set_options(options);
 }
