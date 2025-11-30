@@ -130,7 +130,6 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: '6.8'
-        archives: qtbase
         modules: 'qtmultimedia qtx11extras icu'
     - name: Make
       working-directory: OSBindings/Qt
