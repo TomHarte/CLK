@@ -135,6 +135,6 @@ jobs:
       working-directory: OSBindings/Qt
       shell: bash
       run: |
-        aqt list-qt linux desktop --modules 6.8.3 linux
+        aqt list-qt linux desktop --modules 6.8.3 linux desktop
         qmake -o Makefile clksignal.pro
         make
