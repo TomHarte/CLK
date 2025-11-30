@@ -135,5 +135,6 @@ jobs:
       working-directory: OSBindings/Qt
       shell: bash
       run: |
+        sudo apt-get install icu
         qmake -o Makefile clksignal.pro
         make
