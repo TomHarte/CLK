@@ -130,10 +130,11 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: '6.8'
-        modules: 'qtmultimedia qtx11extras icu'
+        modules: 'qtmultimedia' # qtx11extras icu'
     - name: Make
       working-directory: OSBindings/Qt
       shell: bash
       run: |
+        aqt list-qt linux desktop --modules 6.8.3
         qmake -o Makefile clksignal.pro
         make
