@@ -20,7 +20,7 @@
 
 namespace {
 
-std::unique_ptr<std::vector<uint8_t>> fileContentsAndClose(FILE *file) {
+std::unique_ptr<std::vector<uint8_t>> fileContentsAndClose(FILE *const file) {
 	auto data = std::make_unique<std::vector<uint8_t>>();
 
 	fseek(file, 0, SEEK_END);
@@ -46,7 +46,7 @@ std::unique_ptr<std::vector<uint8_t>> fileContentsAndClose(FILE *file) {
 		affect the window, so isn't useful for this project). Therefore the emulation window resizes freely.
 */
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+MainWindow::MainWindow(QWidget *const parent) : QMainWindow(parent) {
 	init();
 	setUIPhase(UIPhase::SelectingMachine);
 }
@@ -97,7 +97,7 @@ MainWindow::~MainWindow() {
 	storeSelections();
 }
 
-void MainWindow::closeEvent(QCloseEvent *event) {
+void MainWindow::closeEvent(QCloseEvent *const event) {
 	// SDI behaviour, which may or may not be normal (?): if the user is closing a
 	// final window, and it is anywher ebeyond the machine picker, send them back
 	// to the start. i.e. assume they were closing that document, not the application.
@@ -202,7 +202,7 @@ void MainWindow::addHelpMenu() {
 	});
 }
 
-QString MainWindow::getFilename(const char *title) {
+QString MainWindow::getFilename(const char *const title) {
 	Settings settings;
 
 	// Use the Settings to get a default open path; write it back afterwards.
@@ -238,7 +238,7 @@ bool MainWindow::launchFile(const QString &fileName) {
 	}
 }
 
-void MainWindow::tile(const QMainWindow *previous) {
+void MainWindow::tile(const QMainWindow *const previous) {
 	// This entire function is essentially verbatim from the Qt SDI example.
 	if (!previous)
 		return;
@@ -572,12 +572,12 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 	}
 }
 
-void MainWindow::addEnhancementsMenu(const std::string &machinePrefix, bool offerQuickLoad, bool offerQuickBoot) {
+void MainWindow::addEnhancementsMenu(const std::string &machinePrefix, const bool offerQuickLoad, const bool offerQuickBoot) {
 	enhancementsMenu = menuBar()->addMenu(tr("&Enhancements"));
 	addEnhancementsItems(machinePrefix, enhancementsMenu, offerQuickLoad, offerQuickBoot, false);
 }
 
-void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *menu, bool offerQuickLoad, bool offerQuickBoot, bool offerAutomaticTapeControl) {
+void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *const menu, const bool offerQuickLoad, const bool offerQuickBoot, const bool offerAutomaticTapeControl) {
 	auto options = machine->configurable_device()->get_options();
 	Settings settings;
 
@@ -697,7 +697,7 @@ void MainWindow::addAtari2600Menu() {
 	});
 }
 
-void MainWindow::toggleAtari2600Switch(Atari2600Switch toggleSwitch) {
+void MainWindow::toggleAtari2600Switch(const Atari2600Switch toggleSwitch) {
 	std::lock_guard lock_guard(machineMutex);
 	const auto atari2600 = static_cast<Atari2600::Machine *>(machine->raw_pointer());
 
@@ -733,7 +733,7 @@ void MainWindow::addAppleIIMenu() {
 	setAppleIISquarePixels(useSquarePixels);
 }
 
-void MainWindow::setAppleIISquarePixels(bool squarePixels) {
+void MainWindow::setAppleIISquarePixels(const bool squarePixels) {
 	Configurable::Device *const configurable = machine->configurable_device();
 	auto options = configurable->get_options();
 	auto appleii_options = static_cast<Apple::II::Machine::Options *>(options.get());
@@ -746,13 +746,13 @@ void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker &, const
 	audioBuffer.write(buffer);
 }
 
-void MainWindow::dragEnterEvent(QDragEnterEvent* event) {
+void MainWindow::dragEnterEvent(QDragEnterEvent *const event) {
 	// Always accept dragged files.
 	if(event->mimeData()->hasUrls())
 		event->accept();
 }
 
-void MainWindow::dropEvent(QDropEvent* event) {
+void MainWindow::dropEvent(QDropEvent *const event) {
 	if(!event->mimeData()->hasUrls()) {
 		return;
 	}
@@ -826,7 +826,7 @@ void MainWindow::dropEvent(QDropEvent* event) {
 	}
 }
 
-void MainWindow::setUIPhase(UIPhase phase) {
+void MainWindow::setUIPhase(const UIPhase phase) {
 	uiPhase = phase;
 
 	// The volume slider is never visible by default; a running machine
@@ -883,7 +883,7 @@ void MainWindow::setWindowTitle() {
 
 // MARK: - Event Processing
 
-void MainWindow::changeEvent(QEvent *event) {
+void MainWindow::changeEvent(QEvent *const event) {
 	// Clear current key state upon any window activation change.
 	if(machine && event->type() == QEvent::ActivationChange) {
 		const auto keyboardMachine = machine->keyboard_machine();
@@ -896,15 +896,15 @@ void MainWindow::changeEvent(QEvent *event) {
 	event->ignore();
 }
 
-void MainWindow::keyPressEvent(QKeyEvent *event) {
+void MainWindow::keyPressEvent(QKeyEvent *const event) {
 	processEvent(event);
 }
 
-void MainWindow::keyReleaseEvent(QKeyEvent *event) {
+void MainWindow::keyReleaseEvent(QKeyEvent *const event) {
 	processEvent(event);
 }
 
-bool MainWindow::processEvent(QKeyEvent *event) {
+bool MainWindow::processEvent(QKeyEvent *const event) {
 	if(!machine) return true;
 
 	const auto key = keyMapper.keyForEvent(event);
@@ -960,12 +960,12 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 	return false;
 }
 
-void MainWindow::setMouseIsCaptured(bool isCaptured) {
+void MainWindow::setMouseIsCaptured(const bool isCaptured) {
 	mouseIsCaptured = isCaptured;
 	setWindowTitle();
 }
 
-void MainWindow::moveMouse(QPoint vector) {
+void MainWindow::moveMouse(const QPoint vector) {
 	std::unique_lock lock(machineMutex);
 	auto mouseMachine = machine->mouse_machine();
 	if(!mouseMachine) return;
@@ -973,7 +973,7 @@ void MainWindow::moveMouse(QPoint vector) {
 	mouseMachine->get_mouse().move(vector.x(), vector.y());
 }
 
-void MainWindow::setButtonPressed(int index, bool isPressed) {
+void MainWindow::setButtonPressed(const int index, const bool isPressed) {
 	std::unique_lock lock(machineMutex);
 	auto mouseMachine = machine->mouse_machine();
 	if(!mouseMachine) return;
@@ -1434,7 +1434,7 @@ void MainWindow::register_led(const std::string &name, uint8_t) {
 	QMetaObject::invokeMethod(this, "updateStatusBarText");
 }
 
-void MainWindow::set_led_status(const std::string &name, bool isLit) {
+void MainWindow::set_led_status(const std::string &name, const bool isLit) {
 	std::lock_guard guard(ledStatusesLock);
 	ledStatuses[name] = isLit;
 	QMetaObject::invokeMethod(this, "updateStatusBarText");
