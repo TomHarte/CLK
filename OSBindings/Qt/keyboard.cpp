@@ -126,6 +126,8 @@ KeyboardMapper::KeyboardMapper() {
 	if (auto *const x11Application = qGuiApp->nativeInterface<QNativeInterface::QX11Application>()) {
 		is_x11_ = true;
 		const auto display = x11Application->display();
+
+		const DesiredMapping *mapping = mappings;
 		while(mapping->source != 0) {
 			const auto code = XKeysymToKeycode(display, mapping->source);
 			keyByKeySym[code] = mapping->destination;
