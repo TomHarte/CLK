@@ -14,8 +14,8 @@ LIBS += -lz
 
 # If targetting X11, link against that.
 linux {
-	QT += x11extras
-	LIBS += -lX11
+#	QT += x11extras
+#	LIBS += -lX11
 }
 
 # Add flags (i) to identify that this is a Qt build; and

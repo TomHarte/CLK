@@ -124,12 +124,14 @@ KeyboardMapper::KeyboardMapper() {
 	//	(2)	from there, use any of the X11 KeySyms I'd expect to be achievable from each physical key to
 	//		look up the X11 KeyCode;
 	//	(3)	henceforth, map from X11 KeyCode to the Inputs::Keyboard::Key.
-	const DesiredMapping *mapping = mappings;
-	while(mapping->source != 0) {
-		const auto code = XKeysymToKeycode(QX11Info::display(), mapping->source);
-		keyByKeySym[code] = mapping->destination;
-		++mapping;
-	}
+
+	// TODO:  reenable below. Cf. https://doc.qt.io/qt-6/extras-changes-qt6.html on the removal of QX11Info::display()
+	// const DesiredMapping *mapping = mappings;
+	// while(mapping->source != 0) {
+	// 	const auto code = XKeysymToKeycode(QX11Info::display(), mapping->source);
+	// 	keyByKeySym[code] = mapping->destination;
+	// 	++mapping;
+	// }
 #endif
 }
 
