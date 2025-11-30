@@ -131,10 +131,10 @@ jobs:
       with:
         version: '6.8'
         archives: qtbase
+        install-deps: 'true'
     - name: Make
       working-directory: OSBindings/Qt
       shell: bash
       run: |
-        sudo apt-get install libicu
         qmake -o Makefile clksignal.pro
         make
