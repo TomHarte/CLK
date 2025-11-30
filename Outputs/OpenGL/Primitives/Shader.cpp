@@ -14,7 +14,9 @@
 using namespace Outputs::Display::OpenGL;
 
 namespace {
+#ifndef TARGET_QT
 thread_local const Shader *bound_shader = nullptr;
+#endif
 using Logger = Log::Logger<Log::Source::OpenGL>;
 }
 
@@ -106,20 +108,30 @@ void Shader::init(const std::string &vertex_shader, const std::string &fragment_
 }
 
 Shader::~Shader() {
+#ifndef TARGET_QT
 	if(bound_shader == this) Shader::unbind();
+#endif
 	glDeleteProgram(shader_program_);
 }
 
 void Shader::bind() const {
+#ifndef TARGET_QT
+	// Qt workaround: it's doing something to interfere with the currently-bound program.
+	// So assume that the driver has a check similar to the below.
 	if(bound_shader != this) {
 		test_gl(glUseProgram, shader_program_);
 		bound_shader = this;
 	}
+#else
+	test_gl(glUseProgram, shader_program_);
+#endif
 	flush_functions();
 }
 
 void Shader::unbind() {
+#ifndef TARGET_QT
 	bound_shader = nullptr;
+#endif
 	test_gl(glUseProgram, 0);
 }
 
@@ -128,7 +140,9 @@ GLint Shader::get_attrib_location(const std::string &name) const {
 }
 
 GLint Shader::get_uniform_location(const std::string &name) const {
-	return glGetUniformLocation(shader_program_, name.c_str());
+	const auto location = glGetUniformLocation(shader_program_, name.c_str());
+	test_gl_error();
+	return location;
 }
 
 void Shader::enable_vertex_attribute_with_pointer(const std::string &name, GLint size, GLenum type, GLboolean normalised, GLsizei stride, const GLvoid *pointer, GLuint divisor) {
@@ -293,8 +307,9 @@ void Shader::enqueue_function(std::function<void(void)> function) {
 
 void Shader::flush_functions() const {
 	std::lock_guard function_guard(function_mutex_);
-	for(std::function<void(void)> function : enqueued_functions_) {
+	for(std::function<void(void)> &function : enqueued_functions_) {
 		function();
+		test_gl_error();
 	}
 	enqueued_functions_.clear();
 }

@@ -1,7 +1,6 @@
-QT += core gui multimedia widgets
-greaterThan(5, QT_MAJOR_VERSION) QT += openglwidgets
+QT += core gui multimedia widgets openglwidgets
 
-# Be specific about C++17 but also try the vaguer C++1z for older
+# Be specific about C++20 but also try the vaguer C++2a for older
 # versions of Qt.
 CONFIG += c++20
 CONFIG += c++2a
