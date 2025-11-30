@@ -12,4 +12,5 @@ class KeyboardMapper {
 
 	private:
 		std::map<quint32, Inputs::Keyboard::Key> keyByKeySym;
+		bool is_x11_ = false;
 };
