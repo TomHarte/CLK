@@ -592,7 +592,7 @@ void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *c
 				const bool isSelected = settings.value(settingName).toBool();
 				Reflection::set(*options, setting, isSelected);
 			}
-			action->setChecked(Reflection::get<bool>(*options, setting) ? Qt::Checked : Qt::Unchecked);
+			action->setChecked(Reflection::get<bool>(*options, setting));
 
 			connect(action, &QAction::triggered, this, [=, this] {
 				std::lock_guard lock_guard(machineMutex);

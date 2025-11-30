@@ -12,10 +12,10 @@ CONFIG += object_parallel_to_source
 INCLUDEPATH += $$[QT_INSTALL_PREFIX]/src/3rdparty/zlib
 LIBS += -lz
 
-# If targetting X11, link against that.
+# If targetting X11, link against X11 directly; this project avoid Qt's faulty
+# approach to keyboard handling where it can.
 linux {
-#	QT += x11extras
-#	LIBS += -lX11
+	LIBS += -lX11
 }
 
 # Add flags (i) to identify that this is a Qt build; and
