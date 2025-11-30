@@ -117,23 +117,23 @@ jobs:
         qmake -o Makefile clksignal.pro
         make
 
-#  build-qt6:
-#    name: Qt 6 / ${{ matrix.os }}
-#    strategy:
-#      matrix:
-#        os: [ubuntu-latest]
-#    runs-on: ${{ matrix.os }}
-#    steps:
-#    - name: Checkout
-#      uses: actions/checkout@v4
-#    - name: Install dependencies
-#      uses: jurplel/install-qt-action@v4
-#      with:
-#        version: '6.8'
-#        archives: qtbase
-#    - name: Make
-#      working-directory: OSBindings/Qt
-#      shell: bash
-#      run: |
-#        qmake -o Makefile clksignal.pro
-#        make
+  build-qt6:
+    name: Qt 6 / ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Install dependencies
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.8'
+        archives: qtbase
+    - name: Make
+      working-directory: OSBindings/Qt
+      shell: bash
+      run: |
+        qmake -o Makefile clksignal.pro
+        make
