@@ -557,13 +557,14 @@ int main(int argc, char *argv[]) {
 		}
 		std::cout << "}" << std::endl << std::endl;
 
-		std::cout << "Media is required to start the: ";
+		std::cout << "A file is required to start the ";
 		const auto other_machines = Machine::AllMachines(Machine::Type::RequiresMedia, true);
-		is_first = true;
+		size_t index = 0;
 		for(const auto &name: other_machines) {
-			if(!is_first) std::cout << ", ";
+			if(index == other_machines.size() - 1) std::cout << " and ";
+			else if(index > 0) std::cout << ", ";
 			std::cout << name;
-			is_first = false;
+			++index;
 		}
 		std::cout << "." << std::endl << std::endl;
 
