@@ -11,6 +11,7 @@
 #include <QTimer>
 
 #include "../../ClockReceiver/TimeTypes.hpp"
+#include "../../Outputs/OpenGL/Primitives/Shader.hpp"
 
 ScanTargetWidget::ScanTargetWidget(QWidget *parent) : QOpenGLWidget(parent) {}
 ScanTargetWidget::~ScanTargetWidget() {}
@@ -50,6 +51,10 @@ void ScanTargetWidget::paintGL() {
 	// a scan target in ::initializeGL did not work (and no other arrangement really works
 	// with regard to starting up).
 	if(isConnected || producer) {
+		// Qt-specific workaround. I can but speculate as to why, but the bound program does
+		// not necessarily survive between calls into paintGL.
+		Outputs::Display::OpenGL::Shader::unbind();
+
 		if(producer) {
 			isConnected = true;
 			framebuffer = defaultFramebufferObject();

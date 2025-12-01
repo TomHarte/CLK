@@ -14,9 +14,7 @@
 using namespace Outputs::Display::OpenGL;
 
 namespace {
-#ifndef TARGET_QT
 thread_local const Shader *bound_shader = nullptr;
-#endif
 using Logger = Log::Logger<Log::Source::OpenGL>;
 }
 
@@ -108,30 +106,20 @@ void Shader::init(const std::string &vertex_shader, const std::string &fragment_
 }
 
 Shader::~Shader() {
-#ifndef TARGET_QT
 	if(bound_shader == this) Shader::unbind();
-#endif
 	glDeleteProgram(shader_program_);
 }
 
 void Shader::bind() const {
-#ifndef TARGET_QT
-	// Qt workaround: it's doing something to interfere with the currently-bound program.
-	// So assume that the driver has a check similar to the below.
 	if(bound_shader != this) {
 		test_gl(glUseProgram, shader_program_);
 		bound_shader = this;
 	}
-#else
-	test_gl(glUseProgram, shader_program_);
-#endif
 	flush_functions();
 }
 
 void Shader::unbind() {
-#ifndef TARGET_QT
 	bound_shader = nullptr;
-#endif
 	test_gl(glUseProgram, 0);
 }
 
