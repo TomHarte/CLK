@@ -635,7 +635,7 @@ struct ActivityObserver: public Activity::Observer {
 
 		// Map to a string and check against returned options for the 'output' field.
 		const auto string_option = Reflection::Enum::to_string<Configurable::Display>(option);
-		const auto all_values = options->values_for("output");
+		const auto all_values = options->values_for(Configurable::Options::DisplayOptionName);
 
 		return std::find(all_values.begin(), all_values.end(), string_option) != all_values.end();
 	}
