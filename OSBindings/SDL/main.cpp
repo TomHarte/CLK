@@ -545,9 +545,12 @@ int main(int argc, char *argv[]) {
 	if(arguments.selections.find("help") != arguments.selections.end() || arguments.selections.find("h") != arguments.selections.end()) {
 		const auto all_machines = Machine::AllMachines(Machine::Type::DoesntRequireMedia, false);
 
-		std::cout << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl;
-		std::cout << "Use alt+enter to toggle full screen display. Use control+shift+V to paste text." << std::endl;
-		std::cout << "Required machine type **and all options** are determined from the file if specified; otherwise use:" << std::endl << std::endl;
+		std::cout << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl << std::endl;
+		std::cout <<
+			"Use alt+enter to toggle full screen display. Use control+shift+V to paste text." << std::endl << std::endl;
+		std::cout <<
+			"Required machine type and hardware options are determined from the file if specified; otherwise use:"
+				<< std::endl << std::endl;
 		std::cout << "\t--new={";
 		bool is_first = true;
 		for(const auto &name: all_machines) {
