@@ -17,6 +17,7 @@
 #include <cstdio>
 
 #include "../../Numeric/CRC.hpp"
+#include "../../Configurable/StandardOptions.hpp"
 
 namespace {
 
@@ -527,7 +528,7 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 
 	// Get the machine's default setting.
 	auto options = machine->configurable_device()->get_options();
-	auto defaultDisplay = Reflection::get<Configurable::Display>(*options, "output");
+	auto defaultDisplay = Reflection::get<Configurable::Display>(*options, Configurable::Options::DisplayOptionName);
 
 	// Check whether there's an alternative selection in the user settings. If so, apply it.
 	Settings settings;
@@ -536,7 +537,7 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 		auto userSelectedDisplay = Configurable::Display(settings.value(settingName).toInt());
 		if(userSelectedDisplay != defaultDisplay) {
 			defaultDisplay = userSelectedDisplay;
-			Reflection::set(*options, "output", int(userSelectedDisplay));
+			Reflection::set(*options, Configurable::Options::DisplayOptionName, int(userSelectedDisplay));
 			machine->configurable_device()->set_options(options);
 		}
 	}
@@ -566,7 +567,7 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 
 			std::lock_guard lock_guard(machineMutex);
 			auto options = machine->configurable_device()->get_options();
-			Reflection::set(*options, "output", int(displaySelection));
+			Reflection::set(*options, Configurable::Options::DisplayOptionName, int(displaySelection));
 			machine->configurable_device()->set_options(options);
 		});
 	}
@@ -607,8 +608,8 @@ void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *c
 	};
 
 	QAction *action;
-	add(offerQuickLoad, "Load Quickly", "quickload", action);
-	add(offerQuickBoot, "Start Quickly", "quickboot", action);
+	add(offerQuickLoad, "Load Quickly", Configurable::Options::QuickLoadOptionName, action);
+	add(offerQuickBoot, "Start Quickly", Configurable::Options::QuickBootOptionName, action);
 
 	if(offerAutomaticTapeControl) menu->addSeparator();
 	add(offerAutomaticTapeControl, "Start and Stop Tape Automatically", "automatic_tape_motor_control", automaticTapeControlAction);

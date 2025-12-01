@@ -27,6 +27,7 @@ ReflectableEnum(Display,
 
 namespace Options {
 
+static constexpr auto DisplayOptionName = "display";
 template <typename Owner> class Display {
 public:
 	Configurable::Display output;
@@ -34,11 +35,12 @@ public:
 
 protected:
 	void declare_display_option() {
-		static_cast<Owner *>(this)->declare(&output, "output");
+		static_cast<Owner *>(this)->declare(&output, DisplayOptionName);
 		AnnounceEnumNS(Configurable, Display);
 	}
 };
 
+static constexpr auto QuickLoadOptionName = "accelerate_media_loading";
 template <typename Owner> class QuickLoad {
 public:
 	bool quick_load;
@@ -46,10 +48,11 @@ public:
 
 protected:
 	void declare_quickload_option() {
-		static_cast<Owner *>(this)->declare(&quick_load, "quickload");
+		static_cast<Owner *>(this)->declare(&quick_load, QuickLoadOptionName);
 	}
 };
 
+static constexpr auto QuickBootOptionName = "shorten_machine_startup";
 template <typename Owner> class QuickBoot {
 public:
 	bool quick_boot;
@@ -57,10 +60,11 @@ public:
 
 protected:
 	void declare_quickboot_option() {
-		static_cast<Owner *>(this)->declare(&quick_boot, "quickboot");
+		static_cast<Owner *>(this)->declare(&quick_boot, QuickBootOptionName);
 	}
 };
 
+static constexpr auto DynamicCropOptionName = "select_visible_area_dynamically";
 template <typename Owner> class DynamicCrop {
 public:
 	bool dynamic_crop;
@@ -68,7 +72,7 @@ public:
 
 protected:
 	void declare_dynamic_crop_option() {
-		static_cast<Owner *>(this)->declare(&dynamic_crop, "dynamiccrop");
+		static_cast<Owner *>(this)->declare(&dynamic_crop, DynamicCropOptionName);
 	}
 };
 
