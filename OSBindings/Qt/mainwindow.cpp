@@ -17,6 +17,7 @@
 #include <cstdio>
 
 #include "../../Numeric/CRC.hpp"
+#include "../../Configurable/StandardOptions.hpp"
 
 namespace {
 
@@ -529,7 +530,7 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 
 	// Get the machine's default setting.
 	auto options = machine->configurable_device()->get_options();
-	auto defaultDisplay = Reflection::get<Configurable::Display>(*options, "output");
+	auto defaultDisplay = Reflection::get<Configurable::Display>(*options, Configurable::Options::DisplayOptionName);
 
 	// Check whether there's an alternative selection in the user settings. If so, apply it.
 	Settings settings;
@@ -538,7 +539,7 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 		auto userSelectedDisplay = Configurable::Display(settings.value(settingName).toInt());
 		if(userSelectedDisplay != defaultDisplay) {
 			defaultDisplay = userSelectedDisplay;
-			Reflection::set(*options, "output", int(userSelectedDisplay));
+			Reflection::set(*options, Configurable::Options::DisplayOptionName, int(userSelectedDisplay));
 			machine->configurable_device()->set_options(options);
 		}
 	}
@@ -568,7 +569,7 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 
 			std::lock_guard lock_guard(machineMutex);
 			auto options = machine->configurable_device()->get_options();
-			Reflection::set(*options, "output", int(displaySelection));
+			Reflection::set(*options, Configurable::Options::DisplayOptionName, int(displaySelection));
 			machine->configurable_device()->set_options(options);
 		});
 	}
@@ -590,7 +591,7 @@ void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *m
 		menu->addAction(action);																	\
 																									\
 		const auto settingName = QString::fromStdString(machinePrefix + "." + setting);				\
-		if(settings.contains(settingName)) {														\
+		if(settings.contains(settingName)) {															\
 			const bool isSelected = settings.value(settingName).toBool();							\
 			Reflection::set(*options, setting, isSelected);											\
 		}																							\
@@ -599,17 +600,17 @@ void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *m
 		connect(action, &QAction::triggered, this, [=, this] {										\
 			std::lock_guard lock_guard(machineMutex);												\
 			auto options = machine->configurable_device()->get_options();							\
-			Reflection::set(*options, setting, action->isChecked());								\
+			Reflection::set(*options, setting, action->isChecked());									\
 			machine->configurable_device()->set_options(options);									\
 																									\
 			Settings settings;																		\
-			settings.setValue(settingName, action->isChecked());									\
+			settings.setValue(settingName, action->isChecked());										\
 		});																							\
 	}
 
 	QAction *action;
-	Add(offerQuickLoad, "Load Quickly", "quickload", action);
-	Add(offerQuickBoot, "Start Quickly", "quickboot", action);
+	Add(offerQuickLoad, "Load Quickly", Configurable::Options::QuickLoadOptionName, action);
+	Add(offerQuickBoot, "Start Quickly", Configurable::Options::QuickBootOptionName, action);
 
 	if(offerAutomaticTapeControl) menu->addSeparator();
 	Add(offerAutomaticTapeControl, "Start and Stop Tape Automatically", "automatic_tape_motor_control", automaticTapeControlAction);

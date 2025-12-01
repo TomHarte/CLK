@@ -590,7 +590,7 @@ struct ActivityObserver: public Activity::Observer {
 		_useFastLoadingHack = useFastLoadingHack;
 
 		auto options = configurable_device->get_options();
-		Reflection::set(*options, "quickload", useFastLoadingHack ? true : false);
+		Reflection::set(*options, Configurable::Options::QuickLoadOptionName, useFastLoadingHack ? true : false);
 		configurable_device->set_options(options);
 	}
 }
@@ -611,7 +611,7 @@ struct ActivityObserver: public Activity::Observer {
 		}
 
 		auto options = configurable_device->get_options();
-		Reflection::set(*options, "output", int(display));
+		Reflection::set(*options, Configurable::Options::DisplayOptionName, int(display));
 		configurable_device->set_options(options);
 	}
 }
@@ -635,7 +635,7 @@ struct ActivityObserver: public Activity::Observer {
 
 		// Map to a string and check against returned options for the 'output' field.
 		const auto string_option = Reflection::Enum::to_string<Configurable::Display>(option);
-		const auto all_values = options->values_for("output");
+		const auto all_values = options->values_for(Configurable::Options::DisplayOptionName);
 
 		return std::find(all_values.begin(), all_values.end(), string_option) != all_values.end();
 	}
@@ -651,6 +651,7 @@ struct ActivityObserver: public Activity::Observer {
 		_useAutomaticTapeMotorControl = useAutomaticTapeMotorControl;
 
 		auto options = configurable_device->get_options();
+		// TODO: get name.
 		Reflection::set(*options, "automatic_tape_motor_control", useAutomaticTapeMotorControl ? true : false);
 		configurable_device->set_options(options);
 	}
@@ -664,7 +665,7 @@ struct ActivityObserver: public Activity::Observer {
 		_useQuickBootingHack = useQuickBootingHack;
 
 		auto options = configurable_device->get_options();
-		Reflection::set(*options, "quickboot", useQuickBootingHack ? true : false);
+		Reflection::set(*options, Configurable::Options::QuickBootOptionName, useQuickBootingHack ? true : false);
 		configurable_device->set_options(options);
 	}
 }
@@ -677,7 +678,7 @@ struct ActivityObserver: public Activity::Observer {
 		_useDynamicCropping = useDynamicCropping;
 
 		auto options = configurable_device->get_options();
-		Reflection::set(*options, "dynamiccrop", useDynamicCropping ? true : false);
+		Reflection::set(*options, Configurable::Options::DynamicCropOptionName, useDynamicCropping ? true : false);
 		configurable_device->set_options(options);
 	}
 
