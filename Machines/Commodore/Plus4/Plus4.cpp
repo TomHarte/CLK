@@ -298,7 +298,43 @@ public:
 		} else if(address < 0xfd00 || address >= 0xff40) {
 			static uint16_t ret_trap = 0x00;
 			static bool log = false;
-			const bool use_ret_trap = false;
+			static bool use_ret_trap = false;
+
+			struct State {
+				CPU::MOS6502Mk2::Registers registers;
+				uint8_t ram[65536];
+				uint8_t io[2];
+			};
+			static State ret_state;
+			static bool has_ret_state = false;
+
+
+			const auto set_compare_state = [&] {
+				// New state.
+				State state;
+				state.registers = m6502_.registers();
+				memcpy(state.ram, ram_, 65536);
+				state.io[0] = io_direction_;
+				state.io[1] = io_output_;
+
+				if(has_ret_state) {
+					if(ret_state.registers != state.registers) {
+						printf("Registers\n");
+					}
+					if(ret_state.io[0] != state.io[0] || ret_state.io[1] != state.io[1]) {
+						printf("IO\n");
+					}
+					printf("Memory:\n");
+					for(int c = 0; c < 65536; c++) {
+						if(state.ram[c] != ret_state.ram[c]) {
+							printf("%04x\n", c);
+						}
+					}
+				}
+
+				has_ret_state = true;
+				ret_state = state;
+			};
 
 			if constexpr (is_read(operation)) {
 				value = map_.read(address);
@@ -313,8 +349,7 @@ public:
 					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
 					address == ret_trap
 				) {
-					auto registers = m6502_.registers();
-					printf("R: %02x\n", registers.x);
+					set_compare_state();
 //					log = true;
 				}
 
@@ -389,6 +424,7 @@ public:
 
 						m6502_.set_registers(registers);
 						value = 0x60;	// i.e. RTS.
+						set_compare_state();
 //						log = true;
 					}
 				}
