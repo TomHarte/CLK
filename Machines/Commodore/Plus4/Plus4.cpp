@@ -338,10 +338,8 @@ public:
 						const auto body = parser.get_next_data(*tape_player_->serialiser());
 
 						if(body) {
-//							auto load_address =
-//								ram_[0xad] ? uint16_t((registers.y << 8) | registers.x) : header->starting_address;
 							auto load_address =
-								ram_[0xad] ? uint16_t((registers.y << 8) | registers.x) : header->starting_address;
+								ram_[0xad] ? header->starting_address : uint16_t((registers.y << 8) | registers.x);
 
 							for(const auto byte: body->data) {
 								ram_[load_address] = byte;
