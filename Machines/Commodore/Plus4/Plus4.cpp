@@ -297,15 +297,16 @@ public:
 			}
 		} else if(address < 0xfd00 || address >= 0xff40) {
 			static uint16_t ret_trap = 0x00;
+			static bool log = false;
 
 			if constexpr (is_read(operation)) {
 				value = map_.read(address);
 
-//				if(
-//					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode
-//				) {
-//					printf("%04x\n", address);
-//				}
+				if(
+					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode && log
+				) {
+					printf("%04x: %02x %02x %02x\n", address, map_.read(address), map_.read(address + 1), map_.read(address + 2));
+				}
 
 				if(
 					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
@@ -313,6 +314,7 @@ public:
 				) {
 					auto registers = m6502_.registers();
 					printf("R: %02x\n", registers.x);
+					log = true;
 				}
 
 				if(
@@ -329,6 +331,10 @@ public:
 					++ret_trap;
 #else
 
+//(lldb) p/x io_output_
+//(uint8_t) 0x18
+//(lldb) p/x io_direction_
+//(uint8_t) 0x0f
 
 					// Input:
 					//	A: 0 = Load, 1-255 = Verify;
@@ -355,7 +361,7 @@ public:
 					const auto header = parser.get_next_header(*tape_player_->serialiser());
 					if(header) {
 						// Copy header into place.
-						std::memcpy(&ram_[0x0333], header->data.data(), 191);
+						header->serialise(&ram_[0x0333], 65536 - 0x0333);
 						map_.write(0xb6) = 0x33;
 						map_.write(0xb7) = 0x03;
 						map_.write(0xf8) = header->type_descriptor();
@@ -366,22 +372,30 @@ public:
 							auto load_address =
 								ram_[0xad] ? header->starting_address : uint16_t((registers.y << 8) | registers.x);
 
+							map_.write(0xb4) = load_address & 0xff;
+							map_.write(0xb5) = load_address >> 8;
+
 							for(const auto byte: body->data) {
 								ram_[load_address] = byte;
 								++load_address;
 							}
 
+							registers.a = 0xa2;
 							registers.x = load_address & 0xff;
 							registers.y = load_address >> 8;
 							registers.flags.set_per<CPU::MOS6502Mk2::Flag::Carry>(0);	// C = 0 => success.
 						}
 					}
 
-//					ram_[0x90] = 0;
-//					ram_[0x93] = 0;
+					// HACK, HACK, HACK ATTACK.
+					tape_player_->serialiser()->set_offset(84776);
+
+					ram_[0x90] = 0;	// IO status: no error.
+					ram_[0x93] = 0;	// Load/verify flag: was load.
 
 					m6502_.set_registers(registers);
 					value = 0x60;	// i.e. RTS.
+					log = true;
 #endif
 				}
 			} else {

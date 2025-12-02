@@ -125,11 +125,14 @@ uint8_t Header::type_descriptor() const {
 	}
 }
 
-void Header::serialise(uint8_t *target, [[maybe_unused]] uint16_t length) const {
+void Header::serialise(uint8_t *target, uint16_t length) const {
 	target[0] = type_descriptor();
-
-	// TODO: validate length.
-	std::memcpy(&target[1], data.data(), 191);
+	const auto bytes_to_copy = std::min(size_t(length), data.size());
+	std::copy(
+		data.begin(),
+		data.begin() + ptrdiff_t(bytes_to_copy),
+		target
+	);
 }
 
 std::unique_ptr<Data> Parser::get_next_data_body(Storage::Tape::TapeSerialiser &serialiser, bool is_original) {
@@ -148,7 +151,7 @@ std::unique_ptr<Data> Parser::get_next_data_body(Storage::Tape::TapeSerialiser &
 		data->data.push_back(get_next_byte_contents(serialiser));
 	}
 
-	// the above has reead the parity byte to the end of the data; if it matched the calculated parity it'll now be zero
+	// the above has read the parity byte to the end of the data; if it matched the calculated parity it'll now be zero
 	data->parity_was_valid = !get_parity_byte();
 	data->duplicate_matched = false;
 
