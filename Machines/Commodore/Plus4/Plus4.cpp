@@ -296,8 +296,24 @@ public:
 				serial_port_.set_output(Serial::Line::Attention, Serial::LineLevel(~output & 0x04));
 			}
 		} else if(address < 0xfd00 || address >= 0xff40) {
+			static uint16_t ret_trap = 0x00;
+
 			if constexpr (is_read(operation)) {
 				value = map_.read(address);
+
+//				if(
+//					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode
+//				) {
+//					printf("%04x\n", address);
+//				}
+
+				if(
+					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
+					address == ret_trap
+				) {
+					auto registers = m6502_.registers();
+					printf("R: %02x\n", registers.x);
+				}
 
 				if(
 					use_fast_tape_hack_ &&
@@ -305,6 +321,15 @@ public:
 
 					address == 0xf0f0 		// ldcass
 				) {
+//#define RET_TRAP
+#ifdef RET_TRAP
+					auto registers = m6502_.registers();
+					ret_trap = ram_[0x100 | (registers.s + 1)];
+					ret_trap |= ram_[0x100 | (registers.s + 2)] << 8;
+					++ret_trap;
+#else
+
+
 					// Input:
 					//	A: 0 = Load, 1-255 = Verify;
 					//	X/Y = Load address (if secondary address = 0).
@@ -329,11 +354,11 @@ public:
 					Storage::Tape::Commodore::Parser parser(TargetPlatform::Plus4);
 					const auto header = parser.get_next_header(*tape_player_->serialiser());
 					if(header) {
-						// TODO: Copy header into place.
-//						std::memcpy(&ram_[0x0333], header->data.data(), 191);
-//						map_.write(0xb6) = 0x33;
-//						map_.write(0xb7) = 0x03;
-//						map_.write(0xf8) = header->type_descriptor();
+						// Copy header into place.
+						std::memcpy(&ram_[0x0333], header->data.data(), 191);
+						map_.write(0xb6) = 0x33;
+						map_.write(0xb7) = 0x03;
+						map_.write(0xf8) = header->type_descriptor();
 
 						const auto body = parser.get_next_data(*tape_player_->serialiser());
 
@@ -346,7 +371,6 @@ public:
 								++load_address;
 							}
 
-							--load_address;
 							registers.x = load_address & 0xff;
 							registers.y = load_address >> 8;
 							registers.flags.set_per<CPU::MOS6502Mk2::Flag::Carry>(0);	// C = 0 => success.
@@ -358,6 +382,7 @@ public:
 
 					m6502_.set_registers(registers);
 					value = 0x60;	// i.e. RTS.
+#endif
 				}
 			} else {
 				map_.write(address) = value;
