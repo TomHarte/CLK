@@ -298,6 +298,7 @@ public:
 		} else if(address < 0xfd00 || address >= 0xff40) {
 			static uint16_t ret_trap = 0x00;
 			static bool log = false;
+			const bool use_ret_trap = false;
 
 			if constexpr (is_read(operation)) {
 				value = map_.read(address);
@@ -314,7 +315,7 @@ public:
 				) {
 					auto registers = m6502_.registers();
 					printf("R: %02x\n", registers.x);
-					log = true;
+//					log = true;
 				}
 
 				if(
@@ -323,80 +324,73 @@ public:
 
 					address == 0xf0f0 		// ldcass
 				) {
-//#define RET_TRAP
-#ifdef RET_TRAP
-					auto registers = m6502_.registers();
-					ret_trap = ram_[0x100 | (registers.s + 1)];
-					ret_trap |= ram_[0x100 | (registers.s + 2)] << 8;
-					++ret_trap;
-#else
-
-//(lldb) p/x io_output_
-//(uint8_t) 0x18
-//(lldb) p/x io_direction_
-//(uint8_t) 0x0f
-
-					// Input:
-					//	A: 0 = Load, 1-255 = Verify;
-					//	X/Y = Load address (if secondary address = 0).
-					// Output:
-					//	Carry: 0 = No errors, 1 = Error;
-					//	A = KERNAL error code (if Carry = 1);
-					//	X/Y = Address of last byte loaded/verified (if Carry = 0).
-					// Used registers: A, X, Y. Real address: $F49E.
+					if(use_ret_trap) {
+						auto registers = m6502_.registers();
+						ret_trap = ram_[0x100 | (registers.s + 1)];
+						ret_trap |= ram_[0x100 | (registers.s + 2)] << 8;
+						++ret_trap;
+					} else {
+						// Input:
+						//	A: 0 = Load, 1-255 = Verify;
+						//	X/Y = Load address (if secondary address = 0).
+						// Output:
+						//	Carry: 0 = No errors, 1 = Error;
+						//	A = KERNAL error code (if Carry = 1);
+						//	X/Y = Address of last byte loaded/verified (if Carry = 0).
+						// Used registers: A, X, Y. Real address: $F49E.
 
 
-					auto registers = m6502_.registers();
-//					static constexpr uint16_t tape_buffer = 0x0333;
+						auto registers = m6502_.registers();
+	//					static constexpr uint16_t tape_buffer = 0x0333;
 
-					// TODO: check byte at 0xab for a potential filename length; if set then get
-					// filename... from somewhere?
+						// TODO: check byte at 0xab for a potential filename length; if set then get
+						// filename... from somewhere?
 
-					const uint8_t name_length = ram_[0xab];
-					if(name_length) {
-						printf("Name: ??? [%d bytes]\n", name_length);
-					}
-
-					Storage::Tape::Commodore::Parser parser(TargetPlatform::Plus4);
-					const auto header = parser.get_next_header(*tape_player_->serialiser());
-					if(header) {
-						// Copy header into place.
-						header->serialise(&ram_[0x0333], 65536 - 0x0333);
-						map_.write(0xb6) = 0x33;
-						map_.write(0xb7) = 0x03;
-						map_.write(0xf8) = header->type_descriptor();
-
-						const auto body = parser.get_next_data(*tape_player_->serialiser());
-
-						if(body) {
-							auto load_address =
-								ram_[0xad] ? header->starting_address : uint16_t((registers.y << 8) | registers.x);
-
-							map_.write(0xb4) = load_address & 0xff;
-							map_.write(0xb5) = load_address >> 8;
-
-							for(const auto byte: body->data) {
-								ram_[load_address] = byte;
-								++load_address;
-							}
-
-							registers.a = 0xa2;
-							registers.x = load_address & 0xff;
-							registers.y = load_address >> 8;
-							registers.flags.set_per<CPU::MOS6502Mk2::Flag::Carry>(0);	// C = 0 => success.
+						const uint8_t name_length = ram_[0xab];
+						if(name_length) {
+							printf("Name: ??? [%d bytes]\n", name_length);
 						}
+
+						Storage::Tape::Commodore::Parser parser(TargetPlatform::Plus4);
+						const auto header = parser.get_next_header(*tape_player_->serialiser());
+						if(header) {
+							// Copy header into place.
+							header->serialise(&ram_[0x0333], 65536 - 0x0333);
+							map_.write(0xb6) = 0x33;
+							map_.write(0xb7) = 0x03;
+							map_.write(0xf8) = header->type_descriptor();
+
+							const auto body = parser.get_next_data(*tape_player_->serialiser());
+
+							if(body) {
+								auto load_address =
+									ram_[0xad] ? header->starting_address : uint16_t((registers.y << 8) | registers.x);
+
+								map_.write(0xb4) = load_address & 0xff;
+								map_.write(0xb5) = load_address >> 8;
+
+								for(const auto byte: body->data) {
+									ram_[load_address] = byte;
+									++load_address;
+								}
+
+								registers.a = 0xa2;
+								registers.x = load_address & 0xff;
+								registers.y = load_address >> 8;
+								registers.flags.set_per<CPU::MOS6502Mk2::Flag::Carry>(0);	// C = 0 => success.
+							}
+						}
+
+						// HACK, HACK, HACK ATTACK.
+						tape_player_->serialiser()->set_offset(84776);
+
+						ram_[0x90] = 0;	// IO status: no error.
+						ram_[0x93] = 0;	// Load/verify flag: was load.
+
+						m6502_.set_registers(registers);
+						value = 0x60;	// i.e. RTS.
+//						log = true;
 					}
-
-					// HACK, HACK, HACK ATTACK.
-					tape_player_->serialiser()->set_offset(84776);
-
-					ram_[0x90] = 0;	// IO status: no error.
-					ram_[0x93] = 0;	// Load/verify flag: was load.
-
-					m6502_.set_registers(registers);
-					value = 0x60;	// i.e. RTS.
-					log = true;
-#endif
 				}
 			} else {
 				map_.write(address) = value;
