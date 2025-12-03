@@ -209,8 +209,7 @@ public:
 		kernel_ = roms.find(kernel)->second;
 		basic_ = roms.find(basic)->second;
 
-//		Memory::Fuzz(ram_);
-		std::fill(std::begin(ram_), std::end(ram_), 0);
+		Memory::Fuzz(ram_);
 		map_.page<PagerSide::ReadWrite, 0, 65536>(ram_.data());
 		page_cpu_rom();
 
