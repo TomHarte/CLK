@@ -12,6 +12,7 @@
 #include "Interrupts.hpp"
 #include "Keyboard.hpp"
 #include "Pager.hpp"
+#include "TapeHandler.hpp"
 #include "Video.hpp"
 
 #include "Machines/MachineTypes.hpp"
@@ -25,7 +26,6 @@
 #include "Analyser/Dynamic/ConfidenceCounter.hpp"
 #include "Analyser/Static/Commodore/Target.hpp"
 
-#include "Storage/Tape/Parsers/Commodore.hpp"
 #include "Storage/Tape/Tape.hpp"
 #include "Machines/Commodore/SerialBus.hpp"
 #include "Machines/Commodore/1540/C1540.hpp"
@@ -34,6 +34,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <vector>
 
 using namespace Commodore;
@@ -169,7 +170,6 @@ private:
 class ConcreteMachine:
 	public Activity::Source,
 	public BusController,
-	public ClockingHint::Observer,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public MachineTypes::AudioProducer,
@@ -222,8 +222,7 @@ public:
 			c1541_->run_for(Cycles(2000000));
 		}
 
-		tape_player_ = std::make_unique<Storage::Tape::BinaryTapePlayer>(clock);
-		tape_player_->set_clocking_hint_observer(this);
+		tape_handler_.set_clock_rate(clock);
 
 		joysticks_.emplace_back(std::make_unique<Joystick>());
 		joysticks_.emplace_back(std::make_unique<Joystick>());
@@ -249,7 +248,11 @@ public:
 		const auto length = video_.cycle_length(operation == CPU::MOS6502Mk2::BusOperation::Ready);
 
 		// Update other subsystems.
-		advance_timers_and_tape(length);
+		timers_subcycles_ += length;
+		const auto timers_cycles = timers_subcycles_.divide(video_.timer_cycle_length());
+		timers_.tick(timers_cycles.as<int>());
+
+		tape_handler_.run_for(length);
 		video_.run_for(length);
 
 		if(c1541_) {
@@ -290,151 +293,22 @@ public:
 				}
 
 				const auto output = io_output_ | ~io_direction_;
-				update_tape_motor();
+				tape_handler_.set_io(io_output_, io_direction_);
 				serial_port_.set_output(Serial::Line::Data, Serial::LineLevel(~output & 0x01));
 				serial_port_.set_output(Serial::Line::Clock, Serial::LineLevel(~output & 0x02));
 				serial_port_.set_output(Serial::Line::Attention, Serial::LineLevel(~output & 0x04));
 			}
 		} else if(address < 0xfd00 || address >= 0xff40) {
-//			static uint16_t ret_trap = 0x00;
-//			static bool log = false;
-//			static bool use_ret_trap = false;
-//
-//			struct State {
-//				CPU::MOS6502Mk2::Registers registers;
-//				uint8_t ram[65536];
-//				uint8_t io[2];
-//			};
-//			static State ret_state;
-//			static bool has_ret_state = false;
-//
-//
-//			const auto set_compare_state = [&] {
-//				// New state.
-//				State state;
-//				state.registers = m6502_.registers();
-//				memcpy(state.ram, ram_.data(), 65536);
-//				state.io[0] = io_direction_;
-//				state.io[1] = io_output_;
-//
-//				if(has_ret_state) {
-//					State old_state = ret_state;	// As LLDB is being annoying.
-//					if(ret_state.registers != state.registers) {
-//						printf("Registers\n");
-//					}
-//					if(ret_state.io[0] != state.io[0] || ret_state.io[1] != state.io[1]) {
-//						printf("IO\n");
-//					}
-//					printf("Memory:\n");
-//					for(int c = 0; c < 65536; c++) {
-//						if(state.ram[c] != ret_state.ram[c]) {
-//							printf("%04x %02x %02x\n", c, state.ram[c], ret_state.ram[c]);
-//						}
-//					}
-//				}
-//
-//				has_ret_state = true;
-//				ret_state = state;
-//			};
-
 			if constexpr (is_read(operation)) {
 				value = map_.read(address);
 
-//				if(
-//					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode && log
-//				) {
-//					printf("%04x: %02x %02x %02x\n", address, map_.read(address), map_.read(address + 1), map_.read(address + 2));
-//				}
-
-//				if(
-//					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
-//					address == ret_trap
-//				) {
-//					set_compare_state();
-////					log = true;
-//				}
-
 				if(
-					use_fast_tape_hack_ &&
+					tape_handler_.use_fast_tape_hack() &&
 					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
-					address == 0xf0f0 		// ldcass
+					address == TapeHandler::ROMTrapAddress &&
+					tape_handler_.perform_ldcass(m6502_, map_)
 				) {
-					// Imply an automatic motor start.
-					play_button_ = true;
-					update_tape_motor();
-
-						// Input:
-						//	A: 0 = Load, 1-255 = Verify;
-						//	X/Y = Load address (if secondary address = 0).
-						// Output:
-						//	Carry: 0 = No errors, 1 = Error;
-						//	A = KERNAL error code (if Carry = 1);
-						//	X/Y = Address of last byte loaded/verified (if Carry = 0).
-						// Used registers: A, X, Y. Real address: $F49E.
-
-					auto registers = m6502_.registers();
-
-					// TODO: check byte at 0xab for a potential filename length; if set then get
-					// filename... from somewhere?
-					const uint8_t name_length = ram_[0xab];
-					if(name_length) {
-						printf("Name: ??? [%d bytes]\n", name_length);
-					}
-
-					Storage::Tape::Commodore::Parser parser(TargetPlatform::Plus4);
-					const auto header = parser.get_next_header(*tape_player_->serialiser());
-					if(header) {
-						// Copy header into place.
-						header->serialise(&ram_[0x0333], 65536 - 0x0333);
-
-						// Set block type; 0x00 = data body.
-						map_.write(0xf8) = 0;
-
-						// TODO: F5 = checksum.
-
-						const auto body = parser.get_next_data(*tape_player_->serialiser());
-
-						if(body) {
-							auto load_address =
-								ram_[0xad] ? header->starting_address : uint16_t((registers.y << 8) | registers.x);
-
-							// Set 'load ram base', 'sta' and 'tapebs'.
-							map_.write(0xb2) = map_.write(0xb4) = map_.write(0xb6) = load_address & 0xff;
-							map_.write(0xb3) = map_.write(0xb5) = map_.write(0xb7) = load_address >> 8;
-
-							for(const auto byte: body->data) {
-								ram_[load_address] = byte;
-								++load_address;
-							}
-
-							// Set final tape byte.
-							map_.write(0xa7) = body->data.back();
-
-							// Set 'ea' pointer.
-							map_.write(0x9d) = load_address & 0xff;
-							map_.write(0x9e) = load_address >> 8;
-
-							registers.a = 0xa2;
-							registers.x = load_address & 0xff;
-							registers.y = load_address >> 8;
-							registers.flags.set_per<CPU::MOS6502Mk2::Flag::Carry>(0);	// C = 0 => success.
-						}
-					}
-
-					// HACK, HACK, HACK ATTACK.
-					tape_player_->serialiser()->set_offset(84776);
-
-					ram_[0x90] = 0;	// IO status: no error.
-					ram_[0x93] = 0;	// Load/verify flag: was load.
-
-
-					// Tape timing constants.
-					ram_[0x7ba] = 0x80;
-					ram_[0x7bb] = 0x02;
-					ram_[0x7bc] = 0x80;
-
-					m6502_.set_registers(registers);
-					value = 0x60;	// i.e. RTS.
+					value = 0x60;
 				}
 			} else {
 				map_.write(address) = value;
@@ -444,28 +318,17 @@ public:
 			if constexpr (is_read(operation)) {
 				switch(address & 0xfff0) {
 					case 0xfd10:
-						// 6529 parallel port, about which I know only what I've found in kernel ROM disassemblies.
+					tape_handler_.read_parallel_port([&] {
+						const uint16_t pc = m6502_.registers().pc.full;
+						return std::array<uint8_t, 4>{
+							map_.read(pc+0),
+							map_.read(pc+1),
+							map_.read(pc+2),
+							map_.read(pc+3),
+						};
+					});
 
-						// If play button is not currently pressed and this read is immediately followed by
-						// an AND 4, press it. The kernel will deal with motor control subsequently.
-						if(!play_button_) {
-							const uint16_t pc = m6502_.registers().pc.full;
-							const uint8_t next[] = {
-								map_.read(pc+0),
-								map_.read(pc+1),
-								map_.read(pc+2),
-								map_.read(pc+3),
-							};
-
-							// TODO: boil this down to a PC check. It's currently in this form as I'm unclear what
-							// diversity of kernels exist.
-							if(next[0] == 0x29 && next[1] == 0x04 && next[2] == 0xd0 && next[3] == 0xf4) {
-								play_button_ = true;
-								update_tape_motor();
-							}
-						}
-
-						value = 0xff ^ (play_button_ ? 0x4 :0x0);
+						value = 0xff ^ (tape_handler_.play_button() ? 0x4 :0x0);
 					break;
 
 					case 0xfdd0:
@@ -706,12 +569,12 @@ private:
 		map_.page<PagerSide::Read, 0x8000, 16384>(basic_.data());
 		map_.page<PagerSide::Read, 0xc000, 16384>(kernel_.data());
 		rom_is_paged_ = true;
-		set_use_fast_tape();
+		tape_handler_.set_rom_is_paged(true);
 	}
 	void page_cpu_ram() {
 		map_.page<PagerSide::Read, 0x8000, 32768>(&ram_[0x8000]);
 		rom_is_paged_ = false;
-		set_use_fast_tape();
+		tape_handler_.set_rom_is_paged(false);
 	}
 	bool rom_is_paged_ = false;
 
@@ -748,7 +611,7 @@ private:
 
 	bool insert_media(const Analyser::Static::Media &media) final {
 		if(!media.tapes.empty()) {
-			tape_player_->set_tape(media.tapes[0], TargetPlatform::Plus4);
+			tape_handler_.set_tape(media.tapes[0]);
 		}
 
 		if(!media.disks.empty() && c1541_) {
@@ -813,30 +676,12 @@ private:
 	Serial::Bus serial_bus_;
 	SerialPort serial_port_;
 
-	std::unique_ptr<Storage::Tape::BinaryTapePlayer> tape_player_;
-	bool play_button_ = false;
-	bool allow_fast_tape_hack_ = false;
-	bool use_fast_tape_hack_ = false;
-	void set_use_fast_tape() {
-		use_fast_tape_hack_ =
-			allow_fast_tape_hack_ && rom_is_paged_ && !tape_player_->is_at_end();
-	}
-	void update_tape_motor() {
-		const auto output = io_output_ | ~io_direction_;
-		tape_player_->set_motor_control(play_button_ && (~output & 0x08));
-	}
-	void advance_timers_and_tape(const Cycles length) {
-		timers_subcycles_ += length;
-		const auto timers_cycles = timers_subcycles_.divide(video_.timer_cycle_length());
-		timers_.tick(timers_cycles.as<int>());
-
-		tape_player_->run_for(length);
-	}
+	TapeHandler tape_handler_;
 
 	uint8_t io_direction_ = 0x00, io_output_ = 0x00;
 	uint8_t io_input() const {
 		const uint8_t all_inputs =
-			(tape_player_->input() ? 0x00 : 0x10) |
+			(tape_handler_.tape_player().input() ? 0x00 : 0x10) |
 			(serial_port_.level(Serial::Line::Data) ? 0x80 : 0x00) |
 			(serial_port_.level(Serial::Line::Clock) ? 0x40 : 0x00);
 		return
@@ -852,11 +697,6 @@ private:
 	}
 	std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 
-	// MARK: - ClockingHint::Observer.
-	void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) override {
-		set_use_fast_tape();
-	}
-
 	// MARK: - Confidence.
 	Analyser::Dynamic::ConfidenceCounter confidence_;
 	float get_confidence() final { return confidence_.confidence(); }
@@ -868,7 +708,7 @@ private:
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 		options->output = get_video_signal_configurable();
-		options->quick_load = allow_fast_tape_hack_;
+		options->quick_load = tape_handler_.allow_fast_tape_hack();
 		return options;
 	}
 
@@ -876,8 +716,7 @@ private:
 		const auto options = dynamic_cast<Options *>(str.get());
 
 		set_video_signal_configurable(options->output);
-		allow_fast_tape_hack_ = options->quick_load;
-		set_use_fast_tape();
+		tape_handler_.set_allow_fast_tape_hack(options->quick_load);
 	}
 };
 }
