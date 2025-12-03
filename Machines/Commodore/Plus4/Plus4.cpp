@@ -209,7 +209,8 @@ public:
 		kernel_ = roms.find(kernel)->second;
 		basic_ = roms.find(basic)->second;
 
-		Memory::Fuzz(ram_);
+//		Memory::Fuzz(ram_);
+		std::fill(std::begin(ram_), std::end(ram_), 0);
 		map_.page<PagerSide::ReadWrite, 0, 65536>(ram_.data());
 		page_cpu_rom();
 
@@ -313,11 +314,12 @@ public:
 				// New state.
 				State state;
 				state.registers = m6502_.registers();
-				memcpy(state.ram, ram_, 65536);
+				memcpy(state.ram, ram_.data(), 65536);
 				state.io[0] = io_direction_;
 				state.io[1] = io_output_;
 
 				if(has_ret_state) {
+					State old_state = ret_state;	// As LLDB is being annoying.
 					if(ret_state.registers != state.registers) {
 						printf("Registers\n");
 					}
@@ -327,13 +329,15 @@ public:
 					printf("Memory:\n");
 					for(int c = 0; c < 65536; c++) {
 						if(state.ram[c] != ret_state.ram[c]) {
-							printf("%04x\n", c);
+							printf("%04x %02x %02x\n", c, state.ram[c], ret_state.ram[c]);
 						}
 					}
 				}
 
 				has_ret_state = true;
 				ret_state = state;
+
+				use_ret_trap = true;
 			};
 
 			if constexpr (is_read(operation)) {
@@ -391,9 +395,11 @@ public:
 						if(header) {
 							// Copy header into place.
 							header->serialise(&ram_[0x0333], 65536 - 0x0333);
-							map_.write(0xb6) = 0x33;
-							map_.write(0xb7) = 0x03;
-							map_.write(0xf8) = header->type_descriptor();
+
+							// Set block type; 0x00 = data body.
+							map_.write(0xf8) = 0;
+
+							// TODO: F5 = checksum.
 
 							const auto body = parser.get_next_data(*tape_player_->serialiser());
 
@@ -401,13 +407,21 @@ public:
 								auto load_address =
 									ram_[0xad] ? header->starting_address : uint16_t((registers.y << 8) | registers.x);
 
-								map_.write(0xb4) = load_address & 0xff;
-								map_.write(0xb5) = load_address >> 8;
+								// Set 'load ram base', 'sta' and 'tapebs'.
+								map_.write(0xb2) = map_.write(0xb4) = map_.write(0xb6) = load_address & 0xff;
+								map_.write(0xb3) = map_.write(0xb5) = map_.write(0xb7) = load_address >> 8;
 
 								for(const auto byte: body->data) {
 									ram_[load_address] = byte;
 									++load_address;
 								}
+
+								// Set final tape byte.
+								map_.write(0xa7) = body->data.back();
+
+								// Set 'ea' pointer.
+								map_.write(0x9d) = load_address & 0xff;
+								map_.write(0x9e) = load_address >> 8;
 
 								registers.a = 0xa2;
 								registers.x = load_address & 0xff;
