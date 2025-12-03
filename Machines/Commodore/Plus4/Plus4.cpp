@@ -288,7 +288,7 @@ public:
 				} else {
 					value = io_input();
 
-					if(!skip_range_) {
+					if(!skip_range_ && tape_handler_.allow_fast_tape_hack()) {
 						if(const auto pc = m6502_.registers().pc; pc >= 0x333 && pc < 0x3f2 ) {
 							skip_range_ = tape_handler_.skip_range(pc.full, m6502_, map_);
 						}
