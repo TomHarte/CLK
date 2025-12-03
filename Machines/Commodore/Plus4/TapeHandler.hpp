@@ -13,8 +13,13 @@
 #include "Storage/Tape/Parsers/Commodore.hpp"
 
 #include <memory>
+#include <optional>
 
 namespace Commodore::Plus4 {
+
+struct SkipRange {
+	uint16_t low, high;
+};
 
 /*!
 	All tape assistance, bundled into a single place, including:
@@ -179,6 +184,28 @@ struct TapeHandler: public ClockingHint::Observer {
 
 		tape_player_->serialiser()->set_offset(start_offset);
 		return false;
+	}
+
+	template <typename M6502T, typename MemoryT>
+	std::optional<SkipRange> skip_range(const uint16_t pc, M6502T &, MemoryT &map) {
+
+		// Check for sequence:
+		//
+		// 24 01	BIT 01
+		// d0 fc	BNE 3c8		<- PC will be here; trigger is the BIT operation above.
+		// 24 01	BIT 01
+		// f0 fc	BEQ 3cc
+
+		if(
+			map.read(pc) == 0xd0 && map.read(pc+1) == 0xfc &&
+			map.read(pc-2) == 0x24 && map.read(pc-1) == 0x01 &&
+			map.read(pc+2) == 0x24 && map.read(pc+3) == 0x01 &&
+			map.read(pc+4) == 0xf0 && map.read(pc+5) == 0xfc
+		) {
+			return SkipRange{uint16_t(pc - 2), uint16_t(pc + 6)};
+		}
+
+		return std::nullopt;
 	}
 
 private:

@@ -238,29 +238,32 @@ public:
 		audio_queue_.lock_flush();
 	}
 
-	// HACK. NOCOMMIT.
-//	int pulse_num_ = 0;
-
 	template <CPU::MOS6502Mk2::BusOperation operation, typename AddressT>
 	Cycles perform(const AddressT address, CPU::MOS6502Mk2::data_t<operation> value) {
 		// Determine from the TED video subsystem the length of this clock cycle as perceived by the 6502,
 		// relative to the master clock.
-		const auto length = video_.cycle_length(operation == CPU::MOS6502Mk2::BusOperation::Ready);
+		auto length = video_.cycle_length(operation == CPU::MOS6502Mk2::BusOperation::Ready);
 
 		// Update other subsystems.
-		timers_subcycles_ += length;
-		const auto timers_cycles = timers_subcycles_.divide(video_.timer_cycle_length());
-		timers_.tick(timers_cycles.as<int>());
+		advance_timers_and_tape(length);
+		if(operation != CPU::MOS6502Mk2::BusOperation::Ready && skip_range_) {
+			if(
+				operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
+				(address < skip_range_->low || address >= skip_range_->high)
+			) {
+				skip_range_ = std::nullopt;
+			}
+			length = Cycles(0);
+		} else {
+			video_.run_for(length);
 
-		tape_handler_.run_for(length);
-		video_.run_for(length);
+			if(c1541_) {
+				c1541_cycles_ += length * Cycles(1'000'000);
+				c1541_->run_for(c1541_cycles_.divide(media_divider_));
+			}
 
-		if(c1541_) {
-			c1541_cycles_ += length * Cycles(1'000'000);
-			c1541_->run_for(c1541_cycles_.divide(media_divider_));
+			time_since_audio_update_ += length;
 		}
-
-		time_since_audio_update_ += length;
 
 		if(operation == CPU::MOS6502Mk2::BusOperation::Ready) {
 			return length;
@@ -284,6 +287,12 @@ public:
 					value = io_direction_;
 				} else {
 					value = io_input();
+
+					if(!skip_range_) {
+						if(const auto pc = m6502_.registers().pc; pc >= 0x333 && pc < 0x3f2 ) {
+							skip_range_ = tape_handler_.skip_range(pc.full, m6502_, map_);
+						}
+					}
 				}
 			} else {
 				if(!address) {
@@ -676,7 +685,15 @@ private:
 	Serial::Bus serial_bus_;
 	SerialPort serial_port_;
 
+	void advance_timers_and_tape(const Cycles length) {
+		timers_subcycles_ += length;
+		const auto timers_cycles = timers_subcycles_.divide(video_.timer_cycle_length());
+		timers_.tick(timers_cycles.as<int>());
+
+		tape_handler_.run_for(length);
+	}
 	TapeHandler tape_handler_;
+	std::optional<SkipRange> skip_range_;
 
 	uint8_t io_direction_ = 0x00, io_output_ = 0x00;
 	uint8_t io_input() const {
