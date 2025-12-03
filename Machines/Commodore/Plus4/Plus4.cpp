@@ -297,78 +297,73 @@ public:
 				serial_port_.set_output(Serial::Line::Attention, Serial::LineLevel(~output & 0x04));
 			}
 		} else if(address < 0xfd00 || address >= 0xff40) {
-			static uint16_t ret_trap = 0x00;
-			static bool log = false;
-			static bool use_ret_trap = false;
-
-			struct State {
-				CPU::MOS6502Mk2::Registers registers;
-				uint8_t ram[65536];
-				uint8_t io[2];
-			};
-			static State ret_state;
-			static bool has_ret_state = false;
-
-
-			const auto set_compare_state = [&] {
-				// New state.
-				State state;
-				state.registers = m6502_.registers();
-				memcpy(state.ram, ram_.data(), 65536);
-				state.io[0] = io_direction_;
-				state.io[1] = io_output_;
-
-				if(has_ret_state) {
-					State old_state = ret_state;	// As LLDB is being annoying.
-					if(ret_state.registers != state.registers) {
-						printf("Registers\n");
-					}
-					if(ret_state.io[0] != state.io[0] || ret_state.io[1] != state.io[1]) {
-						printf("IO\n");
-					}
-					printf("Memory:\n");
-					for(int c = 0; c < 65536; c++) {
-						if(state.ram[c] != ret_state.ram[c]) {
-							printf("%04x %02x %02x\n", c, state.ram[c], ret_state.ram[c]);
-						}
-					}
-				}
-
-				has_ret_state = true;
-				ret_state = state;
-
-				use_ret_trap = true;
-			};
+//			static uint16_t ret_trap = 0x00;
+//			static bool log = false;
+//			static bool use_ret_trap = false;
+//
+//			struct State {
+//				CPU::MOS6502Mk2::Registers registers;
+//				uint8_t ram[65536];
+//				uint8_t io[2];
+//			};
+//			static State ret_state;
+//			static bool has_ret_state = false;
+//
+//
+//			const auto set_compare_state = [&] {
+//				// New state.
+//				State state;
+//				state.registers = m6502_.registers();
+//				memcpy(state.ram, ram_.data(), 65536);
+//				state.io[0] = io_direction_;
+//				state.io[1] = io_output_;
+//
+//				if(has_ret_state) {
+//					State old_state = ret_state;	// As LLDB is being annoying.
+//					if(ret_state.registers != state.registers) {
+//						printf("Registers\n");
+//					}
+//					if(ret_state.io[0] != state.io[0] || ret_state.io[1] != state.io[1]) {
+//						printf("IO\n");
+//					}
+//					printf("Memory:\n");
+//					for(int c = 0; c < 65536; c++) {
+//						if(state.ram[c] != ret_state.ram[c]) {
+//							printf("%04x %02x %02x\n", c, state.ram[c], ret_state.ram[c]);
+//						}
+//					}
+//				}
+//
+//				has_ret_state = true;
+//				ret_state = state;
+//			};
 
 			if constexpr (is_read(operation)) {
 				value = map_.read(address);
 
-				if(
-					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode && log
-				) {
-					printf("%04x: %02x %02x %02x\n", address, map_.read(address), map_.read(address + 1), map_.read(address + 2));
-				}
+//				if(
+//					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode && log
+//				) {
+//					printf("%04x: %02x %02x %02x\n", address, map_.read(address), map_.read(address + 1), map_.read(address + 2));
+//				}
 
-				if(
-					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
-					address == ret_trap
-				) {
-					set_compare_state();
-//					log = true;
-				}
+//				if(
+//					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
+//					address == ret_trap
+//				) {
+//					set_compare_state();
+////					log = true;
+//				}
 
 				if(
 					use_fast_tape_hack_ &&
 					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
-
 					address == 0xf0f0 		// ldcass
 				) {
-					if(use_ret_trap) {
-						auto registers = m6502_.registers();
-						ret_trap = ram_[0x100 | (registers.s + 1)];
-						ret_trap |= ram_[0x100 | (registers.s + 2)] << 8;
-						++ret_trap;
-					} else {
+					// Imply an automatic motor start.
+					play_button_ = true;
+					update_tape_motor();
+
 						// Input:
 						//	A: 0 = Load, 1-255 = Verify;
 						//	X/Y = Load address (if secondary address = 0).
@@ -378,75 +373,75 @@ public:
 						//	X/Y = Address of last byte loaded/verified (if Carry = 0).
 						// Used registers: A, X, Y. Real address: $F49E.
 
+					auto registers = m6502_.registers();
 
-						auto registers = m6502_.registers();
-	//					static constexpr uint16_t tape_buffer = 0x0333;
-
-						// TODO: check byte at 0xab for a potential filename length; if set then get
-						// filename... from somewhere?
-
-						const uint8_t name_length = ram_[0xab];
-						if(name_length) {
-							printf("Name: ??? [%d bytes]\n", name_length);
-						}
-
-						Storage::Tape::Commodore::Parser parser(TargetPlatform::Plus4);
-						const auto header = parser.get_next_header(*tape_player_->serialiser());
-						if(header) {
-							// Copy header into place.
-							header->serialise(&ram_[0x0333], 65536 - 0x0333);
-
-							// Set block type; 0x00 = data body.
-							map_.write(0xf8) = 0;
-
-							// TODO: F5 = checksum.
-
-							const auto body = parser.get_next_data(*tape_player_->serialiser());
-
-							if(body) {
-								auto load_address =
-									ram_[0xad] ? header->starting_address : uint16_t((registers.y << 8) | registers.x);
-
-								// Set 'load ram base', 'sta' and 'tapebs'.
-								map_.write(0xb2) = map_.write(0xb4) = map_.write(0xb6) = load_address & 0xff;
-								map_.write(0xb3) = map_.write(0xb5) = map_.write(0xb7) = load_address >> 8;
-
-								for(const auto byte: body->data) {
-									ram_[load_address] = byte;
-									++load_address;
-								}
-
-								// Set final tape byte.
-								map_.write(0xa7) = body->data.back();
-
-								// Set 'ea' pointer.
-								map_.write(0x9d) = load_address & 0xff;
-								map_.write(0x9e) = load_address >> 8;
-
-								registers.a = 0xa2;
-								registers.x = load_address & 0xff;
-								registers.y = load_address >> 8;
-								registers.flags.set_per<CPU::MOS6502Mk2::Flag::Carry>(0);	// C = 0 => success.
-							}
-						}
-
-						// HACK, HACK, HACK ATTACK.
-						tape_player_->serialiser()->set_offset(84776);
-
-						ram_[0x90] = 0;	// IO status: no error.
-						ram_[0x93] = 0;	// Load/verify flag: was load.
-
-						m6502_.set_registers(registers);
-						value = 0x60;	// i.e. RTS.
-						set_compare_state();
-//						log = true;
+					// TODO: check byte at 0xab for a potential filename length; if set then get
+					// filename... from somewhere?
+					const uint8_t name_length = ram_[0xab];
+					if(name_length) {
+						printf("Name: ??? [%d bytes]\n", name_length);
 					}
+
+					Storage::Tape::Commodore::Parser parser(TargetPlatform::Plus4);
+					const auto header = parser.get_next_header(*tape_player_->serialiser());
+					if(header) {
+						// Copy header into place.
+						header->serialise(&ram_[0x0333], 65536 - 0x0333);
+
+						// Set block type; 0x00 = data body.
+						map_.write(0xf8) = 0;
+
+						// TODO: F5 = checksum.
+
+						const auto body = parser.get_next_data(*tape_player_->serialiser());
+
+						if(body) {
+							auto load_address =
+								ram_[0xad] ? header->starting_address : uint16_t((registers.y << 8) | registers.x);
+
+							// Set 'load ram base', 'sta' and 'tapebs'.
+							map_.write(0xb2) = map_.write(0xb4) = map_.write(0xb6) = load_address & 0xff;
+							map_.write(0xb3) = map_.write(0xb5) = map_.write(0xb7) = load_address >> 8;
+
+							for(const auto byte: body->data) {
+								ram_[load_address] = byte;
+								++load_address;
+							}
+
+							// Set final tape byte.
+							map_.write(0xa7) = body->data.back();
+
+							// Set 'ea' pointer.
+							map_.write(0x9d) = load_address & 0xff;
+							map_.write(0x9e) = load_address >> 8;
+
+							registers.a = 0xa2;
+							registers.x = load_address & 0xff;
+							registers.y = load_address >> 8;
+							registers.flags.set_per<CPU::MOS6502Mk2::Flag::Carry>(0);	// C = 0 => success.
+						}
+					}
+
+					// HACK, HACK, HACK ATTACK.
+					tape_player_->serialiser()->set_offset(84776);
+
+					ram_[0x90] = 0;	// IO status: no error.
+					ram_[0x93] = 0;	// Load/verify flag: was load.
+
+
+					// Tape timing constants.
+					ram_[0x7ba] = 0x80;
+					ram_[0x7bb] = 0x02;
+					ram_[0x7bc] = 0x80;
+
+					m6502_.set_registers(registers);
+					value = 0x60;	// i.e. RTS.
 				}
 			} else {
 				map_.write(address) = value;
 			}
 		} else if(address < 0xff00) {
-			// Miscellaneous hardware. All TODO.
+			// Miscellaneous hardware.
 			if constexpr (is_read(operation)) {
 				switch(address & 0xfff0) {
 					case 0xfd10:
