@@ -248,8 +248,11 @@ public:
 		advance_timers_and_tape(length);
 		if(operation != CPU::MOS6502Mk2::BusOperation::Ready && skip_range_) {
 			if(
-				operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
-				(address < skip_range_->low || address >= skip_range_->high)
+				tape_handler_.tape_player().is_at_end() ||
+				(
+					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
+					(address < skip_range_->low || address >= skip_range_->high)
+				)
 			) {
 				skip_range_ = std::nullopt;
 			}
