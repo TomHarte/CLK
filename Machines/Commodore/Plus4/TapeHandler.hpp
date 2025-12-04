@@ -117,6 +117,8 @@ struct TapeHandler: public ClockingHint::Observer {
 		}
 	}
 
+	// MARK: - Loading accelerators.
+
 	template <typename M6502T, typename MemoryT>
 	bool perform_ldcass(M6502T &m6502, MemoryT &map) {
 		// Imply an automatic motor start.
