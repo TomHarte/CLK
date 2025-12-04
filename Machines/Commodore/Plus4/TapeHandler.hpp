@@ -12,12 +12,20 @@
 #include "Storage/Tape/Tape.hpp"
 #include "Storage/Tape/Parsers/Commodore.hpp"
 
+#include <algorithm>
 #include <memory>
 #include <optional>
 
 namespace Commodore::Plus4 {
 
-struct SkipRange {
+/*!
+	Describes a continuous block of memory that the tape handler asserts should be completed as quickly as possible, regardless
+	of wall-clock time, and that depends upon only timers and tape hardware running at the correct rate relative to one another.
+
+	i.e. this is used to indicate where the machine can apply accelerated loading, running the machine without video or disk drives as
+	quickly as possible until the program counter exists the nominated range.
+*/
+struct AcceleratedRange {
 	uint16_t low, high;
 };
 
@@ -40,8 +48,12 @@ struct TapeHandler: public ClockingHint::Observer {
 		return *tape_player_;
 	}
 
-	bool use_fast_tape_hack() const {
+	bool test_rom_trap() const {
 		return use_fast_tape_hack_;
+	}
+
+	bool apply_accelerated_range() const {
+		return allow_fast_tape_hack_ && !tape_player_->is_at_end();
 	}
 
 	bool play_button() const {
@@ -50,12 +62,12 @@ struct TapeHandler: public ClockingHint::Observer {
 
 	// MARK: - Rote Setters.
 
-	void set_allow_fast_tape_hack(const bool allow) {
+	void set_allow_accelerated_tape_loading(const bool allow) {
 		allow_fast_tape_hack_ = allow;
 		set_use_fast_tape();
 	}
 
-	bool allow_fast_tape_hack() const {
+	bool allow_accelerated_tape_loading() const {
 		return allow_fast_tape_hack_;
 	}
 
@@ -187,8 +199,7 @@ struct TapeHandler: public ClockingHint::Observer {
 	}
 
 	template <typename M6502T, typename MemoryT>
-	std::optional<SkipRange> skip_range(const uint16_t pc, M6502T &, MemoryT &map) {
-
+	std::optional<AcceleratedRange> accelerated_range(const uint16_t pc, M6502T &, MemoryT &map) {
 		// Potential sequence:
 		//
 		// 24 01	BIT 01
@@ -197,17 +208,18 @@ struct TapeHandler: public ClockingHint::Observer {
 		// f0 fc	BEQ 3cc
 		//
 		// Also check for BNE and BEQ the other way around.
+		static constexpr uint8_t bne_beq[] = {
+			0x24, 0x01, 0xd0, 0xfc, 0x24, 0x01, 0xf0, 0xfc
+		};
+		static constexpr uint8_t beq_bne[] = {
+			0x24, 0x01, 0xf0, 0xfc, 0x24, 0x01, 0xd0, 0xfc
+		};
+		const uint8_t *memory_begin = &map.write(pc - 2);	// TODO: formalise getting a block pointer on `map`.
 		if(
-			map.read(pc+1) == 0xfc &&
-			map.read(pc-2) == 0x24 && map.read(pc-1) == 0x01 &&
-			map.read(pc+2) == 0x24 && map.read(pc+3) == 0x01 &&
-			map.read(pc+5) == 0xfc &&
-			(
-				(map.read(pc) == 0xd0 && map.read(pc+4) == 0xf0) ||
-				(map.read(pc) == 0xf0 && map.read(pc+4) == 0xd0)
-			)
+			std::equal(std::begin(bne_beq), std::end(bne_beq), memory_begin) ||
+			std::equal(std::begin(beq_bne), std::end(bne_beq), memory_begin)
 		) {
-			return SkipRange{uint16_t(pc - 2), uint16_t(pc + 6)};
+			return AcceleratedRange{uint16_t(pc - 2), uint16_t(pc + 6)};
 		}
 
 		return std::nullopt;

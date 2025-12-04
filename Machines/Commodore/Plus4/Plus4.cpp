@@ -248,7 +248,7 @@ public:
 		advance_timers_and_tape(length);
 		if(operation != CPU::MOS6502Mk2::BusOperation::Ready && skip_range_) {
 			if(
-				tape_handler_.tape_player().is_at_end() ||
+				!tape_handler_.apply_accelerated_range() ||
 				(
 					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
 					(address < skip_range_->low || address >= skip_range_->high)
@@ -291,11 +291,11 @@ public:
 				} else {
 					value = io_input();
 
-					if(!skip_range_ && tape_handler_.allow_fast_tape_hack()) {
+					if(!skip_range_ && tape_handler_.apply_accelerated_range()) {
 						const auto pc = m6502_.registers().pc;
 						const auto a = m6502_.registers().a;
 						if(a == 0x10) {
-							skip_range_ = tape_handler_.skip_range(pc.full, m6502_, map_);
+							skip_range_ = tape_handler_.accelerated_range(pc.full, m6502_, map_);
 						}
 					}
 				}
@@ -317,8 +317,8 @@ public:
 				value = map_.read(address);
 
 				if(
-					tape_handler_.use_fast_tape_hack() &&
 					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
+					tape_handler_.test_rom_trap() &&
 					address == TapeHandler::ROMTrapAddress &&
 					tape_handler_.perform_ldcass(m6502_, map_)
 				) {
@@ -698,7 +698,7 @@ private:
 		tape_handler_.run_for(length);
 	}
 	TapeHandler tape_handler_;
-	std::optional<SkipRange> skip_range_;
+	std::optional<AcceleratedRange> skip_range_;
 
 	uint8_t io_direction_ = 0x00, io_output_ = 0x00;
 	uint8_t io_input() const {
@@ -730,7 +730,7 @@ private:
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 		options->output = get_video_signal_configurable();
-		options->quick_load = tape_handler_.allow_fast_tape_hack();
+		options->quick_load = tape_handler_.allow_accelerated_tape_loading();
 		return options;
 	}
 
@@ -738,7 +738,7 @@ private:
 		const auto options = dynamic_cast<Options *>(str.get());
 
 		set_video_signal_configurable(options->output);
-		tape_handler_.set_allow_fast_tape_hack(options->quick_load);
+		tape_handler_.set_allow_accelerated_tape_loading(options->quick_load);
 	}
 };
 }
