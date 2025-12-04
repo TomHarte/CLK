@@ -8,6 +8,8 @@
 
 #include "ZX8081.hpp"
 
+#include <optional>
+
 using namespace Storage::Data::ZX8081;
 
 namespace {

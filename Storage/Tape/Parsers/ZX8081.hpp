@@ -12,6 +12,7 @@
 
 #include "Storage/Data/ZX8081.hpp"
 
+#include <optional>
 #include <string>
 #include <vector>
 #include <cstdint>

@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <optional>
 
 namespace {
 using Logger = Log::Logger<Log::Source::Vic20>;

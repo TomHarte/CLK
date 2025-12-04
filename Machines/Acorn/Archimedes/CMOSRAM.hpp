@@ -12,6 +12,7 @@
 #include "Outputs/Log.hpp"
 
 #include <array>
+#include <optional>
 
 namespace Archimedes {
 
