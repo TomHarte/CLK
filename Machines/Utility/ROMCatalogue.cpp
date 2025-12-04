@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <iomanip>
 #include <locale>
+#include <optional>
 #include <sstream>
 
 using namespace ROM;

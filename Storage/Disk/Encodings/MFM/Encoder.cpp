@@ -14,7 +14,7 @@
 #include "Numeric/BitSpread.hpp"
 
 #include <cassert>
-#include <set>
+#include <optional>
 
 using namespace Storage::Encodings::MFM;
 
