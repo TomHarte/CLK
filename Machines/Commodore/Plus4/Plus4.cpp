@@ -34,6 +34,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <vector>
 
 using namespace Commodore;

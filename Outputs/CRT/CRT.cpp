@@ -14,6 +14,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstdarg>
+#include <optional>
 
 using namespace Outputs::CRT;
 using Logger = Log::Logger<Log::Source::CRT>;

@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <optional>
 
 using namespace Storage::Disk;
 
