@@ -132,10 +132,10 @@ struct TapeHandler: public ClockingHint::Observer {
 		Storage::Tape::Commodore::Parser parser(TargetPlatform::Plus4);
 		const auto start_offset = tape_player_->serialiser()->offset();
 		const auto header = parser.get_next_header(*tape_player_->serialiser());
-		if(header) {
+		if(header && header->parity_was_valid) {
 			const auto body = parser.get_next_data(*tape_player_->serialiser());
 
-			if(body) {
+			if(body && body->parity_was_valid) {
 				// Copy header into place.
 				// TODO: probably unsafe.
 				header->serialise(&map.write(0x0333), 65536 - 0x0333);

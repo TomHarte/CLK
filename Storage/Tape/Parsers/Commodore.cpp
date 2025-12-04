@@ -152,11 +152,11 @@ std::unique_ptr<Data> Parser::get_next_data_body(Storage::Tape::TapeSerialiser &
 	}
 
 	// the above has read the parity byte to the end of the data; if it matched the calculated parity it'll now be zero
-	data->parity_was_valid = !get_parity_byte();
+	data->parity_was_valid = !data->data.empty() && !get_parity_byte();
 	data->duplicate_matched = false;
 
 	// remove the captured parity
-	data->data.erase(data->data.end()-1);
+	if(!data->data.empty()) data->data.erase(data->data.end()-1);
 	if(get_error_flag()) return nullptr;
 	return data;
 }
