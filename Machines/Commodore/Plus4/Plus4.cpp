@@ -247,6 +247,12 @@ public:
 
 		// Update other subsystems.
 		advance_timers_and_tape(length);
+
+		// Requiring a non-ready cycle here does two things:
+		//
+		//	(1) avoids a race condition where skip_range_ is populated just before hitting a ready cycle,
+		//		and thereby the CPU can never escape the ready period; and
+		//	(2) providing more real time, periodically, during tape loading.
 		if(operation != CPU::MOS6502Mk2::BusOperation::Ready && skip_range_) [[unlikely]] {
 			if(
 				!tape_handler_.apply_accelerated_range() ||
