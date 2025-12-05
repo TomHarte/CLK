@@ -125,11 +125,14 @@ uint8_t Header::type_descriptor() const {
 	}
 }
 
-void Header::serialise(uint8_t *target, [[maybe_unused]] uint16_t length) const {
+void Header::serialise(uint8_t *target, uint16_t length) const {
 	target[0] = type_descriptor();
-
-	// TODO: validate length.
-	std::memcpy(&target[1], data.data(), 191);
+	const auto bytes_to_copy = std::min(size_t(length), data.size());
+	std::copy(
+		data.begin(),
+		data.begin() + ptrdiff_t(bytes_to_copy),
+		target
+	);
 }
 
 std::unique_ptr<Data> Parser::get_next_data_body(Storage::Tape::TapeSerialiser &serialiser, bool is_original) {
@@ -148,12 +151,12 @@ std::unique_ptr<Data> Parser::get_next_data_body(Storage::Tape::TapeSerialiser &
 		data->data.push_back(get_next_byte_contents(serialiser));
 	}
 
-	// the above has reead the parity byte to the end of the data; if it matched the calculated parity it'll now be zero
-	data->parity_was_valid = !get_parity_byte();
+	// the above has read the parity byte to the end of the data; if it matched the calculated parity it'll now be zero
+	data->parity_was_valid = !data->data.empty() && !get_parity_byte();
 	data->duplicate_matched = false;
 
 	// remove the captured parity
-	data->data.erase(data->data.end()-1);
+	if(!data->data.empty()) data->data.erase(data->data.end()-1);
 	if(get_error_flag()) return nullptr;
 	return data;
 }
@@ -232,6 +235,14 @@ uint16_t Parser::get_next_short(Storage::Tape::TapeSerialiser &serialiser) {
 	return value;
 }
 
+float Parser::expected_length(const WaveType type) {
+	const size_t index = size_t(type);
+	if(index >= 0 && index < timing_records_.size()) {
+		return  timing_records_[index].total / float(timing_records_[index].count);
+	}
+	return 0.0f;
+}
+
 /*!
 	Per the contract with Analyser::Static::TapeParser; sums time across pulses. If this pulse
 	indicates a high to low transition, inspects the time since the last transition, to produce
@@ -248,6 +259,16 @@ void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 	// medium: 480us	=>	0.000960s cycle
 	// long: 960us		=>	0.001920s cycle
 
+	const auto classify_as = [&](const WaveType type) {
+		push_wave(type);
+
+		const size_t index = size_t(type);
+		if(index >= 0 && index < timing_records_.size() && timing_records_[index].count < 10) {
+			++timing_records_[index].count;
+			timing_records_[index].total += wave_period_;
+		}
+	};
+
 	const bool is_high = pulse.type == Storage::Tape::Pulse::High;
 	if(!is_high && previous_was_high_) {
 		const bool is_plus4 = target_platform_ == TargetPlatform::Plus4;
@@ -261,11 +282,11 @@ void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 		const float medium_threshold = ((medium_ms + short_ms) * 0.5f) * to_s;
 		const float short_threshold = (short_ms * 0.5f) * to_s;
 
-		if(wave_period_ >= overlong_threshold)		push_wave(WaveType::Unrecognised);
-		else if(wave_period_ >= long_threshold)		push_wave(WaveType::Long);
-		else if(wave_period_ >= medium_threshold)	push_wave(WaveType::Medium);
-		else if(wave_period_ >= short_threshold)	push_wave(WaveType::Short);
-		else push_wave(WaveType::Unrecognised);
+		if(wave_period_ >= overlong_threshold)		classify_as(WaveType::Unrecognised);
+		else if(wave_period_ >= long_threshold)		classify_as(WaveType::Long);
+		else if(wave_period_ >= medium_threshold)	classify_as(WaveType::Medium);
+		else if(wave_period_ >= short_threshold)	classify_as(WaveType::Short);
+		else classify_as(WaveType::Unrecognised);
 
 		wave_period_ = 0.0f;
 	}

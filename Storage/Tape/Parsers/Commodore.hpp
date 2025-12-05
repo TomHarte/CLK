@@ -10,6 +10,8 @@
 
 #include "TapeParser.hpp"
 #include "Storage/TargetPlatforms.hpp"
+
+#include <array>
 #include <memory>
 #include <string>
 
@@ -72,6 +74,11 @@ public:
 	*/
 	std::unique_ptr<Data> get_next_data(Storage::Tape::TapeSerialiser &);
 
+	/*!
+		Returns an average length for encountered waves that were bucketed as the specified type.
+	*/
+	float expected_length(WaveType);
+
 private:
 	TargetPlatform::Type target_platform_;
 
@@ -123,9 +130,15 @@ private:
 		indicates a high to low transition, inspects the time since the last transition, to produce
 		a long, medium, short or unrecognised wave period.
 	*/
-	void process_pulse(const Storage::Tape::Pulse &pulse) override;
+	void process_pulse(const Storage::Tape::Pulse &) override;
 	bool previous_was_high_ = false;
 	float wave_period_ = 0.0f;
+
+	struct WaveTiming {
+		float total;
+		int count = 0;
+	};
+	std::array<WaveTiming, 5> timing_records_{};
 
 	/*!
 		Per the contract with Analyser::Static::TapeParser; produces any of a word marker, an end-of-block marker,

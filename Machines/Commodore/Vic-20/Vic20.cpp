@@ -551,6 +551,7 @@ public:
 
 					value = 0x0c;	// i.e. NOP abs, to swallow the entire JSR
 				} else if(address == 0xf90b) {
+					// second JSR in TAPE / LAB_F8F4.
 					auto registers = m6502_.registers();
 					if(registers.x == 0xe) {
 						Storage::Tape::Commodore::Parser parser(TargetPlatform::Vic20);
