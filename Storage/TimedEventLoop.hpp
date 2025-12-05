@@ -46,7 +46,7 @@ public:
 	/*!
 		Advances the event loop by @c number_of_cycles cycles.
 	*/
-	void run_for(const Cycles cycles);
+	void run_for(const Cycles);
 
 	/*!
 		@returns the number of whole cycles remaining until the next event is triggered.
@@ -69,8 +69,8 @@ protected:
 	/*!
 		Sets the time interval, as a proportion of a second, until the next event should be triggered.
 	*/
-	void set_next_event_time_interval(Time interval);
-	void set_next_event_time_interval(float interval);
+	void set_next_event_time_interval(Time);
+	void set_next_event_time_interval(float);
 
 	/*!
 		Communicates that the next event is triggered. A subclass will idiomatically process that event
