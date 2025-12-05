@@ -238,7 +238,7 @@ uint16_t Parser::get_next_short(Storage::Tape::TapeSerialiser &serialiser) {
 float Parser::expected_length(const WaveType type) {
 	const size_t index = size_t(type);
 	if(index >= 0 && index < timing_records_.size()) {
-		return  timing_records_[index].total / float(timing_records_[index].count);
+		return timing_records_[index].total / float(timing_records_[index].count);
 	}
 	return 0.0f;
 }
@@ -277,16 +277,22 @@ void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 		const float long_ms = is_plus4 ? 960.0f : 342.0f;
 
 		static constexpr float to_s = 2.0f / 1'000'000.0f;
-		const float overlong_threshold = (long_ms + long_ms - medium_ms) * to_s;
+		const float overlong_threshold = long_ms * 2.0f * to_s;
 		const float long_threshold = ((long_ms + medium_ms) * 0.5f) * to_s;
 		const float medium_threshold = ((medium_ms + short_ms) * 0.5f) * to_s;
 		const float short_threshold = (short_ms * 0.5f) * to_s;
 
-		if(wave_period_ >= overlong_threshold)		classify_as(WaveType::Unrecognised);
-		else if(wave_period_ >= long_threshold)		classify_as(WaveType::Long);
-		else if(wave_period_ >= medium_threshold)	classify_as(WaveType::Medium);
-		else if(wave_period_ >= short_threshold)	classify_as(WaveType::Short);
-		else classify_as(WaveType::Unrecognised);
+		if(wave_period_ >= overlong_threshold) {
+			classify_as(WaveType::Unrecognised);
+		} else if(wave_period_ >= long_threshold) {
+			classify_as(WaveType::Long);
+		} else if(wave_period_ >= medium_threshold) {
+			classify_as(WaveType::Medium);
+		} else if(wave_period_ >= short_threshold) {
+			classify_as(WaveType::Short);
+		} else {
+			classify_as(WaveType::Unrecognised);
+		}
 
 		wave_period_ = 0.0f;
 	}
