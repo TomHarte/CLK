@@ -89,6 +89,7 @@ struct TapeHandler: public ClockingHint::Observer {
 	// MARK: - Clocking.
 
 	void set_clock_rate(const int rate) {
+		clock_rate_ = rate;
 		tape_player_ = std::make_unique<Storage::Tape::BinaryTapePlayer>(rate);
 		tape_player_->set_clocking_hint_observer(this);
 	}
@@ -120,7 +121,7 @@ struct TapeHandler: public ClockingHint::Observer {
 	// MARK: - Loading accelerators.
 
 	template <typename M6502T, typename MemoryT>
-	bool perform_ldcass(M6502T &m6502, MemoryT &map) {
+	bool perform_ldcass(M6502T &m6502, MemoryT &map, const Cycles timer_cycle_length) {
 		// Imply an automatic motor start.
 		play_button_ = true;
 		update_tape_motor();
@@ -187,9 +188,19 @@ struct TapeHandler: public ClockingHint::Observer {
 				map.write(0x93) = 0;	// Load/verify flag: was load.
 
 				// Tape timing constants.
-				map.write(0x7ba) = 0x80;
-				map.write(0x7bb) = 0x02;
-				map.write(0x7bc) = 0x80;
+				using WaveType = Storage::Tape::Commodore::WaveType;
+				const float medium_length = parser.expected_length(WaveType::Medium);
+				const float short_length = parser.expected_length(WaveType::Short);
+
+				const float timer_ticks_per_second = float(clock_rate_) / float(timer_cycle_length.as<int>());
+				const auto medium_cutoff = uint16_t((medium_length * timer_ticks_per_second) * 0.75f);
+				const auto short_cutoff = uint16_t((short_length * timer_ticks_per_second) * 0.75f);
+
+				map.write(0x7b8) = uint8_t(short_cutoff);
+				map.write(0x7b9) = uint8_t(short_cutoff >> 8);
+
+				map.write(0x7bc) = map.write(0x7ba) = uint8_t(medium_cutoff);
+				map.write(0x7bd) = map.write(0x7bb) = uint8_t(medium_cutoff >> 8);
 
 				m6502.set_registers(registers);
 				return true;
@@ -228,6 +239,8 @@ struct TapeHandler: public ClockingHint::Observer {
 	}
 
 private:
+	int clock_rate_ = 0;
+
 	std::unique_ptr<Storage::Tape::BinaryTapePlayer> tape_player_;
 	bool play_button_ = false;
 
