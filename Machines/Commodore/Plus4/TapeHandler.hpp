@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Processors/6502Mk2/6502Mk2.hpp"
+#include "Storage/Data/Commodore.hpp"
 #include "Storage/Tape/Tape.hpp"
 #include "Storage/Tape/Parsers/Commodore.hpp"
 
@@ -120,8 +121,8 @@ struct TapeHandler: public ClockingHint::Observer {
 
 	// MARK: - Loading accelerators.
 
-	template <typename M6502T, typename MemoryT>
-	bool perform_ldcass(M6502T &m6502, MemoryT &map, const Cycles timer_cycle_length) {
+	template <typename M6502T>
+	bool perform_ldcass(M6502T &m6502, std::array<uint8_t, 65536> &ram, const Cycles timer_cycle_length) {
 		// Imply an automatic motor start.
 		play_button_ = true;
 		update_tape_motor();
@@ -137,13 +138,17 @@ struct TapeHandler: public ClockingHint::Observer {
 
 		auto registers = m6502.registers();
 
-		// TODO: check byte at 0xab for a potential filename length; if set then get
-		// filename... from somewhere?
-		const uint8_t name_length = map.read(0xab);
+		// Check for a filename.
+		std::vector<uint8_t> raw_name;
+		const uint8_t name_length = ram[0xab];
 		if(name_length) {
-			printf("Name: ??? [%d bytes]\n", name_length);
+			const uint16_t address = uint16_t(ram[0xaf] | (ram[0xb0] << 8));
+			for(uint16_t c = 0; c < name_length; c++) {
+				raw_name.push_back(ram[address + c]);
+			}
 		}
 
+		// TODO: search for file matching raw_name.
 		Storage::Tape::Commodore::Parser parser(TargetPlatform::Plus4);
 		const auto start_offset = tape_player_->serialiser()->offset();
 		const auto header = parser.get_next_header(*tape_player_->serialiser());
@@ -152,40 +157,39 @@ struct TapeHandler: public ClockingHint::Observer {
 
 			if(body && body->parity_was_valid) {
 				// Copy header into place.
-				// TODO: probably unsafe.
-				header->serialise(&map.write(0x0333), 65536 - 0x0333);
+				header->serialise(&ram[0x0333], 65536 - 0x0333);
 
 				// Set block type; 0x00 = data body.
-				map.write(0xf8) = 0;
+				ram[0xf8] = 0;
 
 				// TODO: F5 = checksum.
 
 				auto load_address =
-					map.read(0xad) ? header->starting_address : uint16_t((registers.y << 8) | registers.x);
+					ram[0xad] ? header->starting_address : uint16_t((registers.y << 8) | registers.x);
 
 				// Set 'load ram base', 'sta' and 'tapebs'.
-				map.write(0xb2) = map.write(0xb4) = map.write(0xb6) = load_address & 0xff;
-				map.write(0xb3) = map.write(0xb5) = map.write(0xb7) = load_address >> 8;
+				ram[0xb2] = ram[0xb4] = ram[0xb6] = load_address & 0xff;
+				ram[0xb3] = ram[0xb5] = ram[0xb7] = load_address >> 8;
 
 				for(const auto byte: body->data) {
-					map.write(load_address) = byte;
+					ram[load_address] = byte;
 					++load_address;
 				}
 
 				// Set final tape byte.
-				map.write(0xa7) = body->data.back();
+				ram[0xa7] = body->data.back();
 
 				// Set 'ea' pointer.
-				map.write(0x9d) = load_address & 0xff;
-				map.write(0x9e) = load_address >> 8;
+				ram[0x9d] = load_address & 0xff;
+				ram[0x9e] = load_address >> 8;
 
 				registers.a = 0xa2;
 				registers.x = load_address & 0xff;
 				registers.y = load_address >> 8;
 				registers.flags.template set_per<CPU::MOS6502Mk2::Flag::Carry>(0);	// C = 0 => success.
 
-				map.write(0x90) = 0;	// IO status: no error.
-				map.write(0x93) = 0;	// Load/verify flag: was load.
+				ram[0x90] = 0;	// IO status: no error.
+				ram[0x93] = 0;	// Load/verify flag: was load.
 
 				// Tape timing constants.
 				using WaveType = Storage::Tape::Commodore::WaveType;
@@ -196,11 +200,11 @@ struct TapeHandler: public ClockingHint::Observer {
 				const auto medium_cutoff = uint16_t((medium_length * timer_ticks_per_second) * 0.75f);
 				const auto short_cutoff = uint16_t((short_length * timer_ticks_per_second) * 0.75f);
 
-				map.write(0x7b8) = uint8_t(short_cutoff);
-				map.write(0x7b9) = uint8_t(short_cutoff >> 8);
+				ram[0x7b8] = uint8_t(short_cutoff);
+				ram[0x7b9] = uint8_t(short_cutoff >> 8);
 
-				map.write(0x7bc) = map.write(0x7ba) = uint8_t(medium_cutoff);
-				map.write(0x7bd) = map.write(0x7bb) = uint8_t(medium_cutoff >> 8);
+				ram[0x7bc] = ram[0x7ba] = uint8_t(medium_cutoff);
+				ram[0x7bd] = ram[0x7bb] = uint8_t(medium_cutoff >> 8);
 
 				m6502.set_registers(registers);
 				return true;

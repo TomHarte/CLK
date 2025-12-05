@@ -327,7 +327,7 @@ public:
 					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
 					tape_handler_.test_rom_trap() &&
 					address == TapeHandler::ROMTrapAddress &&
-					tape_handler_.perform_ldcass(m6502_, map_, video_.timer_cycle_length())
+					tape_handler_.perform_ldcass(m6502_, ram_, video_.timer_cycle_length())
 				) {
 					value = 0x60;
 				}
