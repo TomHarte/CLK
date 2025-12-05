@@ -8,10 +8,14 @@
 
 #include "Commodore.hpp"
 
-std::wstring Storage::Data::Commodore::petscii_from_bytes(const uint8_t *string, int length, bool shifted) {
+std::wstring Storage::Data::Commodore::petscii_from_bytes(
+	const uint8_t *const string,
+	const int length,
+	const bool shifted
+) {
 	std::wstring result;
 
-	wchar_t unshifted_characters[256] = {
+	static constexpr wchar_t unshifted_characters[256] = {
 		u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u000d', u'\u0000', u'\u0000',
 		u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0008', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000',
 		u'\u0020', u'\u0021', u'\u0022', u'\u0023', u'\u0024', u'\u0025', u'\u0026', u'\u0027', u'\u0028', u'\u0029', u'\u002a', u'\u002b', u'\u002c', u'\u002d', u'\u002e', u'\u002f',
@@ -30,7 +34,7 @@ std::wstring Storage::Data::Commodore::petscii_from_bytes(const uint8_t *string,
 		u'\u250c', u'\u2534', u'\u252c', u'\u2524', u'\u258e', u'\u258d', u'\ufffd', u'\ufffd', u'\ufffd', u'\u2583', u'\ufffd', u'\u2596', u'\u259d', u'\u2518', u'\u2598', u'\u03c0'
 	};
 
-	wchar_t shifted_characters[256] = {
+	static constexpr wchar_t shifted_characters[256] = {
 		u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u000d', u'\u0000', u'\u0000',
 		u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0008', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000', u'\u0000',
 		u'\u0020', u'\u0021', u'\u0022', u'\u0023', u'\u0024', u'\u0025', u'\u0026', u'\u0027', u'\u0028', u'\u0029', u'\u002a', u'\u002b', u'\u002c', u'\u002d', u'\u002e', u'\u002f',
@@ -49,9 +53,9 @@ std::wstring Storage::Data::Commodore::petscii_from_bytes(const uint8_t *string,
 		u'\u250c', u'\u2534', u'\u252c', u'\u2524', u'\u258e', u'\u258d', u'\ufffd', u'\ufffd', u'\ufffd', u'\u2583', u'\u2713', u'\u2596', u'\u259d', u'\u2518', u'\u2598', u'\u2592'
 	};
 
-	wchar_t *table = shifted ? shifted_characters : unshifted_characters;
+	const wchar_t *const table = shifted ? shifted_characters : unshifted_characters;
 	for(int c = 0; c < length; c++) {
-		wchar_t next_character = table[string[c]];
+		const wchar_t next_character = table[string[c]];
 		if(next_character) result.push_back(next_character);
 	}
 
