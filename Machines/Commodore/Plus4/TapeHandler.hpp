@@ -155,75 +155,90 @@ struct TapeHandler: public ClockingHint::Observer {
 			}
 		}
 
-		// TODO: search for file matching raw_name.
-		Storage::Tape::Commodore::Parser parser(TargetPlatform::Plus4);
 		const auto start_offset = tape_player_->serialiser()->offset();
-		const auto header = parser.get_next_header(*tape_player_->serialiser());
-		if(header && header->parity_was_valid) {
-			const auto body = parser.get_next_data(*tape_player_->serialiser());
+		const auto abort = [&]() {
+			tape_player_->serialiser()->set_offset(start_offset);
+			return false;
+		};
 
-			if(body && body->parity_was_valid) {
-				// Copy header into place.
-				header->serialise(&ram[HeaderBuffer], uint16_t(ram.size() - HeaderBuffer));
+		// Search for first thing that matches the file name.
+		Storage::Tape::Commodore::Parser parser(TargetPlatform::Plus4);
+		auto &serialiser = *tape_player_->serialiser();
+		std::unique_ptr<Storage::Tape::Commodore::Header> header;
+		while(true) {
+			if(parser.is_at_end(serialiser)) {
+				return abort();
+			}
 
-				// Set block type; 0x00 = data body.
-				ram[TapeBlockType] = 0;
-
-				// TODO: F5 = checksum.
-
-				auto load_address =
-					ram[SecondAddressFlag] ? header->starting_address : uint16_t((registers.y << 8) | registers.x);
-
-				// Set 'load ram base', 'sta' and 'tapebs'.
-				ram[0xb2] = ram[0xb4] = ram[0xb6] = load_address & 0xff;
-				ram[0xb3] = ram[0xb5] = ram[0xb7] = load_address >> 8;
-
-				if(load_address + body->data.size() < 65536) {
-					std::copy(body->data.begin(), body->data.end(), &ram[load_address]);
-				} else {
-					const auto split_point = body->data.begin() + 65536 - load_address;
-					std::copy(body->data.begin(), split_point, &ram[load_address]);
-					std::copy(split_point, body->data.end(), &ram[0]);
+			header = parser.get_next_header(serialiser);
+			if(header && header->parity_was_valid) {
+				if(raw_name.empty() || raw_name == header->raw_name) {
+					break;
 				}
-				load_address += body->data.size();
-
-				// Set final tape byte.
-				ram[0xa7] = body->data.back();
-
-				// Set 'ea' pointer.
-				ram[0x9d] = load_address & 0xff;
-				ram[0x9e] = load_address >> 8;
-
-				registers.a = 0xa2;
-				registers.x = load_address & 0xff;
-				registers.y = load_address >> 8;
-				registers.flags.template set_per<CPU::MOS6502Mk2::Flag::Carry>(0);	// C = 0 => success.
-
-				ram[0x90] = 0;	// IO status: no error.
-				ram[0x93] = 0;	// Load/verify flag: was load.
-
-				// Tape timing constants.
-				using WaveType = Storage::Tape::Commodore::WaveType;
-				const float medium_length = parser.expected_length(WaveType::Medium);
-				const float short_length = parser.expected_length(WaveType::Short);
-
-				const float timer_ticks_per_second = float(clock_rate_) / float(timer_cycle_length.as<int>());
-				const auto medium_cutoff = uint16_t((medium_length * timer_ticks_per_second) * 0.75f);
-				const auto short_cutoff = uint16_t((short_length * timer_ticks_per_second) * 0.75f);
-
-				ram[0x7b8] = uint8_t(short_cutoff);
-				ram[0x7b9] = uint8_t(short_cutoff >> 8);
-
-				ram[0x7bc] = ram[0x7ba] = uint8_t(medium_cutoff);
-				ram[0x7bd] = ram[0x7bb] = uint8_t(medium_cutoff >> 8);
-
-				m6502.set_registers(registers);
-				return true;
 			}
 		}
 
-		tape_player_->serialiser()->set_offset(start_offset);
-		return false;
+		const auto body = parser.get_next_data(*tape_player_->serialiser());
+		if(!body || !body->parity_was_valid) {
+			return abort();
+		}
+
+		// Copy header into place.
+		header->serialise(&ram[HeaderBuffer], uint16_t(ram.size() - HeaderBuffer));
+
+		// Set block type; 0x00 = data body.
+		ram[TapeBlockType] = 0;
+
+		// TODO: F5 = checksum.
+
+		auto load_address =
+			ram[SecondAddressFlag] ? header->starting_address : uint16_t((registers.y << 8) | registers.x);
+
+		// Set 'load ram base', 'sta' and 'tapebs'.
+		ram[0xb2] = ram[0xb4] = ram[0xb6] = load_address & 0xff;
+		ram[0xb3] = ram[0xb5] = ram[0xb7] = load_address >> 8;
+
+		if(load_address + body->data.size() < 65536) {
+			std::copy(body->data.begin(), body->data.end(), &ram[load_address]);
+		} else {
+			const auto split_point = body->data.begin() + 65536 - load_address;
+			std::copy(body->data.begin(), split_point, &ram[load_address]);
+			std::copy(split_point, body->data.end(), &ram[0]);
+		}
+		load_address += body->data.size();
+
+		// Set final tape byte.
+		ram[0xa7] = body->data.back();
+
+		// Set 'ea' pointer.
+		ram[0x9d] = load_address & 0xff;
+		ram[0x9e] = load_address >> 8;
+
+		registers.a = 0xa2;
+		registers.x = load_address & 0xff;
+		registers.y = load_address >> 8;
+		registers.flags.template set_per<CPU::MOS6502Mk2::Flag::Carry>(0);	// C = 0 => success.
+
+		ram[0x90] = 0;	// IO status: no error.
+		ram[0x93] = 0;	// Load/verify flag: was load.
+
+		// Tape timing constants.
+		using WaveType = Storage::Tape::Commodore::WaveType;
+		const float medium_length = parser.expected_length(WaveType::Medium);
+		const float short_length = parser.expected_length(WaveType::Short);
+
+		const float timer_ticks_per_second = float(clock_rate_) / float(timer_cycle_length.as<int>());
+		const auto medium_cutoff = uint16_t((medium_length * timer_ticks_per_second) * 0.75f);
+		const auto short_cutoff = uint16_t((short_length * timer_ticks_per_second) * 0.75f);
+
+		ram[0x7b8] = uint8_t(short_cutoff);
+		ram[0x7b9] = uint8_t(short_cutoff >> 8);
+
+		ram[0x7bc] = ram[0x7ba] = uint8_t(medium_cutoff);
+		ram[0x7bd] = ram[0x7bb] = uint8_t(medium_cutoff >> 8);
+
+		m6502.set_registers(registers);
+		return true;
 	}
 
 	template <typename M6502T, typename MemoryT>
