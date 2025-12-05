@@ -235,6 +235,14 @@ uint16_t Parser::get_next_short(Storage::Tape::TapeSerialiser &serialiser) {
 	return value;
 }
 
+float Parser::expected_length(const WaveType type) {
+	const size_t index = size_t(type);
+	if(index >= 0 && index < timing_records_.size()) {
+		return  timing_records_[index].total / float(timing_records_[index].count);
+	}
+	return 0.0f;
+}
+
 /*!
 	Per the contract with Analyser::Static::TapeParser; sums time across pulses. If this pulse
 	indicates a high to low transition, inspects the time since the last transition, to produce
@@ -251,6 +259,16 @@ void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 	// medium: 480us	=>	0.000960s cycle
 	// long: 960us		=>	0.001920s cycle
 
+	const auto classify_as = [&](const WaveType type) {
+		push_wave(type);
+
+		const size_t index = size_t(type);
+		if(index >= 0 && index < timing_records_.size() && timing_records_[index].count < 10) {
+			++timing_records_[index].count;
+			timing_records_[index].total += wave_period_;
+		}
+	};
+
 	const bool is_high = pulse.type == Storage::Tape::Pulse::High;
 	if(!is_high && previous_was_high_) {
 		const bool is_plus4 = target_platform_ == TargetPlatform::Plus4;
@@ -264,11 +282,11 @@ void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 		const float medium_threshold = ((medium_ms + short_ms) * 0.5f) * to_s;
 		const float short_threshold = (short_ms * 0.5f) * to_s;
 
-		if(wave_period_ >= overlong_threshold)		push_wave(WaveType::Unrecognised);
-		else if(wave_period_ >= long_threshold)		push_wave(WaveType::Long);
-		else if(wave_period_ >= medium_threshold)	push_wave(WaveType::Medium);
-		else if(wave_period_ >= short_threshold)	push_wave(WaveType::Short);
-		else push_wave(WaveType::Unrecognised);
+		if(wave_period_ >= overlong_threshold)		classify_as(WaveType::Unrecognised);
+		else if(wave_period_ >= long_threshold)		classify_as(WaveType::Long);
+		else if(wave_period_ >= medium_threshold)	classify_as(WaveType::Medium);
+		else if(wave_period_ >= short_threshold)	classify_as(WaveType::Short);
+		else classify_as(WaveType::Unrecognised);
 
 		wave_period_ = 0.0f;
 	}
