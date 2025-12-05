@@ -135,7 +135,7 @@ void Header::serialise(uint8_t *target, uint16_t length) const {
 	);
 }
 
-std::unique_ptr<Data> Parser::get_next_data_body(Storage::Tape::TapeSerialiser &serialiser, bool is_original) {
+std::unique_ptr<Data> Parser::get_next_data_body(Storage::Tape::TapeSerialiser &serialiser, const bool is_original) {
 	auto data = std::make_unique<Data>();
 	reset_error_flag();
 
