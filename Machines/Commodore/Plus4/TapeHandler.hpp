@@ -123,6 +123,13 @@ struct TapeHandler: public ClockingHint::Observer {
 
 	template <typename M6502T>
 	bool perform_ldcass(M6502T &m6502, std::array<uint8_t, 65536> &ram, const Cycles timer_cycle_length) {
+		// Magic constants.
+		static constexpr uint16_t FileNameLength = 0xab;
+		static constexpr uint16_t FileNameAddress = 0xaf;
+		static constexpr uint16_t TapeBlockType = 0xf8;
+		static constexpr uint16_t SecondAddressFlag = 0xad;
+		static constexpr uint16_t HeaderBuffer = 0x0333;
+
 		// Imply an automatic motor start.
 		play_button_ = true;
 		update_tape_motor();
@@ -140,9 +147,9 @@ struct TapeHandler: public ClockingHint::Observer {
 
 		// Check for a filename.
 		std::vector<uint8_t> raw_name;
-		const uint8_t name_length = ram[0xab];
+		const uint8_t name_length = ram[FileNameLength];
 		if(name_length) {
-			const uint16_t address = uint16_t(ram[0xaf] | (ram[0xb0] << 8));
+			const uint16_t address = uint16_t(ram[FileNameAddress] | (ram[FileNameAddress + 1] << 8));
 			for(uint16_t c = 0; c < name_length; c++) {
 				raw_name.push_back(ram[address + c]);
 			}
@@ -157,24 +164,28 @@ struct TapeHandler: public ClockingHint::Observer {
 
 			if(body && body->parity_was_valid) {
 				// Copy header into place.
-				header->serialise(&ram[0x0333], 65536 - 0x0333);
+				header->serialise(&ram[HeaderBuffer], uint16_t(ram.size() - HeaderBuffer));
 
 				// Set block type; 0x00 = data body.
-				ram[0xf8] = 0;
+				ram[TapeBlockType] = 0;
 
 				// TODO: F5 = checksum.
 
 				auto load_address =
-					ram[0xad] ? header->starting_address : uint16_t((registers.y << 8) | registers.x);
+					ram[SecondAddressFlag] ? header->starting_address : uint16_t((registers.y << 8) | registers.x);
 
 				// Set 'load ram base', 'sta' and 'tapebs'.
 				ram[0xb2] = ram[0xb4] = ram[0xb6] = load_address & 0xff;
 				ram[0xb3] = ram[0xb5] = ram[0xb7] = load_address >> 8;
 
-				for(const auto byte: body->data) {
-					ram[load_address] = byte;
-					++load_address;
+				if(load_address + body->data.size() < 65536) {
+					std::copy(body->data.begin(), body->data.end(), &ram[load_address]);
+				} else {
+					const auto split_point = body->data.begin() + 65536 - load_address;
+					std::copy(body->data.begin(), split_point, &ram[load_address]);
+					std::copy(split_point, body->data.end(), &ram[0]);
 				}
+				load_address += body->data.size();
 
 				// Set final tape byte.
 				ram[0xa7] = body->data.back();
