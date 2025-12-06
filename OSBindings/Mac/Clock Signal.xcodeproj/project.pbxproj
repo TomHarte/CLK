@@ -1809,6 +1809,7 @@
 		4B8671EC2D99BE2C009E1610 /* MachineStatus.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MachineStatus.hpp; sourceTree = "<group>"; };
 		4B86E2591F8C628F006FAA45 /* Keyboard.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
 		4B86E25A1F8C628F006FAA45 /* Keyboard.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
+		4B87C8DC2EE07C46000BDF3E /* TapeHandler.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TapeHandler.hpp; sourceTree = "<group>"; };
 		4B8805EE1DCFC99C003085B1 /* Acorn.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Acorn.cpp; path = Parsers/Acorn.cpp; sourceTree = "<group>"; };
 		4B8805EF1DCFC99C003085B1 /* Acorn.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Acorn.hpp; path = Parsers/Acorn.hpp; sourceTree = "<group>"; };
 		4B8805F21DCFD22A003085B1 /* Commodore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Commodore.cpp; path = Parsers/Commodore.cpp; sourceTree = "<group>"; };
@@ -3547,12 +3548,13 @@
 			children = (
 				4B8058022D0D0B55007EAD46 /* Keyboard.cpp */,
 				4B596EB02D037E8800FBF4B1 /* Plus4.cpp */,
+				4B8058062D23902B007EAD46 /* Audio.hpp */,
 				4B0329222D0BD32500C51EB5 /* Interrupts.hpp */,
 				4B8058012D0D0B55007EAD46 /* Keyboard.hpp */,
 				4B0329212D0A8C4700C51EB5 /* Pager.hpp */,
 				4B596EAF2D037E8800FBF4B1 /* Plus4.hpp */,
+				4B87C8DC2EE07C46000BDF3E /* TapeHandler.hpp */,
 				4B03291F2D0923E300C51EB5 /* Video.hpp */,
-				4B8058062D23902B007EAD46 /* Audio.hpp */,
 			);
 			path = Plus4;
 			sourceTree = "<group>";

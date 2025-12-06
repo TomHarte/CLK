@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <optional>
 #include <unordered_set>
 
 namespace {

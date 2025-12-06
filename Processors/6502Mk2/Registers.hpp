@@ -168,6 +168,9 @@ struct Flags {
 	auto operator <=> (const Flags &rhs) const {
 		return static_cast<uint8_t>(*this) <=> static_cast<uint8_t>(rhs);
 	}
+	auto operator ==(const Flags &rhs) const {
+		return static_cast<uint8_t>(*this) == static_cast<uint8_t>(rhs);
+	}
 
 private:
 	uint8_t overflow = 0;			/// Contains Flag::Overflow.

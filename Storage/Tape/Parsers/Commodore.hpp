@@ -10,6 +10,8 @@
 
 #include "TapeParser.hpp"
 #include "Storage/TargetPlatforms.hpp"
+
+#include <array>
 #include <memory>
 #include <string>
 
@@ -72,6 +74,11 @@ public:
 	*/
 	std::unique_ptr<Data> get_next_data(Storage::Tape::TapeSerialiser &);
 
+	/*!
+		Returns an average length for encountered waves that were bucketed as the specified type.
+	*/
+	float expected_length(WaveType) const;
+
 private:
 	TargetPlatform::Type target_platform_;
 
@@ -98,8 +105,8 @@ private:
 
 	uint8_t parity_byte_ = 0;
 	void reset_parity_byte();
-	uint8_t get_parity_byte();
-	void add_parity_byte(uint8_t byte);
+	uint8_t get_parity_byte() const;
+	void add_parity_byte(uint8_t);
 
 	/*!
 		Proceeds to the next word marker then returns the result of @c get_next_byte_contents.
@@ -123,15 +130,21 @@ private:
 		indicates a high to low transition, inspects the time since the last transition, to produce
 		a long, medium, short or unrecognised wave period.
 	*/
-	void process_pulse(const Storage::Tape::Pulse &pulse) override;
+	void process_pulse(const Storage::Tape::Pulse &) override;
 	bool previous_was_high_ = false;
 	float wave_period_ = 0.0f;
+
+	struct WaveTiming {
+		float total;
+		int count = 0;
+	};
+	std::array<WaveTiming, 5> timing_records_{};
 
 	/*!
 		Per the contract with Analyser::Static::TapeParser; produces any of a word marker, an end-of-block marker,
 		a zero, a one or a lead-in symbol based on the currently captured waves.
 	*/
-	void inspect_waves(const std::vector<WaveType> &waves) override;
+	void inspect_waves(const std::vector<WaveType> &) override;
 };
 
 }

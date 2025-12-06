@@ -8,12 +8,12 @@
 
 #include "Commodore.hpp"
 
-#include <cstring>
+#include <algorithm>
 #include "Storage/Data/Commodore.hpp"
 
 using namespace Storage::Tape::Commodore;
 
-Parser::Parser(TargetPlatform::Type target_platform) :
+Parser::Parser(const TargetPlatform::Type target_platform) :
 	Storage::Tape::PulseClassificationParser<WaveType, SymbolType>(),
 	target_platform_(target_platform) {}
 
@@ -48,14 +48,14 @@ std::unique_ptr<ObjectType> Parser::duplicate_match(
 	std::unique_ptr<ObjectType> first_copy,
 	std::unique_ptr<ObjectType> second_copy
 ) {
-	// if only one copy was parsed successfully, return it
+	// If only one copy was parsed successfully, return it.
 	if(!first_copy) return second_copy;
 	if(!second_copy) return first_copy;
 
-	// if no copies were second_copy, return nullptr
+	// If no copies were second_copy, return nullptr.
 	if(!first_copy && !second_copy) return nullptr;
 
-	// otherwise plan to return either one with a correct check digit, doing a comparison with the other
+	// Return either one with a correct check digit, doing a comparison with the other.
 	std::unique_ptr<ObjectType> *copy_to_return = &first_copy;
 	if(!first_copy->parity_was_valid && second_copy->parity_was_valid) copy_to_return = &second_copy;
 
@@ -63,12 +63,16 @@ std::unique_ptr<ObjectType> Parser::duplicate_match(
 	if(first_copy->data.size() != second_copy->data.size())
 		(*copy_to_return)->duplicate_matched = false;
 	else
-		(*copy_to_return)->duplicate_matched = !(memcmp(&first_copy->data[0], &second_copy->data[0], first_copy->data.size()));
+		(*copy_to_return)->duplicate_matched =
+			std::equal(first_copy->data.begin(), first_copy->data.end(), second_copy->data.begin());
 
 	return std::move(*copy_to_return);
 }
 
-std::unique_ptr<Header> Parser::get_next_header_body(Storage::Tape::TapeSerialiser &serialiser, bool is_original) {
+std::unique_ptr<Header> Parser::get_next_header_body(
+	Storage::Tape::TapeSerialiser &serialiser,
+	const bool is_original
+) {
 	auto header = std::make_unique<Header>();
 	reset_error_flag();
 
@@ -125,14 +129,17 @@ uint8_t Header::type_descriptor() const {
 	}
 }
 
-void Header::serialise(uint8_t *target, [[maybe_unused]] uint16_t length) const {
+void Header::serialise(uint8_t *const target, const uint16_t length) const {
 	target[0] = type_descriptor();
-
-	// TODO: validate length.
-	std::memcpy(&target[1], data.data(), 191);
+	const auto bytes_to_copy = std::min(size_t(length), data.size());
+	std::copy(
+		data.begin(),
+		data.begin() + ptrdiff_t(bytes_to_copy),
+		target
+	);
 }
 
-std::unique_ptr<Data> Parser::get_next_data_body(Storage::Tape::TapeSerialiser &serialiser, bool is_original) {
+std::unique_ptr<Data> Parser::get_next_data_body(Storage::Tape::TapeSerialiser &serialiser, const bool is_original) {
 	auto data = std::make_unique<Data>();
 	reset_error_flag();
 
@@ -148,12 +155,12 @@ std::unique_ptr<Data> Parser::get_next_data_body(Storage::Tape::TapeSerialiser &
 		data->data.push_back(get_next_byte_contents(serialiser));
 	}
 
-	// the above has reead the parity byte to the end of the data; if it matched the calculated parity it'll now be zero
-	data->parity_was_valid = !get_parity_byte();
+	// the above has read the parity byte to the end of the data; if it matched the calculated parity it'll now be zero
+	data->parity_was_valid = !data->data.empty() && !get_parity_byte();
 	data->duplicate_matched = false;
 
 	// remove the captured parity
-	data->data.erase(data->data.end()-1);
+	if(!data->data.empty()) data->data.erase(data->data.end()-1);
 	if(get_error_flag()) return nullptr;
 	return data;
 }
@@ -161,14 +168,14 @@ std::unique_ptr<Data> Parser::get_next_data_body(Storage::Tape::TapeSerialiser &
 /*!
 	Finds and completes the next landing zone.
 */
-void Parser::proceed_to_landing_zone(Storage::Tape::TapeSerialiser &serialiser, bool is_original) {
-	uint8_t landing_zone[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+void Parser::proceed_to_landing_zone(Storage::Tape::TapeSerialiser &serialiser, const bool is_original) {
+	std::array<uint8_t, 9> landing_zone{0, 0, 0, 0, 0, 0, 0, 0, 0};
 	while(!serialiser.is_at_end()) {
-		memmove(landing_zone, &landing_zone[1], sizeof(uint8_t) * 8);
+		std::copy(landing_zone.begin() + 1, landing_zone.end(), landing_zone.begin());
 		landing_zone[8] = get_next_byte(serialiser);
 
 		bool is_landing_zone = true;
-		for(int c = 0; c < 9; c++) {
+		for(size_t c = 0; c < 9; c++) {
 			if(landing_zone[c] != ((is_original ? 0x80 : 0x00) | 0x9) - c) {
 				is_landing_zone = false;
 				break;
@@ -186,9 +193,9 @@ void Parser::expect_byte(Storage::Tape::TapeSerialiser &serialiser, uint8_t valu
 	if(next_byte != value) set_error_flag();
 }
 
-void Parser::reset_parity_byte()			{ parity_byte_ = 0;		}
-uint8_t Parser::get_parity_byte()			{ return parity_byte_;	}
-void Parser::add_parity_byte(uint8_t byte)	{ parity_byte_ ^= byte;	}
+void Parser::reset_parity_byte()					{ parity_byte_ = 0;		}
+uint8_t Parser::get_parity_byte() const				{ return parity_byte_;	}
+void Parser::add_parity_byte(const uint8_t byte)	{ parity_byte_ ^= byte;	}
 
 /*!
 	Proceeds to the next word marker then returns the result of @c get_next_byte_contents.
@@ -232,6 +239,14 @@ uint16_t Parser::get_next_short(Storage::Tape::TapeSerialiser &serialiser) {
 	return value;
 }
 
+float Parser::expected_length(const WaveType type) const {
+	const size_t index = size_t(type);
+	if(index >= 0 && index < timing_records_.size()) {
+		return timing_records_[index].total / float(timing_records_[index].count);
+	}
+	return 0.0f;
+}
+
 /*!
 	Per the contract with Analyser::Static::TapeParser; sums time across pulses. If this pulse
 	indicates a high to low transition, inspects the time since the last transition, to produce
@@ -248,6 +263,16 @@ void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 	// medium: 480us	=>	0.000960s cycle
 	// long: 960us		=>	0.001920s cycle
 
+	const auto classify_as = [&](const WaveType type) {
+		push_wave(type);
+
+		const size_t index = size_t(type);
+		if(index >= 0 && index < timing_records_.size() && timing_records_[index].count < 10) {
+			++timing_records_[index].count;
+			timing_records_[index].total += wave_period_;
+		}
+	};
+
 	const bool is_high = pulse.type == Storage::Tape::Pulse::High;
 	if(!is_high && previous_was_high_) {
 		const bool is_plus4 = target_platform_ == TargetPlatform::Plus4;
@@ -256,16 +281,22 @@ void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 		const float long_ms = is_plus4 ? 960.0f : 342.0f;
 
 		static constexpr float to_s = 2.0f / 1'000'000.0f;
-		const float overlong_threshold = (long_ms + long_ms - medium_ms) * to_s;
+		const float overlong_threshold = long_ms * 2.0f * to_s;
 		const float long_threshold = ((long_ms + medium_ms) * 0.5f) * to_s;
 		const float medium_threshold = ((medium_ms + short_ms) * 0.5f) * to_s;
 		const float short_threshold = (short_ms * 0.5f) * to_s;
 
-		if(wave_period_ >= overlong_threshold)		push_wave(WaveType::Unrecognised);
-		else if(wave_period_ >= long_threshold)		push_wave(WaveType::Long);
-		else if(wave_period_ >= medium_threshold)	push_wave(WaveType::Medium);
-		else if(wave_period_ >= short_threshold)	push_wave(WaveType::Short);
-		else push_wave(WaveType::Unrecognised);
+		if(wave_period_ >= overlong_threshold) {
+			classify_as(WaveType::Unrecognised);
+		} else if(wave_period_ >= long_threshold) {
+			classify_as(WaveType::Long);
+		} else if(wave_period_ >= medium_threshold) {
+			classify_as(WaveType::Medium);
+		} else if(wave_period_ >= short_threshold) {
+			classify_as(WaveType::Short);
+		} else {
+			classify_as(WaveType::Unrecognised);
+		}
 
 		wave_period_ = 0.0f;
 	}

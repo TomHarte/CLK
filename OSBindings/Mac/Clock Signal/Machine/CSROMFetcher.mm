@@ -13,6 +13,7 @@
 #import "NSData+StdVector.h"
 #import "NSData+CRC32.h"
 
+#include <optional>
 #include <string>
 
 namespace {
