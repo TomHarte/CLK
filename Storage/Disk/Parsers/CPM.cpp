@@ -8,14 +8,17 @@
 
 #include "CPM.hpp"
 
-#include <algorithm>
-#include <cstring>
-
 #include "Storage/Disk/Encodings/MFM/Parser.hpp"
+
+#include <algorithm>
 
 using namespace Storage::Disk::CPM;
 
-std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk, const ParameterBlock &parameters, bool with_contents) {
+std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
+	const std::shared_ptr<Storage::Disk::Disk> &disk,
+	const ParameterBlock &parameters,
+	const bool with_contents
+) {
 	Storage::Encodings::MFM::Parser parser(Encodings::MFM::Density::Double, disk);
 
 	// Assemble the actual bytes of the catalogue.
@@ -29,12 +32,17 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 		if(catalogue_allocation_bitmap & 0x8000) {
 			std::size_t size_read = 0;
 			do {
-				const Storage::Encodings::MFM::Sector *sector_contents = parser.sector(0, uint8_t(track), uint8_t(parameters.first_sector + sector));
+				const auto *const sector_contents =
+					parser.sector(0, uint8_t(track), uint8_t(parameters.first_sector + sector));
 				if(!sector_contents || sector_contents->samples.empty()) {
 					return nullptr;
 				}
 
-				catalogue.insert(catalogue.end(), sector_contents->samples[0].begin(), sector_contents->samples[0].end());
+				catalogue.insert(
+					catalogue.end(),
+					sector_contents->samples[0].begin(),
+					sector_contents->samples[0].end()
+				);
 				sector_size = sector_contents->samples[0].size();
 
 				size_read += sector_size;
@@ -87,10 +95,11 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 	std::sort(catalogue_entries.begin(), catalogue_entries.end());
 	auto result = std::make_unique<Catalogue>();
 
-	bool has_long_allocation_units = (parameters.tracks * parameters.sectors_per_track * int(sector_size) / parameters.block_size) >= 256;
-	std::size_t bytes_per_catalogue_entry = (has_long_allocation_units ? 8 : 16) * size_t(parameters.block_size);
-	int sectors_per_block = parameters.block_size / int(sector_size);
-	int records_per_sector = int(sector_size) / 128;
+	const bool has_long_allocation_units =
+		(parameters.tracks * parameters.sectors_per_track * int(sector_size) / parameters.block_size) >= 256;
+	const std::size_t bytes_per_catalogue_entry = (has_long_allocation_units ? 8 : 16) * size_t(parameters.block_size);
+	const int sectors_per_block = parameters.block_size / int(sector_size);
+	const int records_per_sector = int(sector_size) / 128;
 
 	result->files.reserve(catalogue_entries.size());
 	auto entry = catalogue_entries.begin();
@@ -116,17 +125,21 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 		}
 
 		// Create storage for data.
-		std::size_t required_size = final_entry->extent * bytes_per_catalogue_entry + size_t(final_entry->number_of_records) * 128;
+		const std::size_t required_size =
+			final_entry->extent * bytes_per_catalogue_entry + size_t(final_entry->number_of_records) * 128;
 		new_file.data.resize(required_size);
 
 		// Accumulate all data.
 		while(entry != final_entry) {
 			int record = 0;
-			int number_of_records = (entry->number_of_records != 0x80) ? entry->number_of_records : (has_long_allocation_units ? 8 : 16);
+			const int number_of_records =
+				(entry->number_of_records != 0x80) ? entry->number_of_records : (has_long_allocation_units ? 8 : 16);
 			for(std::size_t block = 0; block < (has_long_allocation_units ? 8 : 16) && record < number_of_records; block++) {
 				int block_number;
 				if(has_long_allocation_units) {
-					block_number = catalogue[entry->catalogue_index + 16 + (block << 1)] + (catalogue[entry->catalogue_index + 16 + (block << 1) + 1] << 8);
+					block_number =
+						catalogue[entry->catalogue_index + 16 + (block << 1)] +
+						(catalogue[entry->catalogue_index + 16 + (block << 1) + 1] << 8);
 				} else {
 					block_number = catalogue[entry->catalogue_index + 16 + block];
 				}
@@ -140,7 +153,8 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 				track = first_sector / parameters.sectors_per_track;
 
 				for(int s = 0; s < sectors_per_block && record < number_of_records; s++) {
-					const Storage::Encodings::MFM::Sector *sector_contents = parser.sector(0, uint8_t(track), uint8_t(parameters.first_sector + sector));
+					const auto *const sector_contents =
+						parser.sector(0, uint8_t(track), uint8_t(parameters.first_sector + sector));
 					if(!sector_contents || sector_contents->samples.empty()) break;
 					sector++;
 					if(sector == parameters.sectors_per_track) {
@@ -148,8 +162,12 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 						track++;
 					}
 
-					int records_to_copy = std::min(entry->number_of_records - record, records_per_sector);
-					std::memcpy(&new_file.data[entry->extent * bytes_per_catalogue_entry + size_t(record) * 128], sector_contents->samples[0].data(), size_t(records_to_copy) * 128);
+					const int records_to_copy = std::min(entry->number_of_records - record, records_per_sector);
+					std::copy(
+						sector_contents->samples[0].begin(),
+						sector_contents->samples[0].begin() + records_to_copy * 128,
+						&new_file.data[entry->extent * bytes_per_catalogue_entry + size_t(record) * 128]
+					);
 					record += records_to_copy;
 				}
 			}
@@ -163,7 +181,8 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 
 bool Catalogue::is_zx_spectrum_booter() {
 	// Check for a file called 'DISK'.
-	const auto file = std::find_if(files.begin(), files.end(), [](const auto &file) { return file.name == "DISK    "; });
+	const auto file =
+		std::find_if(files.begin(), files.end(), [](const auto &file) { return file.name == "DISK    "; });
 	if(file == files.end()) return false;
 
 	// TODO: check the file is valid ZX Spectrum BASIC if it has contents.

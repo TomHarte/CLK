@@ -24,6 +24,7 @@
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "Processors/Z80/Z80.hpp"
 
+#include <algorithm>
 #include <unordered_set>
 
 namespace {
@@ -186,15 +187,27 @@ public:
 			throw ROMMachine::Error::MissingROMs;
 		}
 
+		const auto install = [&](const ROM::Name rom_name, auto &destination) {
+			const auto source = roms.find(rom_name);
+			if(source == roms.end()) {
+				return false;
+			}
+			std::copy(
+				source->second.begin(),
+				source->second.begin() + std::min(destination.size(), source->second.size()),
+				destination.begin()
+			);
+
+			return true;
+		};
+
 		// Extract the appropriate EXOS ROM.
 		exos_.fill(0xff);
 		for(const auto rom_name: {
 			ROM::Name::EnterpriseEXOS10, ROM::Name::EnterpriseEXOS20,
 			ROM::Name::EnterpriseEXOS21, ROM::Name::EnterpriseEXOS23
 		}) {
-			const auto exos = roms.find(rom_name);
-			if(exos != roms.end()) {
-				memcpy(exos_.data(), exos->second.data(), std::min(exos_.size(), exos->second.size()));
+			if(install(rom_name, exos_)) {
 				break;
 			}
 		}
@@ -206,9 +219,7 @@ public:
 			ROM::Name::EnterpriseBASIC10, ROM::Name::EnterpriseBASIC11,
 			ROM::Name::EnterpriseBASIC11Suffixed, ROM::Name::EnterpriseBASIC21
 		}) {
-			const auto basic = roms.find(rom_name);
-			if(basic != roms.end()) {
-				memcpy(basic_.data(), basic->second.data(), std::min(basic_.size(), basic->second.size()));
+			if(install(rom_name, basic_)) {
 				has_basic = true;
 				break;
 			}
@@ -217,22 +228,25 @@ public:
 			const auto basic1 = roms.find(ROM::Name::EnterpriseBASIC10Part1);
 			const auto basic2 = roms.find(ROM::Name::EnterpriseBASIC10Part2);
 			if(basic1 != roms.end() && basic2 != roms.end()) {
-				memcpy(&basic_[0x0000], basic1->second.data(), std::min(size_t(8192), basic1->second.size()));
-				memcpy(&basic_[0x2000], basic2->second.data(), std::min(size_t(8192), basic2->second.size()));
+				std::copy(
+					basic1->second.begin(),
+					basic1->second.begin() + std::min(size_t(8192), basic1->second.size()),
+					&basic_[0x0000]
+				);
+				std::copy(
+					basic2->second.begin(),
+					basic2->second.begin() + std::min(size_t(8192), basic2->second.size()),
+					&basic_[0x2000]
+				);
 			}
 		}
 
 		// Extract the appropriate DOS ROMs.
 		epdos_rom_.fill(0xff);
-		const auto epdos = roms.find(ROM::Name::EnterpriseEPDOS);
-		if(epdos != roms.end()) {
-			memcpy(epdos_rom_.data(), epdos->second.data(), std::min(epdos_rom_.size(), epdos->second.size()));
-		}
+		install(ROM::Name::EnterpriseEPDOS, epdos_rom_);
+
 		exdos_rom_.fill(0xff);
-		const auto exdos = roms.find(ROM::Name::EnterpriseEXDOS);
-		if(exdos != roms.end()) {
-			memcpy(exdos_rom_.data(), exdos->second.data(), std::min(exdos_rom_.size(), exdos->second.size()));
-		}
+		install(ROM::Name::EnterpriseEXDOS, exdos_rom_);
 
 		// Possibly install the host FS ROM.
 		host_fs_rom_.fill(0xff);
