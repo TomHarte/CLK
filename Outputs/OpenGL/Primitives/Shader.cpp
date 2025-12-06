@@ -128,7 +128,9 @@ GLint Shader::get_attrib_location(const std::string &name) const {
 }
 
 GLint Shader::get_uniform_location(const std::string &name) const {
-	return glGetUniformLocation(shader_program_, name.c_str());
+	const auto location = glGetUniformLocation(shader_program_, name.c_str());
+	test_gl_error();
+	return location;
 }
 
 void Shader::enable_vertex_attribute_with_pointer(const std::string &name, GLint size, GLenum type, GLboolean normalised, GLsizei stride, const GLvoid *pointer, GLuint divisor) {
@@ -293,8 +295,9 @@ void Shader::enqueue_function(std::function<void(void)> function) {
 
 void Shader::flush_functions() const {
 	std::lock_guard function_guard(function_mutex_);
-	for(std::function<void(void)> function : enqueued_functions_) {
+	for(std::function<void(void)> &function : enqueued_functions_) {
 		function();
+		test_gl_error();
 	}
 	enqueued_functions_.clear();
 }

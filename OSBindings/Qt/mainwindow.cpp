@@ -21,7 +21,7 @@
 
 namespace {
 
-std::unique_ptr<std::vector<uint8_t>> fileContentsAndClose(FILE *file) {
+std::unique_ptr<std::vector<uint8_t>> fileContentsAndClose(FILE *const file) {
 	auto data = std::make_unique<std::vector<uint8_t>>();
 
 	fseek(file, 0, SEEK_END);
@@ -47,7 +47,7 @@ std::unique_ptr<std::vector<uint8_t>> fileContentsAndClose(FILE *file) {
 		affect the window, so isn't useful for this project). Therefore the emulation window resizes freely.
 */
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+MainWindow::MainWindow(QWidget *const parent) : QMainWindow(parent) {
 	init();
 	setUIPhase(UIPhase::SelectingMachine);
 }
@@ -98,7 +98,7 @@ MainWindow::~MainWindow() {
 	storeSelections();
 }
 
-void MainWindow::closeEvent(QCloseEvent *event) {
+void MainWindow::closeEvent(QCloseEvent *const event) {
 	// SDI behaviour, which may or may not be normal (?): if the user is closing a
 	// final window, and it is anywher ebeyond the machine picker, send them back
 	// to the start. i.e. assume they were closing that document, not the application.
@@ -203,7 +203,7 @@ void MainWindow::addHelpMenu() {
 	});
 }
 
-QString MainWindow::getFilename(const char *title) {
+QString MainWindow::getFilename(const char *const title) {
 	Settings settings;
 
 	// Use the Settings to get a default open path; write it back afterwards.
@@ -239,7 +239,7 @@ bool MainWindow::launchFile(const QString &fileName) {
 	}
 }
 
-void MainWindow::tile(const QMainWindow *previous) {
+void MainWindow::tile(const QMainWindow *const previous) {
 	// This entire function is essentially verbatim from the Qt SDI example.
 	if (!previous)
 		return;
@@ -514,19 +514,17 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 	QAction *rgbAction = nullptr;
 
 	// Add all requested actions.
-#define Add(name, action)								\
-	if(!name.empty()) {									\
-		action = new QAction(tr(name.c_str()), this);	\
-		action->setCheckable(true);						\
-		displayMenu->addAction(action);					\
-	}
-
-	Add(compositeColour, compositeColourAction);
-	Add(compositeMono, compositeMonochromeAction);
-	Add(svideo, sVideoAction);
-	Add(rgb, rgbAction);
-
-#undef Add
+	const auto add = [&](const std::string &name, QAction *(&action)) {
+		if(!name.empty()) {
+			action = new QAction(tr(name.c_str()), this);
+			action->setCheckable(true);
+			displayMenu->addAction(action);
+		}
+	};
+	add(compositeColour, compositeColourAction);
+	add(compositeMono, compositeMonochromeAction);
+	add(svideo, sVideoAction);
+	add(rgb, rgbAction);
 
 	// Get the machine's default setting.
 	auto options = machine->configurable_device()->get_options();
@@ -575,47 +573,46 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 	}
 }
 
-void MainWindow::addEnhancementsMenu(const std::string &machinePrefix, bool offerQuickLoad, bool offerQuickBoot) {
+void MainWindow::addEnhancementsMenu(const std::string &machinePrefix, const bool offerQuickLoad, const bool offerQuickBoot) {
 	enhancementsMenu = menuBar()->addMenu(tr("&Enhancements"));
 	addEnhancementsItems(machinePrefix, enhancementsMenu, offerQuickLoad, offerQuickBoot, false);
 }
 
-void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *menu, bool offerQuickLoad, bool offerQuickBoot, bool offerAutomaticTapeControl) {
+void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *const menu, const bool offerQuickLoad, const bool offerQuickBoot, const bool offerAutomaticTapeControl) {
 	auto options = machine->configurable_device()->get_options();
 	Settings settings;
 
-#define Add(offered, text, setting, action)															\
-	if(offered) {																					\
-		action = new QAction(tr(text), this);														\
-		action->setCheckable(true);																	\
-		menu->addAction(action);																	\
-																									\
-		const auto settingName = QString::fromStdString(machinePrefix + "." + setting);				\
-		if(settings.contains(settingName)) {															\
-			const bool isSelected = settings.value(settingName).toBool();							\
-			Reflection::set(*options, setting, isSelected);											\
-		}																							\
-		action->setChecked(Reflection::get<bool>(*options, setting) ? Qt::Checked : Qt::Unchecked);	\
-																									\
-		connect(action, &QAction::triggered, this, [=, this] {										\
-			std::lock_guard lock_guard(machineMutex);												\
-			auto options = machine->configurable_device()->get_options();							\
-			Reflection::set(*options, setting, action->isChecked());									\
-			machine->configurable_device()->set_options(options);									\
-																									\
-			Settings settings;																		\
-			settings.setValue(settingName, action->isChecked());										\
-		});																							\
-	}
+	const auto add = [&](const bool offered, const char *text, const char *setting, QAction *(&action)) {
+		if(offered) {
+			action = new QAction(tr(text), this);
+			action->setCheckable(true);
+			menu->addAction(action);
+
+			const auto settingName = QString::fromStdString(machinePrefix + "." + setting);
+			if(settings.contains(settingName)) {
+				const bool isSelected = settings.value(settingName).toBool();
+				Reflection::set(*options, setting, isSelected);
+			}
+			action->setChecked(Reflection::get<bool>(*options, setting));
+
+			connect(action, &QAction::triggered, this, [=, this] {
+				std::lock_guard lock_guard(machineMutex);
+				auto options = machine->configurable_device()->get_options();
+				Reflection::set(*options, setting, action->isChecked());
+				machine->configurable_device()->set_options(options);
+
+				Settings settings;
+				settings.setValue(settingName, action->isChecked());
+			});
+		}
+	};
 
 	QAction *action;
-	Add(offerQuickLoad, "Load Quickly", Configurable::Options::QuickLoadOptionName, action);
-	Add(offerQuickBoot, "Start Quickly", Configurable::Options::QuickBootOptionName, action);
+	add(offerQuickLoad, "Load Quickly", Configurable::Options::QuickLoadOptionName, action);
+	add(offerQuickBoot, "Start Quickly", Configurable::Options::QuickBootOptionName, action);
 
 	if(offerAutomaticTapeControl) menu->addSeparator();
-	Add(offerAutomaticTapeControl, "Start and Stop Tape Automatically", "automatic_tape_motor_control", automaticTapeControlAction);
-
-#undef Add
+	add(offerAutomaticTapeControl, "Start and Stop Tape Automatically", "automatic_tape_motor_control", automaticTapeControlAction);
 
 	machine->configurable_device()->set_options(options);
 }
@@ -701,7 +698,7 @@ void MainWindow::addAtari2600Menu() {
 	});
 }
 
-void MainWindow::toggleAtari2600Switch(Atari2600Switch toggleSwitch) {
+void MainWindow::toggleAtari2600Switch(const Atari2600Switch toggleSwitch) {
 	std::lock_guard lock_guard(machineMutex);
 	const auto atari2600 = static_cast<Atari2600::Machine *>(machine->raw_pointer());
 
@@ -737,7 +734,7 @@ void MainWindow::addAppleIIMenu() {
 	setAppleIISquarePixels(useSquarePixels);
 }
 
-void MainWindow::setAppleIISquarePixels(bool squarePixels) {
+void MainWindow::setAppleIISquarePixels(const bool squarePixels) {
 	Configurable::Device *const configurable = machine->configurable_device();
 	auto options = configurable->get_options();
 	auto appleii_options = static_cast<Apple::II::Machine::Options *>(options.get());
@@ -750,13 +747,13 @@ void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker &, const
 	audioBuffer.write(buffer);
 }
 
-void MainWindow::dragEnterEvent(QDragEnterEvent* event) {
+void MainWindow::dragEnterEvent(QDragEnterEvent *const event) {
 	// Always accept dragged files.
 	if(event->mimeData()->hasUrls())
 		event->accept();
 }
 
-void MainWindow::dropEvent(QDropEvent* event) {
+void MainWindow::dropEvent(QDropEvent *const event) {
 	if(!event->mimeData()->hasUrls()) {
 		return;
 	}
@@ -830,7 +827,7 @@ void MainWindow::dropEvent(QDropEvent* event) {
 	}
 }
 
-void MainWindow::setUIPhase(UIPhase phase) {
+void MainWindow::setUIPhase(const UIPhase phase) {
 	uiPhase = phase;
 
 	// The volume slider is never visible by default; a running machine
@@ -887,7 +884,7 @@ void MainWindow::setWindowTitle() {
 
 // MARK: - Event Processing
 
-void MainWindow::changeEvent(QEvent *event) {
+void MainWindow::changeEvent(QEvent *const event) {
 	// Clear current key state upon any window activation change.
 	if(machine && event->type() == QEvent::ActivationChange) {
 		const auto keyboardMachine = machine->keyboard_machine();
@@ -900,15 +897,15 @@ void MainWindow::changeEvent(QEvent *event) {
 	event->ignore();
 }
 
-void MainWindow::keyPressEvent(QKeyEvent *event) {
+void MainWindow::keyPressEvent(QKeyEvent *const event) {
 	processEvent(event);
 }
 
-void MainWindow::keyReleaseEvent(QKeyEvent *event) {
+void MainWindow::keyReleaseEvent(QKeyEvent *const event) {
 	processEvent(event);
 }
 
-bool MainWindow::processEvent(QKeyEvent *event) {
+bool MainWindow::processEvent(QKeyEvent *const event) {
 	if(!machine) return true;
 
 	const auto key = keyMapper.keyForEvent(event);
@@ -923,7 +920,8 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 			if(!keyboardMachine) return true;
 
 			auto &keyboard = keyboardMachine->get_keyboard();
-			keyboard.set_key_pressed(*key, event->text().size() ? event->text()[0].toLatin1() : '\0', isPressed, event->isAutoRepeat());
+			const auto text = event->text();
+			keyboard.set_key_pressed(*key, event->text().size() ? text[0].toLatin1() : '\0', isPressed, event->isAutoRepeat());
 			if(keyboard.is_exclusive() || keyboard.observed_keys().find(*key) != keyboard.observed_keys().end()) {
 				return false;
 			}
@@ -949,7 +947,8 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 					case Key::F:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 3), isPressed);	break;
 					default:
 						if(event->text().size()) {
-							joysticks[0]->set_input(Inputs::Joystick::Input(event->text()[0].toLatin1()), isPressed);
+							const auto text = event->text();
+							joysticks[0]->set_input(Inputs::Joystick::Input(text[0].toLatin1()), isPressed);
 						} else {
 							joysticks[0]->set_input(Inputs::Joystick::Input::Fire, isPressed);
 						}
@@ -962,12 +961,12 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 	return false;
 }
 
-void MainWindow::setMouseIsCaptured(bool isCaptured) {
+void MainWindow::setMouseIsCaptured(const bool isCaptured) {
 	mouseIsCaptured = isCaptured;
 	setWindowTitle();
 }
 
-void MainWindow::moveMouse(QPoint vector) {
+void MainWindow::moveMouse(const QPoint vector) {
 	std::unique_lock lock(machineMutex);
 	auto mouseMachine = machine->mouse_machine();
 	if(!mouseMachine) return;
@@ -975,7 +974,7 @@ void MainWindow::moveMouse(QPoint vector) {
 	mouseMachine->get_mouse().move(vector.x(), vector.y());
 }
 
-void MainWindow::setButtonPressed(int index, bool isPressed) {
+void MainWindow::setButtonPressed(const int index, const bool isPressed) {
 	std::unique_lock lock(machineMutex);
 	auto mouseMachine = machine->mouse_machine();
 	if(!mouseMachine) return;
@@ -1436,7 +1435,7 @@ void MainWindow::register_led(const std::string &name, uint8_t) {
 	QMetaObject::invokeMethod(this, "updateStatusBarText");
 }
 
-void MainWindow::set_led_status(const std::string &name, bool isLit) {
+void MainWindow::set_led_status(const std::string &name, const bool isLit) {
 	std::lock_guard guard(ledStatusesLock);
 	ledStatuses[name] = isLit;
 	QMetaObject::invokeMethod(this, "updateStatusBarText");

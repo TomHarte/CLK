@@ -34,8 +34,6 @@
 #endif
 
 #ifdef HAS_X11
-#include <QX11Info>
-
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 #endif
@@ -124,23 +122,27 @@ KeyboardMapper::KeyboardMapper() {
 	//	(2)	from there, use any of the X11 KeySyms I'd expect to be achievable from each physical key to
 	//		look up the X11 KeyCode;
 	//	(3)	henceforth, map from X11 KeyCode to the Inputs::Keyboard::Key.
-	const DesiredMapping *mapping = mappings;
-	while(mapping->source != 0) {
-		const auto code = XKeysymToKeycode(QX11Info::display(), mapping->source);
-		keyByKeySym[code] = mapping->destination;
-		++mapping;
+
+	if (auto *const x11Application = qGuiApp->nativeInterface<QNativeInterface::QX11Application>()) {
+		is_x11_ = true;
+		const auto display = x11Application->display();
+
+		const DesiredMapping *mapping = mappings;
+		while(mapping->source != 0) {
+			const auto code = XKeysymToKeycode(display, mapping->source);
+			keyByKeySym[code] = mapping->destination;
+			++mapping;
+		}
 	}
 #endif
 }
 
 std::optional<Inputs::Keyboard::Key> KeyboardMapper::keyForEvent(QKeyEvent *event) {
-#ifdef HAS_X11
-	if(QGuiApplication::platformName() == QLatin1String("xcb")) {
+	if(is_x11_) {
 		const auto key = keyByKeySym.find(event->nativeScanCode());
 		if(key == keyByKeySym.end()) return std::nullopt;
 		return key->second;
 	}
-#endif
 
 	// Fall back on a limited, faulty adaptation.
 #define BIND2(qtKey, clkKey) case Qt::qtKey: return Inputs::Keyboard::Key::clkKey;
