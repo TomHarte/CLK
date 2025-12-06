@@ -13,6 +13,8 @@
 #include "Analyser/Static/ZXSpectrum/Target.hpp"
 #include "Machines/Sinclair/ZXSpectrum/State.hpp"
 
+#include <algorithm>
+
 using namespace Storage::State;
 
 namespace {
@@ -50,7 +52,7 @@ std::vector<uint8_t> read_memory(Storage::FileHolder &file, size_t size, bool is
 		const uint8_t count = file.get();
 		const uint8_t value = file.get();
 
-		memset(&result[cursor], value, count);
+		std::fill(&result[cursor], &result[cursor + count], value);
 		cursor += count;
 	}
 

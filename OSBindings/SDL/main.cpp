@@ -198,7 +198,7 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 
 		std::memcpy(stream, audio_buffer_.data(), copy_length * sizeof(int16_t));
 		if(copy_length < sample_length) {
-			std::memset(&target[copy_length], 0, (sample_length - copy_length) * sizeof(int16_t));
+			std::fill(&target[copy_length], &target[sample_length], 0);
 		}
 		audio_buffer_.erase(audio_buffer_.begin(), audio_buffer_.begin() + copy_length);
 	}

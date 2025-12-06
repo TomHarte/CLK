@@ -13,7 +13,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstring>
 
 using namespace InstructionSet::M50740;
 
@@ -39,7 +38,7 @@ Executor::Executor(PortHandler &port_handler) : port_handler_(port_handler) {
 
 	// Fuzz RAM; then set anything that may be replaced by ROM to FF.
 	Memory::Fuzz(memory_);
-	memset(&memory_[0x100], 0xff, memory_.size() - 0x100);
+	std::fill(memory_.begin() + 0x100, memory_.end(), 0xff);
 }
 
 void Executor::set_rom(const std::vector<uint8_t> &rom) {

@@ -34,6 +34,8 @@
 #include "Tape.hpp"
 #include "Video.hpp"
 
+#include <algorithm>
+
 namespace Electron {
 
 template <bool has_scsi_bus> class ConcreteMachine:
@@ -59,10 +61,12 @@ public:
 			scsi_device_(scsi_bus_.add_device()),
 			video_(ram_),
 			sound_generator_(audio_queue_),
-			speaker_(sound_generator_) {
-		memset(key_states_, 0, sizeof(key_states_));
-		for(int c = 0; c < 16; c++)
-			memset(roms_[c], 0xff, 16384);
+			speaker_(sound_generator_)
+	{
+		std::fill(std::begin(key_states_), std::end(key_states_), 0);
+		for(int c = 0; c < 16; c++) {
+			std::fill(std::begin(roms_[c]), std::end(roms_[c]), 0xff);
+		}
 
 		tape_.set_delegate(this);
 		set_clock_rate(2000000);
@@ -181,7 +185,7 @@ public:
 	}
 
 	void clear_all_keys() final {
-		memset(key_states_, 0, sizeof(key_states_));
+		std::fill(std::begin(key_states_), std::end(key_states_), 0);
 		if(is_holding_shift_) set_key_state(KeyShift, true);
 	}
 
@@ -673,8 +677,9 @@ private:
 	/*!
 		Enables @c slot as sideways RAM; ensures that it does not currently contain a valid ROM signature.
 	*/
-	void set_sideways_ram(ROM slot) {
-		std::memset(roms_[int(slot)], 0xff, 16*1024);
+	void set_sideways_ram(const ROM slot) {
+		auto &rom = roms_[int(slot)];
+		std::fill(std::begin(rom), std::end(rom), 0xff);
 		if(int(slot) < 16) {
 			rom_inserted_[int(slot)] = true;
 			rom_write_masks_[int(slot)] = true;
