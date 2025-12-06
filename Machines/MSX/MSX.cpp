@@ -798,7 +798,7 @@ public:
 	}
 
 	void clear_all_keys() final {
-		std::memset(key_states_, 0xff, sizeof(key_states_));
+		std::fill(std::begin(key_states_), std::end(key_states_), 0xff);
 	}
 
 	void set_key_state(uint16_t key, bool is_pressed) final {

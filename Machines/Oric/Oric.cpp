@@ -36,6 +36,7 @@
 
 #include "ClockReceiver/JustInTime.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -132,7 +133,7 @@ public:
 
 	/// Sets all keys as unpressed.
 	void clear_all_keys() {
-		memset(rows_, 0, sizeof(rows_));
+		std::fill(std::begin(rows_), std::end(rows_), 0);
 	}
 
 	/// Selects the active row.

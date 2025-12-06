@@ -15,6 +15,7 @@
 
 #include "Storage/Disk/DiskImage/Formats/Utility/ImplicitSectors.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdlib>
 #include <cstring>
@@ -403,7 +404,7 @@ STX::STX(const std::string &file_name) : file_(file_name) {
 	file_.seek(4, Whence::CUR);
 
 	// Set all tracks absent.
-	memset(offset_by_track_, 0, sizeof(offset_by_track_));
+	std::fill(std::begin(offset_by_track_), std::end(offset_by_track_), 0);
 
 	// Parse the tracks table to fill in offset_by_track_. The only available documentation
 	// for STX is unofficial and makes no promise about track order. Hence the bucket sort,

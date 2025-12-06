@@ -120,10 +120,12 @@ public:
 		if(!target.media.cartridges.empty()) {
 			cartridge_ = target.media.cartridges[0]->get_segments()[0].data;
 		}
-		if(cartridge_.size() < 48*1024) {
-			std::size_t new_space = 48*1024 - cartridge_.size();
-			cartridge_.resize(48*1024);
-			memset(&cartridge_[48*1024 - new_space], 0xff, new_space);
+
+		static constexpr size_t TargetSize = 48*1024;
+		if(cartridge_.size() < TargetSize) {
+			const auto new_space = TargetSize - cartridge_.size();
+			cartridge_.resize(TargetSize);
+			std::fill(cartridge_.begin() + new_space, cartridge_.end(), 0xff);
 		}
 
 		if(paging_scheme_ == Target::PagingScheme::Codemasters) {

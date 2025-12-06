@@ -14,6 +14,7 @@
 #include "Machines/Sinclair/ZXSpectrum/State.hpp"
 #include "Outputs/Log.hpp"
 
+#include <algorithm>
 #include <zlib.h>
 
 using namespace Storage::State;
@@ -166,13 +167,13 @@ std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name
 						}
 
 						if(address > 0 && (address - 0x4000) <= state->ram.size()) {
-							memcpy(&state->ram[address - 0x4000], contents.data(), 0x4000);
+							std::copy(contents.begin(), contents.end(), &state->ram[address - 0x4000]);
 						}
 					} break;
 
 					default:
 						if(page < 8) {
-							memcpy(&state->ram[page * 0x4000], contents.data(), 0x4000);
+							std::copy(contents.begin(), contents.end(), &state->ram[page * 0x4000]);
 						}
 					break;
 				}

@@ -20,6 +20,7 @@
 #include "Storage.hpp"
 #include "YamahaCommands.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstdint>

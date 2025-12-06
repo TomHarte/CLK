@@ -125,9 +125,14 @@ private:
 	public:
 		VideoBusHandler(uint8_t *ram, uint8_t *aux_ram) : ram_(ram), aux_ram_(aux_ram) {}
 
-		void perform_read(uint16_t address, size_t count, uint8_t *base_target, uint8_t *auxiliary_target) {
-			memcpy(base_target, &ram_[address], count);
-			memcpy(auxiliary_target, &aux_ram_[address], count);
+		void perform_read(
+			const uint16_t address,
+			const size_t count,
+			uint8_t *const base_target,
+			uint8_t *const auxiliary_target
+		) {
+			std::copy(ram_ + address, ram_ + address + count, base_target);
+			std::copy(aux_ram_ + address, aux_ram_ + address + count, auxiliary_target);
 		}
 
 	private:

@@ -49,7 +49,7 @@
 
 #include "SCSICard.hpp"
 
-#include <cstring>
+#include <algorithm>
 
 using namespace Apple::II;
 
@@ -58,7 +58,7 @@ ROM::Request SCSICard::rom_request() {
 }
 
 // TODO: accept and supply real clock rate.
-SCSICard::SCSICard(ROM::Map &map, int clock_rate) :
+SCSICard::SCSICard(ROM::Map &map, const int clock_rate) :
 	scsi_bus_(clock_rate),
 	ncr5380_(scsi_bus_, clock_rate),
 	storage_(scsi_bus_, 6)
@@ -68,14 +68,19 @@ SCSICard::SCSICard(ROM::Map &map, int clock_rate) :
 	if(rom == map.end()) {
 		throw ROMMachine::Error::MissingROMs;
 	}
-	memcpy(rom_.data(), rom->second.data(), rom_.size());
+	std::copy(rom->second.begin(), rom->second.end(), rom_.begin());
 
 	// Set up initial banking.
 	rom_pointer_ = rom_.data();
 	ram_pointer_ = ram_.data();
 }
 
-void SCSICard::perform_bus_operation(Select select, bool is_read, uint16_t address, uint8_t *value) {
+void SCSICard::perform_bus_operation(
+	const Select select,
+	const bool is_read,
+	uint16_t address,
+	uint8_t *const value
+) {
 	switch(select) {
 		default: break;
 
@@ -168,6 +173,6 @@ void SCSICard::set_storage_device(const std::shared_ptr<Storage::MassStorage::Ma
 	storage_->set_storage(device);
 }
 
-void SCSICard::set_activity_observer(Activity::Observer *observer) {
+void SCSICard::set_activity_observer(Activity::Observer *const observer) {
 	scsi_bus_.set_activity_observer(observer);
 }

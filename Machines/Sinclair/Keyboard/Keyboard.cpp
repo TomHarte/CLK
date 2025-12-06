@@ -8,7 +8,7 @@
 
 #include "Keyboard.hpp"
 
-#include <cstring>
+#include <algorithm>
 
 using namespace Sinclair::ZX::Keyboard;
 
@@ -339,7 +339,7 @@ void Keyboard::set_key_state(const uint16_t key, const bool is_pressed) {
 }
 
 void Keyboard::clear_all_keys() {
-	memset(key_states_, 0xff, 8);
+	std::fill(std::begin(key_states_), std::end(key_states_), 0xff);
 }
 
 uint8_t Keyboard::read(const uint16_t address) {

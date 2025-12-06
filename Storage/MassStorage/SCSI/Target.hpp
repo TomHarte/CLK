@@ -11,6 +11,7 @@
 #include "SCSI.hpp"
 #include "Outputs/Log.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <functional>
@@ -291,7 +292,7 @@ struct Executor {
 			memcpy(destination, source, source_length);
 
 			// Fill the rest with spaces.
-			memset(&destination[source_length], ' ', length - source_length);
+			std::fill(&destination[source_length], &destination[length], ' ');
 		};
 		copy_string(&response[8], inq.vendor_identifier, 8);
 		copy_string(&response[16], inq.product_identifier, 16);
