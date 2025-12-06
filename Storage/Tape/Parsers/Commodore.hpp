@@ -77,7 +77,7 @@ public:
 	/*!
 		Returns an average length for encountered waves that were bucketed as the specified type.
 	*/
-	float expected_length(WaveType);
+	float expected_length(WaveType) const;
 
 private:
 	TargetPlatform::Type target_platform_;
@@ -105,8 +105,8 @@ private:
 
 	uint8_t parity_byte_ = 0;
 	void reset_parity_byte();
-	uint8_t get_parity_byte();
-	void add_parity_byte(uint8_t byte);
+	uint8_t get_parity_byte() const;
+	void add_parity_byte(uint8_t);
 
 	/*!
 		Proceeds to the next word marker then returns the result of @c get_next_byte_contents.
@@ -144,7 +144,7 @@ private:
 		Per the contract with Analyser::Static::TapeParser; produces any of a word marker, an end-of-block marker,
 		a zero, a one or a lead-in symbol based on the currently captured waves.
 	*/
-	void inspect_waves(const std::vector<WaveType> &waves) override;
+	void inspect_waves(const std::vector<WaveType> &) override;
 };
 
 }

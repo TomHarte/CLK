@@ -275,7 +275,7 @@ public:
 			time_since_audio_update_ += length;
 		}
 
-		if(operation == CPU::MOS6502Mk2::BusOperation::Ready) {
+		if constexpr (operation == CPU::MOS6502Mk2::BusOperation::Ready) {
 			return length;
 		}
 
@@ -327,8 +327,8 @@ public:
 					operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode &&
 					tape_handler_.test_rom_trap() &&
 					address == TapeHandler::ROMTrapAddress &&
-					tape_handler_.perform_ldcass(m6502_, map_, video_.timer_cycle_length())
-				) {
+					tape_handler_.perform_ldcass(m6502_, ram_, video_.timer_cycle_length())
+				) [[unlikely]] {
 					value = 0x60;
 				}
 			} else {
@@ -469,7 +469,7 @@ public:
 						// Observation here: the kernel posts a 0 to this
 						// address upon completing each keyboard scan cycle,
 						// once per frame.
-						if(typer_ && !value) {
+						if(typer_ && !value) [[unlikely]] {
 							if(!typer_->type_next_character()) {
 								clear_all_keys();
 								typer_.reset();
