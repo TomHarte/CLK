@@ -50,7 +50,7 @@ PCMTrack::PCMTrack(const PCMTrack &original) : PCMTrack() {
 	segment_event_sources_ = original.segment_event_sources_;
 }
 
-PCMTrack::PCMTrack(unsigned int bits_per_track) : PCMTrack() {
+PCMTrack::PCMTrack(const unsigned int bits_per_track) : PCMTrack() {
 	PCMSegment segment;
 	segment.length_of_a_bit.length = 1;
 	segment.length_of_a_bit.clock_rate = bits_per_track;
@@ -76,7 +76,7 @@ Track *PCMTrack::clone() const {
 	return new PCMTrack(*this);
 }
 
-PCMTrack *PCMTrack::resampled_clone(size_t bits_per_track) {
+PCMTrack *PCMTrack::resampled_clone(const size_t bits_per_track) {
 	// Create an empty track.
 	PCMTrack *const new_track = new PCMTrack(unsigned(bits_per_track));
 
@@ -125,7 +125,7 @@ Track::Event PCMTrack::get_next_event() {
 	return event;
 }
 
-float PCMTrack::seek_to(float time_since_index_hole) {
+float PCMTrack::seek_to(const float time_since_index_hole) {
 	// initial condition: no time yet accumulated, the whole thing requested yet to navigate
 	float accumulated_time = 0.0f;
 	float time_left_to_seek = time_since_index_hole;
@@ -151,7 +151,7 @@ float PCMTrack::seek_to(float time_since_index_hole) {
 	return accumulated_time;
 }
 
-void PCMTrack::add_segment(const Time &start_time, const PCMSegment &segment, bool clamp_to_index_hole) {
+void PCMTrack::add_segment(const Time &start_time, const PCMSegment &segment, const bool clamp_to_index_hole) {
 	// Get a reference to the destination.
 	PCMSegment &destination = segment_event_sources_.front().segment();
 
@@ -168,7 +168,11 @@ void PCMTrack::add_segment(const Time &start_time, const PCMSegment &segment, bo
 		const size_t selected_end_bit = std::min(end_bit, destination.data.size());
 
 		// Reset the destination.
-		std::fill(destination.data.begin() + ptrdiff_t(start_bit), destination.data.begin() + ptrdiff_t(selected_end_bit), false);
+		std::fill(
+			destination.data.begin() + ptrdiff_t(start_bit),
+			destination.data.begin() + ptrdiff_t(selected_end_bit),
+			false
+		);
 
 		// Step through the source data from start to finish, stopping early if it goes out of bounds.
 		for(size_t bit = 0; bit < segment.data.size(); ++bit) {
@@ -187,7 +191,7 @@ void PCMTrack::add_segment(const Time &start_time, const PCMSegment &segment, bo
 		if(target_width >= destination.data.size()) {
 			std::fill(destination.data.begin(), destination.data.end(), false);
 		} else {
-			std::fill(destination.data.begin(), destination.data.begin() + ptrdiff_t(end_bit % destination.data.size()), false);
+			std::fill_n(destination.data.begin(), end_bit % destination.data.size(), false);
 			std::fill(destination.data.begin() + ptrdiff_t(start_bit), destination.data.end(), false);
 		}
 

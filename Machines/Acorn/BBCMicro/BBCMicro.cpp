@@ -612,7 +612,7 @@ public:
 							pixels <<= 1;
 						}
 					} else {
-						std::fill(pixel_pointer_, pixel_pointer_ + 12, 0);
+						std::fill_n(pixel_pointer_, 12, 0);
 						pixel_pointer_ += 12;
 					}
 				} else {

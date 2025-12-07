@@ -52,7 +52,7 @@ std::vector<uint8_t> read_memory(Storage::FileHolder &file, size_t size, bool is
 		const uint8_t count = file.get();
 		const uint8_t value = file.get();
 
-		std::fill(&result[cursor], &result[cursor + count], value);
+		std::fill_n(&result[cursor], count, value);
 		cursor += count;
 	}
 

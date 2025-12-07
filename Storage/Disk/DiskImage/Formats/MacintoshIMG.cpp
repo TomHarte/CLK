@@ -237,7 +237,7 @@ std::unique_ptr<Track> MacintoshIMG::track_at_position(const Track::Address addr
 				std::copy(&tags[sector_id * 12], &tags[(sector_id + 1) * 12], target);
 			} else {
 				// TODO: fill in tags properly.
-				std::fill(target, target + 12, 0);
+				std::fill_n(target, 12, 0);
 			}
 			target += 12;
 
