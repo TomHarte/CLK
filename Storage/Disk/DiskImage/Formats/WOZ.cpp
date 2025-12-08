@@ -11,7 +11,7 @@
 #include "Storage/Disk/Track/PCMTrack.hpp"
 #include "Storage/Disk/Track/TrackSerialiser.hpp"
 
-#include <cstring>
+#include <algorithm>
 
 using namespace Storage::Disk;
 
@@ -195,7 +195,7 @@ void WOZ::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tra
 
 		auto offset = size_t(file_offset(pair.first) - 12);
 		std::vector<uint8_t> segment_bytes = segment.byte_data();
-		memcpy(&post_crc_contents_[offset - 12], segment_bytes.data(), segment_bytes.size());
+		std::copy(segment_bytes.begin(), segment_bytes.end(), &post_crc_contents_[offset - 12]);
 
 		// Write number of bytes and number of bits.
 		post_crc_contents_[offset + 6646] = uint8_t(segment.data.size() >> 3);

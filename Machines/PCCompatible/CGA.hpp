@@ -220,7 +220,7 @@ private:
 
 				if(pixels) {
 					if(state.cursor) {
-						std::fill(pixel_pointer, pixel_pointer + pixels_per_tick, 0x3f); // i.e. white.
+						std::fill_n(pixel_pointer, pixels_per_tick, 0x3f); // i.e. white.
 					} else {
 						if(mode_ == Mode::Text) {
 							serialise_text(state);

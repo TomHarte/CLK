@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -169,8 +170,8 @@ public:
 			partition[87] = partition[15] = uint8_t(details.size);
 
 			// 32 bytes are allocated for each of the following strings.
-			memcpy(&partition[16], details.name, strlen(details.name));
-			memcpy(&partition[48], details.type, strlen(details.type));
+			std::copy(details.name, details.name + strlen(details.name), &partition[16]);
+			std::copy(details.type, details.type + strlen(details.type), &partition[48]);
 
 			partition[91] = details.status;
 
@@ -190,8 +191,8 @@ public:
 					partition[119] = uint8_t(driver_checksum);
 
 					/* Driver target processor. */
-					const char *driver_target = volume_provider_.driver_target();
-					memcpy(&partition[120], driver_target, strlen(driver_target));
+					const char *const driver_target = volume_provider_.driver_target();
+					std::copy(driver_target, driver_target + strlen(driver_target), &partition[120]);
 
 					// Various non-zero values that Apple HD SC Tool wrote are below; they are
 					// documented as reserved officially, so I don't know their meaning.
@@ -209,7 +210,7 @@ public:
 		if constexpr (VolumeProvider::HasDriver) {
 			// The remainder of the non-volume area is the driver.
 			if(source_address >= predriver_blocks() && source_address < non_volume_blocks()) {
-				const uint8_t *driver = volume_provider_.driver();
+				const uint8_t *const driver = volume_provider_.driver();
 				const auto offset = (source_address - predriver_blocks()) * 512;
 				return std::vector<uint8_t>(&driver[offset], &driver[offset + 512]);
 			}

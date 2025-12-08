@@ -23,7 +23,7 @@
 #include "MachineForTarget.hpp"
 
 struct ScanTarget: public Outputs::Display::ScanTarget {
-	void set_modals(Modals modals) override {
+	void set_modals(const Modals modals) override {
 		modals_ = modals;
 	}
 	Scan *begin_scan() override {
@@ -62,7 +62,7 @@ struct ScanTarget: public Outputs::Display::ScanTarget {
 		}
 		x_ = x2;
 	}
-	void announce(Event event, bool, const Scan::EndPoint &, uint8_t) override {
+	void announce(const Event event, bool, const Scan::EndPoint &, uint8_t) override {
 		switch(event) {
 			case Event::EndHorizontalRetrace: {
 				if(line_ == ImageHeight - 1) break;
@@ -128,11 +128,11 @@ struct SSMDelegate: public AmstradCPC::Machine::SSMDelegate {
 		NSLog(@"Outputting to %@", temp_dir_);
 	}
 
-	void set_crtc(int number) {
+	void set_crtc(const int number) {
 		crtc_ = number;
 	}
 
-	void perform(uint16_t code) {
+	void perform(const uint16_t code) {
 		if(!code) {
 			// A code of 0000 is supposed to end a wait0000 command; at present
 			// there seem to be no wait0000 commands to unblock.
@@ -141,7 +141,8 @@ struct SSMDelegate: public AmstradCPC::Machine::SSMDelegate {
 
 		NSData *const data =
 			[scan_target_.image_representation() representationUsingType:NSPNGFileType properties:@{}];
-		NSString *const name = [temp_dir_ stringByAppendingPathComponent:[NSString stringWithFormat:@"CLK_%d_%04x.png", crtc_, code]];
+		NSString *const name =
+			[temp_dir_ stringByAppendingPathComponent:[NSString stringWithFormat:@"CLK_%d_%04x.png", crtc_, code]];
 		[data
 			writeToFile:name
 			atomically:NO];
@@ -209,12 +210,12 @@ private:
 				const auto argument = static_cast<int>(std::get<uint64_t>(step.argument));
 				switch(argument) {
 					default:
-						NSLog(@"Unrecognised CRTC type %d", argument);
+						NSLog(@"Unsupported CRTC type %d", argument);
 					break;
-					case 0:	target.crtc_type = Target::CRTCType::Type0;	break;
-					case 1:	target.crtc_type = Target::CRTCType::Type1;	break;
-					case 2:	target.crtc_type = Target::CRTCType::Type2;	break;
-					case 3:	target.crtc_type = Target::CRTCType::Type3;	break;
+//					case 0:	target.crtc_type = Target::CRTCType::Type0;	break;
+//					case 1:	target.crtc_type = Target::CRTCType::Type1;	break;
+//					case 2:	target.crtc_type = Target::CRTCType::Type2;	break;
+//					case 3:	target.crtc_type = Target::CRTCType::Type3;	break;
 				}
 				ssm_delegate.set_crtc(argument);
 			} break;
@@ -265,7 +266,10 @@ private:
 					last_down = event.down;
 
 					// If this was the release of a carriage return, wait some more after release.
-					if(key_delay.carriage_return_delay && (event.key == AmstradCPC::Key::KeyEnter || event.key == AmstradCPC::Key::KeyReturn)) {
+					if(
+						key_delay.carriage_return_delay &&
+						(event.key == AmstradCPC::Key::KeyEnter || event.key == AmstradCPC::Key::KeyReturn)
+					) {
 						delay(*key_delay.carriage_return_delay);
 					}
 				}

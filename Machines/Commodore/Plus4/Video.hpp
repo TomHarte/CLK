@@ -978,7 +978,7 @@ private:
 
 			case VideoMode::Blank:
 				if(target) {
-					std::fill(target, target + length, 0x0000);
+					std::fill_n(target, length, 0x0000);
 				}
 				output_.advance_pixels(length);
 			break;

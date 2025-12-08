@@ -184,7 +184,7 @@ private:
 
 						if(((attributes & 7) == 1) && state.line.get() == 13) {
 							// Draw as underline.
-							std::fill(pixel_pointer, pixel_pointer + 9, intensity);
+							std::fill_n(pixel_pointer, 9, intensity);
 						} else {
 							// Draw according to ROM contents, possibly duplicating final column.
 							pixel_pointer[0] = (row & 0x80) ? intensity : off;
