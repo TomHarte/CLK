@@ -7,11 +7,8 @@
 #include <QObject>
 #include <QStandardPaths>
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #include <QAudioDevice>
 #include <QMediaDevices>
-#endif
-
 #include <QtWidgets>
 
 #include <cstdio>
@@ -249,10 +246,9 @@ void MainWindow::tile(const QMainWindow *const previous) {
 		topFrameWidth = 40;
 
 	const QPoint pos = previous->pos() + 2 * QPoint(topFrameWidth, topFrameWidth);
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-	if (screen()->availableGeometry().contains(rect().bottomRight() + pos))
-#endif
+	if (screen()->availableGeometry().contains(rect().bottomRight() + pos)) {
 		move(pos);
+	}
 }
 
 // MARK: Machine launch.
@@ -321,32 +317,18 @@ void MainWindow::launchMachine() {
 		static constexpr size_t samplesPerBuffer = 256;	// TODO: select this dynamically.
 		const auto speaker = audio_producer->get_speaker();
 		if(speaker) {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 			QAudioDevice device(QMediaDevices::defaultAudioOutput());
 			if(true) {	// TODO: how to check that audio output is available in Qt6?
 				QAudioFormat idealFormat = device.preferredFormat();
-#else
-			const QAudioDeviceInfo &defaultDeviceInfo = QAudioDeviceInfo::defaultOutputDevice();
-			if(!defaultDeviceInfo.isNull()) {
-				QAudioFormat idealFormat = defaultDeviceInfo.preferredFormat();
-#endif
 
 				// Use the ideal format's sample rate, provide stereo as long as at least two channels
 				// are available, and — at least for now — assume a good buffer size.
 				audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 				audioIs8bit = idealFormat.sampleFormat() == QAudioFormat::UInt8;
-#else
-				audioIs8bit = idealFormat.sampleSize() < 16;
-#endif
 
 				idealFormat.setChannelCount(1 + int(audioIsStereo));
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 				idealFormat.setSampleFormat(audioIs8bit ? QAudioFormat::UInt8 : QAudioFormat::Int16);
-#else
-				idealFormat.setSampleSize(audioIs8bit ? 8 : 16);
-#endif
 
 				speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
 				speaker->set_delegate(this);
@@ -354,11 +336,7 @@ void MainWindow::launchMachine() {
 				audioThread.start();
 				audioThread.performAsync([&] {
 					// Create an audio output.
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 					audioOutput = std::make_unique<QAudioSink>(device, idealFormat);
-#else
-					audioOutput = std::make_unique<QAudioOutput>(idealFormat);
-#endif
 
 					// Start the output. The additional `audioBuffer` is meant to minimise latency,
 					// believe it or not, given Qt's semantics.
@@ -400,17 +378,11 @@ void MainWindow::launchMachine() {
 		QAction *const asKeyboardAction = new QAction(tr("Use Keyboard as Keyboard"), this);
 		asKeyboardAction->setCheckable(true);
 		asKeyboardAction->setChecked(true);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		asKeyboardAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_K));
-#endif
 		inputMenu->addAction(asKeyboardAction);
 
 		QAction *const asJoystickAction = new QAction(tr("Use Keyboard as Joystick"), this);
 		asJoystickAction->setCheckable(true);
 		asJoystickAction->setChecked(false);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		asJoystickAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_J));
-#endif
 		inputMenu->addAction(asJoystickAction);
 
 		connect(asKeyboardAction, &QAction::triggered, this, [=, this] {
@@ -1014,6 +986,7 @@ void MainWindow::startMachine() {
 	TEST(amstradCPC);
 	TEST(archimedes);
 	TEST(atariST);
+	TEST(bbc);
 	TEST(electron);
 	TEST(enterprise);
 	TEST(macintosh);
@@ -1118,6 +1091,24 @@ void MainWindow::start_atariST() {
 		default:	target->memory_size = Target::MemorySize::FiveHundredAndTwelveKilobytes;	break;
 		case 1:		target->memory_size = Target::MemorySize::OneMegabyte;						break;
 		case 2:		target->memory_size = Target::MemorySize::FourMegabytes;					break;
+	}
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_bbc() {
+	using Target = Analyser::Static::Acorn::BBCMicroTarget;
+	auto target = std::make_unique<Target>();
+
+	target->has_1770dfs = ui->bbcMicroDFSCheckBox->isChecked();
+	target->has_adfs = ui->bbcMicroADFSCheckBox->isChecked();
+	target->has_beebsid = ui->bbcMicroBeebSIDCheckBox->isChecked();
+	target->has_sideways_ram = ui->bbcMicroSidewaysRAMCheckBox->isChecked();
+
+	switch(ui->bbcMicroSecondProcessorComboBox->currentIndex()) {
+		default:	target->tube_processor = Target::TubeProcessor::None;		break;
+		case 1:		target->tube_processor = Target::TubeProcessor::WDC65C02;	break;
+		case 2:		target->tube_processor = Target::TubeProcessor::Z80;		break;
 	}
 
 	launchTarget(std::move(target));

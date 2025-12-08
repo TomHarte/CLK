@@ -27,7 +27,7 @@
     <item>
      <widget class="QTabWidget" name="machineSelectionTabs">
       <property name="currentIndex">
-       <number>0</number>
+       <number>6</number>
       </property>
       <widget class="QWidget" name="amigaTab">
        <attribute name="title">
@@ -432,57 +432,57 @@
            <string>With Disk Filing System</string>
           </property>
          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="bbcMicroADFSCheckBox">
+        </item>
+        <item>
+         <widget class="QCheckBox" name="bbcMicroADFSCheckBox">
+          <property name="text">
+           <string>With Advanced Disk Filing System</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="bbcMicroBeebSIDCheckBox">
+          <property name="text">
+           <string>With BeebSID</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="bbcMicroSidewaysRAMCheckBox">
+          <property name="text">
+           <string>Fill unused ROM banks with sideways RAM</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QFormLayout">
+          <item row="0" column="0">
+           <widget class="QLabel">
             <property name="text">
-              <string>With Advanced Disk Filing System</string>
+             <string>Second Processor:</string>
             </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="bbcMicroBeebSIDCheckBox">
-            <property name="text">
-              <string>With BeebSID</string>
-            </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="bbcMicroSidewaysRAMCheckBox">
-            <property name="text">
-              <string>Fill unused ROM banks with sideways RAM</string>
-            </property>
-          </widget>
-         </item>
-         <item>
-          <layout class="QFormLayout">
-            <item row="0" column="0">
-              <widget class="QLabel">
-                <property name="text">
-                  <string>Second Processor:</string>
-                </property>
-              </widget>
-            </item>
-            <item row="0" column="1">
-          <widget class="QComboBox" name="bbcMicroSecondProcessorComboBox">
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="bbcMicroSecondProcessorComboBox">
             <item>
-              <property name="text">
-                <string>None</string>
-              </property>
-            </item>
-            <item>
-              <property name="text">
-                <string>65C02</string>
-              </property>
+             <property name="text">
+              <string>None</string>
+             </property>
             </item>
             <item>
-              <property name="text">
-                <string>Z80</string>
-              </property>
+             <property name="text">
+              <string>65C02</string>
+             </property>
             </item>
-          </widget>
+            <item>
+             <property name="text">
+              <string>Z80</string>
+             </property>
             </item>
-          </layout>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <spacer name="verticalSpacer">
