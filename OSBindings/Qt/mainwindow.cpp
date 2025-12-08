@@ -1346,6 +1346,13 @@ void MainWindow::launchTarget(std::unique_ptr<Analyser::Static::Target> &&target
 	/* Atari ST. */														\
 	ComboBox(atariSTRAMComboBox, "atarist.memorySize");					\
 																		\
+	/* BBC Micro. */													\
+	CheckBox(bbcMicroDFSCheckBox, "bbc.hasDFS");						\
+	CheckBox(bbcMicroADFSCheckBox, "bbc.hasADFS");						\
+	CheckBox(bbcMicroBeebSIDCheckBox, "bbc.hasBeebSID");				\
+	CheckBox(bbcMicroSidewaysRAMCheckBox, "bbc.fillSidewaysRAM");		\
+	ComboBox(bbcMicroSecondProcessorComboBox, "bbc.secondProcessor");	\
+																		\
 	/* Electron. */														\
 	CheckBox(electronDFSCheckBox, "electron.hasDFS");					\
 	CheckBox(electronADFSCheckBox, "electron.hasADFS");					\
