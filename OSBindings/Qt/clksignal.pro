@@ -18,6 +18,11 @@ linux {
 	LIBS += -lX11
 }
 
+debug {
+CONFIG += sanitizer
+	CONFIG += sanitize_address
+}
+
 # Add flags (i) to identify that this is a Qt build; and
 # (ii) to disable asserts in release builds.
 DEFINES += TARGET_QT
