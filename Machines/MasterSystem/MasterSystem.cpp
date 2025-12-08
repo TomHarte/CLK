@@ -120,10 +120,10 @@ public:
 		if(!target.media.cartridges.empty()) {
 			cartridge_ = target.media.cartridges[0]->get_segments()[0].data;
 		}
-		if(cartridge_.size() < 48*1024) {
-			std::size_t new_space = 48*1024 - cartridge_.size();
-			cartridge_.resize(48*1024);
-			memset(&cartridge_[48*1024 - new_space], 0xff, new_space);
+
+		static constexpr size_t TargetSize = 48*1024;
+		if(cartridge_.size() < TargetSize) {
+			cartridge_.resize(TargetSize, 0xff);
 		}
 
 		if(paging_scheme_ == Target::PagingScheme::Codemasters) {
@@ -154,7 +154,7 @@ public:
 			std::cerr << "No BIOS found; attempting to start cartridge directly" << std::endl;
 		} else {
 			has_bios_ = true;
-			memcpy(&bios_, rom->second.data(), std::min(sizeof(bios_), rom->second.size()));
+			std::copy(rom->second.begin(), rom->second.begin() + std::min(sizeof(bios_), rom->second.size()), bios_);
 		}
 		page_cartridge();
 

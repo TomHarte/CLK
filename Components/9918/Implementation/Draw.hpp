@@ -42,7 +42,7 @@ void Base<personality>::draw_sprites(
 
 	int sprite_buffer[256];
 	int sprite_collision = 0;
-	memset(&sprite_buffer[start], 0, size_t(end - start)*sizeof(sprite_buffer[0]));
+	std::fill(&sprite_buffer[start], &sprite_buffer[end], 0);
 
 	if constexpr (mode == SpriteMode::MasterSystem) {
 		// Draw all sprites into the sprite buffer.

@@ -562,7 +562,7 @@ public:
 							start_address = uint16_t(ram_[0xc1] | (ram_[0xc2] << 8));
 							end_address = uint16_t(ram_[0xae] | (ram_[0xaf] << 8));
 
-							// perform a via-processor_write_memory_map_ memcpy
+							// Perform a via-processor_write_memory_map_ copy.
 							uint8_t *data_ptr = data->data.data();
 							std::size_t data_left = data->data.size();
 							while(data_left && start_address != end_address) {

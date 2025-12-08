@@ -168,7 +168,7 @@ private:
 		}
 	}
 
-	inline void resample_input_buffer(int scale) {
+	inline void resample_input_buffer(const int scale) {
 		if(output_buffer_.empty()) {
 			return;
 		}
@@ -200,16 +200,17 @@ private:
 			did_complete_samples(this, output_buffer_, is_stereo);
 		}
 
-		// If the next loop around is going to reuse some of the samples just collected, use a memmove to
+		// If the next loop around is going to reuse some of the samples just collected, copy them to
 		// preserve them in the correct locations (TODO: use a longer buffer to fix that?) and don't skip
 		// anything. Otherwise skip as required to get to the next sample batch and don't expect to reuse.
 		const size_t steps = size_t(step_rate_ + position_error_) * (is_stereo + 1);
 		position_error_ = fmodf(step_rate_ + position_error_, 1.0f);
 		if(steps < input_buffer_.size()) {
-			auto *const input_buffer = input_buffer_.data();
-			std::memmove(	input_buffer,
-							&input_buffer[steps],
-							sizeof(int16_t) * (input_buffer_.size() - steps));
+			std::copy(
+				input_buffer_.begin() + ptrdiff_t(steps),
+				input_buffer_.end(),
+				input_buffer_.begin()
+			);
 			input_buffer_depth_ -= steps;
 		} else {
 			if(steps > input_buffer_.size()) {

@@ -8,6 +8,7 @@
 
 #include "TIA.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 
@@ -401,7 +402,7 @@ void TIA::output_for_cycles(int number_of_cycles) {
 	bool is_reset = output_cursor < 224 && horizontal_counter_ >= 224;
 
 	if(!output_cursor) {
-		std::memset(collision_buffer_, 0, sizeof(collision_buffer_));
+		std::fill(std::begin(collision_buffer_), std::end(collision_buffer_), 0);
 
 		ball_.motion_time %= 228;
 		player_[0].motion_time %= 228;

@@ -237,7 +237,7 @@ std::unique_ptr<Track> MacintoshIMG::track_at_position(const Track::Address addr
 				std::copy(&tags[sector_id * 12], &tags[(sector_id + 1) * 12], target);
 			} else {
 				// TODO: fill in tags properly.
-				std::fill(target, target + 12, 0);
+				std::fill_n(target, 12, 0);
 			}
 			target += 12;
 
@@ -283,7 +283,11 @@ void MacintoshIMG::set_tracks(const std::map<Track::Address, std::unique_ptr<Tra
 		for(const auto &sector_pair: sector_map) {
 			const size_t target_address = sector_pair.second.address.sector * 524;
 			if(target_address >= track_contents.size() || sector_pair.second.data.size() != 524) continue;
-			memcpy(&track_contents[target_address], sector_pair.second.data.data(), 524);
+			std::copy(
+				sector_pair.second.data.begin(),
+				sector_pair.second.data.begin() + 524,
+				&track_contents[target_address]
+			);
 		}
 
 		// Store for later.
@@ -301,12 +305,12 @@ void MacintoshIMG::set_tracks(const std::map<Track::Address, std::unique_ptr<Tra
 				const auto sector_plus_tags = &pair.second[size_t(c)*524];
 
 				// Copy the 512 bytes that constitute the sector body.
-				memcpy(&data_[start_sector * 512], &sector_plus_tags[12], 512);
+				std::copy(&sector_plus_tags[12], &sector_plus_tags[12 + 512], &data_[start_sector * 512]);
 
 				// Copy the tags if this file can store them.
 				// TODO: add tags to a DiskCopy-format image that doesn't have them, if they contain novel content?
 				if(tags_.size()) {
-					memcpy(&tags_[start_sector * 12], sector_plus_tags, 12);
+					std::copy(sector_plus_tags, sector_plus_tags + 12, &tags_[start_sector * 12]);
 				}
 
 				++start_sector;

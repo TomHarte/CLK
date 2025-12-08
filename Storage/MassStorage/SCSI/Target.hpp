@@ -11,6 +11,7 @@
 #include "SCSI.hpp"
 #include "Outputs/Log.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <functional>
@@ -288,10 +289,10 @@ struct Executor {
 		auto copy_string = [] (uint8_t *destination, const char *source, size_t length) -> void {
 			// Determine length of source and copy in as much as possible.
 			const auto source_length = std::min(strlen(source), length);
-			memcpy(destination, source, source_length);
+			std::copy(source, source + source_length, destination);
 
 			// Fill the rest with spaces.
-			memset(&destination[source_length], ' ', length - source_length);
+			std::fill(&destination[source_length], &destination[length], ' ');
 		};
 		copy_string(&response[8], inq.vendor_identifier, 8);
 		copy_string(&response[16], inq.product_identifier, 16);

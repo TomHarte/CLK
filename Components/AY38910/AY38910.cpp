@@ -403,10 +403,10 @@ void AY38910SampleSource<is_stereo>::reset() {
 	// TODO: the below is a guess. Look up real answers.
 
 	selected_register_ = 0;
-	std::fill(registers_, registers_ + 16, 0);
+	std::fill_n(registers_, 16, 0);
 
 	task_queue_.enqueue([&] {
-		std::fill(output_registers_, output_registers_ + 16, 0);
+		std::fill_n(output_registers_, 16, 0);
 		evaluate_output_volume();
 	});
 }

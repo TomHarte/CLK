@@ -13,6 +13,8 @@
 #include "Analyser/Static/ZXSpectrum/Target.hpp"
 #include "Machines/Sinclair/ZXSpectrum/State.hpp"
 
+#include <algorithm>
+
 using namespace Storage::State;
 
 namespace {
@@ -50,7 +52,7 @@ std::vector<uint8_t> read_memory(Storage::FileHolder &file, size_t size, bool is
 		const uint8_t count = file.get();
 		const uint8_t value = file.get();
 
-		memset(&result[cursor], value, count);
+		std::fill_n(&result[cursor], count, value);
 		cursor += count;
 	}
 
@@ -186,18 +188,22 @@ std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name
 		const auto location = file.tell();
 		if(file.eof()) break;
 
+		// TODO: could eliminate the copy here.
 		const auto data = read_memory(file, 16384, block_size != 0xffff);
 
+		const auto copy_to = [&](const size_t destination) {
+			std::copy(data.begin(), data.end(), &state->ram[destination]);
+		};
 		if(result->model == Target::Model::SixteenK || result->model == Target::Model::FortyEightK) {
 			switch(page) {
 				default: break;
-				case 4:	memcpy(&state->ram[0x4000], data.data(), 16384);	break;
-				case 5:	memcpy(&state->ram[0x8000], data.data(), 16384);	break;
-				case 8:	memcpy(&state->ram[0x0000], data.data(), 16384);	break;
+				case 4: copy_to(0x4000);	break;
+				case 5:	copy_to(0x8000);	break;
+				case 8:	copy_to(0x0000);	break;
 			}
 		} else {
 			if(page >= 3 && page <= 10) {
-				memcpy(&state->ram[(page - 3) * 0x4000], data.data(), 16384);
+				copy_to((page - 3) * 0x4000);
 			}
 		}
 
