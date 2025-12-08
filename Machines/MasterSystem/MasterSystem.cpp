@@ -123,9 +123,7 @@ public:
 
 		static constexpr size_t TargetSize = 48*1024;
 		if(cartridge_.size() < TargetSize) {
-			const auto new_space = TargetSize - cartridge_.size();
-			cartridge_.resize(TargetSize);
-			std::fill(cartridge_.begin() + ptrdiff_t(new_space), cartridge_.end(), 0xff);
+			cartridge_.resize(TargetSize, 0xff);
 		}
 
 		if(paging_scheme_ == Target::PagingScheme::Codemasters) {
