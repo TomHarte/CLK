@@ -44,7 +44,7 @@ Executor::Executor(PortHandler &port_handler) : port_handler_(port_handler) {
 void Executor::set_rom(const std::vector<uint8_t> &rom) {
 	// Copy into place, and reset.
 	const auto length = std::min(size_t(0x1000), rom.size());
-	std::copy(rom.begin(), rom.begin() + ptrdiff_t(length), memory_.begin() + 0x2000 - length);
+	std::copy(rom.begin(), rom.begin() + ptrdiff_t(length), memory_.end() - length);
 	reset();
 }
 
