@@ -265,3 +265,13 @@ if(CLK_UI STREQUAL "SDL")
 		OSBindings/SDL/main.cpp
 	)
 endif()
+
+if(CLK_UI STREQUAL "Qt")
+	list(APPEND CLK_SOURCES
+		OSBindings/Qt/keyboard.cpp
+		OSBindings/Qt/main.cpp
+		OSBindings/Qt/mainwindow.cpp
+		OSBindings/Qt/scantargetwidget.cpp
+		OSBindings/Qt/timer.cpp
+	)
+endif()
