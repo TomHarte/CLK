@@ -156,7 +156,12 @@ jobs:
       shell: bash
       run: |
         cmake -S. -Bbuild -DCLK_UI=Qt -DCMAKE_BUILD_TYPE=Release
-        cmake --build build -v -j"(nproc --all)"
+
+        jobs=$(nproc --all)
+        cmake --build build -v -j"$jobs"
+
+
+
 
 #        aqt list-qt linux desktop --modules 6.8.3 linux_gcc_64
 # Modules when last checked:
