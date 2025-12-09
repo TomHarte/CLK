@@ -66,6 +66,8 @@ endif()
 
 if(CLK_UI STREQUAL "Qt")
 	target_link_libraries(clksignal PRIVATE Qt::Widgets Qt::OpenGLWidgets Qt::Multimedia)
+	find_package(X11 REQUIRED COMPONENTS X11)
+	target_link_libraries(clksignal PRIVATE X11:X11)
 	include_directories("OSBindings/Qt")
 elseif(APPLE)
 	set(BLA_VENDOR Apple)
