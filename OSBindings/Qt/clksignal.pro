@@ -19,8 +19,8 @@ linux {
 }
 
 debug {
-CONFIG += sanitizer
-	CONFIG += sanitize_address
+#	CONFIG += sanitizer
+#	CONFIG += sanitize_address
 }
 
 # Add flags (i) to identify that this is a Qt build; and
