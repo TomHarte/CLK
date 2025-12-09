@@ -469,7 +469,7 @@ void CRT::posit(Display::Rect rect) {
 	};
 
 	// Continue with any ongoing animation.
-	if(animation_step_ < AnimationSteps) {
+	if(animation_step_ != NoFrameYet && animation_step_ < AnimationSteps) {
 		set_rect(current_rect());
 		++animation_step_;
 		if(animation_step_ == AnimationSteps) {
@@ -507,8 +507,9 @@ void CRT::posit(Display::Rect rect) {
 				return;
 			}
 		}
-	}
 
+		return;
+	}
 
 	const auto output_frame = rect_accumulator_.posit(rect);
 	dynamic_framer_.update(rect, output_frame, first_reading);
