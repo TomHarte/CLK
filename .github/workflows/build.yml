@@ -155,7 +155,7 @@ jobs:
     - name: Make
       shell: bash
       run: |
-        cmake -S. -Bbuild -DCLK_UI=QT -DCMAKE_BUILD_TYPE=Release
+        cmake -S. -Bbuild -DCLK_UI=Qt -DCMAKE_BUILD_TYPE=Release
         cmake --build build -v -j"(nproc --all)"
 
 #        aqt list-qt linux desktop --modules 6.8.3 linux_gcc_64
