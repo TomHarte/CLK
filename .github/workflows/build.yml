@@ -151,7 +151,7 @@ jobs:
       shell: bash
       run: |
         sudo apt-get --allow-releaseinfo-change update
-        sudo apt-get --fix-missing install cmake gcc-10 qt6-base-dev
+        sudo apt-get --fix-missing install cmake gcc-10 qt6-base-dev qt6-multimedia-dev
     - name: Make
       shell: bash
       run: |
