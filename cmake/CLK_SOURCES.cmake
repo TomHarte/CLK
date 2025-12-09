@@ -268,6 +268,7 @@ endif()
 
 if(CLK_UI STREQUAL "Qt")
 	list(APPEND CLK_SOURCES
+		OSBindings/Qt/mainwindow.ui
 		OSBindings/Qt/keyboard.cpp
 		OSBindings/Qt/main.cpp
 		OSBindings/Qt/mainwindow.cpp

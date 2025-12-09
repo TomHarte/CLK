@@ -50,7 +50,7 @@ for dir in SDL Qt; do
 	if [[ $ui = "MAC" ]]; then
 		args=('-name' '*.m' '-o' '-name' '*.metal' '-o' '-name' '*.mm' '-o' '-name' '*.swift')
 	else
-		args=('-name' '*.cpp')
+		args=('-name' '*.cpp' '-name' '*.ui')
 	fi
 	write_sources $'\t' 'list(APPEND ' "$dir" "${args[@]}" >> "$tmp"
 	printf 'endif()\n' >> "$tmp"
