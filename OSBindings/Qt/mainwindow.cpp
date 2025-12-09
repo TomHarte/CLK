@@ -1324,96 +1324,107 @@ void MainWindow::launchTarget(std::unique_ptr<Analyser::Static::Target> &&target
 // than indices. This has historically been true on the Mac, as I tend to add additional
 // options but the existing text is rarely affected.
 
-#define AllSettings()													\
-	/* Machine selection. */											\
-	Tabs(machineSelectionTabs, "machineSelection");						\
-																		\
-	/* Amiga. */														\
-	ComboBox(amigaChipRAMComboBox, "amiga.chipRAM");					\
-	ComboBox(amigaFastRAMComboBox, "amiga.fastRAM");					\
-																		\
-	/* Apple II. */														\
-	ComboBox(appleIIModelComboBox, "appleII.model");					\
-	ComboBox(appleIIDiskControllerComboBox, "appleII.diskController");	\
-																		\
-	/* Apple IIgs. */													\
-	ComboBox(appleIIgsModelComboBox, "appleIIgs.model");				\
-	ComboBox(appleIIgsMemorySizeComboBox, "appleIIgs.memorySize");		\
-																		\
-	/* Amstrad CPC. */													\
-	ComboBox(amstradCPCModelComboBox, "amstradcpc.model");				\
-																		\
-	/* Atari ST. */														\
-	ComboBox(atariSTRAMComboBox, "atarist.memorySize");					\
-																		\
-	/* BBC Micro. */													\
-	CheckBox(bbcMicroDFSCheckBox, "bbc.hasDFS");						\
-	CheckBox(bbcMicroADFSCheckBox, "bbc.hasADFS");						\
-	CheckBox(bbcMicroBeebSIDCheckBox, "bbc.hasBeebSID");				\
-	CheckBox(bbcMicroSidewaysRAMCheckBox, "bbc.fillSidewaysRAM");		\
-	ComboBox(bbcMicroSecondProcessorComboBox, "bbc.secondProcessor");	\
-																		\
-	/* Electron. */														\
-	CheckBox(electronDFSCheckBox, "electron.hasDFS");					\
-	CheckBox(electronADFSCheckBox, "electron.hasADFS");					\
-	CheckBox(electronAP6CheckBox, "electron.hasAP6");					\
-	CheckBox(electronSidewaysRAMCheckBox, "electron.fillSidewaysRAM");	\
-																		\
-	/* Enterprise. */													\
-	ComboBox(enterpriseModelComboBox, "enterprise.model");				\
-	ComboBox(enterpriseSpeedComboBox, "enterprise.speed");				\
-	ComboBox(enterpriseEXOSComboBox, "enterprise.exos");				\
-	ComboBox(enterpriseBASICComboBox, "enterprise.basic");				\
-	ComboBox(enterpriseDOSComboBox, "enterprise.dos");					\
-																		\
-	/* Macintosh. */													\
-	ComboBox(macintoshModelComboBox, "macintosh.model");				\
-																		\
-	/* MSX. */															\
-	ComboBox(msxRegionComboBox, "msx.region");							\
-	CheckBox(msxDiskDriveCheckBox, "msx.hasDiskDrive");					\
-																		\
-	/* Oric. */															\
-	ComboBox(oricModelComboBox, "msx.model");							\
-	ComboBox(oricDiskInterfaceComboBox, "msx.diskInterface");			\
-																		\
-	/* Vic-20 */														\
-	ComboBox(vic20RegionComboBox, "vic20.region");						\
-	ComboBox(vic20MemorySizeComboBox, "vic20.memorySize");				\
-	CheckBox(vic20C1540CheckBox, "vic20.has1540");						\
-																		\
-	/* ZX80. */															\
-	ComboBox(zx80MemorySizeComboBox, "zx80.memorySize");				\
-	CheckBox(zx80UseZX81ROMCheckBox, "zx80.usesZX81ROM");				\
-																		\
-	/* ZX81. */															\
-	ComboBox(zx81MemorySizeComboBox, "zx81.memorySize");
+template <typename ApplierT>
+void MainWindow::processAllSettings() {
+	ApplierT applier;
+
+	/* Machine selection. */
+	applier(ui->machineSelectionTabs, "machineSelection");
+
+	/* Amiga. */
+	applier(ui->amigaChipRAMComboBox, "amiga.chipRAM");
+	applier(ui->amigaFastRAMComboBox, "amiga.fastRAM");
+
+	/* Apple II. */
+	applier(ui->appleIIModelComboBox, "appleII.model");
+	applier(ui->appleIIDiskControllerComboBox, "appleII.diskController");
+
+	/* Apple IIgs. */
+	applier(ui->appleIIgsModelComboBox, "appleIIgs.model");
+	applier(ui->appleIIgsMemorySizeComboBox, "appleIIgs.memorySize");
+
+	/* Amstrad CPC. */
+	applier(ui->amstradCPCModelComboBox, "amstradcpc.model");
+
+	/* Atari ST. */
+	applier(ui->atariSTRAMComboBox, "atarist.memorySize");
+
+	/* BBC Micro. */
+	applier(ui->bbcMicroDFSCheckBox, "bbc.hasDFS");
+	applier(ui->bbcMicroADFSCheckBox, "bbc.hasADFS");
+	applier(ui->bbcMicroBeebSIDCheckBox, "bbc.hasBeebSID");
+	applier(ui->bbcMicroSidewaysRAMCheckBox, "bbc.fillSidewaysRAM");
+	applier(ui->bbcMicroSecondProcessorComboBox, "bbc.secondProcessor");
+
+	/* Electron. */
+	applier(ui->electronDFSCheckBox, "electron.hasDFS");
+	applier(ui->electronADFSCheckBox, "electron.hasADFS");
+	applier(ui->electronAP6CheckBox, "electron.hasAP6");
+	applier(ui->electronSidewaysRAMCheckBox, "electron.fillSidewaysRAM");
+
+	/* Enterprise. */
+	applier(ui->enterpriseModelComboBox, "enterprise.model");
+	applier(ui->enterpriseSpeedComboBox, "enterprise.speed");
+	applier(ui->enterpriseEXOSComboBox, "enterprise.exos");
+	applier(ui->enterpriseBASICComboBox, "enterprise.basic");
+	applier(ui->enterpriseDOSComboBox, "enterprise.dos");
+
+	/* Macintosh. */
+	applier(ui->macintoshModelComboBox, "macintosh.model");
+
+	/* MSX. */
+	applier(ui->msxRegionComboBox, "msx.region");
+	applier(ui->msxDiskDriveCheckBox, "msx.hasDiskDrive");
+
+	/* Oric. */
+	applier(ui->oricModelComboBox, "msx.model");
+	applier(ui->oricDiskInterfaceComboBox, "msx.diskInterface");
+
+	/* Vic-20 */
+	applier(ui->vic20RegionComboBox, "vic20.region");
+	applier(ui->vic20MemorySizeComboBox, "vic20.memorySize");
+	applier(ui->vic20C1540CheckBox, "vic20.has1540");
+
+	/* ZX80. */
+	applier(ui->zx80MemorySizeComboBox, "zx80.memorySize");
+	applier(ui->zx80UseZX81ROMCheckBox, "zx80.usesZX81ROM");
+
+	/* ZX81. */
+	applier(ui->zx81MemorySizeComboBox, "zx81.memorySize");
+}
 
 void MainWindow::storeSelections() {
-	Settings settings;
-#define Tabs(name, key)		settings.setValue(key, ui->name->currentIndex())
-#define CheckBox(name, key) settings.setValue(key, ui->name->isChecked())
-#define ComboBox(name, key) settings.setValue(key, ui->name->currentText())
+	struct Storer {
+		Settings settings;
 
-	AllSettings();
-
-#undef Tabs
-#undef CheckBox
-#undef ComboBox
+		void operator()(QCheckBox *const checkBox, const char *key) {
+			settings.setValue(key, checkBox->isChecked());
+		}
+		void operator()(QComboBox *const comboBox, const char *key) {
+			settings.setValue(key, comboBox->currentText());
+		}
+		void operator()(QTabWidget *const tabs, const char *key) {
+			settings.setValue(key, tabs->currentIndex());
+		}
+	};
+	processAllSettings<Storer>();
 }
 
 void MainWindow::restoreSelections() {
-	Settings settings;
+	struct Retriever {
+		Settings settings;
 
-#define Tabs(name, key)		ui->name->setCurrentIndex(settings.value(key).toInt())
-#define CheckBox(name, key)	ui->name->setCheckState(settings.value(key).toBool() ? Qt::Checked : Qt::Unchecked)
-#define ComboBox(name, key) ui->name->setCurrentText(settings.value(key).toString())
-
-	AllSettings();
-
-#undef Tabs
-#undef CheckBox
-#undef ComboBox
+		void operator()(QCheckBox *const checkBox, const char *key) {
+			checkBox->setCheckState(settings.value(key).toBool() ? Qt::Checked : Qt::Unchecked);
+		}
+		void operator()(QComboBox *const comboBox, const char *key) {
+			comboBox->setCurrentText(settings.value(key).toString());
+		}
+		void operator()(QTabWidget *const tabs, const char *key) {
+			tabs->setCurrentIndex(settings.value(key).toInt());
+		}
+	};
+	processAllSettings<Retriever>();
 }
 
 // MARK: - Activity observation

@@ -163,4 +163,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		std::map<std::string, bool> ledStatuses;
 
 		void addActivityObserver();
+
+		template <typename ApplierT>
+		void processAllSettings();
 };
