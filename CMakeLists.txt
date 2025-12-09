@@ -31,9 +31,6 @@ message(STATUS "Configuring for ${CLK_UI} UI")
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include_directories(".")
-include("CLK_SOURCES")
-
-add_executable(clksignal ${CLK_SOURCES})
 
 if(MSVC)
 	target_compile_options(clksignal PRIVATE /W4)
@@ -57,6 +54,8 @@ else()
 endif()
 
 if(CLK_UI STREQUAL "Qt")
+	set(CMAKE_AUTOMOC ON)
+	set(CMAKE_AUTORCC ON)
 	set(CMAKE_AUTOUIC ON)
 	set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT6_DIR})
 	find_package(Qt6 REQUIRED COMPONENTS Widgets OpenGLWidgets Multimedia)
@@ -73,3 +72,6 @@ if(CLK_UI STREQUAL "SDL")
 endif()
 
 # TODO: Investigate building on Windows.
+
+include("CLK_SOURCES")
+add_executable(clksignal ${CLK_SOURCES})
