@@ -57,6 +57,7 @@ else()
 endif()
 
 if(CLK_UI STREQUAL "Qt")
+	set( CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT6_DIR} )
 	find_package(Qt6 REQUIRED COMPONENTS Widgets OpenGLWidgets Multimedia)
 	target_link_libraries(clksignal PRIVATE Qt::Widgets Qt::OpenGLWidgets Qt::Multimedia)
 elseif(APPLE)
