@@ -406,7 +406,7 @@ const Outputs::Display::ScanTarget::Modals *BufferingScanTarget::new_modals() {
 	modals_are_dirty_.store(false, std::memory_order_relaxed);
 
 	// MAJOR SHARP EDGE HERE: assume that because the new_modals have been fetched then the caller will
-	// now ensure their texture buffer is appropriate and swt the data size implied by the data type.
+	// now ensure their texture buffer is appropriate and set the data size implied by the data type.
 	std::lock_guard lock_guard(producer_mutex_);
 	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
 	assert((data_type_size_ == 1) || (data_type_size_ == 2) || (data_type_size_ == 4));
