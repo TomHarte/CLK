@@ -1,9 +1,10 @@
 ![Clock Signal Application Icon](READMEImages/Icon.png)
 # Building Clock Signal
 
-Clock Signal is available as [a macOS native application using
-Metal](#macos-app) or as [a cross-platform command-line-driven SDL executable
-using OpenGL](#sdl-app).
+Clock Signal is available as:
+* [a macOS native application using Metal](#macos-app);
+* [a cross-platform command-line-driven SDL executable using OpenGL](#sdl-app); and
+* [an X11-focussed Qt application](#Qt-app).
 
 ## macOS app
 
