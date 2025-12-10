@@ -12,8 +12,8 @@ later and has no prerequisites beyond the normal system libraries. It can be
 built [using Xcode](#building-the-macos-app-using-xcode) or on the command line
 [using `xcodebuild`](#building-the-macos-app-using-xcodebuild).
 
-Machine ROMs are intended to be built into the application bundle; populate the
-dummy folders below ROMImages before building.
+Machine ROMs may be built into the application bundle; populate the
+dummy folders below ROMImages before building to take advantage of that option.
 
 The Xcode project is configured to sign the application using the developer's
 certificate, but if you are not the developer then you will get a "No signing
@@ -22,7 +22,7 @@ application to run locally.
 
 ### Building the macOS app using Xcode
 
-Open the Clock Signal Xcode project in OSBindings/Mac.
+Open the Clock Signal Xcode project in `OSBindings/Mac`.
 
 To avoid signing errors, edit the project, select the Signing & Capabilities
 tab, and change the Signing Certificate drop-down menu from "Development" to
@@ -61,7 +61,13 @@ after the configuration (e.g. "Debug" or "Release").
 The SDL app can be built on Linux, BSD, macOS, and other Unix-like operating
 systems. Prerequisites are SDL 2, ZLib and OpenGL (or Mesa). OpenGL 3.2 or
 better is required at runtime. It can be built [using
-SCons](#building-the-sdl-app-using-scons).
+SCons](#building-the-sdl-app-using-scons) or [CMake](#building-the-sdl-app-using-cmake).
+
+### Dependency installation
+
+If using Ubuntu:
+
+	sudo apt-get --fix-missing install cmake gcc-10 libsdl2-dev
 
 ### Building the SDL app using SCons
 
@@ -75,6 +81,25 @@ The `clksignal` executable will be created in this directory. You can run it
 from here or install it by copying it where you want it, for example:
 
 	cp clksignal /usr/local/bin
+
+### Building the SDL app using CMake
+
+From the root directory of this repository, run:
+
+	cmake -S. -Bbuild -DCLK_UI=SDL -DCMAKE_BUILD_TYPE=Release
+	cmake --build build
+
+You can add a `-j` flag to the second `cmak` invocation to build in parallel,
+e.g. if you if you have 8 cores:
+
+	cmake --build build -j8
+
+The `clksignal` executable will be created in a new `build` subdirectory.
+You can run it from there or install it by copying it where you want it, for example:
+
+	cp build/clksignal /usr/local/bin
+
+### Usage
 
 To start an emulator with a particular disk image `file`, if you've installed
 `clksignal` to a directory in your `PATH`, run:
@@ -97,3 +122,39 @@ not included and may be located in either /usr/local/share/CLK/ or
 /usr/share/CLK/. You will be prompted for them if they are found to be missing.
 The structure should mirror that under OSBindings in the source archive; see the
 readme.txt in each folder to determine the proper files and names ahead of time.
+
+## Qt app
+
+The Qt app can be built on any Unix-like operating system, though it's optimised
+for use under X11. Prerequisites are t 6, ZLib and OpenGL (or Mesa). OpenGL 3.2 or
+better is required at runtime. It can be built using [CMake](#building-the-qt-app-using-cmake)
+or [QMake](#building-the-qt-app-using-qmake).
+
+### Dependency installation
+
+If using Ubuntu:
+
+	sudo apt-get --fix-missing install cmake gcc-10 qt6-base-dev qt6-multimedia-dev
+
+### Building the Qt app using CMake
+
+From the root directory of this repository, run:
+
+	cmake -S. -Bbuild -DCLK_UI=Qt -DCMAKE_BUILD_TYPE=Release
+	cmake --build build
+
+You can add a `-j` flag to the second `cmak` invocation to build in parallel,
+e.g. if you if you have 8 cores:
+
+	cmake --build build -j8
+
+The `clksignal` executable will be created in a new `build` subdirectory.
+
+### Building the Qt app using QMake
+
+From `OSBindings/Qt` run:
+
+	qmake -o Makefile clksignal.pro
+	make
+
+Alternatively open the project file in Qt Creator and use it's build button.
