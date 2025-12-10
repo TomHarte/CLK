@@ -95,7 +95,7 @@ void CRT::set_new_timing(
 
 	// Default crop: middle 90%.
 	if(is_first_set) {
-		scan_target_modals_.visible_area = posted_rect_ = Display::Rect(
+		posted_rect_ = scan_target_modals_.visible_area = Display::Rect(
 			0.05f, 0.05f, 0.9f, 0.9f
 		);
 	}
@@ -127,8 +127,10 @@ void CRT::set_dynamic_framing(
 
 	if(!has_first_reading_) {
 		previous_posted_rect_ = posted_rect_ = scan_target_modals_.visible_area = initial;
+		scan_target_->set_modals(scan_target_modals_);
 	}
 	has_first_reading_ = true;
+	animation_step_ = AnimationSteps;
 }
 
 void CRT::set_fixed_framing(const std::function<void()> &advance) {
