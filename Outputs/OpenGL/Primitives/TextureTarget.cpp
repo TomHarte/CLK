@@ -8,8 +8,6 @@
 
 #include "TextureTarget.hpp"
 
-#include <cstdlib>
-#include <vector>
 #include <stdexcept>
 
 using namespace Outputs::Display::OpenGL;
@@ -93,7 +91,7 @@ void TextureTarget::bind_texture() const {
 	test_gl(glBindTexture, GL_TEXTURE_2D, texture_);
 }
 
-void TextureTarget::draw(float aspect_ratio, float colour_threshold) const {
+void TextureTarget::draw(const float aspect_ratio, const float colour_threshold) const {
 	if(!pixel_shader_) {
 		const char *vertex_shader =
 			"#version 150\n"

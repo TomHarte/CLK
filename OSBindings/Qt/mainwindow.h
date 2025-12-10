@@ -1,13 +1,7 @@
 #pragma once
 
 #include <QtGlobal>
-
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-	#include <QAudioSink>
-#else
-	#include <QAudioOutput>
-#endif
-
+#include <QAudioSink>
 #include <QMainWindow>
 
 #include <memory>
@@ -76,11 +70,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		std::unique_ptr<Machine::DynamicMachine> machine;
 		std::mutex machineMutex;
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 		std::unique_ptr<QAudioSink> audioOutput;
-#else
-		std::unique_ptr<QAudioOutput> audioOutput;
-#endif
 		bool audioIs8bit = false, audioIsStereo = false;
 		void speaker_did_complete_samples(Outputs::Speaker::Speaker &, const std::vector<int16_t> &) override;
 		AudioBuffer audioBuffer;
@@ -101,6 +91,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void start_amstradCPC();
 		void start_archimedes();
 		void start_atariST();
+		void start_bbc();
 		void start_electron();
 		void start_enterprise();
 		void start_macintosh();
@@ -172,4 +163,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		std::map<std::string, bool> ledStatuses;
 
 		void addActivityObserver();
+
+		template <typename ApplierT>
+		void processAllSettings();
 };

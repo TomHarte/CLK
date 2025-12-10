@@ -10,7 +10,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CLK_UIS "SDL")
-#list(PREPEND CLK_UIS "QT")
+list(PREPEND CLK_UIS "Qt")
+
 #if(APPLE)
 #	list(PREPEND CLK_UIS "MAC")
 #	set(CLK_DEFAULT_UI "MAC")
@@ -30,8 +31,16 @@ message(STATUS "Configuring for ${CLK_UI} UI")
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include_directories(".")
-include("CLK_SOURCES")
 
+if(CLK_UI STREQUAL "Qt")
+	set(CMAKE_AUTOMOC ON)
+	set(CMAKE_AUTORCC ON)
+	set(CMAKE_AUTOUIC ON)
+	set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT6_DIR})
+	find_package(Qt6 REQUIRED COMPONENTS Widgets OpenGLWidgets Multimedia)
+endif()
+
+include("CLK_SOURCES")
 add_executable(clksignal ${CLK_SOURCES})
 
 if(MSVC)
@@ -55,8 +64,11 @@ else()
 	endif()
 endif()
 
-if(CLK_UI STREQUAL "QT")
-	# TODO: Build the Qt version.
+if(CLK_UI STREQUAL "Qt")
+	target_link_libraries(clksignal PRIVATE Qt::Widgets Qt::OpenGLWidgets Qt::Multimedia)
+	find_package(X11 REQUIRED)
+	target_link_libraries(clksignal PRIVATE X11)
+	include_directories("OSBindings/Qt")
 elseif(APPLE)
 	set(BLA_VENDOR Apple)
 	find_package(BLAS REQUIRED)

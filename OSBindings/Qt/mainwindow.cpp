@@ -7,11 +7,8 @@
 #include <QObject>
 #include <QStandardPaths>
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #include <QAudioDevice>
 #include <QMediaDevices>
-#endif
-
 #include <QtWidgets>
 
 #include <cstdio>
@@ -21,7 +18,7 @@
 
 namespace {
 
-std::unique_ptr<std::vector<uint8_t>> fileContentsAndClose(FILE *file) {
+std::unique_ptr<std::vector<uint8_t>> fileContentsAndClose(FILE *const file) {
 	auto data = std::make_unique<std::vector<uint8_t>>();
 
 	fseek(file, 0, SEEK_END);
@@ -47,7 +44,7 @@ std::unique_ptr<std::vector<uint8_t>> fileContentsAndClose(FILE *file) {
 		affect the window, so isn't useful for this project). Therefore the emulation window resizes freely.
 */
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+MainWindow::MainWindow(QWidget *const parent) : QMainWindow(parent) {
 	init();
 	setUIPhase(UIPhase::SelectingMachine);
 }
@@ -98,7 +95,7 @@ MainWindow::~MainWindow() {
 	storeSelections();
 }
 
-void MainWindow::closeEvent(QCloseEvent *event) {
+void MainWindow::closeEvent(QCloseEvent *const event) {
 	// SDI behaviour, which may or may not be normal (?): if the user is closing a
 	// final window, and it is anywher ebeyond the machine picker, send them back
 	// to the start. i.e. assume they were closing that document, not the application.
@@ -203,7 +200,7 @@ void MainWindow::addHelpMenu() {
 	});
 }
 
-QString MainWindow::getFilename(const char *title) {
+QString MainWindow::getFilename(const char *const title) {
 	Settings settings;
 
 	// Use the Settings to get a default open path; write it back afterwards.
@@ -239,7 +236,7 @@ bool MainWindow::launchFile(const QString &fileName) {
 	}
 }
 
-void MainWindow::tile(const QMainWindow *previous) {
+void MainWindow::tile(const QMainWindow *const previous) {
 	// This entire function is essentially verbatim from the Qt SDI example.
 	if (!previous)
 		return;
@@ -249,10 +246,9 @@ void MainWindow::tile(const QMainWindow *previous) {
 		topFrameWidth = 40;
 
 	const QPoint pos = previous->pos() + 2 * QPoint(topFrameWidth, topFrameWidth);
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-	if (screen()->availableGeometry().contains(rect().bottomRight() + pos))
-#endif
+	if (screen()->availableGeometry().contains(rect().bottomRight() + pos)) {
 		move(pos);
+	}
 }
 
 // MARK: Machine launch.
@@ -321,32 +317,18 @@ void MainWindow::launchMachine() {
 		static constexpr size_t samplesPerBuffer = 256;	// TODO: select this dynamically.
 		const auto speaker = audio_producer->get_speaker();
 		if(speaker) {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 			QAudioDevice device(QMediaDevices::defaultAudioOutput());
 			if(true) {	// TODO: how to check that audio output is available in Qt6?
 				QAudioFormat idealFormat = device.preferredFormat();
-#else
-			const QAudioDeviceInfo &defaultDeviceInfo = QAudioDeviceInfo::defaultOutputDevice();
-			if(!defaultDeviceInfo.isNull()) {
-				QAudioFormat idealFormat = defaultDeviceInfo.preferredFormat();
-#endif
 
 				// Use the ideal format's sample rate, provide stereo as long as at least two channels
 				// are available, and — at least for now — assume a good buffer size.
 				audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 				audioIs8bit = idealFormat.sampleFormat() == QAudioFormat::UInt8;
-#else
-				audioIs8bit = idealFormat.sampleSize() < 16;
-#endif
 
 				idealFormat.setChannelCount(1 + int(audioIsStereo));
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 				idealFormat.setSampleFormat(audioIs8bit ? QAudioFormat::UInt8 : QAudioFormat::Int16);
-#else
-				idealFormat.setSampleSize(audioIs8bit ? 8 : 16);
-#endif
 
 				speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
 				speaker->set_delegate(this);
@@ -354,11 +336,7 @@ void MainWindow::launchMachine() {
 				audioThread.start();
 				audioThread.performAsync([&] {
 					// Create an audio output.
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 					audioOutput = std::make_unique<QAudioSink>(device, idealFormat);
-#else
-					audioOutput = std::make_unique<QAudioOutput>(idealFormat);
-#endif
 
 					// Start the output. The additional `audioBuffer` is meant to minimise latency,
 					// believe it or not, given Qt's semantics.
@@ -400,17 +378,11 @@ void MainWindow::launchMachine() {
 		QAction *const asKeyboardAction = new QAction(tr("Use Keyboard as Keyboard"), this);
 		asKeyboardAction->setCheckable(true);
 		asKeyboardAction->setChecked(true);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		asKeyboardAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_K));
-#endif
 		inputMenu->addAction(asKeyboardAction);
 
 		QAction *const asJoystickAction = new QAction(tr("Use Keyboard as Joystick"), this);
 		asJoystickAction->setCheckable(true);
 		asJoystickAction->setChecked(false);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		asJoystickAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_J));
-#endif
 		inputMenu->addAction(asJoystickAction);
 
 		connect(asKeyboardAction, &QAction::triggered, this, [=, this] {
@@ -514,19 +486,17 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 	QAction *rgbAction = nullptr;
 
 	// Add all requested actions.
-#define Add(name, action)								\
-	if(!name.empty()) {									\
-		action = new QAction(tr(name.c_str()), this);	\
-		action->setCheckable(true);						\
-		displayMenu->addAction(action);					\
-	}
-
-	Add(compositeColour, compositeColourAction);
-	Add(compositeMono, compositeMonochromeAction);
-	Add(svideo, sVideoAction);
-	Add(rgb, rgbAction);
-
-#undef Add
+	const auto add = [&](const std::string &name, QAction *(&action)) {
+		if(!name.empty()) {
+			action = new QAction(tr(name.c_str()), this);
+			action->setCheckable(true);
+			displayMenu->addAction(action);
+		}
+	};
+	add(compositeColour, compositeColourAction);
+	add(compositeMono, compositeMonochromeAction);
+	add(svideo, sVideoAction);
+	add(rgb, rgbAction);
 
 	// Get the machine's default setting.
 	auto options = machine->configurable_device()->get_options();
@@ -575,47 +545,46 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 	}
 }
 
-void MainWindow::addEnhancementsMenu(const std::string &machinePrefix, bool offerQuickLoad, bool offerQuickBoot) {
+void MainWindow::addEnhancementsMenu(const std::string &machinePrefix, const bool offerQuickLoad, const bool offerQuickBoot) {
 	enhancementsMenu = menuBar()->addMenu(tr("&Enhancements"));
 	addEnhancementsItems(machinePrefix, enhancementsMenu, offerQuickLoad, offerQuickBoot, false);
 }
 
-void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *menu, bool offerQuickLoad, bool offerQuickBoot, bool offerAutomaticTapeControl) {
+void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *const menu, const bool offerQuickLoad, const bool offerQuickBoot, const bool offerAutomaticTapeControl) {
 	auto options = machine->configurable_device()->get_options();
 	Settings settings;
 
-#define Add(offered, text, setting, action)															\
-	if(offered) {																					\
-		action = new QAction(tr(text), this);														\
-		action->setCheckable(true);																	\
-		menu->addAction(action);																	\
-																									\
-		const auto settingName = QString::fromStdString(machinePrefix + "." + setting);				\
-		if(settings.contains(settingName)) {															\
-			const bool isSelected = settings.value(settingName).toBool();							\
-			Reflection::set(*options, setting, isSelected);											\
-		}																							\
-		action->setChecked(Reflection::get<bool>(*options, setting) ? Qt::Checked : Qt::Unchecked);	\
-																									\
-		connect(action, &QAction::triggered, this, [=, this] {										\
-			std::lock_guard lock_guard(machineMutex);												\
-			auto options = machine->configurable_device()->get_options();							\
-			Reflection::set(*options, setting, action->isChecked());									\
-			machine->configurable_device()->set_options(options);									\
-																									\
-			Settings settings;																		\
-			settings.setValue(settingName, action->isChecked());										\
-		});																							\
-	}
+	const auto add = [&](const bool offered, const char *text, const char *setting, QAction *(&action)) {
+		if(offered) {
+			action = new QAction(tr(text), this);
+			action->setCheckable(true);
+			menu->addAction(action);
+
+			const auto settingName = QString::fromStdString(machinePrefix + "." + setting);
+			if(settings.contains(settingName)) {
+				const bool isSelected = settings.value(settingName).toBool();
+				Reflection::set(*options, setting, isSelected);
+			}
+			action->setChecked(Reflection::get<bool>(*options, setting));
+
+			connect(action, &QAction::triggered, this, [=, this] {
+				std::lock_guard lock_guard(machineMutex);
+				auto options = machine->configurable_device()->get_options();
+				Reflection::set(*options, setting, action->isChecked());
+				machine->configurable_device()->set_options(options);
+
+				Settings settings;
+				settings.setValue(settingName, action->isChecked());
+			});
+		}
+	};
 
 	QAction *action;
-	Add(offerQuickLoad, "Load Quickly", Configurable::Options::QuickLoadOptionName, action);
-	Add(offerQuickBoot, "Start Quickly", Configurable::Options::QuickBootOptionName, action);
+	add(offerQuickLoad, "Load Quickly", Configurable::Options::QuickLoadOptionName, action);
+	add(offerQuickBoot, "Start Quickly", Configurable::Options::QuickBootOptionName, action);
 
 	if(offerAutomaticTapeControl) menu->addSeparator();
-	Add(offerAutomaticTapeControl, "Start and Stop Tape Automatically", "automatic_tape_motor_control", automaticTapeControlAction);
-
-#undef Add
+	add(offerAutomaticTapeControl, "Start and Stop Tape Automatically", "automatic_tape_motor_control", automaticTapeControlAction);
 
 	machine->configurable_device()->set_options(options);
 }
@@ -701,7 +670,7 @@ void MainWindow::addAtari2600Menu() {
 	});
 }
 
-void MainWindow::toggleAtari2600Switch(Atari2600Switch toggleSwitch) {
+void MainWindow::toggleAtari2600Switch(const Atari2600Switch toggleSwitch) {
 	std::lock_guard lock_guard(machineMutex);
 	const auto atari2600 = static_cast<Atari2600::Machine *>(machine->raw_pointer());
 
@@ -737,7 +706,7 @@ void MainWindow::addAppleIIMenu() {
 	setAppleIISquarePixels(useSquarePixels);
 }
 
-void MainWindow::setAppleIISquarePixels(bool squarePixels) {
+void MainWindow::setAppleIISquarePixels(const bool squarePixels) {
 	Configurable::Device *const configurable = machine->configurable_device();
 	auto options = configurable->get_options();
 	auto appleii_options = static_cast<Apple::II::Machine::Options *>(options.get());
@@ -750,13 +719,13 @@ void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker &, const
 	audioBuffer.write(buffer);
 }
 
-void MainWindow::dragEnterEvent(QDragEnterEvent* event) {
+void MainWindow::dragEnterEvent(QDragEnterEvent *const event) {
 	// Always accept dragged files.
 	if(event->mimeData()->hasUrls())
 		event->accept();
 }
 
-void MainWindow::dropEvent(QDropEvent* event) {
+void MainWindow::dropEvent(QDropEvent *const event) {
 	if(!event->mimeData()->hasUrls()) {
 		return;
 	}
@@ -830,7 +799,7 @@ void MainWindow::dropEvent(QDropEvent* event) {
 	}
 }
 
-void MainWindow::setUIPhase(UIPhase phase) {
+void MainWindow::setUIPhase(const UIPhase phase) {
 	uiPhase = phase;
 
 	// The volume slider is never visible by default; a running machine
@@ -887,7 +856,7 @@ void MainWindow::setWindowTitle() {
 
 // MARK: - Event Processing
 
-void MainWindow::changeEvent(QEvent *event) {
+void MainWindow::changeEvent(QEvent *const event) {
 	// Clear current key state upon any window activation change.
 	if(machine && event->type() == QEvent::ActivationChange) {
 		const auto keyboardMachine = machine->keyboard_machine();
@@ -900,15 +869,15 @@ void MainWindow::changeEvent(QEvent *event) {
 	event->ignore();
 }
 
-void MainWindow::keyPressEvent(QKeyEvent *event) {
+void MainWindow::keyPressEvent(QKeyEvent *const event) {
 	processEvent(event);
 }
 
-void MainWindow::keyReleaseEvent(QKeyEvent *event) {
+void MainWindow::keyReleaseEvent(QKeyEvent *const event) {
 	processEvent(event);
 }
 
-bool MainWindow::processEvent(QKeyEvent *event) {
+bool MainWindow::processEvent(QKeyEvent *const event) {
 	if(!machine) return true;
 
 	const auto key = keyMapper.keyForEvent(event);
@@ -923,7 +892,8 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 			if(!keyboardMachine) return true;
 
 			auto &keyboard = keyboardMachine->get_keyboard();
-			keyboard.set_key_pressed(*key, event->text().size() ? event->text()[0].toLatin1() : '\0', isPressed, event->isAutoRepeat());
+			const auto text = event->text();
+			keyboard.set_key_pressed(*key, event->text().size() ? text[0].toLatin1() : '\0', isPressed, event->isAutoRepeat());
 			if(keyboard.is_exclusive() || keyboard.observed_keys().find(*key) != keyboard.observed_keys().end()) {
 				return false;
 			}
@@ -949,7 +919,8 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 					case Key::F:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 3), isPressed);	break;
 					default:
 						if(event->text().size()) {
-							joysticks[0]->set_input(Inputs::Joystick::Input(event->text()[0].toLatin1()), isPressed);
+							const auto text = event->text();
+							joysticks[0]->set_input(Inputs::Joystick::Input(text[0].toLatin1()), isPressed);
 						} else {
 							joysticks[0]->set_input(Inputs::Joystick::Input::Fire, isPressed);
 						}
@@ -962,12 +933,12 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 	return false;
 }
 
-void MainWindow::setMouseIsCaptured(bool isCaptured) {
+void MainWindow::setMouseIsCaptured(const bool isCaptured) {
 	mouseIsCaptured = isCaptured;
 	setWindowTitle();
 }
 
-void MainWindow::moveMouse(QPoint vector) {
+void MainWindow::moveMouse(const QPoint vector) {
 	std::unique_lock lock(machineMutex);
 	auto mouseMachine = machine->mouse_machine();
 	if(!mouseMachine) return;
@@ -975,7 +946,7 @@ void MainWindow::moveMouse(QPoint vector) {
 	mouseMachine->get_mouse().move(vector.x(), vector.y());
 }
 
-void MainWindow::setButtonPressed(int index, bool isPressed) {
+void MainWindow::setButtonPressed(const int index, const bool isPressed) {
 	std::unique_lock lock(machineMutex);
 	auto mouseMachine = machine->mouse_machine();
 	if(!mouseMachine) return;
@@ -1015,6 +986,7 @@ void MainWindow::startMachine() {
 	TEST(amstradCPC);
 	TEST(archimedes);
 	TEST(atariST);
+	TEST(bbc);
 	TEST(electron);
 	TEST(enterprise);
 	TEST(macintosh);
@@ -1119,6 +1091,24 @@ void MainWindow::start_atariST() {
 		default:	target->memory_size = Target::MemorySize::FiveHundredAndTwelveKilobytes;	break;
 		case 1:		target->memory_size = Target::MemorySize::OneMegabyte;						break;
 		case 2:		target->memory_size = Target::MemorySize::FourMegabytes;					break;
+	}
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_bbc() {
+	using Target = Analyser::Static::Acorn::BBCMicroTarget;
+	auto target = std::make_unique<Target>();
+
+	target->has_1770dfs = ui->bbcMicroDFSCheckBox->isChecked();
+	target->has_adfs = ui->bbcMicroADFSCheckBox->isChecked();
+	target->has_beebsid = ui->bbcMicroBeebSIDCheckBox->isChecked();
+	target->has_sideways_ram = ui->bbcMicroSidewaysRAMCheckBox->isChecked();
+
+	switch(ui->bbcMicroSecondProcessorComboBox->currentIndex()) {
+		default:	target->tube_processor = Target::TubeProcessor::None;		break;
+		case 1:		target->tube_processor = Target::TubeProcessor::WDC65C02;	break;
+		case 2:		target->tube_processor = Target::TubeProcessor::Z80;		break;
 	}
 
 	launchTarget(std::move(target));
@@ -1334,89 +1324,107 @@ void MainWindow::launchTarget(std::unique_ptr<Analyser::Static::Target> &&target
 // than indices. This has historically been true on the Mac, as I tend to add additional
 // options but the existing text is rarely affected.
 
-#define AllSettings()													\
-	/* Machine selection. */											\
-	Tabs(machineSelectionTabs, "machineSelection");						\
-																		\
-	/* Amiga. */														\
-	ComboBox(amigaChipRAMComboBox, "amiga.chipRAM");					\
-	ComboBox(amigaFastRAMComboBox, "amiga.fastRAM");					\
-																		\
-	/* Apple II. */														\
-	ComboBox(appleIIModelComboBox, "appleII.model");					\
-	ComboBox(appleIIDiskControllerComboBox, "appleII.diskController");	\
-																		\
-	/* Apple IIgs. */													\
-	ComboBox(appleIIgsModelComboBox, "appleIIgs.model");				\
-	ComboBox(appleIIgsMemorySizeComboBox, "appleIIgs.memorySize");		\
-																		\
-	/* Amstrad CPC. */													\
-	ComboBox(amstradCPCModelComboBox, "amstradcpc.model");				\
-																		\
-	/* Atari ST. */														\
-	ComboBox(atariSTRAMComboBox, "atarist.memorySize");					\
-																		\
-	/* Electron. */														\
-	CheckBox(electronDFSCheckBox, "electron.hasDFS");					\
-	CheckBox(electronADFSCheckBox, "electron.hasADFS");					\
-	CheckBox(electronAP6CheckBox, "electron.hasAP6");					\
-	CheckBox(electronSidewaysRAMCheckBox, "electron.fillSidewaysRAM");	\
-																		\
-	/* Enterprise. */													\
-	ComboBox(enterpriseModelComboBox, "enterprise.model");				\
-	ComboBox(enterpriseSpeedComboBox, "enterprise.speed");				\
-	ComboBox(enterpriseEXOSComboBox, "enterprise.exos");				\
-	ComboBox(enterpriseBASICComboBox, "enterprise.basic");				\
-	ComboBox(enterpriseDOSComboBox, "enterprise.dos");					\
-																		\
-	/* Macintosh. */													\
-	ComboBox(macintoshModelComboBox, "macintosh.model");				\
-																		\
-	/* MSX. */															\
-	ComboBox(msxRegionComboBox, "msx.region");							\
-	CheckBox(msxDiskDriveCheckBox, "msx.hasDiskDrive");					\
-																		\
-	/* Oric. */															\
-	ComboBox(oricModelComboBox, "msx.model");							\
-	ComboBox(oricDiskInterfaceComboBox, "msx.diskInterface");			\
-																		\
-	/* Vic-20 */														\
-	ComboBox(vic20RegionComboBox, "vic20.region");						\
-	ComboBox(vic20MemorySizeComboBox, "vic20.memorySize");				\
-	CheckBox(vic20C1540CheckBox, "vic20.has1540");						\
-																		\
-	/* ZX80. */															\
-	ComboBox(zx80MemorySizeComboBox, "zx80.memorySize");				\
-	CheckBox(zx80UseZX81ROMCheckBox, "zx80.usesZX81ROM");				\
-																		\
-	/* ZX81. */															\
-	ComboBox(zx81MemorySizeComboBox, "zx81.memorySize");
+template <typename ApplierT>
+void MainWindow::processAllSettings() {
+	ApplierT applier;
+
+	/* Machine selection. */
+	applier(ui->machineSelectionTabs, "machineSelection");
+
+	/* Amiga. */
+	applier(ui->amigaChipRAMComboBox, "amiga.chipRAM");
+	applier(ui->amigaFastRAMComboBox, "amiga.fastRAM");
+
+	/* Apple II. */
+	applier(ui->appleIIModelComboBox, "appleII.model");
+	applier(ui->appleIIDiskControllerComboBox, "appleII.diskController");
+
+	/* Apple IIgs. */
+	applier(ui->appleIIgsModelComboBox, "appleIIgs.model");
+	applier(ui->appleIIgsMemorySizeComboBox, "appleIIgs.memorySize");
+
+	/* Amstrad CPC. */
+	applier(ui->amstradCPCModelComboBox, "amstradcpc.model");
+
+	/* Atari ST. */
+	applier(ui->atariSTRAMComboBox, "atarist.memorySize");
+
+	/* BBC Micro. */
+	applier(ui->bbcMicroDFSCheckBox, "bbc.hasDFS");
+	applier(ui->bbcMicroADFSCheckBox, "bbc.hasADFS");
+	applier(ui->bbcMicroBeebSIDCheckBox, "bbc.hasBeebSID");
+	applier(ui->bbcMicroSidewaysRAMCheckBox, "bbc.fillSidewaysRAM");
+	applier(ui->bbcMicroSecondProcessorComboBox, "bbc.secondProcessor");
+
+	/* Electron. */
+	applier(ui->electronDFSCheckBox, "electron.hasDFS");
+	applier(ui->electronADFSCheckBox, "electron.hasADFS");
+	applier(ui->electronAP6CheckBox, "electron.hasAP6");
+	applier(ui->electronSidewaysRAMCheckBox, "electron.fillSidewaysRAM");
+
+	/* Enterprise. */
+	applier(ui->enterpriseModelComboBox, "enterprise.model");
+	applier(ui->enterpriseSpeedComboBox, "enterprise.speed");
+	applier(ui->enterpriseEXOSComboBox, "enterprise.exos");
+	applier(ui->enterpriseBASICComboBox, "enterprise.basic");
+	applier(ui->enterpriseDOSComboBox, "enterprise.dos");
+
+	/* Macintosh. */
+	applier(ui->macintoshModelComboBox, "macintosh.model");
+
+	/* MSX. */
+	applier(ui->msxRegionComboBox, "msx.region");
+	applier(ui->msxDiskDriveCheckBox, "msx.hasDiskDrive");
+
+	/* Oric. */
+	applier(ui->oricModelComboBox, "msx.model");
+	applier(ui->oricDiskInterfaceComboBox, "msx.diskInterface");
+
+	/* Vic-20 */
+	applier(ui->vic20RegionComboBox, "vic20.region");
+	applier(ui->vic20MemorySizeComboBox, "vic20.memorySize");
+	applier(ui->vic20C1540CheckBox, "vic20.has1540");
+
+	/* ZX80. */
+	applier(ui->zx80MemorySizeComboBox, "zx80.memorySize");
+	applier(ui->zx80UseZX81ROMCheckBox, "zx80.usesZX81ROM");
+
+	/* ZX81. */
+	applier(ui->zx81MemorySizeComboBox, "zx81.memorySize");
+}
 
 void MainWindow::storeSelections() {
-	Settings settings;
-#define Tabs(name, key)		settings.setValue(key, ui->name->currentIndex())
-#define CheckBox(name, key) settings.setValue(key, ui->name->isChecked())
-#define ComboBox(name, key) settings.setValue(key, ui->name->currentText())
+	struct Storer {
+		Settings settings;
 
-	AllSettings();
-
-#undef Tabs
-#undef CheckBox
-#undef ComboBox
+		void operator()(QCheckBox *const checkBox, const char *key) {
+			settings.setValue(key, checkBox->isChecked());
+		}
+		void operator()(QComboBox *const comboBox, const char *key) {
+			settings.setValue(key, comboBox->currentText());
+		}
+		void operator()(QTabWidget *const tabs, const char *key) {
+			settings.setValue(key, tabs->currentIndex());
+		}
+	};
+	processAllSettings<Storer>();
 }
 
 void MainWindow::restoreSelections() {
-	Settings settings;
+	struct Retriever {
+		Settings settings;
 
-#define Tabs(name, key)		ui->name->setCurrentIndex(settings.value(key).toInt())
-#define CheckBox(name, key)	ui->name->setCheckState(settings.value(key).toBool() ? Qt::Checked : Qt::Unchecked)
-#define ComboBox(name, key) ui->name->setCurrentText(settings.value(key).toString())
-
-	AllSettings();
-
-#undef Tabs
-#undef CheckBox
-#undef ComboBox
+		void operator()(QCheckBox *const checkBox, const char *key) {
+			checkBox->setCheckState(settings.value(key).toBool() ? Qt::Checked : Qt::Unchecked);
+		}
+		void operator()(QComboBox *const comboBox, const char *key) {
+			comboBox->setCurrentText(settings.value(key).toString());
+		}
+		void operator()(QTabWidget *const tabs, const char *key) {
+			tabs->setCurrentIndex(settings.value(key).toInt());
+		}
+	};
+	processAllSettings<Retriever>();
 }
 
 // MARK: - Activity observation
@@ -1436,7 +1444,7 @@ void MainWindow::register_led(const std::string &name, uint8_t) {
 	QMetaObject::invokeMethod(this, "updateStatusBarText");
 }
 
-void MainWindow::set_led_status(const std::string &name, bool isLit) {
+void MainWindow::set_led_status(const std::string &name, const bool isLit) {
 	std::lock_guard guard(ledStatusesLock);
 	ledStatuses[name] = isLit;
 	QMetaObject::invokeMethod(this, "updateStatusBarText");

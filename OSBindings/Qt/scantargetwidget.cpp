@@ -11,8 +11,9 @@
 #include <QTimer>
 
 #include "../../ClockReceiver/TimeTypes.hpp"
+#include "../../Outputs/OpenGL/Primitives/Shader.hpp"
 
-ScanTargetWidget::ScanTargetWidget(QWidget *parent) : QOpenGLWidget(parent) {}
+ScanTargetWidget::ScanTargetWidget(QWidget *const parent) : QOpenGLWidget(parent) {}
 ScanTargetWidget::~ScanTargetWidget() {}
 
 void ScanTargetWidget::initializeGL() {
@@ -50,6 +51,10 @@ void ScanTargetWidget::paintGL() {
 	// a scan target in ::initializeGL did not work (and no other arrangement really works
 	// with regard to starting up).
 	if(isConnected || producer) {
+		// Qt-specific workaround. I can but speculate as to why, but the bound program does
+		// not necessarily survive between calls into paintGL.
+		Outputs::Display::OpenGL::Shader::unbind();
+
 		if(producer) {
 			isConnected = true;
 			framebuffer = defaultFramebufferObject();
@@ -90,7 +95,7 @@ void ScanTargetWidget::vsync() {
 	}
 }
 
-void ScanTargetWidget::resizeGL(int w, int h) {
+void ScanTargetWidget::resizeGL(const int w, const int h) {
 	if(rawWidth != w || rawHeight != h) {
 		rawWidth = w;
 		rawHeight = h;
@@ -109,7 +114,7 @@ void ScanTargetWidget::resize() {
 	}
 }
 
-void ScanTargetWidget::setScanProducer(MachineTypes::ScanProducer *producer) {
+void ScanTargetWidget::setScanProducer(MachineTypes::ScanProducer *const producer) {
 	this->producer = producer;
 	repaint();
 }
@@ -130,7 +135,7 @@ void ScanTargetWidget::setDefaultClearColour() {
 	glClearColor(backgroundColour.redF(), backgroundColour.greenF(), backgroundColour.blueF(), 1.0);
 }
 
-void ScanTargetWidget::setMouseDelegate(MouseDelegate *delegate) {
+void ScanTargetWidget::setMouseDelegate(MouseDelegate *const delegate) {
 	if(!delegate && mouseIsCaptured) {
 		releaseMouse();
 	}
@@ -138,7 +143,7 @@ void ScanTargetWidget::setMouseDelegate(MouseDelegate *delegate) {
 	setMouseTracking(delegate);
 }
 
-void ScanTargetWidget::keyReleaseEvent(QKeyEvent *event) {
+void ScanTargetWidget::keyReleaseEvent(QKeyEvent *const event) {
 	// Releasing F8 or F12 needs to be tracked but doesn't actively do anything,
 	// so I'm counting that as a Qt ignore.
 	if(event->key() == Qt::Key_F8) f8State = false;
@@ -146,7 +151,7 @@ void ScanTargetWidget::keyReleaseEvent(QKeyEvent *event) {
 	event->ignore();
 }
 
-void ScanTargetWidget::keyPressEvent(QKeyEvent *event) {
+void ScanTargetWidget::keyPressEvent(QKeyEvent *const event) {
 	// Use either CTRL+Escape or F8+F12 to end mouse captured mode, if currently captured;
 	// otherwise ignore the event.
 
@@ -174,7 +179,7 @@ void ScanTargetWidget::releaseMouse() {
 	mouseDelegate->setMouseIsCaptured(false);
 }
 
-void ScanTargetWidget::mousePressEvent(QMouseEvent *event) {
+void ScanTargetWidget::mousePressEvent(QMouseEvent *const event) {
 	if(mouseDelegate) {
 		if(!mouseIsCaptured) {
 			mouseIsCaptured = true;
@@ -192,13 +197,13 @@ void ScanTargetWidget::mousePressEvent(QMouseEvent *event) {
 	}
 }
 
-void ScanTargetWidget::mouseReleaseEvent(QMouseEvent *event) {
+void ScanTargetWidget::mouseReleaseEvent(QMouseEvent *const event) {
 	if(mouseDelegate && !mouseIsCaptured) {
 		setMouseButtonPressed(event->button(), false);
 	}
 }
 
-void ScanTargetWidget::setMouseButtonPressed(Qt::MouseButton button, bool isPressed) {
+void ScanTargetWidget::setMouseButtonPressed(const Qt::MouseButton button, const bool isPressed) {
 	switch(button) {
 		default: break;
 		case Qt::LeftButton:	mouseDelegate->setButtonPressed(0, isPressed);	break;
@@ -207,7 +212,7 @@ void ScanTargetWidget::setMouseButtonPressed(Qt::MouseButton button, bool isPres
 	}
 }
 
-void ScanTargetWidget::mouseMoveEvent(QMouseEvent *event) {
+void ScanTargetWidget::mouseMoveEvent(QMouseEvent *const event) {
 	// Recentre the mouse cursor upon every move if it is currently captured.
 	if(mouseDelegate && mouseIsCaptured) {
 		const QPoint centre = QPoint(width() / 2, height() / 2);
