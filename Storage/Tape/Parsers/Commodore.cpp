@@ -237,7 +237,7 @@ uint16_t Parser::get_next_short(Storage::Tape::TapeSerialiser &serialiser) {
 
 float Parser::expected_length(const WaveType type) const {
 	const size_t index = size_t(type);
-	if(index >= 0 && index < timing_records_.size()) {
+	if(index < timing_records_.size()) {
 		return timing_records_[index].total / float(timing_records_[index].count);
 	}
 	return 0.0f;
@@ -263,7 +263,7 @@ void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 		push_wave(type);
 
 		const size_t index = size_t(type);
-		if(index >= 0 && index < timing_records_.size() && timing_records_[index].count < 10) {
+		if(index < timing_records_.size() && timing_records_[index].count < 10) {
 			++timing_records_[index].count;
 			timing_records_[index].total += wave_period_;
 		}
