@@ -11,10 +11,20 @@
 #include <cassert>
 #include <cstring>
 
-#define TextureAddressGetY(v)	uint16_t((v) >> 11)
-#define TextureAddressGetX(v)	uint16_t((v) & 0x7ff)
-#define TextureSub(a, b)		(((a) - (b)) & 0x3fffff)
-#define TextureAddress(x, y)	(((y) << 11) | (x))
+namespace {
+constexpr uint16_t texture_address_get_y(const int32_t address) {
+	return uint16_t(address >> 11);
+}
+constexpr uint16_t texture_address_get_x(const int32_t address) {
+	return uint16_t(address & 0x7ff);
+}
+constexpr int32_t texture_address(const uint16_t x, const uint16_t y) {
+	return (y << 11) | x;
+}
+constexpr int32_t texture_address_sub(const int32_t a, const int32_t b) {
+	return (a - b) & 0x3fffff;
+};
+}
 
 using namespace Outputs::Display;
 
@@ -29,7 +39,7 @@ BufferingScanTarget::BufferingScanTarget() {
 
 // MARK: - Producer; pixel data.
 
-uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required_alignment) {
+uint8_t *BufferingScanTarget::begin_data(const size_t required_length, const size_t required_alignment) {
 	assert(required_alignment);
 
 	// Acquire the standard producer lock, nominally over write_pointers_.
@@ -45,9 +55,9 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 	}
 
 	// Determine where the proposed write area would start and end.
-	uint16_t output_y = TextureAddressGetY(write_pointers_.write_area);
+	uint16_t output_y = texture_address_get_y(write_pointers_.write_area);
 
-	uint16_t aligned_start_x = TextureAddressGetX(write_pointers_.write_area & 0xffff) + 1;
+	uint16_t aligned_start_x = texture_address_get_x(write_pointers_.write_area & 0xffff) + 1;
 	aligned_start_x += uint16_t((required_alignment - aligned_start_x%required_alignment)%required_alignment);
 
 	uint16_t end_x = aligned_start_x + uint16_t(1 + required_length);
@@ -60,11 +70,11 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 
 	// Check whether that steps over the read pointer; if so then the final address will be closer
 	// to the write pointer than the old.
-	const auto end_address = TextureAddress(end_x, output_y);
+	const auto end_address = texture_address(end_x, output_y);
 	const auto read_pointers = read_pointers_.load(std::memory_order_relaxed);
 
-	const auto end_distance = TextureSub(end_address, read_pointers.write_area);
-	const auto previous_distance = TextureSub(write_pointers_.write_area, read_pointers.write_area);
+	const auto end_distance = texture_address_sub(end_address, read_pointers.write_area);
+	const auto previous_distance = texture_address_sub(write_pointers_.write_area, read_pointers.write_area);
 
 	// Perform a quick sanity check.
 	assert(end_distance >= 0);
@@ -80,23 +90,26 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 	// Everything checks out, note expectation of a future end_data and return the pointer.
 	assert(!data_is_allocated_);
 	data_is_allocated_ = true;
-	vended_write_area_pointer_ = write_pointers_.write_area = TextureAddress(aligned_start_x, output_y);
+	vended_write_area_pointer_ = write_pointers_.write_area = texture_address(aligned_start_x, output_y);
 
-	assert(write_pointers_.write_area >= 1 && ((size_t(write_pointers_.write_area) + required_length + 1) * data_type_size_) <= WriteAreaWidth*WriteAreaHeight*data_type_size_);
+	assert(
+		write_pointers_.write_area >= 1 &&
+		((size_t(write_pointers_.write_area) + required_length + 1) * data_type_size_)
+			<= WriteAreaWidth*WriteAreaHeight*data_type_size_);
 	return &write_area_[size_t(write_pointers_.write_area) * data_type_size_];
 
 	// Note state at exit:
 	//		write_pointers_.write_area points to the first pixel the client is expected to draw to.
 }
 
-template <typename DataUnit> void BufferingScanTarget::end_data(size_t actual_length) {
+template <typename DataUnit> void BufferingScanTarget::end_data(const size_t actual_length) {
 	// Bookend the start and end of the new data, to safeguard for precision errors in sampling.
 	DataUnit *const sized_write_area = &reinterpret_cast<DataUnit *>(write_area_)[write_pointers_.write_area];
 	sized_write_area[-1] = sized_write_area[0];
 	sized_write_area[actual_length] = sized_write_area[actual_length - 1];
 }
 
-void BufferingScanTarget::end_data(size_t actual_length) {
+void BufferingScanTarget::end_data(const size_t actual_length) {
 	// Acquire the producer lock.
 	std::lock_guard lock_guard(producer_mutex_);
 
@@ -181,17 +194,22 @@ void BufferingScanTarget::end_scan() {
 
 	// Complete the scan only if one is afoot.
 	if(vended_scan_) {
-		vended_scan_->data_y = TextureAddressGetY(vended_write_area_pointer_);
+		vended_scan_->data_y = texture_address_get_y(vended_write_area_pointer_);
 		vended_scan_->line = write_pointers_.line;
-		vended_scan_->scan.end_points[0].data_offset += TextureAddressGetX(vended_write_area_pointer_);
-		vended_scan_->scan.end_points[1].data_offset += TextureAddressGetX(vended_write_area_pointer_);
+		vended_scan_->scan.end_points[0].data_offset += texture_address_get_x(vended_write_area_pointer_);
+		vended_scan_->scan.end_points[1].data_offset += texture_address_get_x(vended_write_area_pointer_);
 		vended_scan_ = nullptr;
 	}
 }
 
 // MARK: - Producer; lines.
 
-void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t composite_amplitude) {
+void BufferingScanTarget::announce(
+	const Event event,
+	const bool is_visible,
+	const Outputs::Display::ScanTarget::Scan::EndPoint &location,
+	const uint8_t composite_amplitude
+) {
 	std::lock_guard lock_guard(producer_mutex_);
 
 	// Forward the event to the display metrics tracker.
@@ -226,7 +244,8 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 			Line &active_line = line_buffer_[size_t(write_pointers_.line)];
 			active_line.end_points[0].x = location.x;
 			active_line.end_points[0].y = location.y;
-			active_line.end_points[0].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
+			active_line.end_points[0].cycles_since_end_of_horizontal_retrace
+				= location.cycles_since_end_of_horizontal_retrace;
 			active_line.end_points[0].composite_angle = location.composite_angle;
 			active_line.line = write_pointers_.line;
 			active_line.composite_amplitude = composite_amplitude;
@@ -252,7 +271,8 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 			Line &active_line = line_buffer_[size_t(write_pointers_.line)];
 			active_line.end_points[1].x = location.x;
 			active_line.end_points[1].y = location.y;
-			active_line.end_points[1].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
+			active_line.end_points[1].cycles_since_end_of_horizontal_retrace
+				= location.cycles_since_end_of_horizontal_retrace;
 			active_line.end_points[1].composite_angle = location.composite_angle;
 
 			// Advance the line pointer.
@@ -285,7 +305,7 @@ const Outputs::Display::Metrics &BufferingScanTarget::display_metrics() {
 	return display_metrics_;
 }
 
-void BufferingScanTarget::set_write_area(uint8_t *base) {
+void BufferingScanTarget::set_write_area(uint8_t *const base) {
 	std::lock_guard lock_guard(producer_mutex_);
 	write_area_ = base;
 	write_pointers_ = submit_pointers_ = read_pointers_ = PointerSet();
@@ -299,7 +319,7 @@ size_t BufferingScanTarget::write_area_data_size() const {
 	return data_type_size_;
 }
 
-void BufferingScanTarget::set_modals(Modals modals) {
+void BufferingScanTarget::set_modals(const Modals modals) {
 	perform([&] {
 		modals_ = modals;
 		modals_are_dirty_.store(true, std::memory_order_relaxed);
@@ -324,10 +344,10 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 	area.start.scan = read_ahead_pointers.scan;
 	area.end.scan = submit_pointers.scan;
 
-	area.start.write_area_x = TextureAddressGetX(read_ahead_pointers.write_area);
-	area.start.write_area_y = TextureAddressGetY(read_ahead_pointers.write_area);
-	area.end.write_area_x = TextureAddressGetX(submit_pointers.write_area);
-	area.end.write_area_y = TextureAddressGetY(submit_pointers.write_area);
+	area.start.write_area_x = texture_address_get_x(read_ahead_pointers.write_area);
+	area.start.write_area_y = texture_address_get_y(read_ahead_pointers.write_area);
+	area.end.write_area_x = texture_address_get_x(submit_pointers.write_area);
+	area.end.write_area_y = texture_address_get_y(submit_pointers.write_area);
 
 	// Update the read-ahead pointers.
 	read_ahead_pointers_.store(submit_pointers, std::memory_order_relaxed);
@@ -346,7 +366,7 @@ void BufferingScanTarget::complete_output_area(const OutputArea &area) {
 	PointerSet new_read_pointers;
 	new_read_pointers.line = uint16_t(area.end.line);
 	new_read_pointers.scan = uint16_t(area.end.scan);
-	new_read_pointers.write_area = TextureAddress(area.end.write_area_x, area.end.write_area_y);
+	new_read_pointers.write_area = texture_address(uint16_t(area.end.write_area_x), uint16_t(area.end.write_area_y));
 	read_pointers_.store(new_read_pointers, std::memory_order_relaxed);
 
 #ifndef NDEBUG
@@ -362,12 +382,16 @@ void BufferingScanTarget::perform(const std::function<void(void)> &function) {
 	is_updating_.clear(std::memory_order_release);
 }
 
-void BufferingScanTarget::set_scan_buffer(Scan *buffer, size_t size) {
+void BufferingScanTarget::set_scan_buffer(Scan *const buffer, const size_t size) {
 	scan_buffer_ = buffer;
 	scan_buffer_size_ = size;
 }
 
-void BufferingScanTarget::set_line_buffer(Line *line_buffer, LineMetadata *metadata_buffer, size_t size) {
+void BufferingScanTarget::set_line_buffer(
+	Line *const line_buffer,
+	LineMetadata *const metadata_buffer,
+	const size_t size
+) {
 	line_buffer_ = line_buffer;
 	line_metadata_buffer_ = metadata_buffer;
 	line_buffer_size_ = size;
@@ -382,7 +406,7 @@ const Outputs::Display::ScanTarget::Modals *BufferingScanTarget::new_modals() {
 	modals_are_dirty_.store(false, std::memory_order_relaxed);
 
 	// MAJOR SHARP EDGE HERE: assume that because the new_modals have been fetched then the caller will
-	// now ensure their texture buffer is appropriate and swt the data size implied by the data type.
+	// now ensure their texture buffer is appropriate and set the data size implied by the data type.
 	std::lock_guard lock_guard(producer_mutex_);
 	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
 	assert((data_type_size_ == 1) || (data_type_size_ == 2) || (data_type_size_ == 4));

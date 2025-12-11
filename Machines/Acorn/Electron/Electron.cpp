@@ -665,7 +665,7 @@ private:
 		std::size_t rom_ptr = 0;
 		while(rom_ptr < 16384) {
 			const std::size_t size_to_copy = std::min(16384 - rom_ptr, data.size());
-			std::copy(data.begin(), data.begin() + ptrdiff_t(size_to_copy), &target[rom_ptr]);
+			std::copy_n(data.begin(), size_to_copy, &target[rom_ptr]);
 			rom_ptr += size_to_copy;
 		}
 

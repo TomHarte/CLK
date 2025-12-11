@@ -56,7 +56,7 @@ bool IsSpectrumDisk(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 			// Check the first ten bytes of the first sector for the disk format; if these are all
 			// the same value then instead substitute a default format.
 			std::array<uint8_t, 10> format;
-			std::copy(boot_sector->samples[0].begin(), boot_sector->samples[0].begin() + 10, format.begin());
+			std::copy_n(boot_sector->samples[0].begin(), 10, format.begin());
 			if(std::all_of(format.begin(), format.end(), [&](const uint8_t v) { return v == format[0]; })) {
 				format = {0x00, 0x00, 0x28, 0x09, 0x02, 0x01, 0x03, 0x02, 0x2a, 0x52};
 			}

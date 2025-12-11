@@ -59,7 +59,7 @@ struct LinearPool {
 
 	// Provided for setup.
 	void install(const uint32_t address, const uint8_t *const data, const uint32_t length) {
-		std::copy(data, data + length, memory.begin() + std::vector<uint8_t>::difference_type(address));
+		std::copy_n(data, length, memory.begin() + std::vector<uint8_t>::difference_type(address));
 	}
 
 	// Used by both DMA devices and by the CGA and MDA cards to set up their base pointers.

@@ -75,9 +75,9 @@ void Storage::Disk::decode_sectors(
 		if(pair.second.address.sector < first_sector) continue;
 		if(pair.second.size != sector_size) continue;
 		if(pair.second.samples.empty()) continue;
-		std::copy(
+		std::copy_n(
 			pair.second.samples[0].begin(),
-			pair.second.samples[0].begin() + ptrdiff_t(std::min(pair.second.samples[0].size(), byte_size)),
+			std::min(pair.second.samples[0].size(), byte_size),
 			&destination[(pair.second.address.sector - first_sector) * byte_size]
 		);
 	}

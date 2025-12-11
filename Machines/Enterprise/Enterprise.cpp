@@ -192,9 +192,9 @@ public:
 			if(source == roms.end()) {
 				return false;
 			}
-			std::copy(
+			std::copy_n(
 				source->second.begin(),
-				source->second.begin() + std::min(destination.size(), source->second.size()),
+				std::min(destination.size(), source->second.size()),
 				destination.begin()
 			);
 
@@ -228,14 +228,14 @@ public:
 			const auto basic1 = roms.find(ROM::Name::EnterpriseBASIC10Part1);
 			const auto basic2 = roms.find(ROM::Name::EnterpriseBASIC10Part2);
 			if(basic1 != roms.end() && basic2 != roms.end()) {
-				std::copy(
+				std::copy_n(
 					basic1->second.begin(),
-					basic1->second.begin() + std::min(size_t(8192), basic1->second.size()),
+					std::min(size_t(8192), basic1->second.size()),
 					&basic_[0x0000]
 				);
-				std::copy(
+				std::copy_n(
 					basic2->second.begin(),
-					basic2->second.begin() + std::min(size_t(8192), basic2->second.size()),
+					std::min(size_t(8192), basic2->second.size()),
 					&basic_[0x2000]
 				);
 			}

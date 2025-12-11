@@ -132,11 +132,7 @@ uint8_t Header::type_descriptor() const {
 void Header::serialise(uint8_t *const target, const uint16_t length) const {
 	target[0] = type_descriptor();
 	const auto bytes_to_copy = std::min(size_t(length), data.size());
-	std::copy(
-		data.begin(),
-		data.begin() + ptrdiff_t(bytes_to_copy),
-		target
-	);
+	std::copy_n(data.begin(), bytes_to_copy, target);
 }
 
 std::unique_ptr<Data> Parser::get_next_data_body(Storage::Tape::TapeSerialiser &serialiser, const bool is_original) {
@@ -241,7 +237,7 @@ uint16_t Parser::get_next_short(Storage::Tape::TapeSerialiser &serialiser) {
 
 float Parser::expected_length(const WaveType type) const {
 	const size_t index = size_t(type);
-	if(index >= 0 && index < timing_records_.size()) {
+	if(index < timing_records_.size()) {
 		return timing_records_[index].total / float(timing_records_[index].count);
 	}
 	return 0.0f;
@@ -267,7 +263,7 @@ void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 		push_wave(type);
 
 		const size_t index = size_t(type);
-		if(index >= 0 && index < timing_records_.size() && timing_records_[index].count < 10) {
+		if(index < timing_records_.size() && timing_records_[index].count < 10) {
 			++timing_records_[index].count;
 			timing_records_[index].total += wave_period_;
 		}

@@ -170,8 +170,8 @@ public:
 			partition[87] = partition[15] = uint8_t(details.size);
 
 			// 32 bytes are allocated for each of the following strings.
-			std::copy(details.name, details.name + strlen(details.name), &partition[16]);
-			std::copy(details.type, details.type + strlen(details.type), &partition[48]);
+			std::copy_n(details.name, strlen(details.name), &partition[16]);
+			std::copy_n(details.type, strlen(details.type), &partition[48]);
 
 			partition[91] = details.status;
 
@@ -192,7 +192,7 @@ public:
 
 					/* Driver target processor. */
 					const char *const driver_target = volume_provider_.driver_target();
-					std::copy(driver_target, driver_target + strlen(driver_target), &partition[120]);
+					std::copy_n(driver_target, strlen(driver_target), &partition[120]);
 
 					// Various non-zero values that Apple HD SC Tool wrote are below; they are
 					// documented as reserved officially, so I don't know their meaning.

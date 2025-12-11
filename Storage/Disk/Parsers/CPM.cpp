@@ -163,9 +163,9 @@ std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
 					}
 
 					const int records_to_copy = std::min(entry->number_of_records - record, records_per_sector);
-					std::copy(
+					std::copy_n(
 						sector_contents->samples[0].begin(),
-						sector_contents->samples[0].begin() + records_to_copy * 128,
+						records_to_copy * 128,
 						&new_file.data[entry->extent * bytes_per_catalogue_entry + size_t(record) * 128]
 					);
 					record += records_to_copy;

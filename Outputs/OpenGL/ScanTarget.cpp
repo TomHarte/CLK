@@ -11,6 +11,7 @@
 #include "OpenGL.hpp"
 #include "Primitives/Rectangle.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <limits>
@@ -222,7 +223,7 @@ void ScanTarget::update(int, int output_height) {
 
 	// Grab the new output list.
 	perform([&] {
-		OutputArea area = get_output_area();
+		const OutputArea area = get_output_area();
 
 		// Establish the pipeline if necessary.
 		const auto new_modals = BufferingScanTarget::new_modals();
@@ -236,24 +237,29 @@ void ScanTarget::update(int, int output_height) {
 		lines_submitted_ = (area.end.line - area.start.line + line_buffer_.size()) % line_buffer_.size();
 
 		// Submit scans; only the new ones need to be communicated.
-		size_t new_scans = (area.end.scan - area.start.scan + scan_buffer_.size()) % scan_buffer_.size();
+		const size_t new_scans = (area.end.scan - area.start.scan + scan_buffer_.size()) % scan_buffer_.size();
 		if(new_scans) {
 			test_gl(glBindBuffer, GL_ARRAY_BUFFER, scan_buffer_name_);
 
 			// Map only the required portion of the buffer.
 			const size_t new_scans_size = new_scans * sizeof(Scan);
-			uint8_t *const destination = static_cast<uint8_t *>(
-				glMapBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(new_scans_size), GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT)
+			const auto destination = static_cast<Scan *>(
+				glMapBufferRange(
+					GL_ARRAY_BUFFER,
+					0,
+					GLsizeiptr(new_scans_size),
+					GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT
+				)
 			);
 			test_gl_error();
 
 			// Copy as a single chunk if possible; otherwise copy in two parts.
 			if(area.start.scan < area.end.scan) {
-				memcpy(destination, &scan_buffer_[size_t(area.start.scan)], new_scans_size);
+				std::copy_n(scan_buffer_.begin() + area.start.scan, new_scans, destination);
 			} else {
-				const size_t first_portion_length = (scan_buffer_.size() - area.start.scan) * sizeof(Scan);
-				memcpy(destination, &scan_buffer_[area.start.scan], first_portion_length);
-				memcpy(&destination[first_portion_length], &scan_buffer_[0], new_scans_size - first_portion_length);
+				const size_t first_portion_count = scan_buffer_.size() - area.start.scan;
+				std::copy_n(scan_buffer_.begin() + area.start.scan, first_portion_count, destination);
+				std::copy_n(scan_buffer_.begin(), new_scans - first_portion_count, destination + first_portion_count);
 			}
 
 			// Flush and unmap the buffer.
@@ -372,7 +378,12 @@ void ScanTarget::update(int, int output_height) {
 		// feelings about whether too high a resolution is being used.
 		const int framebuffer_height = std::max(output_height / resolution_reduction_level_, std::min(540, output_height));
 		const int proportional_width = (framebuffer_height * 4) / 3;
-		const bool did_create_accumulation_texture = !accumulation_texture_ || ( (accumulation_texture_->get_width() != proportional_width || accumulation_texture_->get_height() != framebuffer_height));
+		const bool did_create_accumulation_texture =
+			!accumulation_texture_ ||
+			(
+				accumulation_texture_->get_width() != proportional_width ||
+				accumulation_texture_->get_height() != framebuffer_height
+			);
 
 		// Work with the accumulation_buffer_ potentially starts from here onwards; set its flag.
 		while(is_drawing_to_accumulation_buffer_.test_and_set());
@@ -465,16 +476,19 @@ void ScanTarget::update(int, int output_height) {
 				if(!end_line || end_line > start_line) {
 					test_gl(glBufferSubData, GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size), &line_buffer_[start_line]);
 				} else {
-					uint8_t *destination = static_cast<uint8_t *>(
-						glMapBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size), GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT)
+					auto destination = static_cast<Line *>(
+						glMapBufferRange(
+							GL_ARRAY_BUFFER,
+							0,
+							GLsizeiptr(buffer_size),
+							GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT
+						)
 					);
 					assert(destination);
 					test_gl_error();
 
-					const size_t buffer_length = line_buffer_.size() * sizeof(Line);
-					const size_t start_position = start_line * sizeof(Line);
-					memcpy(&destination[0], &line_buffer_[start_line], buffer_length - start_position);
-					memcpy(&destination[buffer_length - start_position], &line_buffer_[0], end_line * sizeof(Line));
+					std::copy_n(line_buffer_.begin(), end_line, destination + line_buffer_.size() - start_line);
+					std::copy_n(line_buffer_.begin() + start_line, line_buffer_.size() - start_line, destination);
 
 					test_gl(glFlushMappedBufferRange, GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size));
 					test_gl(glUnmapBuffer, GL_ARRAY_BUFFER);
