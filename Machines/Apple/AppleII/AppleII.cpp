@@ -131,8 +131,8 @@ private:
 			uint8_t *const base_target,
 			uint8_t *const auxiliary_target
 		) {
-			std::copy(ram_ + address, ram_ + address + count, base_target);
-			std::copy(aux_ram_ + address, aux_ram_ + address + count, auxiliary_target);
+			std::copy_n(ram_ + address, count, base_target);
+			std::copy_n(aux_ram_ + address, count, auxiliary_target);
 		}
 
 	private:

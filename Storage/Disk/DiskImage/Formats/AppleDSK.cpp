@@ -107,9 +107,9 @@ void AppleDSK::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>>
 		std::vector<uint8_t> track_contents(size_t(bytes_per_sector * sectors_per_track_));
 		for(const auto &sector_pair: sector_map) {
 			const size_t target_address = logical_sector_for_physical_sector(sector_pair.second.address.sector);
-			std::copy(
+			std::copy_n(
 				sector_pair.second.data.begin(),
-				sector_pair.second.data.begin() + bytes_per_sector,
+				bytes_per_sector,
 				&track_contents[target_address*256]
 			);
 		}

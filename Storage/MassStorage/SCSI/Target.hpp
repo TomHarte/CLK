@@ -286,10 +286,10 @@ struct Executor {
 			0x00, 0x00, 0x00, 0x00							/* Space for the revision level. */
 		};
 
-		auto copy_string = [] (uint8_t *destination, const char *source, size_t length) -> void {
+		auto copy_string = [] (uint8_t *const destination, const char *const source, const size_t length) -> void {
 			// Determine length of source and copy in as much as possible.
 			const auto source_length = std::min(strlen(source), length);
-			std::copy(source, source + source_length, destination);
+			std::copy_n(source, source_length, destination);
 
 			// Fill the rest with spaces.
 			std::fill(&destination[source_length], &destination[length], ' ');

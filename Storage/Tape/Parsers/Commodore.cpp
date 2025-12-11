@@ -132,11 +132,7 @@ uint8_t Header::type_descriptor() const {
 void Header::serialise(uint8_t *const target, const uint16_t length) const {
 	target[0] = type_descriptor();
 	const auto bytes_to_copy = std::min(size_t(length), data.size());
-	std::copy(
-		data.begin(),
-		data.begin() + ptrdiff_t(bytes_to_copy),
-		target
-	);
+	std::copy_n(data.begin(), bytes_to_copy, target);
 }
 
 std::unique_ptr<Data> Parser::get_next_data_body(Storage::Tape::TapeSerialiser &serialiser, const bool is_original) {

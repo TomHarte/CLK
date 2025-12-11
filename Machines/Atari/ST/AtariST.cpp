@@ -436,7 +436,7 @@ public:
 	}
 
 	void reinstall_rom_vector() {
-		std::copy(rom_.begin(), rom_.begin() + 8, ram_.begin());
+		std::copy_n(rom_.begin(), 8, ram_.begin());
 	}
 
 	void flush_output(int outputs) final {

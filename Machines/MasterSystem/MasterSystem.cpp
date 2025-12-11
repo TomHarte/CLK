@@ -154,7 +154,7 @@ public:
 			std::cerr << "No BIOS found; attempting to start cartridge directly" << std::endl;
 		} else {
 			has_bios_ = true;
-			std::copy(rom->second.begin(), rom->second.begin() + std::min(sizeof(bios_), rom->second.size()), bios_);
+			std::copy_n(rom->second.begin(), std::min(sizeof(bios_), rom->second.size()), bios_);
 		}
 		page_cartridge();
 
