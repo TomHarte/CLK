@@ -642,7 +642,7 @@ private:
 	/// @returns A pointer to the start of the RAM segment representing @c page if any; otherwise @c nullptr.
 	uint8_t *ram_segment(const uint8_t page) {
 		if(page < MinRAMSlot) return nullptr;
-		return &ram_[(page - MinRAMSlot) << 14];
+		return &ram_[size_t((page - MinRAMSlot) << 14)];
 	}
 
 	struct ROMPage {
