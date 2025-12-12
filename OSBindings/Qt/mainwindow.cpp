@@ -972,34 +972,9 @@ void MainWindow::setButtonPressed(const int index, const bool isPressed) {
 #include "../../Analyser/Static/ZXSpectrum/Target.hpp"
 
 void MainWindow::startMachine() {
-	const auto selectedTab = ui->machineSelectionTabs->currentWidget();
-
-#define TEST(x)		\
-	if(selectedTab == ui->x ## Tab) {	\
-		start_##x();					\
-		return;							\
-	}
-
-	TEST(amiga);
-	TEST(appleII);
-	TEST(appleIIgs);
-	TEST(amstradCPC);
-	TEST(archimedes);
-	TEST(atariST);
-	TEST(bbc);
-	TEST(electron);
-	TEST(enterprise);
-	TEST(macintosh);
-	TEST(msx);
-	TEST(oric);
-	TEST(plus4);
-	TEST(pc);
-	TEST(spectrum);
-	TEST(vic20);
-	TEST(zx80);
-	TEST(zx81);
-
-#undef TEST
+	const auto selectedTabName = ui->machineSelectionTabs->currentWidget()->objectName().chopped(3);
+	const auto starter = QString("start_") + selectedTabName;
+	QMetaObject::invokeMethod(this, starter.toStdString().c_str());
 }
 
 void MainWindow::start_appleII() {
