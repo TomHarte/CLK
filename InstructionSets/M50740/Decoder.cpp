@@ -258,7 +258,7 @@ std::pair<int, InstructionSet::M50740::Instruction> Decoder::decode(const uint8_
 		const int bytes_to_consume = std::min(int(end - source), outstanding_bytes);
 
 		consumed_ += bytes_to_consume;
-		source += bytes_to_consume;
+		/* source += bytes_to_consume; */
 		operand_bytes_ += bytes_to_consume;
 
 		if(operand_size_ == operand_bytes_) {

@@ -93,13 +93,15 @@ struct PermissionDelegate: public Storage::FileBundle::FileBundle::PermissionDel
 		// Ask the user for permission.
 		dispatch_sync(dispatch_get_main_queue(), ^{
 			NSOpenPanel *request = [NSOpenPanel openPanel];
-			request.prompt = @"Grant Permission";
-			request.message = @"Please Grant Permission For Full Folder Access";
+			request.prompt = NSLocalizedString(@"Grant Permission", @"");
+			request.message = NSLocalizedString(@"Please Grant Permission For Full Folder Access", @"");
 			request.canChooseFiles = NO;
 			request.allowsMultipleSelection = NO;
 			request.canChooseDirectories = YES;
 			[request setDirectoryURL:[url URLByDeletingLastPathComponent]];
 
+			// TODO: a nicer accessory view; NSTextField or the relevant equivalent
+			// with an attributed string might work.
 			request.accessoryView = [NSTextField labelWithString:[&] {
 				const auto key_file = bundle.key_file();
 
