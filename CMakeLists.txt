@@ -80,4 +80,7 @@ if(CLK_UI STREQUAL "SDL")
 	target_link_libraries(clksignal PRIVATE SDL2::SDL2)
 endif()
 
+# Somewhat boilerplate; more for the Snap than anything.
+install(TARGETS clksignal RUNTIME DESTINATION bin)
+
 # TODO: Investigate building on Windows.
