@@ -84,7 +84,6 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void startMachine();
 		void updateStatusBarText();
 
-	private:
 		void start_amiga();
 		void start_appleII();
 		void start_appleIIgs();
@@ -104,6 +103,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void start_zx80();
 		void start_zx81();
 
+	private:
 		enum class KeyboardInputMode {
 			Keyboard, Joystick
 		} keyboardInputMode;
