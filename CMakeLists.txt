@@ -69,6 +69,7 @@ if(CLK_UI STREQUAL "Qt")
 	find_package(X11 REQUIRED)
 	target_link_libraries(clksignal PRIVATE X11)
 	include_directories("OSBindings/Qt")
+	add_definitions(-DQT_NO_VERSION_TAGGING)	# This relaxes requirements when packaging with Snap.
 elseif(APPLE)
 	set(BLA_VENDOR Apple)
 	find_package(BLAS REQUIRED)
