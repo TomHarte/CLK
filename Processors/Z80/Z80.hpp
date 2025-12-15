@@ -115,15 +115,15 @@ struct PartialMachineCycle {
 		InterruptStart,
 	};
 	/// The operation being carried out by the Z80. See the various getters below for better classification.
-	const Operation operation = Operation::Internal;
+	Operation operation = Operation::Internal;
 	/// The length of this operation.
-	const HalfCycles length;
+	HalfCycles length;
 	/// The current value of the address bus.
-	const uint16_t *const address = nullptr;
+	const uint16_t *address = nullptr;
 	/// If the Z80 is outputting to the data bus, a pointer to that value. Otherwise, a pointer to the location where the current data bus value should be placed.
-	uint8_t *const value = nullptr;
+	uint8_t *value = nullptr;
 	/// @c true if this operation is occurring only because of an external request; @c false otherwise.
-	const bool was_requested = false;
+	bool was_requested = false;
 
 	/*!
 		@returns @c true if the processor believes that the bus handler should actually do something with
@@ -376,7 +376,7 @@ struct PartialMachineCycle {
 		return nullptr;
 	}
 
-	PartialMachineCycle(const PartialMachineCycle &rhs) noexcept;
+	PartialMachineCycle(const PartialMachineCycle &) = default;
 	PartialMachineCycle(Operation, HalfCycles, uint16_t *address, uint8_t *value, bool was_requested) noexcept;
 	PartialMachineCycle() noexcept;
 };

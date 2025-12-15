@@ -307,13 +307,13 @@ private:
 
 	const int16_t *buffer_ = nullptr;
 
-	void skip_samples(size_t count) {
+	void skip_samples(const size_t count) {
 		buffer_ += count;
 	}
 
-	void get_samples(size_t length, int16_t *target) {
+	void get_samples(const size_t length, int16_t *const target) {
 		const auto word_length = length * (1 + is_stereo);
-		memcpy(target, buffer_, word_length * sizeof(int16_t));
+		std::copy_n(buffer_, word_length, target);
 		buffer_ += word_length;
 	}
 

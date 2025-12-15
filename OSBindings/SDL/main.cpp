@@ -188,7 +188,7 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 		audio_buffer_.insert(audio_buffer_.end(), buffer.begin(), buffer.end());
 	}
 
-	void audio_callback(Uint8 *stream, int len) {
+	void audio_callback(Uint8 *const stream, const int len) {
 		std::lock_guard lock_guard(audio_buffer_mutex_);
 
 		// SDL buffer length is in bytes, so there's no need to adjust for stereo/mono in here.
@@ -196,14 +196,14 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 		const std::size_t copy_length = std::min(sample_length, audio_buffer_.size());
 		int16_t *const target = static_cast<int16_t *>(static_cast<void *>(stream));
 
-		std::memcpy(stream, audio_buffer_.data(), copy_length * sizeof(int16_t));
+		std::copy_n(audio_buffer_.begin(), copy_length, target);
 		if(copy_length < sample_length) {
 			std::fill(&target[copy_length], &target[sample_length], 0);
 		}
 		audio_buffer_.erase(audio_buffer_.begin(), audio_buffer_.begin() + copy_length);
 	}
 
-	static void SDL_audio_callback(void *userdata, Uint8 *stream, int len) {
+	static void SDL_audio_callback(void *const userdata, Uint8 *const stream, const int len) {
 		reinterpret_cast<SpeakerDelegate *>(userdata)->audio_callback(stream, len);
 	}
 
