@@ -377,7 +377,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 
 			case "c16plus4":
 				let hasC1541 = plus4HasC1541Button.state == .on
-				return CSStaticAnalyser(commodoreTEDModel: .C16, hasC1541: hasC1541)
+				return CSStaticAnalyser(commodoreTEDModel: .C16, diskDrive: hasC1541 ? .C1541 : .none)
 
 			case "cpc":
 				switch cpcModelTypeButton.selectedTag() {
