@@ -756,6 +756,7 @@ void MainWindow::dropEvent(QDropEvent *const event) {
 
 			bool foundROM = false;
 			const auto appDataLocation = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdString();
+			printf("App data location: %s\n", appDataLocation.c_str());
 
 			QString unusedRoms;
 			for(const auto &url: event->mimeData()->urls()) {
