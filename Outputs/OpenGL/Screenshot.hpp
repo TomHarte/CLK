@@ -10,6 +10,7 @@
 
 #include "OpenGL.hpp"
 
+#include <utility>
 #include <vector>
 
 namespace Outputs::Display::OpenGL {
@@ -21,7 +22,7 @@ namespace Outputs::Display::OpenGL {
 	The image will then be available as RGBA data, in raster order via the struct members.
 */
 struct Screenshot {
-	Screenshot(int aspect_width, int aspect_height) {
+	Screenshot(const int aspect_width, const int aspect_height) {
 		// Get the current viewport to establish framebuffer size. Then determine how wide the
 		// centre portion of that would be, allowing for the requested aspect ratio.
 		GLint dimensions[4];
@@ -39,13 +40,11 @@ struct Screenshot {
 
 		// Flip the contents into raster order.
 		const size_t line_size = size_t(width * 4);
-		std::vector temp(line_size, 0);
 		for(size_t y = 0; y < size_t(height) / 2; ++y) {
 			const size_t flipped_y = size_t(height - 1) - y;
-
-			memcpy(temp.data(), &pixel_data[flipped_y * line_size], line_size);
-			memcpy(&pixel_data[flipped_y * line_size], &pixel_data[y * line_size], line_size);
-			memcpy(&pixel_data[y * line_size], temp.data(), line_size);
+			for(size_t x = 0; x < line_size; x++) {
+				std::swap(pixel_data[flipped_y * line_size + x], pixel_data[y * line_size + x]);
+			}
 		}
 	}
 

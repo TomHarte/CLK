@@ -8,33 +8,33 @@
 
 #include "AllRAMProcessor.hpp"
 
-#include <cstring>
+#include <algorithm>
 
 using namespace CPU;
 
-AllRAMProcessor::AllRAMProcessor(std::size_t memory_size) :
+AllRAMProcessor::AllRAMProcessor(const size_t memory_size) :
 	memory_(memory_size),
 	traps_(memory_size, false),
 	timestamp_(0) {}
 
-void AllRAMProcessor::set_data_at_address(size_t start_address, std::size_t length, const uint8_t *data) {
+void AllRAMProcessor::set_data_at_address(const size_t start_address, const size_t length, const uint8_t *const data) {
 	const size_t end_address = std::min(start_address + length, memory_.size());
-	memcpy(&memory_[start_address], data, end_address - start_address);
+	std::copy_n(data, end_address - start_address, &memory_[start_address]);
 }
 
-void AllRAMProcessor::get_data_at_address(size_t start_address, std::size_t length, uint8_t *data) {
+void AllRAMProcessor::get_data_at_address(const size_t start_address, const size_t length, uint8_t *const data) {
 	const size_t end_address = std::min(start_address + length, memory_.size());
-	memcpy(data, &memory_[start_address], end_address - start_address);
+	std::copy_n(&memory_[start_address], end_address - start_address, data);
 }
 
 HalfCycles AllRAMProcessor::get_timestamp() {
 	return timestamp_;
 }
 
-void AllRAMProcessor::set_trap_handler(TrapHandler *trap_handler) {
+void AllRAMProcessor::set_trap_handler(TrapHandler *const trap_handler) {
 	trap_handler_ = trap_handler;
 }
 
-void AllRAMProcessor::add_trap_address(uint16_t address) {
+void AllRAMProcessor::add_trap_address(const uint16_t address) {
 	traps_[address] = true;
 }
