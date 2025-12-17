@@ -297,7 +297,10 @@ std::unique_ptr<Analyser::Static::Target> get_target<TargetPlatform::Plus4>(
 	}
 
 	// Attach a 1541 if there are any disks here.
-	target->has_c1541 = !target->media.disks.empty();
+	// TODO: prefer a 1551, once implemented.
+	if(!target->media.disks.empty()) {
+		target->disk_drive = Plus4Target::DiskDrive::C1541;
+	}
 	return target;
 }
 
