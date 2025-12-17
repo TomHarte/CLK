@@ -220,7 +220,7 @@ public:
 				prefix += "] ";
 			}
 
-			auto &&out = stream(accumulator_.is_info);
+			decltype(stream(true)) out = stream(accumulator_.is_info);
 			out << prefix << accumulator_.last;
 			if(accumulator_.count > 1) {
 				out << " [* " << accumulator_.count << "]";
