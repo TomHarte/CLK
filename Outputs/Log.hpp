@@ -16,7 +16,7 @@
 #ifdef TARGET_QT
 #include <QDebug>
 namespace {
-QDebug stream(const bool is_info) {
+[[maybe_unused]] QDebug stream(const bool is_info) {
 	return (is_info ? qInfo() : qWarning()).noquote().nospace();
 }
 static constexpr char EndLine = 0;
@@ -24,7 +24,7 @@ static constexpr char EndLine = 0;
 #else
 #include <iostream>
 namespace {
-std::ostream &stream(const bool is_info) {
+[[maybe_unused]] std::ostream &stream(const bool is_info) {
 	return is_info ? std::cout : std::cerr;
 }
 static constexpr char EndLine = '\n';
