@@ -212,8 +212,8 @@ std::string ScanTarget::sampling_function() const {
 			// Easy, just copy across.
 			fragment_shader +=
 				is_svideo ?
-					"return vec2(textureLod(textureName, coordinate, 0).r, 0.0);" :
-					"return textureLod(textureName, coordinate, 0).r;";
+					"return vec2(textureLod(textureName, coordinate, 0.0).r, 0.0);" :
+					"return textureLod(textureName, coordinate, 0.0).r;";
 		break;
 
 		case InputDataType::PhaseLinkedLuminance8:
@@ -222,13 +222,13 @@ std::string ScanTarget::sampling_function() const {
 
 			fragment_shader +=
 				is_svideo ?
-					"return vec2(textureLod(textureName, coordinate, 0)[iPhase], 0.0);" :
-					"return textureLod(textureName, coordinate, 0)[iPhase];";
+					"return vec2(textureLod(textureName, coordinate, 0.0)[iPhase], 0.0);" :
+					"return textureLod(textureName, coordinate, 0.0)[iPhase];";
 		break;
 
 		case InputDataType::Luminance8Phase8:
 			fragment_shader +=
-				"vec2 yc = textureLod(textureName, coordinate, 0).rg;"
+				"vec2 yc = textureLod(textureName, coordinate, 0.0).rg;"
 
 				"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
 				"float rawChroma = step(yc.y, 0.75) * cos(angle + phaseOffset);";
@@ -244,7 +244,7 @@ std::string ScanTarget::sampling_function() const {
 		case InputDataType::Red4Green4Blue4:
 		case InputDataType::Red8Green8Blue8:
 			fragment_shader +=
-				"vec3 colour = rgbToLumaChroma * textureLod(textureName, coordinate, 0).rgb;"
+				"vec3 colour = rgbToLumaChroma * textureLod(textureName, coordinate, 0.0).rgb;"
 				"vec2 quadrature = vec2(cos(angle), sin(angle));";
 
 			fragment_shader +=
@@ -274,8 +274,6 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 	// If the display type is S-Video, generate three textureCoordinates, at
 	// -45, 0, +45.
 	std::string vertex_shader = R"glsl(
-		#version 150
-
 		uniform vec2 scale;
 		uniform float rowHeight;
 
@@ -300,8 +298,6 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 	)glsl";
 
 	std::string fragment_shader = R"glsl(
-		#version 150
-
 		uniform sampler2D textureName;
 		uniform sampler2D qamTextureName;
 
@@ -354,20 +350,20 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 	vertex_shader += R"glsl(
 		float centreClock = mix(startClock, endClock, lateral);
-		textureCoordinates[0] = vec2(centreClock + textureCoordinateOffsets[0], lineY + 0.5) / textureSize(textureName, 0);
-		textureCoordinates[1] = vec2(centreClock + textureCoordinateOffsets[1], lineY + 0.5) / textureSize(textureName, 0);
-		textureCoordinates[2] = vec2(centreClock + textureCoordinateOffsets[2], lineY + 0.5) / textureSize(textureName, 0);
-		textureCoordinates[3] = vec2(centreClock + textureCoordinateOffsets[3], lineY + 0.5) / textureSize(textureName, 0);
+		textureCoordinates[0] = vec2(centreClock + textureCoordinateOffsets[0], lineY + 0.5) / vec2(textureSize(textureName, 0));
+		textureCoordinates[1] = vec2(centreClock + textureCoordinateOffsets[1], lineY + 0.5) / vec2(textureSize(textureName, 0));
+		textureCoordinates[2] = vec2(centreClock + textureCoordinateOffsets[2], lineY + 0.5) / vec2(textureSize(textureName, 0));
+		textureCoordinates[3] = vec2(centreClock + textureCoordinateOffsets[3], lineY + 0.5) / vec2(textureSize(textureName, 0));
 	)glsl";
 
 	if((modals.display_type == DisplayType::SVideo) || (modals.display_type == DisplayType::CompositeColour)) {
 		vertex_shader += R"glsl(
 			float centreCompositeAngle = abs(mix(startCompositeAngle, endCompositeAngle, lateral)) * 4.0 / 64.0;
 			centreCompositeAngle = floor(centreCompositeAngle);
-			qamTextureCoordinates[0] = vec2(centreCompositeAngle - 1.5, lineY + 0.5) / textureSize(textureName, 0);
-			qamTextureCoordinates[1] = vec2(centreCompositeAngle - 0.5, lineY + 0.5) / textureSize(textureName, 0);
-			qamTextureCoordinates[2] = vec2(centreCompositeAngle + 0.5, lineY + 0.5) / textureSize(textureName, 0);
-			qamTextureCoordinates[3] = vec2(centreCompositeAngle + 1.5, lineY + 0.5) / textureSize(textureName, 0);
+			qamTextureCoordinates[0] = vec2(centreCompositeAngle - 1.5, lineY + 0.5) / vec2(textureSize(textureName, 0));
+			qamTextureCoordinates[1] = vec2(centreCompositeAngle - 0.5, lineY + 0.5) / vec2(textureSize(textureName, 0));
+			qamTextureCoordinates[2] = vec2(centreCompositeAngle + 0.5, lineY + 0.5) / vec2(textureSize(textureName, 0));
+			qamTextureCoordinates[3] = vec2(centreCompositeAngle + 1.5, lineY + 0.5) / vec2(textureSize(textureName, 0));
 		)glsl";
 	}
 
@@ -414,10 +410,10 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 					// Split and average chrominance.
 					vec2 chrominances[4] = vec2[4](
-						textureLod(qamTextureName, qamTextureCoordinates[0], 0).gb,
-						textureLod(qamTextureName, qamTextureCoordinates[1], 0).gb,
-						textureLod(qamTextureName, qamTextureCoordinates[2], 0).gb,
-						textureLod(qamTextureName, qamTextureCoordinates[3], 0).gb
+						textureLod(qamTextureName, qamTextureCoordinates[0], 0.0).gb,
+						textureLod(qamTextureName, qamTextureCoordinates[1], 0.0).gb,
+						textureLod(qamTextureName, qamTextureCoordinates[2], 0.0).gb,
+						textureLod(qamTextureName, qamTextureCoordinates[3], 0.0).gb
 					);
 					vec2 channels = (chrominances[0] + chrominances[1] + chrominances[2] + chrominances[3])*0.5 - vec2(1.0);
 
@@ -442,10 +438,10 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		case DisplayType::RGB:
 			fragment_shader +=
 				"vec3 samples[4] = vec3[4]("
-					"textureLod(textureName, textureCoordinates[0], 0).rgb,"
-					"textureLod(textureName, textureCoordinates[1], 0).rgb,"
-					"textureLod(textureName, textureCoordinates[2], 0).rgb,"
-					"textureLod(textureName, textureCoordinates[3], 0).rgb"
+					"textureLod(textureName, textureCoordinates[0], 0.0).rgb,"
+					"textureLod(textureName, textureCoordinates[1], 0.0).rgb,"
+					"textureLod(textureName, textureCoordinates[2], 0.0).rgb,"
+					"textureLod(textureName, textureCoordinates[3], 0.0).rgb"
 				");"
 				"fragColour3 = samples[0]*0.15 + samples[1]*0.35 + samples[2]*0.35 + samples[2]*0.15;";
 		break;
@@ -464,10 +460,10 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 				// Split and average chrominance.
 				"vec2 chrominances[4] = vec2[4]("
-					"textureLod(qamTextureName, qamTextureCoordinates[0], 0).gb,"
-					"textureLod(qamTextureName, qamTextureCoordinates[1], 0).gb,"
-					"textureLod(qamTextureName, qamTextureCoordinates[2], 0).gb,"
-					"textureLod(qamTextureName, qamTextureCoordinates[3], 0).gb"
+					"textureLod(qamTextureName, qamTextureCoordinates[0], 0.0).gb,"
+					"textureLod(qamTextureName, qamTextureCoordinates[1], 0.0).gb,"
+					"textureLod(qamTextureName, qamTextureCoordinates[2], 0.0).gb,"
+					"textureLod(qamTextureName, qamTextureCoordinates[3], 0.0).gb"
 				");"
 				"vec2 channels = (chrominances[0] + chrominances[1] + chrominances[2] + chrominances[3])*0.5 - vec2(1.0);"
 
@@ -492,6 +488,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		"}";
 
 	return std::make_unique<Shader>(
+		api_,
 		vertex_shader,
 		fragment_shader,
 		bindings(ShaderType::Conversion)
@@ -501,8 +498,6 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 	const auto modals = BufferingScanTarget::modals();
 	const std::string vertex_shader = R"glsl(
-		#version 150
-
 		in float startDataX;
 		in float startClock;
 
@@ -519,15 +514,13 @@ std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 			float lateral = float(gl_VertexID & 1);
 			float longitudinal = float((gl_VertexID & 2) >> 1);
 
-			textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY + 0.5) / textureSize(textureName, 0);
+			textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY + 0.5) / vec2(textureSize(textureName, 0));
 			vec2 eyePosition = vec2(mix(startClock, endClock, lateral), lineY + longitudinal) / vec2(2048.0, 2048.0);
 			gl_Position = vec4(eyePosition*2.0 - vec2(1.0), 0.0, 1.0);
 		}
 	)glsl";
 
-	std::string fragment_shader =
-	R"x(#version 150
-
+	std::string fragment_shader = R"x(
 		out vec4 fragColour;
 		in vec2 textureCoordinate;
 
@@ -538,37 +531,38 @@ std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 
 	switch(modals.input_data_type) {
 		case InputDataType::Luminance1:
-			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0).rrrr;";
+			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0.0).rrrr;";
 		break;
 
 		case InputDataType::Luminance8:
-			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0).rrrr / vec4(255.0);";
+			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0.0).rrrr / vec4(255.0);";
 		break;
 
 		case InputDataType::PhaseLinkedLuminance8:
 		case InputDataType::Luminance8Phase8:
 		case InputDataType::Red8Green8Blue8:
-			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0) / vec4(255.0);";
+			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0.0) / vec4(255.0);";
 		break;
 
 		case InputDataType::Red1Green1Blue1:
-			fragment_shader += "fragColour = vec4(textureLod(textureName, textureCoordinate, 0).rrr & uvec3(4u, 2u, 1u), 1.0);";
+			fragment_shader += "fragColour = vec4(textureLod(textureName, textureCoordinate, 0.0).rrr & uvec3(4u, 2u, 1u), 1.0);";
 		break;
 
 		case InputDataType::Red2Green2Blue2:
 			fragment_shader +=
-				"uint textureValue = textureLod(textureName, textureCoordinate, 0).r;"
+				"uint textureValue = textureLod(textureName, textureCoordinate, 0.0).r;"
 				"fragColour = vec4(float((textureValue >> 4) & 3u), float((textureValue >> 2) & 3u), float(textureValue & 3u), 3.0) / 3.0;";
 		break;
 
 		case InputDataType::Red4Green4Blue4:
 			fragment_shader +=
-				"uvec2 textureValue = textureLod(textureName, textureCoordinate, 0).rg;"
+				"uvec2 textureValue = textureLod(textureName, textureCoordinate, 0.0).rg;"
 				"fragColour = vec4(float(textureValue.r) / 15.0, float(textureValue.g & 240u) / 240.0, float(textureValue.g & 15u) / 15.0, 1.0);";
 		break;
 	}
 
 	return std::make_unique<Shader>(
+		api_,
 		vertex_shader,
 		fragment_shader + "}",
 		bindings(ShaderType::Composition)
@@ -582,8 +576,6 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 	// Sets up texture coordinates to run between startClock and endClock, mapping to
 	// coordinates that correlate with four times the absolute value of the composite angle.
 	std::string vertex_shader =
-		"#version 150\n"
-
 		"in float startClock;"
 		"in float startCompositeAngle;"
 		"in float endClock;"
@@ -600,8 +592,6 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 		"out float oneOverCompositeAmplitude;";
 
 	std::string fragment_shader =
-		"#version 150\n"
-
 		"uniform sampler2D textureName;"
 		"uniform mat3 rgbToLumaChroma;"
 
@@ -638,13 +628,13 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 
 	if(is_svideo) {
 		vertex_shader +=
-			"textureCoordinate = vec2(centreClock, lineY + 0.5) / textureSize(textureName, 0);";
+			"textureCoordinate = vec2(centreClock, lineY + 0.5) / vec2(textureSize(textureName, 0));";
 	} else {
 		vertex_shader +=
-			"textureCoordinates[0] = vec2(centreClock + textureCoordinateOffsets[0], lineY + 0.5) / textureSize(textureName, 0);"
-			"textureCoordinates[1] = vec2(centreClock + textureCoordinateOffsets[1], lineY + 0.5) / textureSize(textureName, 0);"
-			"textureCoordinates[2] = vec2(centreClock + textureCoordinateOffsets[2], lineY + 0.5) / textureSize(textureName, 0);"
-			"textureCoordinates[3] = vec2(centreClock + textureCoordinateOffsets[3], lineY + 0.5) / textureSize(textureName, 0);";
+			"textureCoordinates[0] = vec2(centreClock + textureCoordinateOffsets[0], lineY + 0.5) / vec2(textureSize(textureName, 0));"
+			"textureCoordinates[1] = vec2(centreClock + textureCoordinateOffsets[1], lineY + 0.5) / vec2(textureSize(textureName, 0));"
+			"textureCoordinates[2] = vec2(centreClock + textureCoordinateOffsets[2], lineY + 0.5) / vec2(textureSize(textureName, 0));"
+			"textureCoordinates[3] = vec2(centreClock + textureCoordinateOffsets[3], lineY + 0.5) / vec2(textureSize(textureName, 0));";
 	}
 
 	vertex_shader += "}";
@@ -682,6 +672,7 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 		"}";
 
 	return std::make_unique<Shader>(
+		api_,
 		vertex_shader,
 		fragment_shader,
 		bindings(ShaderType::QAMSeparation)

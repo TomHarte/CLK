@@ -37,7 +37,6 @@ void ScanTargetWidget::paintGL() {
 		resize();
 	}
 	vsyncPredictor.set_frame_rate(float(screen->refreshRate()));
-
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	// Gmynastics ahoy: if a producer has been specified or previously connected then:
@@ -58,7 +57,11 @@ void ScanTargetWidget::paintGL() {
 		if(producer) {
 			isConnected = true;
 			framebuffer = defaultFramebufferObject();
-			scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>(framebuffer);
+
+			const auto api = format().renderableType() == QSurfaceFormat::RenderableType::OpenGLES ?
+				Outputs::Display::OpenGL::API::OpenGLES3 : Outputs::Display::OpenGL::API::OpenGL32Core;
+			scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>(api, framebuffer);
+
 			producer->set_scan_target(scanTarget.get());
 			producer = nullptr;
 		}
@@ -91,7 +94,12 @@ void ScanTargetWidget::vsync() {
 		QTimer::singleShot(delay_time, this, SLOT(repaint()));
 	} else {
 		requestedRedrawTime = 0;
-		repaint();
+
+		// Schedule an immediate repaint, but put it on the event loop
+		// to happen soon, don't do it now. That's because it isn't formally
+		// defined whether vsync will be separately scheduled from repaint,
+		// so an infinite loop might occur here.
+		QTimer::singleShot(0, this, SLOT(repaint()));
 	}
 }
 

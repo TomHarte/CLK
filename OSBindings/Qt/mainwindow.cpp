@@ -1348,12 +1348,21 @@ void MainWindow::processAllSettings() {
 	applier(ui->macintoshModelComboBox, "macintosh.model");
 
 	/* MSX. */
+	applier(ui->msxModelComboBox, "msx.model");
 	applier(ui->msxRegionComboBox, "msx.region");
 	applier(ui->msxDiskDriveCheckBox, "msx.hasDiskDrive");
+	applier(ui->msxMSXMUSICCheckBox, "msx.hasMSXMUSIC");
 
 	/* Oric. */
 	applier(ui->oricModelComboBox, "msx.model");
 	applier(ui->oricDiskInterfaceComboBox, "msx.diskInterface");
+
+	/* Plus 4. */
+	applier(ui->plus4C1541CheckBox, "plus4.hasC1541");
+
+	/* PC Compatible. */
+	applier(ui->pcSpeedComboBox, "pc.speed");
+	applier(ui->pcVideoAdaptorComboBox, "pc.videoAdaptor");
 
 	/* Vic-20 */
 	applier(ui->vic20RegionComboBox, "vic20.region");
@@ -1366,6 +1375,9 @@ void MainWindow::processAllSettings() {
 
 	/* ZX81. */
 	applier(ui->zx81MemorySizeComboBox, "zx81.memorySize");
+
+	/* ZX Spectrum. */
+	applier(ui->spectrumModelComboBox, "spectrum.model");
 }
 
 void MainWindow::storeSelections() {

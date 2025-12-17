@@ -3,7 +3,7 @@ on: [pull_request]
 jobs:
 
   build-mac-xcodebuild:
-    name: Mac UI / xcodebuild / ${{ matrix.os }}
+    name: Mac / xcodebuild / ${{ matrix.os }}
     strategy:
       matrix:
         os: [macos-latest] #[macos-13, macos-14, macos-15]
@@ -22,7 +22,7 @@ jobs:
         xcodebuild CODE_SIGN_IDENTITY=-
 
   build-sdl-cmake:
-    name: SDL UI / cmake / ${{ matrix.os }}
+    name: SDL / cmake / ${{ matrix.os }}
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest]
@@ -60,7 +60,7 @@ jobs:
         cmake --build build -v -j"$jobs"
 
   build-sdl-scons:
-    name: SDL UI / scons / ${{ matrix.os }}
+    name: SDL / scons / ${{ matrix.os }}
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest]
@@ -96,29 +96,8 @@ jobs:
         esac
         scons -j"$jobs"
 
-#  build-qt5:
-#    name: Qt 5 / ${{ matrix.os }}
-#    strategy:
-#      matrix:
-#        os: [ubuntu-latest]
-#    runs-on: ${{ matrix.os }}
-#    steps:
-#    - name: Checkout
-#      uses: actions/checkout@v4
-#    - name: Install dependencies
-#      uses: jurplel/install-qt-action@v3
-#      with:
-#        version: '5.15.2'
-#        archives: 'qtbase qtmultimedia qtx11extras icu'
-#    - name: Make
-#      working-directory: OSBindings/Qt
-#      shell: bash
-#      run: |
-#        qmake -o Makefile clksignal.pro
-#        make
-
   build-qt6:
-    name: Qt 6 / ${{ matrix.os }}
+    name: Qt / qmake / ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -159,10 +138,3 @@ jobs:
 
         jobs=$(nproc --all)
         cmake --build build -v -j"$jobs"
-
-
-
-
-#        aqt list-qt linux desktop --modules 6.8.3 linux_gcc_64
-# Modules when last checked:
-# debug_info qt3d qt3d.debug_information qt5compat qt5compat.debug_information qtcharts qtcharts.debug_information qtconnectivity qtconnectivity.debug_information qtdatavis3d qtdatavis3d.debug_information qtgraphs qtgraphs.debug_information qtgrpc qtgrpc.debug_information qthttpserver qthttpserver.debug_information qtimageformats qtimageformats.debug_information qtlanguageserver qtlocation qtlocation.debug_information qtlottie qtlottie.debug_information qtmultimedia qtmultimedia.debug_information qtnetworkauth qtnetworkauth.debug_information qtpdf qtpositioning qtpositioning.debug_information qtquick3d qtquick3d.debug_information qtquick3dphysics qtquick3dphysics.debug_information qtquickeffectmaker qtquickeffectmaker.debug_information qtquicktimeline qtquicktimeline.debug_information qtremoteobjects qtremoteobjects.debug_information qtscxml qtscxml.debug_information qtsensors qtsensors.debug_information qtserialbus qtserialbus.debug_information qtserialport qtserialport.debug_information qtshadertools qtshader

@@ -7,7 +7,7 @@
 //
 
 #include "Processors/Z80/Z80.hpp"
-#include <cstring>
+#include <algorithm>
 
 using namespace CPU::Z80;
 
@@ -496,7 +496,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 		InstructionTable copy_table = {
 			Sequence(FINDEX(), ReadInc(pc_, temp8_), InternalOperation(4), Write(INDEX_ADDR(), temp8_))
 		};
-		std::memcpy(&base_program_table[0x36], &copy_table[0], sizeof(copy_table[0]));
+		std::copy(std::begin(copy_table[0]), std::end(copy_table[0]), std::begin(base_program_table[0x36]));
 	}
 
 	assemble_cb_page(cb_page, index, add_offsets);

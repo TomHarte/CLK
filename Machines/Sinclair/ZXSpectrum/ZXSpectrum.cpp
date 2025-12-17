@@ -164,7 +164,7 @@ public:
 		}
 
 		const auto &rom = roms.find(rom_name)->second;
-		memcpy(rom_.data(), rom.data(), std::min(rom_.size(), rom.size()));
+		std::copy_n(rom.begin(), std::min(rom_.size(), rom.size()), rom_.begin());
 
 		// Register for sleeping notifications.
 		tape_player_.set_clocking_hint_observer(this);
@@ -200,10 +200,10 @@ public:
 			if(model <= Model::FortyEightK) {
 				const size_t num_banks = std::min(size_t(48*1024), state->ram.size()) >> 14;
 				for(size_t c = 0; c < num_banks; c++) {
-					memcpy(&banks_[c + 1].write[(c+1) * 0x4000], &state->ram[c * 0x4000], 0x4000);
+					std::copy_n(&state->ram[c * 0x4000], 0x4000, &banks_[c + 1].write[(c+1) * 0x4000]);
 				}
 			} else {
-				memcpy(ram_.data(), state->ram.data(), std::min(ram_.size(), state->ram.size()));
+				std::copy_n(state->ram.begin(), std::min(ram_.size(), state->ram.size()), ram_.data());
 
 				port1ffd_ = state->last_1ffd;
 				port7ffd_ = state->last_7ffd;

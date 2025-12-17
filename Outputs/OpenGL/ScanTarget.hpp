@@ -12,6 +12,7 @@
 #include "Outputs/DisplayMetrics.hpp"
 #include "Outputs/ScanTargets/BufferingScanTarget.hpp"
 
+#include "API.hpp"
 #include "OpenGL.hpp"
 #include "Primitives/TextureTarget.hpp"
 #include "Primitives/Rectangle.hpp"
@@ -30,7 +31,6 @@
 
 namespace Outputs::Display::OpenGL {
 
-
 /*!
 	Provides a ScanTarget that uses OpenGL to render its output;
 	this uses various internal buffers so that the only geometry
@@ -38,7 +38,7 @@ namespace Outputs::Display::OpenGL {
 */
 class ScanTarget: public Outputs::Display::BufferingScanTarget {	// TODO: use private inheritance and expose only display_metrics() and a custom cast?
 public:
-	ScanTarget(GLuint target_framebuffer = 0, float output_gamma = 2.2f);
+	ScanTarget(API, GLuint target_framebuffer = 0, float output_gamma = 2.2f);
 	~ScanTarget();
 
 	void set_target_framebuffer(GLuint);
@@ -49,6 +49,7 @@ public:
 	void update(int output_width, int output_height);
 
 private:
+	API api_;
 	static constexpr int LineBufferWidth = 2048;
 	static constexpr int LineBufferHeight = 2048;
 

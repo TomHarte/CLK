@@ -69,6 +69,7 @@ if(CLK_UI STREQUAL "Qt")
 	find_package(X11 REQUIRED)
 	target_link_libraries(clksignal PRIVATE X11)
 	include_directories("OSBindings/Qt")
+	add_compile_definitions(TARGET_QT)
 elseif(APPLE)
 	set(BLA_VENDOR Apple)
 	find_package(BLAS REQUIRED)
@@ -79,5 +80,8 @@ if(CLK_UI STREQUAL "SDL")
 	find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
 	target_link_libraries(clksignal PRIVATE SDL2::SDL2)
 endif()
+
+# Somewhat boilerplate; more for the Snap than anything.
+install(TARGETS clksignal RUNTIME DESTINATION bin)
 
 # TODO: Investigate building on Windows.
