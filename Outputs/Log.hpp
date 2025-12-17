@@ -220,8 +220,9 @@ public:
 				prefix += "] ";
 			}
 
-			decltype(stream(true)) out = stream(accumulator_.is_info);
-			out << prefix << accumulator_.last;
+			auto &&out = stream(accumulator_.is_info);
+			out << prefix.c_str() << accumulator_.last.c_str();	// Use of .c_str() avoids an ambiguity affecting older
+																// versions of Qt.
 			if(accumulator_.count > 1) {
 				out << " [* " << accumulator_.count << "]";
 			}
