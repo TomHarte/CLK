@@ -15,7 +15,7 @@
 #include <string>
 
 #ifdef QT_VERSION
-#include <QtLogging>
+#include <QDebug>
 #endif
 
 namespace Log {
