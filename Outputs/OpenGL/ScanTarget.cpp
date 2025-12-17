@@ -76,11 +76,12 @@ template <typename T> void ScanTarget::allocate_buffer(const T &array, GLuint &b
 	test_gl(glBindBuffer, GL_ARRAY_BUFFER, buffer_name);
 }
 
-ScanTarget::ScanTarget(GLuint target_framebuffer, float output_gamma) :
+ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const float output_gamma) :
+	api_(api),
 	target_framebuffer_(target_framebuffer),
 	output_gamma_(output_gamma),
-	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_NEAREST, false),
-	full_display_rectangle_(-1.0f, -1.0f, 2.0f, 2.0f) {
+	unprocessed_line_texture_(api, LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_NEAREST, false),
+	full_display_rectangle_(api, -1.0f, -1.0f, 2.0f, 2.0f) {
 
 	set_scan_buffer(scan_buffer_.data(), scan_buffer_.size());
 	set_line_buffer(line_buffer_.data(), line_metadata_buffer_.data(), line_buffer_.size());
@@ -139,6 +140,7 @@ void ScanTarget::setup_pipeline() {
 		if(needs_qam_buffer) {
 			if(!qam_chroma_texture_) {
 				qam_chroma_texture_ = std::make_unique<TextureTarget>(
+					api_,
 					LineBufferWidth,
 					LineBufferHeight,
 					QAMChromaTextureUnit,
@@ -344,12 +346,12 @@ void ScanTarget::update(int, int output_height) {
 				}
 
 				if(first_line_to_clear < final_line_to_clear) {
-					test_gl(glScissor, GLint(0), GLint(first_line_to_clear), unprocessed_line_texture_.get_width(), final_line_to_clear - first_line_to_clear);
+					test_gl(glScissor, GLint(0), GLint(first_line_to_clear), unprocessed_line_texture_.width(), final_line_to_clear - first_line_to_clear);
 					test_gl(glClear, GL_COLOR_BUFFER_BIT);
 				} else {
-					test_gl(glScissor, GLint(0), GLint(0), unprocessed_line_texture_.get_width(), final_line_to_clear);
+					test_gl(glScissor, GLint(0), GLint(0), unprocessed_line_texture_.width(), final_line_to_clear);
 					test_gl(glClear, GL_COLOR_BUFFER_BIT);
-					test_gl(glScissor, GLint(0), GLint(first_line_to_clear), unprocessed_line_texture_.get_width(), unprocessed_line_texture_.get_height() - first_line_to_clear);
+					test_gl(glScissor, GLint(0), GLint(first_line_to_clear), unprocessed_line_texture_.width(), unprocessed_line_texture_.height() - first_line_to_clear);
 					test_gl(glClear, GL_COLOR_BUFFER_BIT);
 				}
 
@@ -381,8 +383,8 @@ void ScanTarget::update(int, int output_height) {
 		const bool did_create_accumulation_texture =
 			!accumulation_texture_ ||
 			(
-				accumulation_texture_->get_width() != proportional_width ||
-				accumulation_texture_->get_height() != framebuffer_height
+				accumulation_texture_->width() != proportional_width ||
+				accumulation_texture_->height() != framebuffer_height
 			);
 
 		// Work with the accumulation_buffer_ potentially starts from here onwards; set its flag.
@@ -390,13 +392,14 @@ void ScanTarget::update(int, int output_height) {
 		if(did_create_accumulation_texture) {
 			Logger::info().append("Changed output resolution to %d by %d", proportional_width, framebuffer_height);
 			display_metrics_.announce_did_resize();
-			std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(
-				new TextureTarget(
-					GLsizei(proportional_width),
-					GLsizei(framebuffer_height),
-					AccumulationTextureUnit,
-					GL_NEAREST,
-					true));
+			auto new_framebuffer = std::make_unique<TextureTarget>(
+				api_,
+				GLsizei(proportional_width),
+				GLsizei(framebuffer_height),
+				AccumulationTextureUnit,
+				GL_NEAREST,
+				true
+			);
 			if(accumulation_texture_) {
 				new_framebuffer->bind_framebuffer();
 				test_gl(glClear, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);

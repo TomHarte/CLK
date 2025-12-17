@@ -274,8 +274,6 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 	// If the display type is S-Video, generate three textureCoordinates, at
 	// -45, 0, +45.
 	std::string vertex_shader = R"glsl(
-		#version 150
-
 		uniform vec2 scale;
 		uniform float rowHeight;
 
@@ -300,8 +298,6 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 	)glsl";
 
 	std::string fragment_shader = R"glsl(
-		#version 150
-
 		uniform sampler2D textureName;
 		uniform sampler2D qamTextureName;
 
@@ -492,6 +488,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		"}";
 
 	return std::make_unique<Shader>(
+		api_,
 		vertex_shader,
 		fragment_shader,
 		bindings(ShaderType::Conversion)
@@ -501,8 +498,6 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 	const auto modals = BufferingScanTarget::modals();
 	const std::string vertex_shader = R"glsl(
-		#version 150
-
 		in float startDataX;
 		in float startClock;
 
@@ -525,9 +520,7 @@ std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 		}
 	)glsl";
 
-	std::string fragment_shader =
-	R"x(#version 150
-
+	std::string fragment_shader = R"x(
 		out vec4 fragColour;
 		in vec2 textureCoordinate;
 
@@ -569,6 +562,7 @@ std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 	}
 
 	return std::make_unique<Shader>(
+		api_,
 		vertex_shader,
 		fragment_shader + "}",
 		bindings(ShaderType::Composition)
@@ -582,8 +576,6 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 	// Sets up texture coordinates to run between startClock and endClock, mapping to
 	// coordinates that correlate with four times the absolute value of the composite angle.
 	std::string vertex_shader =
-		"#version 150\n"
-
 		"in float startClock;"
 		"in float startCompositeAngle;"
 		"in float endClock;"
@@ -600,8 +592,6 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 		"out float oneOverCompositeAmplitude;";
 
 	std::string fragment_shader =
-		"#version 150\n"
-
 		"uniform sampler2D textureName;"
 		"uniform mat3 rgbToLumaChroma;"
 
@@ -682,6 +672,7 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 		"}";
 
 	return std::make_unique<Shader>(
+		api_,
 		vertex_shader,
 		fragment_shader,
 		bindings(ShaderType::QAMSeparation)

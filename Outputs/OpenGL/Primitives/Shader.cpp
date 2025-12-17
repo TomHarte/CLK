@@ -20,8 +20,19 @@ using Logger = Log::Logger<Log::Source::OpenGL>;
 
 GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 	GLuint shader = glCreateShader(type);
-	const char *c_str = source.c_str();
-	test_gl(glShaderSource, shader, 1, &c_str, NULL);
+
+	switch(api_) {
+		case API::OpenGL32Core: {
+			const char *const sources[] = {
+				"#version 150\n",
+				source.c_str()
+			};
+			test_gl(glShaderSource, shader, 2, sources, NULL);
+		} break;
+		case API::OpenGLES3:
+			assert(false);
+		break;
+	}
 	test_gl(glCompileShader, shader);
 
 	if constexpr (Logger::ErrorsEnabled) {
@@ -44,11 +55,21 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 	return shader;
 }
 
-Shader::Shader(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<AttributeBinding> &attribute_bindings) {
+Shader::Shader(
+	const API api,
+	const std::string &vertex_shader,
+	const std::string &fragment_shader,
+	const std::vector<AttributeBinding> &attribute_bindings
+) : api_(api) {
 	init(vertex_shader, fragment_shader, attribute_bindings);
 }
 
-Shader::Shader(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<std::string> &binding_names) {
+Shader::Shader(
+	const API api,
+	const std::string &vertex_shader,
+	const std::string &fragment_shader,
+	const std::vector<std::string> &binding_names
+) : api_(api) {
 	std::vector<AttributeBinding> bindings;
 	GLuint index = 0;
 	for(const auto &name: binding_names) {

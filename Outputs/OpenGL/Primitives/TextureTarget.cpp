@@ -12,7 +12,15 @@
 
 using namespace Outputs::Display::OpenGL;
 
-TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit, GLint mag_filter, bool has_stencil_buffer) :
+TextureTarget::TextureTarget(
+	const API api,
+	const GLsizei width,
+	const GLsizei height,
+	const GLenum texture_unit,
+	const GLint mag_filter,
+	const bool has_stencil_buffer
+) :
+		api_(api),
 		width_(width),
 		height_(height),
 		texture_unit_(texture_unit) {
@@ -93,34 +101,32 @@ void TextureTarget::bind_texture() const {
 
 void TextureTarget::draw(const float aspect_ratio, const float colour_threshold) const {
 	if(!pixel_shader_) {
-		const char *vertex_shader =
-			"#version 150\n"
+		const char *const vertex_shader =
+		R"str(
+			in vec2 texCoord;
+			in vec2 position;
 
-			"in vec2 texCoord;"
-			"in vec2 position;"
+			out vec2 texCoordVarying;
 
-			"out vec2 texCoordVarying;"
+			void main(void) {
+				texCoordVarying = texCoord;
+				gl_Position = vec4(position, 0.0, 1.0);
+			}
+		)str";
+		const char *const fragment_shader =
+		R"str(
+			in vec2 texCoordVarying;
 
-			"void main(void)"
-			"{"
-				"texCoordVarying = texCoord;"
-				"gl_Position = vec4(position, 0.0, 1.0);"
-			"}";
-		const char *fragment_shader =
-			"#version 150\n"
+			uniform sampler2D texID;
+			uniform float threshold;
 
-			"in vec2 texCoordVarying;"
+			out vec4 fragColour;
 
-			"uniform sampler2D texID;"
-			"uniform float threshold;"
-
-			"out vec4 fragColour;"
-
-			"void main(void)"
-			"{"
-				"fragColour = clamp(texture(texID, texCoordVarying), threshold, 1.0);"
-			"}";
-		pixel_shader_ = std::make_unique<Shader>(vertex_shader, fragment_shader);
+			void main(void) {
+				fragColour = clamp(texture(texID, texCoordVarying), threshold, 1.0);
+			}
+		)str";
+		pixel_shader_ = std::make_unique<Shader>(api_, vertex_shader, fragment_shader);
 		pixel_shader_->bind();
 
 		test_gl(glGenVertexArrays, 1, &drawing_vertex_array_);

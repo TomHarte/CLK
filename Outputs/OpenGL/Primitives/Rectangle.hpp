@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "Outputs/OpenGL/API.hpp"
 #include "Outputs/OpenGL/OpenGL.hpp"
 #include "Shader.hpp"
 #include <memory>
@@ -22,7 +23,7 @@ public:
 	/*!
 		Instantiates an instance of Rectange with the coordinates given.
 	*/
-	Rectangle(float x, float y, float width, float height);
+	Rectangle(API, float x, float y, float width, float height);
 
 	/*!
 		Draws this rectangle in the colour supplied.

@@ -215,7 +215,11 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 
 class ActivityObserver: public Activity::Observer {
 public:
-	ActivityObserver(Activity::Source *source, float aspect_ratio) {
+	ActivityObserver(
+		Outputs::Display::OpenGL::API api,
+		Activity::Source *const source,
+		const float aspect_ratio
+	) : api_(api) {
 		// Get the suorce to supply all LEDs and drives.
 		source->set_activity_observer(this);
 
@@ -236,7 +240,7 @@ public:
 		set_aspect_ratio(aspect_ratio);
 	}
 
-	void set_aspect_ratio(float aspect_ratio) {
+	void set_aspect_ratio(const float aspect_ratio) {
 		std::lock_guard lock_guard(mutex);
 		lights_.clear();
 
@@ -246,7 +250,10 @@ public:
 		const float right_x = 1.0f - 2.0f * width;
 		float y = 1.0f - 2.0f * height;
 		for(const auto &drive: drives_) {
-			lights_.emplace(drive, std::make_unique<Outputs::Display::OpenGL::Rectangle>(right_x, y, width, height));
+			lights_.emplace(
+				drive,
+				std::make_unique<Outputs::Display::OpenGL::Rectangle>(api_, right_x, y, width, height)
+			);
 			y -= height * 2.0f;
 		}
 
@@ -273,6 +280,7 @@ public:
 	}
 
 private:
+	Outputs::Display::OpenGL::API api_;
 	std::vector<std::string> leds_;
 	void register_led(const std::string &name, uint8_t) final {
 		std::lock_guard lock_guard(mutex);
@@ -909,13 +917,15 @@ int main(int argc, char *argv[]) {
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
 
 	// Setup output, assuming a CRT machine for now, and prepare a best-effort updater.
-	Outputs::Display::OpenGL::ScanTarget scan_target(target_framebuffer);
+	const auto api = Outputs::Display::OpenGL::API::OpenGL32Core;
+	Outputs::Display::OpenGL::ScanTarget scan_target(api, target_framebuffer);
 	std::unique_ptr<ActivityObserver> activity_observer;
 	bool uses_mouse;
 	std::vector<SDLJoystick> joysticks;
 
 	machine_runner.machine_mutex = &machine_mutex;
-	const auto setup_machine_input_output = [&scan_target, &machine, &speaker_delegate, &activity_observer, &joysticks, &uses_mouse, &machine_runner] {
+	const auto setup_machine_input_output =
+		[&scan_target, &machine, &speaker_delegate, &activity_observer, &joysticks, &uses_mouse, &machine_runner, api] {
 		// Wire up the best-effort updater, its delegate, and the speaker delegate.
 		machine_runner.machine = machine.get();
 
@@ -938,9 +948,20 @@ int main(int argc, char *argv[]) {
 				desired_audio_spec.callback = SpeakerDelegate::SDL_audio_callback;
 				desired_audio_spec.userdata = &speaker_delegate;
 
-				speaker_delegate.audio_device = SDL_OpenAudioDevice(nullptr, 0, &desired_audio_spec, &obtained_audio_spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
+				speaker_delegate.audio_device =
+					SDL_OpenAudioDevice(
+						nullptr,
+						0,
+						&desired_audio_spec,
+						&obtained_audio_spec,
+						SDL_AUDIO_ALLOW_FREQUENCY_CHANGE
+					);
 
-				speaker->set_output_rate(obtained_audio_spec.freq, desired_audio_spec.samples, obtained_audio_spec.channels == 2);
+				speaker->set_output_rate(
+					obtained_audio_spec.freq,
+					desired_audio_spec.samples,
+					obtained_audio_spec.channels == 2
+				);
 				speaker_delegate.is_stereo = obtained_audio_spec.channels == 2;
 				speaker->set_delegate(&speaker_delegate);
 				SDL_PauseAudioDevice(speaker_delegate.audio_device, 0);
@@ -953,7 +974,7 @@ int main(int argc, char *argv[]) {
 		*/
 		Activity::Source *const activity_source = machine->activity_source();
 		if(activity_source) {
-			activity_observer = std::make_unique<ActivityObserver>(activity_source, 4.0f / 3.0f);
+			activity_observer = std::make_unique<ActivityObserver>(api, activity_source, 4.0f / 3.0f);
 		} else {
 			activity_observer = nullptr;
 		}

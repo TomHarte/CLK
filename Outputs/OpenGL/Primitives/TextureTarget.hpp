@@ -8,8 +8,10 @@
 
 #pragma once
 
+#include "Outputs/OpenGL/API.hpp"
 #include "Outputs/OpenGL/OpenGL.hpp"
 #include "Shader.hpp"
+
 #include <memory>
 
 namespace Outputs::Display::OpenGL {
@@ -32,7 +34,7 @@ public:
 		@param texture_unit A texture unit on which to bind the texture.
 		@param has_stencil_buffer An 8-bit stencil buffer is attached if this is @c true; no stencil buffer is attached otherwise.
 	*/
-	TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit, GLint mag_filter, bool has_stencil_buffer);
+	TextureTarget(API, GLsizei width, GLsizei height, GLenum texture_unit, GLint mag_filter, bool has_stencil_buffer);
 	~TextureTarget();
 
 	/*!
@@ -48,14 +50,14 @@ public:
 	/*!
 		@returns the width of the texture target.
 	*/
-	GLsizei get_width() const {
+	GLsizei width() const {
 		return width_;
 	}
 
 	/*!
 		@returns the height of the texture target.
 	*/
-	GLsizei get_height() const {
+	GLsizei height() const {
 		return height_;
 	}
 
@@ -73,6 +75,7 @@ public:
 	void draw(float aspect_ratio, float colour_threshold = 0.0f) const;
 
 private:
+	API api_;
 	GLuint framebuffer_ = 0, texture_ = 0, renderbuffer_ = 0;
 	const GLsizei width_ = 0, height_ = 0;
 	GLsizei expanded_width_ = 0, expanded_height_ = 0;
