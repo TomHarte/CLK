@@ -3,7 +3,7 @@ on: [pull_request]
 jobs:
 
   build-mac-xcodebuild:
-    name: Mac UI / xcodebuild / ${{ matrix.os }}
+    name: Mac / xcodebuild / ${{ matrix.os }}
     strategy:
       matrix:
         os: [macos-latest] #[macos-13, macos-14, macos-15]
@@ -22,7 +22,7 @@ jobs:
         xcodebuild CODE_SIGN_IDENTITY=-
 
   build-sdl-cmake:
-    name: SDL UI / cmake / ${{ matrix.os }}
+    name: SDL / cmake / ${{ matrix.os }}
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest]
@@ -60,7 +60,7 @@ jobs:
         cmake --build build -v -j"$jobs"
 
   build-sdl-scons:
-    name: SDL UI / scons / ${{ matrix.os }}
+    name: SDL / scons / ${{ matrix.os }}
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest]
