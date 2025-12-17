@@ -350,20 +350,20 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 	vertex_shader += R"glsl(
 		float centreClock = mix(startClock, endClock, lateral);
-		textureCoordinates[0] = vec2(centreClock + textureCoordinateOffsets[0], lineY + 0.5) / textureSize(textureName, 0);
-		textureCoordinates[1] = vec2(centreClock + textureCoordinateOffsets[1], lineY + 0.5) / textureSize(textureName, 0);
-		textureCoordinates[2] = vec2(centreClock + textureCoordinateOffsets[2], lineY + 0.5) / textureSize(textureName, 0);
-		textureCoordinates[3] = vec2(centreClock + textureCoordinateOffsets[3], lineY + 0.5) / textureSize(textureName, 0);
+		textureCoordinates[0] = vec2(centreClock + textureCoordinateOffsets[0], lineY + 0.5) / vec2(textureSize(textureName, 0));
+		textureCoordinates[1] = vec2(centreClock + textureCoordinateOffsets[1], lineY + 0.5) / vec2(textureSize(textureName, 0));
+		textureCoordinates[2] = vec2(centreClock + textureCoordinateOffsets[2], lineY + 0.5) / vec2(textureSize(textureName, 0));
+		textureCoordinates[3] = vec2(centreClock + textureCoordinateOffsets[3], lineY + 0.5) / vec2(textureSize(textureName, 0));
 	)glsl";
 
 	if((modals.display_type == DisplayType::SVideo) || (modals.display_type == DisplayType::CompositeColour)) {
 		vertex_shader += R"glsl(
 			float centreCompositeAngle = abs(mix(startCompositeAngle, endCompositeAngle, lateral)) * 4.0 / 64.0;
 			centreCompositeAngle = floor(centreCompositeAngle);
-			qamTextureCoordinates[0] = vec2(centreCompositeAngle - 1.5, lineY + 0.5) / textureSize(textureName, 0);
-			qamTextureCoordinates[1] = vec2(centreCompositeAngle - 0.5, lineY + 0.5) / textureSize(textureName, 0);
-			qamTextureCoordinates[2] = vec2(centreCompositeAngle + 0.5, lineY + 0.5) / textureSize(textureName, 0);
-			qamTextureCoordinates[3] = vec2(centreCompositeAngle + 1.5, lineY + 0.5) / textureSize(textureName, 0);
+			qamTextureCoordinates[0] = vec2(centreCompositeAngle - 1.5, lineY + 0.5) / vec2(textureSize(textureName, 0));
+			qamTextureCoordinates[1] = vec2(centreCompositeAngle - 0.5, lineY + 0.5) / vec2(textureSize(textureName, 0));
+			qamTextureCoordinates[2] = vec2(centreCompositeAngle + 0.5, lineY + 0.5) / vec2(textureSize(textureName, 0));
+			qamTextureCoordinates[3] = vec2(centreCompositeAngle + 1.5, lineY + 0.5) / vec2(textureSize(textureName, 0));
 		)glsl";
 	}
 
@@ -514,7 +514,7 @@ std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 			float lateral = float(gl_VertexID & 1);
 			float longitudinal = float((gl_VertexID & 2) >> 1);
 
-			textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY + 0.5) / textureSize(textureName, 0);
+			textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY + 0.5) / vec2(textureSize(textureName, 0));
 			vec2 eyePosition = vec2(mix(startClock, endClock, lateral), lineY + longitudinal) / vec2(2048.0, 2048.0);
 			gl_Position = vec4(eyePosition*2.0 - vec2(1.0), 0.0, 1.0);
 		}
@@ -628,13 +628,13 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 
 	if(is_svideo) {
 		vertex_shader +=
-			"textureCoordinate = vec2(centreClock, lineY + 0.5) / textureSize(textureName, 0);";
+			"textureCoordinate = vec2(centreClock, lineY + 0.5) / vec2(textureSize(textureName, 0));";
 	} else {
 		vertex_shader +=
-			"textureCoordinates[0] = vec2(centreClock + textureCoordinateOffsets[0], lineY + 0.5) / textureSize(textureName, 0);"
-			"textureCoordinates[1] = vec2(centreClock + textureCoordinateOffsets[1], lineY + 0.5) / textureSize(textureName, 0);"
-			"textureCoordinates[2] = vec2(centreClock + textureCoordinateOffsets[2], lineY + 0.5) / textureSize(textureName, 0);"
-			"textureCoordinates[3] = vec2(centreClock + textureCoordinateOffsets[3], lineY + 0.5) / textureSize(textureName, 0);";
+			"textureCoordinates[0] = vec2(centreClock + textureCoordinateOffsets[0], lineY + 0.5) / vec2(textureSize(textureName, 0));"
+			"textureCoordinates[1] = vec2(centreClock + textureCoordinateOffsets[1], lineY + 0.5) / vec2(textureSize(textureName, 0));"
+			"textureCoordinates[2] = vec2(centreClock + textureCoordinateOffsets[2], lineY + 0.5) / vec2(textureSize(textureName, 0));"
+			"textureCoordinates[3] = vec2(centreClock + textureCoordinateOffsets[3], lineY + 0.5) / vec2(textureSize(textureName, 0));";
 	}
 
 	vertex_shader += "}";
