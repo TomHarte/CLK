@@ -52,6 +52,7 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 				const auto length = std::vector<GLchar>::size_type(logLength);
 				std::vector<GLchar> log(length);
 				test_gl(glGetShaderInfoLog, shader, logLength, &logLength, log.data());
+				Logger::error().append("Sought to compile: %s", source.c_str());
 				Logger::error().append("Compile log: %s", log.data());
 			}
 
