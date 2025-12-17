@@ -33,7 +33,8 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 			const char *const sources[] = {
 				R"glsl(
 					#version 300 es
-					precision mediump float;
+					precision highp float;
+					precision highp usampler2D;
 				)glsl",
 				source.c_str()
 			};
@@ -54,6 +55,7 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 				test_gl(glGetShaderInfoLog, shader, logLength, &logLength, log.data());
 				Logger::error().append("Sought to compile: %s", source.c_str());
 				Logger::error().append("Compile log: %s", log.data());
+				Logger::error().append("");
 			}
 
 			throw (type == GL_VERTEX_SHADER) ? VertexShaderCompilationError : FragmentShaderCompilationError;
