@@ -8,10 +8,17 @@ int main(int argc, char *argv[])
 	// QApplication instance is mandatory on some platforms ... when an
 	// OpenGL core profile context is requested."
 	QSurfaceFormat format;
+
+#ifndef APPLE
+	format.setVersion(3, 0);
+	format.setRenderableType(QSurfaceFormat::RenderableType::OpenGLES);
+#else
 	format.setVersion(3, 2);
 	format.setProfile(QSurfaceFormat::CoreProfile);
+#endif
 	format.setDepthBufferSize(0);
 	format.setStencilBufferSize(0);
+	format.setAlphaBufferSize(0);
 	QSurfaceFormat::setDefaultFormat(format);
 
 	QApplication a(argc, argv);

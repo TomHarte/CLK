@@ -58,7 +58,11 @@ void ScanTargetWidget::paintGL() {
 		if(producer) {
 			isConnected = true;
 			framebuffer = defaultFramebufferObject();
-			scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>(Outputs::Display::OpenGL::API::OpenGL32Core, framebuffer);
+
+			const auto api = format().renderableType() == QSurfaceFormat::RenderableType::OpenGLES ?
+				Outputs::Display::OpenGL::API::OpenGLES3 : Outputs::Display::OpenGL::API::OpenGL32Core;
+			scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>(api, framebuffer);
+
 			producer->set_scan_target(scanTarget.get());
 			producer = nullptr;
 		}
