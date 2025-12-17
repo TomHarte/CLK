@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstdarg>
 #include <cstring>
+#include <iostream>
 #include <string>
 
 #ifdef QT_VERSION
@@ -178,7 +179,7 @@ struct RepeatAccumulator {
 	Source source;
 
 	size_t count = 0;
-	FILE *stream;
+	bool is_info;
 };
 
 struct AccumulatingLog {
@@ -188,11 +189,11 @@ struct AccumulatingLog {
 template <Source source>
 struct LogLine<source, true>: private AccumulatingLog {
 public:
-	explicit LogLine(FILE *const stream) noexcept :
-		stream_(stream) {}
+	explicit LogLine(bool is_info) noexcept :
+		is_info_(is_info) {}
 
 	~LogLine() {
-		if(output_ == accumulator_.last && source == accumulator_.source && stream_ == accumulator_.stream) {
+		if(output_ == accumulator_.last && source == accumulator_.source && is_info_ == accumulator_.is_info) {
 			++accumulator_.count;
 			return;
 		}
@@ -206,42 +207,45 @@ public:
 				prefix += "] ";
 			}
 
+			#ifdef QT_VERSION
+			using StreamT = QDebug;
+			#else
+			using StreamT = std::ostream &;
+			#endif
+			const auto out = [&]() -> StreamT {
+				if(is_info_) {
+					#ifdef QT_VERSION
+						return qInfo();
+					#else
+						return std::cout;
+					#endif
+				} else {
+					#ifdef QT_VERSION
+						return qWarning();
+					#else
+						return std::cerr;
+					#endif
+				}
+			};
+
+			out() << prefix << accumulator_.last;
 			if(accumulator_.count > 1) {
-				#ifdef QT_VERSION
-				qInfo(
-				#else
-				fprintf(
-					accumulator_.stream,
-				#endif
-						"%s%s [* %zu]\n",
-						prefix.c_str(),
-						accumulator_.last.c_str(),
-						accumulator_.count
-				);
-			} else {
-				#ifdef QT_VERSION
-				qInfo(
-				#else
-				fprintf(
-					accumulator_.stream,
-				#endif
-					"%s%s\n",
-						prefix.c_str(),
-						accumulator_.last.c_str()
-				);
+				out() << " [* " << accumulator_.count << "]";
 			}
+			out() << '\n';
 		}
 
 		accumulator_.count = 1;
 		accumulator_.last = output_;
 		accumulator_.source = source;
-		accumulator_.stream = stream_;
+		accumulator_.is_info = is_info_;
 	}
 
 	template <size_t size, typename... Args>
 	auto &append(const char (&format)[size], Args... args) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat"
+#pragma GCC diagnostic ignored "-Wformat-security"
 		const auto append_size = std::snprintf(nullptr, 0, format, args...);
 		const auto end = output_.size();
 		output_.resize(output_.size() + size_t(append_size) + 1);
@@ -258,7 +262,7 @@ public:
 	}
 
 private:
-	FILE *stream_;
+	bool is_info_;
 	std::string output_;
 };
 
