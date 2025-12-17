@@ -30,7 +30,14 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 			test_gl(glShaderSource, shader, 2, sources, NULL);
 		} break;
 		case API::OpenGLES3:
-			assert(false);
+			const char *const sources[] = {
+				R"glsl(
+					#version 300 es
+					precision mediump float;
+				)glsl",
+				source.c_str()
+			};
+			test_gl(glShaderSource, shader, 2, sources, NULL);
 		break;
 	}
 	test_gl(glCompileShader, shader);
