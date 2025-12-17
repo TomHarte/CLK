@@ -11,11 +11,24 @@
 #include <cstdio>
 #include <cstdarg>
 #include <cstring>
-#include <iostream>
 #include <string>
 
-#ifdef QT_VERSION
+#ifdef TARGET_QT
 #include <QDebug>
+namespace {
+QDebug stream(const bool is_info) {
+	return (is_info ? qInfo() : qWarning()).noquote().nospace();
+}
+static constexpr char EndLine = 0;
+}
+#else
+#include <iostream>
+namespace {
+std::ostream &stream(const bool is_info) {
+	return is_info ? std::cout : std::cerr;
+}
+static constexpr char EndLine = '\n';
+}
 #endif
 
 namespace Log {
@@ -207,32 +220,12 @@ public:
 				prefix += "] ";
 			}
 
-			#ifdef QT_VERSION
-			using StreamT = QDebug;
-			#else
-			using StreamT = std::ostream &;
-			#endif
-			const auto out = [&]() -> StreamT {
-				if(is_info_) {
-					#ifdef QT_VERSION
-						return qInfo();
-					#else
-						return std::cout;
-					#endif
-				} else {
-					#ifdef QT_VERSION
-						return qWarning();
-					#else
-						return std::cerr;
-					#endif
-				}
-			};
-
-			out() << prefix << accumulator_.last;
+			auto &&out = stream(accumulator_.is_info);
+			out << prefix << accumulator_.last;
 			if(accumulator_.count > 1) {
-				out() << " [* " << accumulator_.count << "]";
+				out << " [* " << accumulator_.count << "]";
 			}
-			out() << '\n';
+			if(EndLine) out << EndLine;
 		}
 
 		accumulator_.count = 1;
