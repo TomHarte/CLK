@@ -23,13 +23,23 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 
 	switch(api_) {
 		case API::OpenGL32Core: {
+			// Desktop OpenGL: ensure the precision specifiers act as no-ops
+			// and request GLSL 1.5.
 			const char *const sources[] = {
-				"#version 150\n",
+				R"glsl(
+					#version 150
+					#define highp
+					#define mediump
+					#define lowp
+				)glsl",
 				source.c_str()
 			};
 			test_gl(glShaderSource, shader, 2, sources, NULL);
 		} break;
 		case API::OpenGLES3:
+			// OpenGL ES: supply default precisions for where they might have
+			// been omitted and specify GLSL ES 3.0 as a floor. The project
+			// otherwise assumes that integers and bitwise operations are available.
 			const char *const sources[] = {
 				R"glsl(
 					#version 300 es
