@@ -13,6 +13,10 @@
 #include <cstring>
 #include <string>
 
+#ifdef QT_VERSION
+#include <QtLogging>
+#endif
+
 namespace Log {
 // TODO: if adopting C++20, std::format would be a better model to apply below.
 // But I prefer C files to C++ streams, so here it is for now.
@@ -203,16 +207,24 @@ public:
 			}
 
 			if(accumulator_.count > 1) {
+				#ifdef QT_VERSION
+				qInfo(
+				#else
 				fprintf(
 					accumulator_.stream,
-					"%s%s [* %zu]\n",
+				#endif
+						"%s%s [* %zu]\n",
 						prefix.c_str(),
 						accumulator_.last.c_str(),
 						accumulator_.count
 				);
 			} else {
+				#ifdef QT_VERSION
+				qInfo(
+				#else
 				fprintf(
 					accumulator_.stream,
+				#endif
 					"%s%s\n",
 						prefix.c_str(),
 						accumulator_.last.c_str()
