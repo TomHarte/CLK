@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
 	format.setDepthBufferSize(0);
 	format.setStencilBufferSize(0);
 	format.setAlphaBufferSize(0);
-	format.setSwapBehavior(QSurfaceFormat::SingleBuffer);
+	// format.setSwapBehavior(QSurfaceFormat::SingleBuffer);
 	QSurfaceFormat::setDefaultFormat(format);
 
 	QApplication a(argc, argv);
