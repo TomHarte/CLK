@@ -10,26 +10,23 @@
 
 using namespace Outputs::Display::OpenGL;
 
-Rectangle::Rectangle(float x, float y, float width, float height):
+Rectangle::Rectangle(const API api, const float x, const float y, const float width, const float height):
 	pixel_shader_(
-		"#version 150\n"
+		api,
+		R"str(
+			in vec2 position;
+			void main(void) {
+				gl_Position = vec4(position, 0.0, 1.0);
+			}
+		)str",
+		R"str(
+			uniform vec4 colour;
+			out vec4 fragColour;
 
-		"in vec2 position;"
-
-		"void main(void)"
-		"{"
-			"gl_Position = vec4(position, 0.0, 1.0);"
-		"}",
-
-		"#version 150\n"
-
-		"uniform vec4 colour;"
-		"out vec4 fragColour;"
-
-		"void main(void)"
-		"{"
-			"fragColour = colour;"
-		"}"
+			void main(void) {
+				fragColour = colour;
+			}
+		)str"
 	){
 	pixel_shader_.bind();
 

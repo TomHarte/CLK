@@ -20,8 +20,37 @@ using Logger = Log::Logger<Log::Source::OpenGL>;
 
 GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 	GLuint shader = glCreateShader(type);
-	const char *c_str = source.c_str();
-	test_gl(glShaderSource, shader, 1, &c_str, NULL);
+
+	switch(api_) {
+		case API::OpenGL32Core: {
+			// Desktop OpenGL: ensure the precision specifiers act as no-ops
+			// and request GLSL 1.5.
+			const char *const sources[] = {
+				R"glsl(
+					#version 150
+					#define highp
+					#define mediump
+					#define lowp
+				)glsl",
+				source.c_str()
+			};
+			test_gl(glShaderSource, shader, 2, sources, NULL);
+		} break;
+		case API::OpenGLES3:
+			// OpenGL ES: supply default precisions for where they might have
+			// been omitted and specify GLSL ES 3.0 as a floor. The project
+			// otherwise assumes that integers and bitwise operations are available.
+			const char *const sources[] = {
+				R"glsl(
+					#version 300 es
+					precision highp float;
+					precision highp usampler2D;
+				)glsl",
+				source.c_str()
+			};
+			test_gl(glShaderSource, shader, 2, sources, NULL);
+		break;
+	}
 	test_gl(glCompileShader, shader);
 
 	if constexpr (Logger::ErrorsEnabled) {
@@ -34,7 +63,9 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 				const auto length = std::vector<GLchar>::size_type(logLength);
 				std::vector<GLchar> log(length);
 				test_gl(glGetShaderInfoLog, shader, logLength, &logLength, log.data());
+				Logger::error().append("Sought to compile: %s", source.c_str());
 				Logger::error().append("Compile log: %s", log.data());
+				Logger::error().append("");
 			}
 
 			throw (type == GL_VERTEX_SHADER) ? VertexShaderCompilationError : FragmentShaderCompilationError;
@@ -44,11 +75,21 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 	return shader;
 }
 
-Shader::Shader(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<AttributeBinding> &attribute_bindings) {
+Shader::Shader(
+	const API api,
+	const std::string &vertex_shader,
+	const std::string &fragment_shader,
+	const std::vector<AttributeBinding> &attribute_bindings
+) : api_(api) {
 	init(vertex_shader, fragment_shader, attribute_bindings);
 }
 
-Shader::Shader(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<std::string> &binding_names) {
+Shader::Shader(
+	const API api,
+	const std::string &vertex_shader,
+	const std::string &fragment_shader,
+	const std::vector<std::string> &binding_names
+) : api_(api) {
 	std::vector<AttributeBinding> bindings;
 	GLuint index = 0;
 	for(const auto &name: binding_names) {
