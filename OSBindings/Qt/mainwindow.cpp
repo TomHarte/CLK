@@ -455,6 +455,15 @@ void MainWindow::launchMachine() {
 						hasSVideo ? "S-Video" : "",
 						hasRGB ? rgbName() : "");
 		}
+
+		// The ZX80 and ZX81 have a specialised version of this.
+		// It might become general later if I generalite automatic tape motor control, which I probably should.
+		if(machineType != Analyser::Machine::ZX8081) {
+			const auto allKeys = options->all_keys();
+			const auto hasQuickLoad = std::find(allKeys.begin(), allKeys.end(), Configurable::Options::QuickLoadOptionName) != allKeys.end();
+			const auto hasQuickBoot = std::find(allKeys.begin(), allKeys.end(), Configurable::Options::QuickBootOptionName) != allKeys.end();
+			addEnhancementsMenu(settingsPrefix, hasQuickLoad, hasQuickBoot);
+		}
 	}
 
 	switch(machineType) {
@@ -466,32 +475,8 @@ void MainWindow::launchMachine() {
 			addAtari2600Menu();
 		break;
 
-		case Analyser::Machine::Archimedes:
-			addEnhancementsMenu(settingsPrefix, true, false);
-		break;
-
-		case Analyser::Machine::Electron:
-			addEnhancementsMenu(settingsPrefix, true, false);
-		break;
-
-		case Analyser::Machine::Macintosh:
-			addEnhancementsMenu(settingsPrefix, false, true);
-		break;
-
-		case Analyser::Machine::MSX:
-			addEnhancementsMenu(settingsPrefix, true, false);
-		break;
-
-		case Analyser::Machine::Vic20:
-			addEnhancementsMenu(settingsPrefix, true, false);
-		break;
-
 		case Analyser::Machine::ZX8081:
 			addZX8081Menu(settingsPrefix);
-		break;
-
-		case Analyser::Machine::ZXSpectrum:
-			addEnhancementsMenu(settingsPrefix, true, false);
 		break;
 
 		default: break;
@@ -574,6 +559,9 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 }
 
 void MainWindow::addEnhancementsMenu(const std::string &machinePrefix, const bool offerQuickLoad, const bool offerQuickBoot) {
+	if(!offerQuickLoad && !offerQuickBoot) {
+		return;
+	}
 	enhancementsMenu = menuBar()->addMenu(tr("&Enhancements"));
 	addEnhancementsItems(machinePrefix, enhancementsMenu, offerQuickLoad, offerQuickBoot, false);
 }
