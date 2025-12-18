@@ -16,7 +16,7 @@
 #ifdef TARGET_QT
 #include <QDebug>
 namespace {
-QDebug stream(const bool is_info) {
+[[maybe_unused]] QDebug stream(const bool is_info) {
 	return (is_info ? qInfo() : qWarning()).noquote().nospace();
 }
 static constexpr char EndLine = 0;
@@ -24,7 +24,7 @@ static constexpr char EndLine = 0;
 #else
 #include <iostream>
 namespace {
-std::ostream &stream(const bool is_info) {
+[[maybe_unused]] std::ostream &stream(const bool is_info) {
 	return is_info ? std::cout : std::cerr;
 }
 static constexpr char EndLine = '\n';
@@ -202,8 +202,7 @@ struct AccumulatingLog {
 template <Source source>
 struct LogLine<source, true>: private AccumulatingLog {
 public:
-	explicit LogLine(bool is_info) noexcept :
-		is_info_(is_info) {}
+	explicit LogLine(const bool is_info) noexcept : is_info_(is_info) {}
 
 	~LogLine() {
 		if(output_ == accumulator_.last && source == accumulator_.source && is_info_ == accumulator_.is_info) {
@@ -262,7 +261,7 @@ private:
 
 template <Source source>
 struct LogLine<source, false> {
-	explicit LogLine(FILE *) noexcept {}
+	explicit LogLine(bool) noexcept {}
 
 	template <size_t size, typename... Args>
 	auto &append(const char (&)[size], Args...) { return *this; }
@@ -279,8 +278,8 @@ public:
 	static constexpr bool InfoEnabled = enabled_level(source) == EnabledLevel::ErrorsAndInfo;
 	static constexpr bool ErrorsEnabled = enabled_level(source) >= EnabledLevel::Errors;
 
-	static auto info()	{	return LogLine<source, InfoEnabled>(stdout);	}
-	static auto error()	{	return LogLine<source, ErrorsEnabled>(stderr);	}
+	static auto info()	{	return LogLine<source, InfoEnabled>(true);		}
+	static auto error()	{	return LogLine<source, ErrorsEnabled>(false);	}
 };
 
 }
