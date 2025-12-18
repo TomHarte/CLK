@@ -401,9 +401,28 @@ void MainWindow::launchMachine() {
 
 	// Add machine-specific UI.
 	const std::string settingsPrefix = Machine::ShortNameForTargetMachine(machineType);
+	auto configurableMachine = machine->configurable_device();
+	if(configurableMachine) {
+		auto options = configurableMachine->get_options();
+		const auto all_values = options->values_for(Configurable::Options::DisplayOptionName);
+		if(all_values.size() > 1) {
+			const auto contains = [&](const Configurable::Display option) {
+				const auto name = Reflection::Enum::to_string<Configurable::Display>(option);
+				return std::find(all_values.begin(), all_values.end(), name) != all_values.end();
+			};
+
+			addDisplayMenu(
+				settingsPrefix,
+						contains(Configurable::Display::CompositeColour) ? "Colour Composite" : "",
+						contains(Configurable::Display::CompositeMonochrome) ? "Monochrome Composite" : "",
+						contains(Configurable::Display::SVideo) ? "S-Video" : "",
+						contains(Configurable::Display::RGB) ? "RGB" : "");
+		}
+	}
+
 	switch(machineType) {
 		case Analyser::Machine::AmstradCPC:
-			addDisplayMenu(settingsPrefix, "Television", "", "", "Monitor");
+			// addDisplayMenu(settingsPrefix, "Television", "", "", "Monitor");
 		break;
 
 		case Analyser::Machine::AppleII:
@@ -462,7 +481,7 @@ void MainWindow::launchMachine() {
 		break;
 
 		case Analyser::Machine::ZXSpectrum:
-			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "SCART");
+			// addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "SCART");
 			addEnhancementsMenu(settingsPrefix, true, false);
 		break;
 
