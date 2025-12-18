@@ -47,6 +47,7 @@ struct Machine {
 			DeclareField(automatic_tape_motor_control);
 			declare_display_option();
 			declare_quickload_option();
+			limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, -1);
 		}
 	};
 };
