@@ -12,6 +12,7 @@
 #include <QtWidgets>
 
 #include <cstdio>
+#include <memory>
 
 #include "../../Numeric/CRC.hpp"
 #include "../../Configurable/StandardOptions.hpp"
@@ -411,20 +412,52 @@ void MainWindow::launchMachine() {
 				return std::find(all_values.begin(), all_values.end(), name) != all_values.end();
 			};
 
+
+			const bool hasCompositeColour = contains(Configurable::Display::CompositeColour);
+			const bool hasCompositeMonochrome = contains(Configurable::Display::CompositeMonochrome);
+			const bool hasSVideo = contains(Configurable::Display::SVideo);
+			const bool hasRGB = contains(Configurable::Display::RGB);
+
+			const bool differentiateComposite = hasCompositeColour && hasCompositeMonochrome;
+			const bool hasMultipleTelevisionConnections = hasSVideo && (hasCompositeColour || hasCompositeMonochrome);
+			const bool hasNonCompositeConnections = hasSVideo || hasRGB;
+
+			const auto compositeColourName = [&]() {
+				if(!hasNonCompositeConnections) {
+					return "Colour";
+				}
+				if(hasMultipleTelevisionConnections) {
+					return differentiateComposite ? "Colour Composite" : "Composite";
+				} else {
+					return differentiateComposite ? "Colour Television" : "Television";
+				}
+			};
+
+			const auto compositeMonochromeName = [&]() {
+				if(!hasNonCompositeConnections) {
+					return "Monochrome";
+				}
+				if(hasMultipleTelevisionConnections) {
+					return differentiateComposite ? "Monochrome Composite" : "Composite";
+				} else {
+					return differentiateComposite ? "Black and White Television" : "Television";
+				}
+			};
+
+			const auto rgbName = [&]() {
+				return hasMultipleTelevisionConnections ? "RGB" : "Monitor";
+			};
+
 			addDisplayMenu(
 				settingsPrefix,
-						contains(Configurable::Display::CompositeColour) ? "Colour Composite" : "",
-						contains(Configurable::Display::CompositeMonochrome) ? "Monochrome Composite" : "",
-						contains(Configurable::Display::SVideo) ? "S-Video" : "",
-						contains(Configurable::Display::RGB) ? "RGB" : "");
+						hasCompositeColour ? compositeColourName() : "",
+						hasCompositeMonochrome ? compositeMonochromeName() : "",
+						hasSVideo ? "S-Video" : "",
+						hasRGB ? rgbName() : "");
 		}
 	}
 
 	switch(machineType) {
-		case Analyser::Machine::AmstradCPC:
-			// addDisplayMenu(settingsPrefix, "Television", "", "", "Monitor");
-		break;
-
 		case Analyser::Machine::AppleII:
 			addAppleIIMenu();
 		break;
@@ -437,42 +470,19 @@ void MainWindow::launchMachine() {
 			addEnhancementsMenu(settingsPrefix, true, false);
 		break;
 
-		case Analyser::Machine::AtariST:
-			addDisplayMenu(settingsPrefix, "Television", "", "", "Monitor");
-		break;
-
-		case Analyser::Machine::ColecoVision:
-			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "");
-		break;
-
 		case Analyser::Machine::Electron:
-			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "RGB");
 			addEnhancementsMenu(settingsPrefix, true, false);
-		break;
-
-		case Analyser::Machine::Enterprise:
-			addDisplayMenu(settingsPrefix, "Composite", "", "", "RGB");
 		break;
 
 		case Analyser::Machine::Macintosh:
 			addEnhancementsMenu(settingsPrefix, false, true);
 		break;
 
-		case Analyser::Machine::MasterSystem:
-			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "SCART");
-		break;
-
 		case Analyser::Machine::MSX:
-			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "SCART");
 			addEnhancementsMenu(settingsPrefix, true, false);
 		break;
 
-		case Analyser::Machine::Oric:
-			addDisplayMenu(settingsPrefix, "Composite", "", "", "SCART");
-		break;
-
 		case Analyser::Machine::Vic20:
-			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "");
 			addEnhancementsMenu(settingsPrefix, true, false);
 		break;
 
@@ -481,7 +491,6 @@ void MainWindow::launchMachine() {
 		break;
 
 		case Analyser::Machine::ZXSpectrum:
-			// addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "SCART");
 			addEnhancementsMenu(settingsPrefix, true, false);
 		break;
 
@@ -700,9 +709,6 @@ void MainWindow::toggleAtari2600Switch(const Atari2600Switch toggleSwitch) {
 }
 
 void MainWindow::addAppleIIMenu() {
-	// Add the standard display settings.
-	addDisplayMenu("appleII", "Colour", "Monochrome", "", "");
-
 	// Add an additional tick box, for square pixels.
 	QAction *const squarePixelsAction = new QAction(tr("Square Pixels"));
 	squarePixelsAction->setCheckable(true);
