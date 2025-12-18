@@ -405,11 +405,13 @@ void MainWindow::launchMachine() {
 	auto configurableMachine = machine->configurable_device();
 	if(configurableMachine) {
 		auto options = configurableMachine->get_options();
-		const auto all_values = options->values_for(Configurable::Options::DisplayOptionName);
-		if(all_values.size() > 1) {
+		const auto allKeys = options->all_keys();
+		const auto allDisplayValues = options->values_for(Configurable::Options::DisplayOptionName);
+		const auto hasDynamicCrop = std::find(allKeys.begin(), allKeys.end(), Configurable::Options::DynamicCropOptionName) != allKeys.end();
+		if(hasDynamicCrop || allDisplayValues.size() > 1) {
 			const auto contains = [&](const Configurable::Display option) {
 				const auto name = Reflection::Enum::to_string<Configurable::Display>(option);
-				return std::find(all_values.begin(), all_values.end(), name) != all_values.end();
+				return std::find(allDisplayValues.begin(), allDisplayValues.end(), name) != allDisplayValues.end();
 			};
 
 
@@ -450,16 +452,17 @@ void MainWindow::launchMachine() {
 
 			addDisplayMenu(
 				settingsPrefix,
-						hasCompositeColour ? compositeColourName() : "",
-						hasCompositeMonochrome ? compositeMonochromeName() : "",
-						hasSVideo ? "S-Video" : "",
-						hasRGB ? rgbName() : "");
+				hasCompositeColour ? compositeColourName() : "",
+				hasCompositeMonochrome ? compositeMonochromeName() : "",
+				hasSVideo ? "S-Video" : "",
+				hasRGB ? rgbName() : "",
+				hasDynamicCrop
+			);
 		}
 
 		// The ZX80 and ZX81 have a specialised version of this.
 		// It might become general later if I generalite automatic tape motor control, which I probably should.
 		if(machineType != Analyser::Machine::ZX8081) {
-			const auto allKeys = options->all_keys();
 			const auto hasQuickLoad = std::find(allKeys.begin(), allKeys.end(), Configurable::Options::QuickLoadOptionName) != allKeys.end();
 			const auto hasQuickBoot = std::find(allKeys.begin(), allKeys.end(), Configurable::Options::QuickBootOptionName) != allKeys.end();
 			addEnhancementsMenu(settingsPrefix, hasQuickLoad, hasQuickBoot);
@@ -489,7 +492,14 @@ void MainWindow::launchMachine() {
 	addActivityObserver();
 }
 
-void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::string &compositeColour, const std::string &compositeMono, const std::string &svideo, const std::string &rgb) {
+void MainWindow::addDisplayMenu(
+	const std::string &machinePrefix,
+	const std::string &compositeColour,
+	const std::string &compositeMono,
+	const std::string &svideo,
+	const std::string &rgb,
+	const bool offerDynamicCrop
+) {
 	// Create a display menu.
 	displayMenu = menuBar()->addMenu(tr("&Display"));
 
@@ -553,6 +563,31 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 			std::lock_guard lock_guard(machineMutex);
 			auto options = machine->configurable_device()->get_options();
 			Reflection::set(*options, Configurable::Options::DisplayOptionName, int(displaySelection));
+			machine->configurable_device()->set_options(options);
+		});
+	}
+
+	// Possibly add a dynamic crop selector.
+	if(offerDynamicCrop) {
+		displayMenu->addSeparator();
+
+		QAction *const action = new QAction(tr("Crop Dynamically"), this);
+		action->setCheckable(true);
+		displayMenu->addAction(action);
+
+		const auto dynamicCropSettingName = QString::fromStdString(machinePrefix + ".dynamicCrop");
+		if(settings.contains(dynamicCropSettingName)) {
+			const auto useDynamicCrop = settings.value(settingName).toBool();
+			action->setChecked(useDynamicCrop);
+			Reflection::set(*options, Configurable::Options::DynamicCropOptionName, useDynamicCrop);
+		}
+		connect(action, &QAction::toggled, this, [=, this] (const bool ticked) {
+			Settings settings;
+			settings.setValue(dynamicCropSettingName, ticked);
+
+			std::lock_guard lock_guard(machineMutex);
+			auto options = machine->configurable_device()->get_options();
+			Reflection::set(*options, Configurable::Options::DynamicCropOptionName, ticked);
 			machine->configurable_device()->set_options(options);
 		});
 	}
