@@ -236,13 +236,25 @@ vertex CopyInterpolator copyVertex(uint vertexID [[vertex_id]], texture2d<float>
 	return vert;
 }
 
-// MARK: - Various input format conversion samplers.
+// MARK: - Input format conversion samplers.
 
-half2 quadrature(float phase) {
+
+enum class InputEncoding {
+	Luminance1,
+	Luminance8,
+	PhaseLinkedLuminance8,
+};
+
+template <InputEncoding> struct DataFormat { using type = half; };
+template<> struct DataFormat<InputEncoding::Luminance1> { using type = ushort; };
+
+template <InputEncoding encoding> using data_t = typename DataFormat<encoding>::type;
+
+half2 quadrature(const float phase) {
 	return half2(cos(phase), sin(phase));
 }
 
-half4 composite(half level, half2 quadrature, half amplitude) {
+half4 composite(const half level, const half2 quadrature, const half amplitude) {
 	return half4(
 		level,
 		half2(0.5f) + quadrature*half(0.5f),
@@ -254,34 +266,64 @@ half4 composite(half level, half2 quadrature, half amplitude) {
 // composite format used for composition. Direct sampling is always for final output, so the two
 // 8-bit formats also provide a gamma option.
 
-half convertLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
+template <InputEncoding encoding> half sample_composite(SourceInterpolator, texture2d<data_t<encoding>>);
+// TODO: default is sample_svideo and map upwards. But then I might need more arguments?
+
+template <>
+half sample_composite<InputEncoding::Luminance1>(
+	SourceInterpolator vert [[stage_in]],
+	texture2d<ushort> texture [[texture(0)]]
+) {
 	return clamp(half(texture.sample(standardSampler, vert.textureCoordinates).r), half(0.0f), half(1.0f));
 }
 
-half convertLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
+template <>
+half sample_composite<InputEncoding::Luminance8>(
+	SourceInterpolator vert [[stage_in]],
+	texture2d<half> texture [[texture(0)]]
+) {
 	return texture.sample(standardSampler, vert.textureCoordinates).r;
 }
 
-half convertPhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
+template <>
+half sample_composite<InputEncoding::PhaseLinkedLuminance8>(
+	SourceInterpolator vert [[stage_in]],
+	texture2d<half> texture [[texture(0)]]
+) {
 	const int offset = int(vert.unitColourPhase * 4.0f) & 3;
-	auto sample = texture.sample(standardSampler, vert.textureCoordinates);
+	const auto sample = texture.sample(standardSampler, vert.textureCoordinates);
 	return sample[offset];
 }
 
 
+//half convertLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
+//	return clamp(half(texture.sample(standardSampler, vert.textureCoordinates).r), half(0.0f), half(1.0f));
+//}
+//
+//half convertLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
+//	return texture.sample(standardSampler, vert.textureCoordinates).r;
+//}
+//
+//half convertPhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
+//	const int offset = int(vert.unitColourPhase * 4.0f) & 3;
+//	auto sample = texture.sample(standardSampler, vert.textureCoordinates);
+//	return sample[offset];
+//}
+
+
 #define CompositeSet(name, type)	\
 	fragment half4 sample##name(SourceInterpolator vert [[stage_in]], texture2d<type> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		const half luminance = convert##name(vert, texture) * uniforms.outputMultiplier;	\
+		const half luminance = sample_composite<InputEncoding::name>(vert, texture) * uniforms.outputMultiplier;	\
 		return half4(half3(luminance), uniforms.outputAlpha);	\
 	}	\
 	\
 	fragment half4 sample##name##WithGamma(SourceInterpolator vert [[stage_in]], texture2d<type> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		const half luminance = pow(convert##name(vert, texture) * uniforms.outputMultiplier, uniforms.outputGamma);	\
+		const half luminance = pow(sample_composite<InputEncoding::name>(vert, texture) * uniforms.outputMultiplier, uniforms.outputGamma);	\
 		return half4(half3(luminance), uniforms.outputAlpha);	\
 	}	\
 	\
 	fragment half4 compositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<type> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		const half luminance = convert##name(vert, texture) * uniforms.outputMultiplier;	\
+		const half luminance = sample_composite<InputEncoding::name>(vert, texture) * uniforms.outputMultiplier;	\
 		return composite(luminance, quadrature(vert.colourPhase), vert.colourAmplitude);	\
 	}
 
@@ -406,7 +448,7 @@ fragment half4 clearFragment(constant Uniforms &uniforms [[buffer(0)]]) {
 	return half4(0.0, 0.0, 0.0, uniforms.outputAlpha);
 }
 
-// MARK: - Compute kernels
+// MARK: - Compute kernels.
 
 /// Given input pixels of the form (luminance, 0.5 + 0.5*chrominance*cos(phase), 0.5 + 0.5*chrominance*sin(phase)), applies a lowpass
 /// filter to the two chrominance parts, then uses the toRGB matrix to convert to RGB and stores.
