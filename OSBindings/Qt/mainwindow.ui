@@ -631,7 +631,7 @@
           <item row="1" column="0">
            <widget class="QLabel">
             <property name="text">
-             <string>Model</string>
+             <string>Model:</string>
             </property>
            </widget>
           </item>
@@ -652,7 +652,7 @@
           <item row="2" column="0">
            <widget class="QLabel">
             <property name="text">
-             <string>Region</string>
+             <string>Region:</string>
             </property>
            </widget>
           </item>
