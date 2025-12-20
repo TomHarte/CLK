@@ -48,13 +48,20 @@ struct Uniforms {
 
 namespace {
 
-constexpr sampler standardSampler(	coord::pixel,
-									address::clamp_to_edge,	// Although arbitrary, stick with this address mode for compatibility all the way to MTLFeatureSet_iOS_GPUFamily1_v1.
-									filter::nearest);
+// Although arbitrary, address::clamp_to_edge is used for compatibility all the way down
+// to MTLFeatureSet_iOS_GPUFamily1_v1.
 
-constexpr sampler linearSampler(	coord::pixel,
-									address::clamp_to_edge,	// Although arbitrary, stick with this address mode for compatibility all the way to MTLFeatureSet_iOS_GPUFamily1_v1.
-									filter::linear);
+constexpr sampler standardSampler(
+	coord::pixel,
+	address::clamp_to_edge,
+	filter::nearest
+);
+
+constexpr sampler linearSampler(
+	coord::pixel,
+	address::clamp_to_edge,
+	filter::linear
+);
 
 }
 
@@ -95,8 +102,8 @@ struct Line {
 struct SourceInterpolator {
 	float4 position [[position]];
 	float2 textureCoordinates;
-	float unitColourPhase;		// i.e. one unit per circle.
-	float colourPhase;			// i.e. 2*pi units per circle, just regular radians.
+	float unitColourPhase;		// One unit per circle.
+	float colourPhase;			// Radians.
 	half colourAmplitude [[flat]];
 };
 
@@ -107,13 +114,24 @@ struct CopyInterpolator {
 
 // MARK: - Vertex shaders.
 
-float2 textureLocation(constant Line *line, float offset, constant Uniforms &uniforms) {
+float2 textureLocation(
+	constant Line *line,
+	const float offset,
+	constant Uniforms &uniforms
+) {
+	const auto cyclesSinceRetrace =
+		mix(line->endPoints[0].cyclesSinceRetrace, line->endPoints[1].cyclesSinceRetrace, offset);
 	return float2(
-		uniforms.cycleMultiplier * mix(line->endPoints[0].cyclesSinceRetrace, line->endPoints[1].cyclesSinceRetrace, offset),
-		line->line + 0.5f);
+		uniforms.cycleMultiplier * cyclesSinceRetrace,
+		line->line + 0.5f
+	);
 }
 
-float2 textureLocation(constant Scan *scan, float offset, constant Uniforms &) {
+float2 textureLocation(
+	constant Scan *const scan,
+	const float offset,
+	constant Uniforms &
+) {
 	return float2(
 		mix(scan->endPoints[0].dataOffset, scan->endPoints[1].dataOffset, offset),
 		scan->dataY + 0.5f);
@@ -121,9 +139,10 @@ float2 textureLocation(constant Scan *scan, float offset, constant Uniforms &) {
 
 template <typename Input> SourceInterpolator toDisplay(
 	constant Uniforms &uniforms [[buffer(1)]],
-	constant Input *inputs [[buffer(0)]],
-	uint instanceID [[instance_id]],
-	uint vertexID [[vertex_id]]) {
+	constant Input *const inputs [[buffer(0)]],
+	const uint instanceID [[instance_id]],
+	const uint vertexID [[vertex_id]]
+) {
 	SourceInterpolator output;
 
 	// Get start and end vertices in regular float2 form.
@@ -152,7 +171,10 @@ template <typename Input> SourceInterpolator toDisplay(
 	// Hence determine this quad's real shape, using vertexID to pick a corner.
 
 	// position2d is now in the range [0, 1].
-	const float2 sourcePosition = start + (float(vertexID&2) * 0.5f) * tangent + (float(vertexID&1) - 0.5f) * normal * uniforms.lineWidth;
+	const float2 sourcePosition =
+		start +
+		(float(vertexID&2) * 0.5f) * tangent +
+		(float(vertexID&1) - 0.5f) * normal * uniforms.lineWidth;
 	const float2 position2d = (uniforms.sourceToDisplay * float3(sourcePosition, 1.0f)).xy;
 
 	output.position = float4(
@@ -165,38 +187,53 @@ template <typename Input> SourceInterpolator toDisplay(
 	return output;
 }
 
-// These next two assume the incoming geometry to be a four-vertex triangle strip; each instance will therefore
-// produce a quad.
+// These next two assume the incoming geometry to be a four-vertex triangle strip;
+// each instance will therefore produce a quad.
 
-vertex SourceInterpolator scanToDisplay(	constant Uniforms &uniforms [[buffer(1)]],
-											constant Scan *scans [[buffer(0)]],
-											uint instanceID [[instance_id]],
-											uint vertexID [[vertex_id]]) {
+vertex SourceInterpolator scanToDisplay(
+	constant Uniforms &uniforms [[buffer(1)]],
+	constant Scan *const scans [[buffer(0)]],
+	const uint instanceID [[instance_id]],
+	const uint vertexID [[vertex_id]]
+) {
 	return toDisplay(uniforms, scans, instanceID, vertexID);
 }
 
-vertex SourceInterpolator lineToDisplay(	constant Uniforms &uniforms [[buffer(1)]],
-											constant Line *lines [[buffer(0)]],
-											uint instanceID [[instance_id]],
-											uint vertexID [[vertex_id]]) {
+vertex SourceInterpolator lineToDisplay(
+	constant Uniforms &uniforms [[buffer(1)]],
+	constant Line *const lines [[buffer(0)]],
+	const uint instanceID [[instance_id]],
+	const uint vertexID [[vertex_id]]
+) {
 	return toDisplay(uniforms, lines, instanceID, vertexID);
 }
 
-// This assumes that it needs to generate endpoints for a line segment.
-
-vertex SourceInterpolator scanToComposition(	constant Uniforms &uniforms [[buffer(1)]],
-												constant Scan *scans [[buffer(0)]],
-												uint instanceID [[instance_id]],
-												uint vertexID [[vertex_id]],
-												texture2d<float> texture [[texture(0)]]) {
+// Generates endpoints for a line segment.
+vertex SourceInterpolator scanToComposition(
+	constant Uniforms &uniforms [[buffer(1)]],
+	constant Scan *const scans [[buffer(0)]],
+	const uint instanceID [[instance_id]],
+	const uint vertexID [[vertex_id]],
+	const texture2d<float> texture [[texture(0)]]
+) {
 	SourceInterpolator result;
 
 	// Populate result as if direct texture access were available.
-	result.position.x = uniforms.cycleMultiplier * mix(scans[instanceID].endPoints[0].cyclesSinceRetrace, scans[instanceID].endPoints[1].cyclesSinceRetrace, float(vertexID));
+	result.position.x =
+		uniforms.cycleMultiplier *
+		mix(
+			scans[instanceID].endPoints[0].cyclesSinceRetrace,
+			scans[instanceID].endPoints[1].cyclesSinceRetrace,
+			float(vertexID)
+		);
 	result.position.y = scans[instanceID].line;
 	result.position.zw = float2(0.0f, 1.0f);
 
-	result.textureCoordinates.x = mix(scans[instanceID].endPoints[0].dataOffset, scans[instanceID].endPoints[1].dataOffset, float(vertexID));
+	result.textureCoordinates.x = mix(
+		scans[instanceID].endPoints[0].dataOffset,
+		scans[instanceID].endPoints[1].dataOffset,
+		float(vertexID)
+	);
 	result.textureCoordinates.y = scans[instanceID].dataY;
 
 	result.unitColourPhase = mix(
@@ -216,61 +253,84 @@ vertex SourceInterpolator scanToComposition(	constant Uniforms &uniforms [[buffe
 	return result;
 }
 
-vertex CopyInterpolator copyVertex(uint vertexID [[vertex_id]], texture2d<float> texture [[texture(0)]]) {
-	CopyInterpolator vert;
-
+vertex CopyInterpolator copyVertex(
+	const uint vertexID [[vertex_id]],
+	const texture2d<float> texture [[texture(0)]]
+) {
 	const uint x = vertexID & 1;
 	const uint y = (vertexID >> 1) & 1;
 
-	vert.textureCoordinates = float2(
-		x * texture.get_width(),
-		y * texture.get_height()
-	);
-	vert.position = float4(
-		float(x) * 2.0 - 1.0,
-		1.0 - float(y) * 2.0,
-		0.0,
-		1.0
-	);
-
-	return vert;
+	return CopyInterpolator{
+		.textureCoordinates = float2(
+			x * texture.get_width(),
+			y * texture.get_height()
+		),
+		.position = float4(
+			float(x) * 2.0 - 1.0,
+			1.0 - float(y) * 2.0,
+			0.0,
+			1.0
+		)
+	};
 }
 
 // MARK: - Input format conversion samplers.
-
 
 enum class InputEncoding {
 	Luminance1,
 	Luminance8,
 	PhaseLinkedLuminance8,
+
+	Luminance8Phase8,
+
+	Red8Green8Blue8,
+	Red4Green4Blue4,
+	Red2Green2Blue2,
+	Red1Green1Blue1,
 };
 
+// Define the per-pixel type of input textures based on data format.
 template <InputEncoding> struct DataFormat { using type = half; };
 template<> struct DataFormat<InputEncoding::Luminance1> { using type = ushort; };
-
+template<> struct DataFormat<InputEncoding::Red4Green4Blue4> { using type = ushort; };
+template<> struct DataFormat<InputEncoding::Red2Green2Blue2> { using type = ushort; };
+template<> struct DataFormat<InputEncoding::Red1Green1Blue1> { using type = ushort; };
 template <InputEncoding encoding> using data_t = typename DataFormat<encoding>::type;
 
+// Internal type aliases, correlating to the input data and intermediate buffers.
+using Composite = half;					// i.e. a single sample of composite video.
+using LuminanceChrominance = half2;		// i.e. a single sample of s-video; .x = luminance; .y = chroma.
+
+using UnfilteredYUVAmplitude = half4;	// .x = pointwise luminance (colour subcarrier not yet removed);
+										// .yz = two chrominance channels (with noise at twice the subcarrier frequency);
+										// .w = amplitude of the chrominance channels.
+
+using RGB = half3;
+
+namespace {
 half2 quadrature(const float phase) {
 	return half2(cos(phase), sin(phase));
 }
 
-half4 composite(const half level, const half2 quadrature, const half amplitude) {
+UnfilteredYUVAmplitude composite(const half level, const half2 quadrature, const half amplitude) {
 	return half4(
 		level,
 		half2(0.5f) + quadrature*half(0.5f),
 		amplitude
 	);
 }
+}
 
 // The luminance formats can be sampled either in their natural format, or to the intermediate
 // composite format used for composition. Direct sampling is always for final output, so the two
 // 8-bit formats also provide a gamma option.
 
+// MARK: - Composite sampling.
+
 template <InputEncoding encoding> half sample_composite(SourceInterpolator, texture2d<data_t<encoding>>);
-// TODO: default is sample_svideo and map upwards. But then I might need more arguments?
 
 template <>
-half sample_composite<InputEncoding::Luminance1>(
+Composite sample_composite<InputEncoding::Luminance1>(
 	SourceInterpolator vert [[stage_in]],
 	texture2d<ushort> texture [[texture(0)]]
 ) {
@@ -278,7 +338,7 @@ half sample_composite<InputEncoding::Luminance1>(
 }
 
 template <>
-half sample_composite<InputEncoding::Luminance8>(
+Composite sample_composite<InputEncoding::Luminance8>(
 	SourceInterpolator vert [[stage_in]],
 	texture2d<half> texture [[texture(0)]]
 ) {
@@ -286,7 +346,7 @@ half sample_composite<InputEncoding::Luminance8>(
 }
 
 template <>
-half sample_composite<InputEncoding::PhaseLinkedLuminance8>(
+Composite sample_composite<InputEncoding::PhaseLinkedLuminance8>(
 	SourceInterpolator vert [[stage_in]],
 	texture2d<half> texture [[texture(0)]]
 ) {
@@ -294,22 +354,6 @@ half sample_composite<InputEncoding::PhaseLinkedLuminance8>(
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates);
 	return sample[offset];
 }
-
-
-//half convertLuminance1(SourceInterpolator vert [[stage_in]], texture2d<ushort> texture [[texture(0)]]) {
-//	return clamp(half(texture.sample(standardSampler, vert.textureCoordinates).r), half(0.0f), half(1.0f));
-//}
-//
-//half convertLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
-//	return texture.sample(standardSampler, vert.textureCoordinates).r;
-//}
-//
-//half convertPhaseLinkedLuminance8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
-//	const int offset = int(vert.unitColourPhase * 4.0f) & 3;
-//	auto sample = texture.sample(standardSampler, vert.textureCoordinates);
-//	return sample[offset];
-//}
-
 
 #define CompositeSet(name, type)	\
 	fragment half4 sample##name(SourceInterpolator vert [[stage_in]], texture2d<type> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
@@ -335,22 +379,35 @@ CompositeSet(PhaseLinkedLuminance8, half);
 
 // The luminance/phase format can produce either composite or S-Video.
 
-/// @returns A 2d vector comprised where .x = luminance; .y = chroma.
-half2 convertLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
-	const auto luminancePhase = texture.sample(standardSampler, vert.textureCoordinates).rg;
-	const half phaseOffset = 3.141592654 * 4.0 * luminancePhase.g;
-	const half rawChroma = step(luminancePhase.g, half(0.75f)) * cos(vert.colourPhase + phaseOffset);
-	return half2(luminancePhase.r, rawChroma);
+// MARK: - SVideo sampling.
+
+template <InputEncoding encoding>
+LuminanceChrominance sample_svideo(
+	SourceInterpolator vert [[stage_in]],
+	texture2d<half> texture [[texture(0)]]
+) {
+	if(encoding == InputEncoding::Luminance8Phase8) {
+		const auto luminancePhase = texture.sample(standardSampler, vert.textureCoordinates).rg;
+		const half phaseOffset = 3.141592654 * 4.0 * luminancePhase.g;
+		const half rawChroma = step(luminancePhase.g, half(0.75f)) * cos(vert.colourPhase + phaseOffset);
+		return half2(luminancePhase.r, rawChroma);
+	}
+
+	// TODO: sample_rgb and convert.
+	return half2(0.0, 0.0);
 }
 
-fragment half4 compositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
-	const half2 luminanceChroma = convertLuminance8Phase8(vert, texture);
+fragment UnfilteredYUVAmplitude compositeSampleLuminance8Phase8(
+	SourceInterpolator vert [[stage_in]],
+	texture2d<half> texture [[texture(0)]]
+) {
+	const half2 luminanceChroma = sample_svideo<InputEncoding::Luminance8Phase8>(vert, texture);
 	const half luminance = mix(luminanceChroma.r, luminanceChroma.g, vert.colourAmplitude);
 	return composite(luminance, quadrature(vert.colourPhase), vert.colourAmplitude);
 }
 
 fragment half4 sampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
-	const half2 luminanceChroma = convertLuminance8Phase8(vert, texture);
+	const half2 luminanceChroma = sample_svideo<InputEncoding::Luminance8Phase8>(vert, texture);
 	const half2 qam = quadrature(vert.colourPhase) * half(0.5f);
 	return half4(luminanceChroma.r,
 			half2(0.5f) + luminanceChroma.g*qam,
@@ -358,50 +415,52 @@ fragment half4 sampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], text
 }
 
 fragment half4 directCompositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
-	const half2 luminanceChroma = convertLuminance8Phase8(vert, texture);
+	const half2 luminanceChroma = sample_svideo<InputEncoding::Luminance8Phase8>(vert, texture);
 	const half luminance = mix(luminanceChroma.r * uniforms.outputMultiplier, luminanceChroma.g, vert.colourAmplitude);
 	return half4(half3(luminance), uniforms.outputAlpha);
 }
 
 fragment half4 directCompositeSampleLuminance8Phase8WithGamma(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
-	const half2 luminanceChroma = convertLuminance8Phase8(vert, texture);
+	const half2 luminanceChroma = sample_svideo<InputEncoding::Luminance8Phase8>(vert, texture);
 	const half luminance = mix(pow(luminanceChroma.r * uniforms.outputMultiplier, uniforms.outputGamma), luminanceChroma.g, vert.colourAmplitude);
 	return half4(half3(luminance), uniforms.outputAlpha);
 }
 
 
-// All the RGB formats can produce RGB, composite or S-Video.
+// MARK: - RGB sampling.
 
-half3 convertRed8Green8Blue8(SourceInterpolator vert, texture2d<half> texture) {
+template <InputEncoding encoding> RGB sample_rgb(SourceInterpolator, texture2d<data_t<encoding>>);
+
+template<> RGB sample_rgb<InputEncoding::Red8Green8Blue8>(const SourceInterpolator vert, const texture2d<half> texture) {
 	return texture.sample(standardSampler, vert.textureCoordinates).rgb;
 }
 
-half3 convertRed4Green4Blue4(SourceInterpolator vert, texture2d<ushort> texture) {
+template<> RGB sample_rgb<InputEncoding::Red4Green4Blue4>(const SourceInterpolator vert, const texture2d<ushort> texture) {
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).rg;
 	return half3(sample.r&15, (sample.g >> 4)&15, sample.g&15) / 15.0f;
 }
 
-half3 convertRed2Green2Blue2(SourceInterpolator vert, texture2d<ushort> texture) {
+template<> RGB sample_rgb<InputEncoding::Red2Green2Blue2>(const SourceInterpolator vert, const texture2d<ushort> texture) {
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).r;
 	return half3((sample >> 4)&3, (sample >> 2)&3, sample&3) / 3.0f;
 }
 
-half3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture) {
+template<> RGB sample_rgb<InputEncoding::Red1Green1Blue1>(const SourceInterpolator vert, const texture2d<ushort> texture) {
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).r;
 	return clamp(half3(sample&4, sample&2, sample&1), half(0.0f), half(1.0f));
 }
 
 #define DeclareShaders(name, pixelType)	\
 	fragment half4 sample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		return half4(convert##name(vert, texture) * uniforms.outputMultiplier, uniforms.outputAlpha);	\
+		return half4(sample_rgb<InputEncoding::name>(vert, texture) * uniforms.outputMultiplier, uniforms.outputAlpha);	\
 	}	\
 	\
 	fragment half4 sample##name##WithGamma(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		return half4(pow(convert##name(vert, texture) * uniforms.outputMultiplier, uniforms.outputGamma), uniforms.outputAlpha);	\
+		return half4(pow(sample_rgb<InputEncoding::name>(vert, texture) * uniforms.outputMultiplier, uniforms.outputGamma), uniforms.outputAlpha);	\
 	}	\
 	\
 	fragment half4 svideoSample##name(SourceInterpolator vert [[stage_in]], texture2d<pixelType> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		const auto colour = uniforms.fromRGB * convert##name(vert, texture);	\
+		const auto colour = uniforms.fromRGB * sample_rgb<InputEncoding::name>(vert, texture);	\
 		const half2 qam = quadrature(vert.colourPhase);	\
 		const half chroma = dot(colour.gb, qam);	\
 		return half4(	\
@@ -412,7 +471,7 @@ half3 convertRed1Green1Blue1(SourceInterpolator vert, texture2d<ushort> texture)
 	}	\
 	\
 	half composite##name(SourceInterpolator vert, texture2d<pixelType> texture, constant Uniforms &uniforms, half2 colourSubcarrier) {	\
-		const auto colour = uniforms.fromRGB * convert##name(vert, texture);	\
+		const auto colour = uniforms.fromRGB * sample_rgb<InputEncoding::name>(vert, texture);	\
 		return mix(colour.r, dot(colour.gb, colourSubcarrier), half(vert.colourAmplitude));	\
 	}	\
 	\
@@ -436,14 +495,22 @@ DeclareShaders(Red4Green4Blue4, ushort)
 DeclareShaders(Red2Green2Blue2, ushort)
 DeclareShaders(Red1Green1Blue1, ushort)
 
+// MARK: - Copying and solid fills.
+
+/// Point samples @c texture.
 fragment half4 copyFragment(CopyInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
 	return texture.sample(standardSampler, vert.textureCoordinates);
 }
 
-fragment half4 interpolateFragment(CopyInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
+/// Bilinearly samples @c texture.
+fragment half4 interpolateFragment(
+	CopyInterpolator vert [[stage_in]],
+	texture2d<half> texture [[texture(0)]]
+) {
 	return texture.sample(linearSampler, vert.textureCoordinates);
 }
 
+/// Fills with black.
 fragment half4 clearFragment(constant Uniforms &uniforms [[buffer(0)]]) {
 	return half4(0.0, 0.0, 0.0, uniforms.outputAlpha);
 }
@@ -452,11 +519,13 @@ fragment half4 clearFragment(constant Uniforms &uniforms [[buffer(0)]]) {
 
 /// Given input pixels of the form (luminance, 0.5 + 0.5*chrominance*cos(phase), 0.5 + 0.5*chrominance*sin(phase)), applies a lowpass
 /// filter to the two chrominance parts, then uses the toRGB matrix to convert to RGB and stores.
-template <bool applyGamma> void filterChromaKernel(	texture2d<half, access::read> inTexture [[texture(0)]],
-													texture2d<half, access::write> outTexture [[texture(1)]],
-													uint2 gid [[thread_position_in_grid]],
-													constant Uniforms &uniforms [[buffer(0)]],
-													constant int &offset [[buffer(1)]]) {
+template <bool applyGamma> void filterChromaKernel(
+	const texture2d<half, access::read> inTexture [[texture(0)]],
+	const texture2d<half, access::write> outTexture [[texture(1)]],
+	const uint2 gid [[thread_position_in_grid]],
+	constant Uniforms &uniforms [[buffer(0)]],
+	constant int &offset [[buffer(1)]]
+) {
 	constexpr half4 moveToZero(0.0f, 0.5f, 0.5f, 0.0f);
 	const half4 rawSamples[] = {
 		inTexture.read(gid + uint2(0, offset)) - moveToZero,
@@ -491,23 +560,33 @@ template <bool applyGamma> void filterChromaKernel(	texture2d<half, access::read
 	}
 }
 
-kernel void filterChromaKernelNoGamma(	texture2d<half, access::read> inTexture [[texture(0)]],
-										texture2d<half, access::write> outTexture [[texture(1)]],
-										uint2 gid [[thread_position_in_grid]],
-										constant Uniforms &uniforms [[buffer(0)]],
-										constant int &offset [[buffer(1)]]) {
+kernel void filterChromaKernelNoGamma(
+	const texture2d<half, access::read> inTexture [[texture(0)]],
+	const texture2d<half, access::write> outTexture [[texture(1)]],
+	const uint2 gid [[thread_position_in_grid]],
+	constant Uniforms &uniforms [[buffer(0)]],
+	constant int &offset [[buffer(1)]]
+) {
 	filterChromaKernel<false>(inTexture, outTexture, gid, uniforms, offset);
 }
 
-kernel void filterChromaKernelWithGamma(	texture2d<half, access::read> inTexture [[texture(0)]],
-											texture2d<half, access::write> outTexture [[texture(1)]],
-											uint2 gid [[thread_position_in_grid]],
-											constant Uniforms &uniforms [[buffer(0)]],
-											constant int &offset [[buffer(1)]]) {
+kernel void filterChromaKernelWithGamma(
+	const texture2d<half, access::read> inTexture [[texture(0)]],
+	const texture2d<half, access::write> outTexture [[texture(1)]],
+	const uint2 gid [[thread_position_in_grid]],
+	constant Uniforms &uniforms [[buffer(0)]],
+	constant int &offset [[buffer(1)]]
+) {
 	filterChromaKernel<true>(inTexture, outTexture, gid, uniforms, offset);
 }
 
-void setSeparatedLumaChroma(half luminance, half4 centreSample, texture2d<half, access::write> outTexture, uint2 gid, int offset) {
+void setSeparatedLumaChroma(
+	const half luminance,
+	const half4 centreSample,
+	const texture2d<half, access::write> outTexture,
+	const uint2 gid,
+	const int offset
+) {
 	// The mix/steps below ensures that the absence of a colour burst leads the colour subcarrier to be discarded.
 	const half isColour = step(half(0.01f), centreSample.a);
 	const half chroma = (centreSample.r - luminance) / mix(half(1.0f), centreSample.a, isColour);
@@ -530,11 +609,13 @@ void setSeparatedLumaChroma(half luminance, half4 centreSample, texture2d<half, 
 ///	(luminance, 0.5 + 0.5*chrominance*cos(phase), 0.5 + 0.5*chrominance*sin(phase))
 ///
 /// i.e. the input form for the filterChromaKernel, above].
-kernel void separateLumaKernel15(	texture2d<half, access::read> inTexture [[texture(0)]],
-									texture2d<half, access::write> outTexture [[texture(1)]],
-									uint2 gid [[thread_position_in_grid]],
-									constant Uniforms &uniforms [[buffer(0)]],
-									constant int &offset [[buffer(1)]]) {
+kernel void separateLumaKernel15(
+	const texture2d<half, access::read> inTexture [[texture(0)]],
+	const texture2d<half, access::write> outTexture [[texture(1)]],
+	const uint2 gid [[thread_position_in_grid]],
+	constant Uniforms &uniforms [[buffer(0)]],
+	constant int &offset [[buffer(1)]]
+) {
 	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
 	const half rawSamples[] = {
 		inTexture.read(gid + uint2(0, offset)).r,	inTexture.read(gid + uint2(1, offset)).r,
@@ -558,11 +639,13 @@ kernel void separateLumaKernel15(	texture2d<half, access::read> inTexture [[text
 	return setSeparatedLumaChroma(luminance, centreSample, outTexture, gid, offset);
 }
 
-kernel void separateLumaKernel9(	texture2d<half, access::read> inTexture [[texture(0)]],
-									texture2d<half, access::write> outTexture [[texture(1)]],
-									uint2 gid [[thread_position_in_grid]],
-									constant Uniforms &uniforms [[buffer(0)]],
-									constant int &offset [[buffer(1)]]) {
+kernel void separateLumaKernel9(
+	const texture2d<half, access::read> inTexture [[texture(0)]],
+	const texture2d<half, access::write> outTexture [[texture(1)]],
+	const uint2 gid [[thread_position_in_grid]],
+	constant Uniforms &uniforms [[buffer(0)]],
+	constant int &offset [[buffer(1)]]
+) {
 	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
 	const half rawSamples[] = {
 		inTexture.read(gid + uint2(3, offset)).r,	inTexture.read(gid + uint2(4, offset)).r,
@@ -582,11 +665,13 @@ kernel void separateLumaKernel9(	texture2d<half, access::read> inTexture [[textu
 	return setSeparatedLumaChroma(luminance, centreSample, outTexture, gid, offset);
 }
 
-kernel void separateLumaKernel7(	texture2d<half, access::read> inTexture [[texture(0)]],
-									texture2d<half, access::write> outTexture [[texture(1)]],
-									uint2 gid [[thread_position_in_grid]],
-									constant Uniforms &uniforms [[buffer(0)]],
-									constant int &offset [[buffer(1)]]) {
+kernel void separateLumaKernel7(
+	const texture2d<half, access::read> inTexture [[texture(0)]],
+	const texture2d<half, access::write> outTexture [[texture(1)]],
+	const uint2 gid [[thread_position_in_grid]],
+	constant Uniforms &uniforms [[buffer(0)]],
+	constant int &offset [[buffer(1)]]
+) {
 	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
 	const half rawSamples[] = {
 		inTexture.read(gid + uint2(4, offset)).r,
@@ -606,11 +691,13 @@ kernel void separateLumaKernel7(	texture2d<half, access::read> inTexture [[textu
 	return setSeparatedLumaChroma(luminance, centreSample, outTexture, gid, offset);
 }
 
-kernel void separateLumaKernel5(	texture2d<half, access::read> inTexture [[texture(0)]],
-									texture2d<half, access::write> outTexture [[texture(1)]],
-									uint2 gid [[thread_position_in_grid]],
-									constant Uniforms &uniforms [[buffer(0)]],
-									constant int &offset [[buffer(1)]]) {
+kernel void separateLumaKernel5(
+	const texture2d<half, access::read> inTexture [[texture(0)]],
+	const texture2d<half, access::write> outTexture [[texture(1)]],
+	const uint2 gid [[thread_position_in_grid]],
+	constant Uniforms &uniforms [[buffer(0)]],
+	constant int &offset [[buffer(1)]]
+) {
 	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
 	const half rawSamples[] = {
 		inTexture.read(gid + uint2(5, offset)).r,	inTexture.read(gid + uint2(6, offset)).r,
@@ -628,7 +715,9 @@ kernel void separateLumaKernel5(	texture2d<half, access::read> inTexture [[textu
 	return setSeparatedLumaChroma(luminance, centreSample, outTexture, gid, offset);
 }
 
-kernel void clearKernel(	texture2d<half, access::write> outTexture [[texture(0)]],
-							uint2 gid [[thread_position_in_grid]]) {
+kernel void clearKernel(
+	const texture2d<half, access::write> outTexture [[texture(0)]],
+	const uint2 gid [[thread_position_in_grid]]
+) {
 	outTexture.write(half4(0.0f, 0.0f, 0.0f, 1.0f), gid);
 }
