@@ -184,11 +184,14 @@ struct Executor {
 				response.resize(specs.allocated_bytes);
 			break;
 
-			case 0x30:
+			case 0x30: {
 				// This seems to be required to satisfy the Apple HD SC Utility.
-				response.resize(34);
-				strcpy(reinterpret_cast<char *>(&response[14]), "APPLE COMPUTER, INC");
-			break;
+				static constexpr char manufacturer[] = "APPLE COMPUTER, INC";
+				static constexpr auto length = sizeof(manufacturer);	// i.e. to include the trailing NULL.
+
+				response.resize(14 + length);
+				std::copy_n(std::begin(manufacturer), length, response.begin() + 14);
+			} break;
 		}
 
 		if(specs.allocated_bytes < response.size()) {
