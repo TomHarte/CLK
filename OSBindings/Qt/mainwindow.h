@@ -127,7 +127,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void deleteMachine();
 
 		QMenu *displayMenu = nullptr;
-		void addDisplayMenu(const std::string &machinePrefix, const std::string &compositeColour, const std::string &compositeMono, const std::string &svideo, const std::string &rgb);
+		void addDisplayMenu(const std::string &machinePrefix, const std::string &compositeColour, const std::string &compositeMono, const std::string &svideo, const std::string &rgb, bool allowDynamicCrop);
 
 		QMenu *enhancementsMenu = nullptr;
 		QAction *automaticTapeControlAction = nullptr;

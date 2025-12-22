@@ -12,6 +12,7 @@
 #include <QtWidgets>
 
 #include <cstdio>
+#include <memory>
 
 #include "../../Numeric/CRC.hpp"
 #include "../../Configurable/StandardOptions.hpp"
@@ -401,11 +402,74 @@ void MainWindow::launchMachine() {
 
 	// Add machine-specific UI.
 	const std::string settingsPrefix = Machine::ShortNameForTargetMachine(machineType);
-	switch(machineType) {
-		case Analyser::Machine::AmstradCPC:
-			addDisplayMenu(settingsPrefix, "Television", "", "", "Monitor");
-		break;
+	auto configurableMachine = machine->configurable_device();
+	if(configurableMachine) {
+		auto options = configurableMachine->get_options();
+		const auto allKeys = options->all_keys();
+		const auto allDisplayValues = options->values_for(Configurable::Options::DisplayOptionName);
+		const auto hasDynamicCrop = std::find(allKeys.begin(), allKeys.end(), Configurable::Options::DynamicCropOptionName) != allKeys.end();
+		if(hasDynamicCrop || allDisplayValues.size() > 1) {
+			const auto contains = [&](const Configurable::Display option) {
+				const auto name = Reflection::Enum::to_string<Configurable::Display>(option);
+				return std::find(allDisplayValues.begin(), allDisplayValues.end(), name) != allDisplayValues.end();
+			};
 
+
+			const bool hasCompositeColour = contains(Configurable::Display::CompositeColour);
+			const bool hasCompositeMonochrome = contains(Configurable::Display::CompositeMonochrome);
+			const bool hasSVideo = contains(Configurable::Display::SVideo);
+			const bool hasRGB = contains(Configurable::Display::RGB);
+
+			const bool differentiateComposite = hasCompositeColour && hasCompositeMonochrome;
+			const bool hasMultipleTelevisionConnections = hasSVideo && (hasCompositeColour || hasCompositeMonochrome);
+			const bool hasNonCompositeConnections = hasSVideo || hasRGB;
+
+			const auto compositeColourName = [&]() {
+				if(!hasNonCompositeConnections) {
+					return "Colour";
+				}
+				if(hasMultipleTelevisionConnections) {
+					return differentiateComposite ? "Colour Composite" : "Composite";
+				} else {
+					return differentiateComposite ? "Colour Television" : "Television";
+				}
+			};
+
+			const auto compositeMonochromeName = [&]() {
+				if(!hasNonCompositeConnections) {
+					return "Monochrome";
+				}
+				if(hasMultipleTelevisionConnections) {
+					return differentiateComposite ? "Monochrome Composite" : "Composite";
+				} else {
+					return differentiateComposite ? "Black and White Television" : "Television";
+				}
+			};
+
+			const auto rgbName = [&]() {
+				return hasMultipleTelevisionConnections ? "RGB" : "Monitor";
+			};
+
+			addDisplayMenu(
+				settingsPrefix,
+				hasCompositeColour ? compositeColourName() : "",
+				hasCompositeMonochrome ? compositeMonochromeName() : "",
+				hasSVideo ? "S-Video" : "",
+				hasRGB ? rgbName() : "",
+				hasDynamicCrop
+			);
+		}
+
+		// The ZX80 and ZX81 have a specialised version of this.
+		// It might become general later if I generalite automatic tape motor control, which I probably should.
+		if(machineType != Analyser::Machine::ZX8081) {
+			const auto hasQuickLoad = std::find(allKeys.begin(), allKeys.end(), Configurable::Options::QuickLoadOptionName) != allKeys.end();
+			const auto hasQuickBoot = std::find(allKeys.begin(), allKeys.end(), Configurable::Options::QuickBootOptionName) != allKeys.end();
+			addEnhancementsMenu(settingsPrefix, hasQuickLoad, hasQuickBoot);
+		}
+	}
+
+	switch(machineType) {
 		case Analyser::Machine::AppleII:
 			addAppleIIMenu();
 		break;
@@ -414,56 +478,8 @@ void MainWindow::launchMachine() {
 			addAtari2600Menu();
 		break;
 
-		case Analyser::Machine::Archimedes:
-			addEnhancementsMenu(settingsPrefix, true, false);
-		break;
-
-		case Analyser::Machine::AtariST:
-			addDisplayMenu(settingsPrefix, "Television", "", "", "Monitor");
-		break;
-
-		case Analyser::Machine::ColecoVision:
-			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "");
-		break;
-
-		case Analyser::Machine::Electron:
-			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "RGB");
-			addEnhancementsMenu(settingsPrefix, true, false);
-		break;
-
-		case Analyser::Machine::Enterprise:
-			addDisplayMenu(settingsPrefix, "Composite", "", "", "RGB");
-		break;
-
-		case Analyser::Machine::Macintosh:
-			addEnhancementsMenu(settingsPrefix, false, true);
-		break;
-
-		case Analyser::Machine::MasterSystem:
-			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "SCART");
-		break;
-
-		case Analyser::Machine::MSX:
-			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "SCART");
-			addEnhancementsMenu(settingsPrefix, true, false);
-		break;
-
-		case Analyser::Machine::Oric:
-			addDisplayMenu(settingsPrefix, "Composite", "", "", "SCART");
-		break;
-
-		case Analyser::Machine::Vic20:
-			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "");
-			addEnhancementsMenu(settingsPrefix, true, false);
-		break;
-
 		case Analyser::Machine::ZX8081:
 			addZX8081Menu(settingsPrefix);
-		break;
-
-		case Analyser::Machine::ZXSpectrum:
-			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "SCART");
-			addEnhancementsMenu(settingsPrefix, true, false);
 		break;
 
 		default: break;
@@ -476,7 +492,14 @@ void MainWindow::launchMachine() {
 	addActivityObserver();
 }
 
-void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::string &compositeColour, const std::string &compositeMono, const std::string &svideo, const std::string &rgb) {
+void MainWindow::addDisplayMenu(
+	const std::string &machinePrefix,
+	const std::string &compositeColour,
+	const std::string &compositeMono,
+	const std::string &svideo,
+	const std::string &rgb,
+	const bool offerDynamicCrop
+) {
 	// Create a display menu.
 	displayMenu = menuBar()->addMenu(tr("&Display"));
 
@@ -543,9 +566,37 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 			machine->configurable_device()->set_options(options);
 		});
 	}
+
+	// Possibly add a dynamic crop selector.
+	if(offerDynamicCrop) {
+		displayMenu->addSeparator();
+
+		QAction *const action = new QAction(tr("Crop Dynamically"), this);
+		action->setCheckable(true);
+		displayMenu->addAction(action);
+
+		const auto dynamicCropSettingName = QString::fromStdString(machinePrefix + ".dynamicCrop");
+		if(settings.contains(dynamicCropSettingName)) {
+			const auto useDynamicCrop = settings.value(settingName).toBool();
+			action->setChecked(useDynamicCrop);
+			Reflection::set(*options, Configurable::Options::DynamicCropOptionName, useDynamicCrop);
+		}
+		connect(action, &QAction::toggled, this, [=, this] (const bool ticked) {
+			Settings settings;
+			settings.setValue(dynamicCropSettingName, ticked);
+
+			std::lock_guard lock_guard(machineMutex);
+			auto options = machine->configurable_device()->get_options();
+			Reflection::set(*options, Configurable::Options::DynamicCropOptionName, ticked);
+			machine->configurable_device()->set_options(options);
+		});
+	}
 }
 
 void MainWindow::addEnhancementsMenu(const std::string &machinePrefix, const bool offerQuickLoad, const bool offerQuickBoot) {
+	if(!offerQuickLoad && !offerQuickBoot) {
+		return;
+	}
 	enhancementsMenu = menuBar()->addMenu(tr("&Enhancements"));
 	addEnhancementsItems(machinePrefix, enhancementsMenu, offerQuickLoad, offerQuickBoot, false);
 }
@@ -681,9 +732,6 @@ void MainWindow::toggleAtari2600Switch(const Atari2600Switch toggleSwitch) {
 }
 
 void MainWindow::addAppleIIMenu() {
-	// Add the standard display settings.
-	addDisplayMenu("appleII", "Colour", "Monochrome", "", "");
-
 	// Add an additional tick box, for square pixels.
 	QAction *const squarePixelsAction = new QAction(tr("Square Pixels"));
 	squarePixelsAction->setCheckable(true);
