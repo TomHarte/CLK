@@ -274,7 +274,7 @@ vertex CopyInterpolator copyVertex(
 	};
 }
 
-// MARK: - Input format conversion samplers.
+// MARK: - Input types.
 
 enum class InputEncoding {
 	Luminance1,
@@ -288,6 +288,9 @@ enum class InputEncoding {
 	Red2Green2Blue2,
 	Red1Green1Blue1,
 };
+constexpr bool is_ttl(const InputEncoding encoding) {
+	return encoding == InputEncoding::Luminance1 || encoding == InputEncoding::Red1Green1Blue1;
+}
 
 // Define the per-pixel type of input textures based on data format.
 template <InputEncoding> struct DataFormat { using type = half; };
@@ -325,30 +328,33 @@ UnfilteredYUVAmplitude composite(const half level, const half2 quadrature, const
 // composite format used for composition. Direct sampling is always for final output, so the two
 // 8-bit formats also provide a gamma option.
 
-// MARK: - Composite sampling.
+// MARK: - Prototypical sampling functions.
 
+template <InputEncoding encoding> RGB sample_rgb(SourceInterpolator, texture2d<data_t<encoding>>);
 template <InputEncoding encoding> half sample_composite(SourceInterpolator, texture2d<data_t<encoding>>);
+
+// MARK: - Composite sampling.
 
 template <>
 Composite sample_composite<InputEncoding::Luminance1>(
-	SourceInterpolator vert [[stage_in]],
-	texture2d<ushort> texture [[texture(0)]]
+	const SourceInterpolator vert [[stage_in]],
+	const texture2d<ushort> texture [[texture(0)]]
 ) {
 	return clamp(half(texture.sample(standardSampler, vert.textureCoordinates).r), half(0.0f), half(1.0f));
 }
 
 template <>
 Composite sample_composite<InputEncoding::Luminance8>(
-	SourceInterpolator vert [[stage_in]],
-	texture2d<half> texture [[texture(0)]]
+	const SourceInterpolator vert [[stage_in]],
+	const texture2d<half> texture [[texture(0)]]
 ) {
 	return texture.sample(standardSampler, vert.textureCoordinates).r;
 }
 
 template <>
 Composite sample_composite<InputEncoding::PhaseLinkedLuminance8>(
-	SourceInterpolator vert [[stage_in]],
-	texture2d<half> texture [[texture(0)]]
+	const SourceInterpolator vert [[stage_in]],
+	const texture2d<half> texture [[texture(0)]]
 ) {
 	const int offset = int(vert.unitColourPhase * 4.0f) & 3;
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates);
@@ -356,17 +362,32 @@ Composite sample_composite<InputEncoding::PhaseLinkedLuminance8>(
 }
 
 #define CompositeSet(name, type)	\
-	fragment half4 sample##name(SourceInterpolator vert [[stage_in]], texture2d<type> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
+	fragment half4 sample##name( \
+		SourceInterpolator vert [[stage_in]], \
+		texture2d<type> texture [[texture(0)]], \
+		constant Uniforms &uniforms [[buffer(0)]] \
+	) {	\
 		const half luminance = sample_composite<InputEncoding::name>(vert, texture) * uniforms.outputMultiplier;	\
 		return half4(half3(luminance), uniforms.outputAlpha);	\
 	}	\
 	\
-	fragment half4 sample##name##WithGamma(SourceInterpolator vert [[stage_in]], texture2d<type> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
-		const half luminance = pow(sample_composite<InputEncoding::name>(vert, texture) * uniforms.outputMultiplier, uniforms.outputGamma);	\
+	fragment half4 sample##name##WithGamma( \
+		SourceInterpolator vert [[stage_in]], \
+		texture2d<type> texture [[texture(0)]], \
+		constant Uniforms &uniforms [[buffer(0)]] \
+	) {	\
+		const half luminance = pow( \
+			sample_composite<InputEncoding::name>(vert, texture) * uniforms.outputMultiplier, \
+			uniforms.outputGamma \
+		);	\
 		return half4(half3(luminance), uniforms.outputAlpha);	\
 	}	\
 	\
-	fragment half4 compositeSample##name(SourceInterpolator vert [[stage_in]], texture2d<type> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {	\
+	fragment half4 compositeSample##name( \
+		SourceInterpolator vert [[stage_in]], \
+		texture2d<type> texture [[texture(0)]], \
+		constant Uniforms &uniforms [[buffer(0)]] \
+	) {	\
 		const half luminance = sample_composite<InputEncoding::name>(vert, texture) * uniforms.outputMultiplier;	\
 		return composite(luminance, quadrature(vert.colourPhase), vert.colourAmplitude);	\
 	}
@@ -414,38 +435,60 @@ fragment half4 sampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], text
 			half(1.0f));
 }
 
-fragment half4 directCompositeSampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+fragment half4 directCompositeSampleLuminance8Phase8(
+	SourceInterpolator vert [[stage_in]],
+	texture2d<half> texture [[texture(0)]],
+	constant Uniforms &uniforms [[buffer(0)]]
+) {
 	const half2 luminanceChroma = sample_svideo<InputEncoding::Luminance8Phase8>(vert, texture);
 	const half luminance = mix(luminanceChroma.r * uniforms.outputMultiplier, luminanceChroma.g, vert.colourAmplitude);
 	return half4(half3(luminance), uniforms.outputAlpha);
 }
 
-fragment half4 directCompositeSampleLuminance8Phase8WithGamma(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]], constant Uniforms &uniforms [[buffer(0)]]) {
+fragment half4 directCompositeSampleLuminance8Phase8WithGamma(
+	SourceInterpolator vert [[stage_in]],
+	texture2d<half> texture [[texture(0)]],
+	constant Uniforms &uniforms [[buffer(0)]]
+) {
 	const half2 luminanceChroma = sample_svideo<InputEncoding::Luminance8Phase8>(vert, texture);
-	const half luminance = mix(pow(luminanceChroma.r * uniforms.outputMultiplier, uniforms.outputGamma), luminanceChroma.g, vert.colourAmplitude);
+	const half luminance = mix(
+		pow(luminanceChroma.r * uniforms.outputMultiplier, uniforms.outputGamma),
+		luminanceChroma.g,
+		vert.colourAmplitude
+	);
 	return half4(half3(luminance), uniforms.outputAlpha);
 }
 
 
 // MARK: - RGB sampling.
 
-template <InputEncoding encoding> RGB sample_rgb(SourceInterpolator, texture2d<data_t<encoding>>);
-
-template<> RGB sample_rgb<InputEncoding::Red8Green8Blue8>(const SourceInterpolator vert, const texture2d<half> texture) {
+template<> RGB sample_rgb<InputEncoding::Red8Green8Blue8>(
+	const SourceInterpolator vert,
+	const texture2d<half> texture
+) {
 	return texture.sample(standardSampler, vert.textureCoordinates).rgb;
 }
 
-template<> RGB sample_rgb<InputEncoding::Red4Green4Blue4>(const SourceInterpolator vert, const texture2d<ushort> texture) {
+template<> RGB sample_rgb<InputEncoding::Red4Green4Blue4>(
+	const SourceInterpolator vert,
+	const texture2d<ushort> texture
+) {
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).rg;
 	return half3(sample.r&15, (sample.g >> 4)&15, sample.g&15) / 15.0f;
 }
 
-template<> RGB sample_rgb<InputEncoding::Red2Green2Blue2>(const SourceInterpolator vert, const texture2d<ushort> texture) {
+template<> RGB sample_rgb<InputEncoding::Red2Green2Blue2>(
+	const SourceInterpolator vert,
+	const texture2d<ushort> texture
+) {
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).r;
 	return half3((sample >> 4)&3, (sample >> 2)&3, sample&3) / 3.0f;
 }
 
-template<> RGB sample_rgb<InputEncoding::Red1Green1Blue1>(const SourceInterpolator vert, const texture2d<ushort> texture) {
+template<> RGB sample_rgb<InputEncoding::Red1Green1Blue1>(
+	const SourceInterpolator vert,
+	const texture2d<ushort> texture
+) {
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates).r;
 	return clamp(half3(sample&4, sample&2, sample&1), half(0.0f), half(1.0f));
 }
@@ -494,6 +537,63 @@ DeclareShaders(Red8Green8Blue8, half)
 DeclareShaders(Red4Green4Blue4, ushort)
 DeclareShaders(Red2Green2Blue2, ushort)
 DeclareShaders(Red1Green1Blue1, ushort)
+
+#undef DeclareShaders
+
+// Annoyance: templated functions, even if explicitly instantiated, don't seem to turn up in MTLLibrarys.
+// So I need to do this nonsense:
+
+#define DeclareShaders(name) \
+
+//	fragment half4 internalComposite##name(\
+		SourceInterpolator vert [[stage_in]],\
+		texture2d<data_t<InputEncoding::name>> texture [[texture(0)]],\
+		constant Uniforms &uniforms [[buffer(0)]]\
+	) {	\
+		const half level = sample_composite<InputEncoding::name>(vert, texture, uniforms, quadrature(vert.colourPhase)); \
+		return half4(half3(level), uniforms.outputAlpha);	\
+	} \
+\
+	fragment half4 outputComposite##name(\
+		SourceInterpolator vert [[stage_in]],\
+		texture2d<data_t<InputEncoding::name>> texture [[texture(0)]],\
+		constant Uniforms &uniforms [[buffer(0)]]\
+	) {	\
+		const half level = sample_composite<InputEncoding::name>(vert, texture, uniforms, quadrature(vert.colourPhase)); \
+		return half4(half3(pow(level, uniforms.outputGamma)), uniforms.outputAlpha);	\
+	} \
+\
+
+//	fragment half4 internalRGB##name(\
+		SourceInterpolator vert [[stage_in]],\
+		texture2d<data_t<InputEncoding::name>> texture [[texture(0)]],\
+		constant Uniforms &uniforms [[buffer(0)]]\
+	) {	\
+		return half4(sample_rgb<InputEncoding::name>(vert, texture) * uniforms.outputMultiplier, uniforms.outputAlpha);	\
+	} \
+\
+	fragment half4 outputRGB##name(\
+		SourceInterpolator vert [[stage_in]],\
+		texture2d<data_t<InputEncoding::name>> texture [[texture(0)]],\
+		constant Uniforms &uniforms [[buffer(0)]]\
+	) {	\
+		auto sample = sample_rgb<InputEncoding::name>(vert, texture) * uniforms.outputMultiplier; \
+		if(!is_ttl(InputEncoding::name)) { \
+			sample = pow(sample, uniforms.outputGamma);	\
+		} \
+		return half4(sample, uniforms.outputAlpha); \
+	}
+
+DeclareShaders(Luminance1);
+DeclareShaders(Luminance8);
+DeclareShaders(PhaseLinkedLuminance8);
+DeclareShaders(Luminance8Phase8);
+DeclareShaders(Red1Green1Blue1);
+DeclareShaders(Red2Green2Blue2);
+DeclareShaders(Red4Green4Blue4);
+DeclareShaders(Red8Green8Blue8);
+
+#undef DeclareShaders
 
 // MARK: - Copying and solid fills.
 
