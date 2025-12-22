@@ -472,7 +472,7 @@ private:
 	}
 
 	template <bool original_speed>
-	void run_for(Cycles cycles) {
+	void run_for(const Cycles cycles) {
 		macro_counter_ += cycles.as<int>();
 
 		while(macro_counter_ > 0) {
