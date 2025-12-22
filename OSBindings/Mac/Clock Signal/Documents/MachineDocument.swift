@@ -353,6 +353,10 @@ class MachineDocument:
 		mediaSet.addPermissionHandler()
 	}
 
+	override func revertToSaved(_ sender: Any?) {
+		// Do nothing, as states aren't implemented yet.
+	}
+
 	// MARK: - Input Management.
 
 	/// Upon a resign key, immediately releases all ongoing input mechanisms — any currently pressed keys,
