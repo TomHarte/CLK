@@ -819,11 +819,21 @@ public:
 			throw ROMMachine::Error::MissingROMs;
 		}
 
+		const auto install = [&](const ROM::Name source, const ROMType destination) {
+			const auto rom = roms.find(source);
+			auto &target = roms_[size_t(destination)];
+			std::copy_n(
+				rom->second.begin(),
+				std::min(rom->second.size(), target.size()),
+				target.begin()
+			);
+		};
+
 		if(has_amsdos) {
-			roms_[ROMType::AMSDOS] = roms.find(ROM::Name::AMSDOS)->second;
+			install(ROM::Name::AMSDOS, ROMType::AMSDOS);
 		}
-		roms_[ROMType::OS] = roms.find(firmware)->second;
-		roms_[ROMType::BASIC] = roms.find(basic)->second;
+		install(firmware, ROMType::OS);
+		install(basic, ROMType::BASIC);
 
 		// Establish default memory map
 		upper_rom_is_paged_ = true;
@@ -1321,11 +1331,10 @@ private:
 	enum ROMType: int {
 		AMSDOS = 0, OS = 1, BASIC = 2
 	};
-	std::vector<uint8_t> roms_[3];
+	std::array<std::array<uint8_t, 16384>, 3> roms_;
 	bool upper_rom_is_paged_ = false;
 	ROMType upper_rom_;
 
-	uint8_t *ram_pages_[4]{};
 	const uint8_t *read_pointers_[4]{};
 	uint8_t *write_pointers_[4]{};
 
