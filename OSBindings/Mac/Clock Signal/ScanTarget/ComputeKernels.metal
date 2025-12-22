@@ -10,13 +10,11 @@
 
 #include "uniforms.hpp"
 
-using namespace metal;
-
 /// Given input pixels of the form (luminance, 0.5 + 0.5*chrominance*cos(phase), 0.5 + 0.5*chrominance*sin(phase)), applies a lowpass
 /// filter to the two chrominance parts, then uses the toRGB matrix to convert to RGB and stores.
 template <bool applyGamma> void filterChromaKernel(
-	const texture2d<half, access::read> inTexture [[texture(0)]],
-	const texture2d<half, access::write> outTexture [[texture(1)]],
+	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
+	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
 	constant Uniforms &uniforms [[buffer(0)]],
 	constant int &offset [[buffer(1)]]
@@ -49,15 +47,15 @@ template <bool applyGamma> void filterChromaKernel(
 
 	const half4 output = half4(uniforms.toRGB * colour * uniforms.outputMultiplier, uniforms.outputAlpha);
 	if(applyGamma) {
-		outTexture.write(pow(output, uniforms.outputGamma), gid + uint2(7, offset));
+		outTexture.write(metal::pow(output, uniforms.outputGamma), gid + uint2(7, offset));
 	} else {
 		outTexture.write(output, gid + uint2(7, offset));
 	}
 }
 
 kernel void filterChromaKernelNoGamma(
-	const texture2d<half, access::read> inTexture [[texture(0)]],
-	const texture2d<half, access::write> outTexture [[texture(1)]],
+	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
+	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
 	constant Uniforms &uniforms [[buffer(0)]],
 	constant int &offset [[buffer(1)]]
@@ -66,8 +64,8 @@ kernel void filterChromaKernelNoGamma(
 }
 
 kernel void filterChromaKernelWithGamma(
-	const texture2d<half, access::read> inTexture [[texture(0)]],
-	const texture2d<half, access::write> outTexture [[texture(1)]],
+	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
+	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
 	constant Uniforms &uniforms [[buffer(0)]],
 	constant int &offset [[buffer(1)]]
@@ -78,15 +76,15 @@ kernel void filterChromaKernelWithGamma(
 void setSeparatedLumaChroma(
 	const half luminance,
 	const half4 centreSample,
-	const texture2d<half, access::write> outTexture,
+	const metal::texture2d<half, metal::access::write> outTexture,
 	const uint2 gid,
 	const int offset
 ) {
 	// The mix/steps below ensures that the absence of a colour burst leads the colour subcarrier to be discarded.
-	const half isColour = step(half(0.01f), centreSample.a);
-	const half chroma = (centreSample.r - luminance) / mix(half(1.0f), centreSample.a, isColour);
+	const half isColour = metal::step(half(0.01f), centreSample.a);
+	const half chroma = (centreSample.r - luminance) / metal::mix(half(1.0f), centreSample.a, isColour);
 	outTexture.write(half4(
-			luminance / mix(half(1.0f), (half(1.0f) - centreSample.a), isColour),
+			luminance / metal::mix(half(1.0f), (half(1.0f) - centreSample.a), isColour),
 			isColour * (centreSample.gb - half2(0.5f)) * chroma + half2(0.5f),
 			1.0f
 		),
@@ -105,8 +103,8 @@ void setSeparatedLumaChroma(
 ///
 /// i.e. the input form for the filterChromaKernel, above].
 kernel void separateLumaKernel15(
-	const texture2d<half, access::read> inTexture [[texture(0)]],
-	const texture2d<half, access::write> outTexture [[texture(1)]],
+	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
+	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
 	constant Uniforms &uniforms [[buffer(0)]],
 	constant int &offset [[buffer(1)]]
@@ -135,8 +133,8 @@ kernel void separateLumaKernel15(
 }
 
 kernel void separateLumaKernel9(
-	const texture2d<half, access::read> inTexture [[texture(0)]],
-	const texture2d<half, access::write> outTexture [[texture(1)]],
+	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
+	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
 	constant Uniforms &uniforms [[buffer(0)]],
 	constant int &offset [[buffer(1)]]
@@ -161,8 +159,8 @@ kernel void separateLumaKernel9(
 }
 
 kernel void separateLumaKernel7(
-	const texture2d<half, access::read> inTexture [[texture(0)]],
-	const texture2d<half, access::write> outTexture [[texture(1)]],
+	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
+	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
 	constant Uniforms &uniforms [[buffer(0)]],
 	constant int &offset [[buffer(1)]]
@@ -187,8 +185,8 @@ kernel void separateLumaKernel7(
 }
 
 kernel void separateLumaKernel5(
-	const texture2d<half, access::read> inTexture [[texture(0)]],
-	const texture2d<half, access::write> outTexture [[texture(1)]],
+	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
+	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
 	constant Uniforms &uniforms [[buffer(0)]],
 	constant int &offset [[buffer(1)]]
@@ -211,7 +209,7 @@ kernel void separateLumaKernel5(
 }
 
 kernel void clearKernel(
-	const texture2d<half, access::write> outTexture [[texture(0)]],
+	const metal::texture2d<half, metal::access::write> outTexture [[texture(0)]],
 	const uint2 gid [[thread_position_in_grid]]
 ) {
 	outTexture.write(half4(0.0f, 0.0f, 0.0f, 1.0f), gid);
