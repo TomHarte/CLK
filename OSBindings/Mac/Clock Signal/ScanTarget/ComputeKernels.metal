@@ -10,6 +10,8 @@
 
 #include "uniforms.hpp"
 
+// MARK: - Filters for the chrominance portion of an UnfilteredYUVAmplitude texture, to remove high-frequency noise.
+
 /// Given input pixels of the form (luminance, 0.5 + 0.5*chrominance*cos(phase), 0.5 + 0.5*chrominance*sin(phase)), applies a lowpass
 /// filter to the two chrominance parts, then uses the toRGB matrix to convert to RGB and stores.
 template <bool applyGamma> void filterChromaKernel(
@@ -73,6 +75,9 @@ kernel void filterChromaKernelWithGamma(
 	filterChromaKernel<true>(inTexture, outTexture, gid, uniforms, offset);
 }
 
+// MARK: - Luma/chroma separation filters of various sizes.
+
+/// Stores a separated sample, potentially discarding the chrominance section if there was no colour burst.
 void setSeparatedLumaChroma(
 	const half luminance,
 	const half4 centreSample,
@@ -207,6 +212,8 @@ kernel void separateLumaKernel5(
 
 	return setSeparatedLumaChroma(luminance, centreSample, outTexture, gid, offset);
 }
+
+// MARK: - Solid fills.
 
 kernel void clearKernel(
 	const metal::texture2d<half, metal::access::write> outTexture [[texture(0)]],
