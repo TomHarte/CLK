@@ -778,6 +778,9 @@
 		4B9F11CA2272433900701480 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
 		4B9F11CC22729B3600701480 /* OPCLOGR2.BIN in Resources */ = {isa = PBXBuildFile; fileRef = 4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */; };
 		4BA0F68E1EEA0E8400E9489E /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */; };
+		4BA3AF5E2EF98C110088C3BC /* ComputeKernels.metal in Sources */ = {isa = PBXBuildFile; fileRef = 4BA3AF5D2EF98C110088C3BC /* ComputeKernels.metal */; };
+		4BA3AF5F2EF98C110088C3BC /* ComputeKernels.metal in Sources */ = {isa = PBXBuildFile; fileRef = 4BA3AF5D2EF98C110088C3BC /* ComputeKernels.metal */; };
+		4BA3AF612EF98C530088C3BC /* uniforms.hpp in Resources */ = {isa = PBXBuildFile; fileRef = 4BA3AF602EF98C530088C3BC /* uniforms.hpp */; };
 		4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */; };
 		4BA6B6AE284EDAC100A3B7A8 /* 68000OldVsNew.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA6B6AD284EDAC000A3B7A8 /* 68000OldVsNew.mm */; };
 		4BA91E1D216D85BA00F79557 /* MasterSystemVDPTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA91E1C216D85BA00F79557 /* MasterSystemVDPTests.mm */; };
@@ -1995,6 +1998,8 @@
 		4BA141C12073100800A31EC9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4BA3AE44283317CB00328FED /* RegisterSet.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RegisterSet.hpp; sourceTree = "<group>"; };
 		4BA3AF5C2EF252320088C3BC /* API.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = API.hpp; sourceTree = "<group>"; };
+		4BA3AF5D2EF98C110088C3BC /* ComputeKernels.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = ComputeKernels.metal; sourceTree = "<group>"; };
+		4BA3AF602EF98C530088C3BC /* uniforms.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = uniforms.hpp; sourceTree = "<group>"; };
 		4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+StdVector.h"; sourceTree = "<group>"; };
 		4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "NSData+StdVector.mm"; sourceTree = "<group>"; };
 		4BA6B6AD284EDAC000A3B7A8 /* 68000OldVsNew.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000OldVsNew.mm; sourceTree = "<group>"; };
@@ -3027,10 +3032,12 @@
 		4B228CD324D773B30077EF25 /* ScanTarget */ = {
 			isa = PBXGroup;
 			children = (
-				4B228CDA24DA41880077EF25 /* ScanTarget.metal */,
-				4B228CD424D773B30077EF25 /* CSScanTarget.mm */,
 				4B228CD624D773CA0077EF25 /* CSScanTarget.h */,
 				4B4F2B7024DF99D4000DA6B0 /* CSScanTarget+CppScanTarget.h */,
+				4BA3AF5D2EF98C110088C3BC /* ComputeKernels.metal */,
+				4B228CDA24DA41880077EF25 /* ScanTarget.metal */,
+				4B228CD424D773B30077EF25 /* CSScanTarget.mm */,
+				4BA3AF602EF98C530088C3BC /* uniforms.hpp */,
 			);
 			path = ScanTarget;
 			sourceTree = "<group>";
@@ -5783,6 +5790,7 @@
 				4B8FE21C1DA19D5F0090D3CE /* MachineDocument.xib in Resources */,
 				4B79E4441E3AF38600141F11 /* cassette.png in Resources */,
 				4BB73EAC1B587A5100552FC2 /* MainMenu.xib in Resources */,
+				4BA3AF612EF98C530088C3BC /* uniforms.hpp in Resources */,
 				4B8FE21D1DA19D5F0090D3CE /* QuickLoadCompositeOptions.xib in Resources */,
 				4B1FBE202D77AAC500BAC888 /* ProcessorByModel.hpp in Resources */,
 				4B49F0A923346F7A0045E6A6 /* MacintoshOptions.xib in Resources */,
@@ -6272,6 +6280,7 @@
 				4B6AAEAC230E40250078E864 /* SCSI.cpp in Sources */,
 				4B055A981FAE85C50060FFFF /* Drive.cpp in Sources */,
 				4BD424E62193B5830097291A /* Shader.cpp in Sources */,
+				4BA3AF5F2EF98C110088C3BC /* ComputeKernels.metal in Sources */,
 				4BC080CB26A238CC00D03FD8 /* AmigaADF.cpp in Sources */,
 				4B4B1A3D200198CA00A0F866 /* KonamiSCC.cpp in Sources */,
 				425739392B051EA800B7D1E4 /* PCCompatible.cpp in Sources */,
@@ -6507,6 +6516,7 @@
 				4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */,
 				4BDA00E422E663B900AC3CD0 /* NSData+CRC32.m in Sources */,
 				4B9EC0E626AA4A660060A31F /* Chipset.cpp in Sources */,
+				4BA3AF5E2EF98C110088C3BC /* ComputeKernels.metal in Sources */,
 				425739382B051EA800B7D1E4 /* PCCompatible.cpp in Sources */,
 				4BB8616E24E22DC500A00E03 /* BufferingScanTarget.cpp in Sources */,
 				4BB4BFB022A42F290069048D /* MacintoshIMG.cpp in Sources */,
