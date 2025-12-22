@@ -99,14 +99,19 @@ void setSeparatedLumaChroma(
 
 /// Given input pixels of the form:
 ///
-///	(composite sample, cos(phase), sin(phase), colour amplitude), applies a lowpass
+///	{composite sample, cos(phase), sin(phase), colour amplitude}
 ///
-/// Filters to separate luminance, subtracts that and scales and maps the remaining chrominance in order to output
-/// pixels in the form:
+/// Filters to separate luminance, subtracts also to obtain chrominance.
+/// Outputs pixels in the form:
 ///
-///	(luminance, 0.5 + 0.5*chrominance*cos(phase), 0.5 + 0.5*chrominance*sin(phase))
+///	{luminance, 0.5 + 0.5*chrominance*cos(phase), 0.5 + 0.5*chrominance*sin(phase)}
 ///
-/// i.e. the input form for the filterChromaKernel, above].
+/// i.e. in the correct form for consumption by filterChromaKernel, above.
+///
+/// Various forms are defined: separateLumaKernelX means by applying a filter kernel of size X.
+/// Regardless of kernel size, weights are always taken to be centred on index 7 of the `lumaKernel`
+/// member of `Uniforms`.
+
 kernel void separateLumaKernel15(
 	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
 	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
