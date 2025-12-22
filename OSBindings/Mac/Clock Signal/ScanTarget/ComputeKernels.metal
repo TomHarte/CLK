@@ -16,8 +16,8 @@ template <bool applyGamma> void filterChromaKernel(
 	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
 	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
-	constant Uniforms &uniforms [[buffer(0)]],
-	constant int &offset [[buffer(1)]]
+	const constant Uniforms &uniforms [[buffer(0)]],
+	const constant int &offset [[buffer(1)]]
 ) {
 	constexpr half4 moveToZero(0.0f, 0.5f, 0.5f, 0.0f);
 	const half4 rawSamples[] = {
@@ -57,8 +57,8 @@ kernel void filterChromaKernelNoGamma(
 	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
 	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
-	constant Uniforms &uniforms [[buffer(0)]],
-	constant int &offset [[buffer(1)]]
+	const constant Uniforms &uniforms [[buffer(0)]],
+	const constant int &offset [[buffer(1)]]
 ) {
 	filterChromaKernel<false>(inTexture, outTexture, gid, uniforms, offset);
 }
@@ -67,8 +67,8 @@ kernel void filterChromaKernelWithGamma(
 	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
 	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
-	constant Uniforms &uniforms [[buffer(0)]],
-	constant int &offset [[buffer(1)]]
+	const constant Uniforms &uniforms [[buffer(0)]],
+	const constant int &offset [[buffer(1)]]
 ) {
 	filterChromaKernel<true>(inTexture, outTexture, gid, uniforms, offset);
 }
@@ -88,9 +88,9 @@ void setSeparatedLumaChroma(
 			isColour * (centreSample.gb - half2(0.5f)) * chroma + half2(0.5f),
 			1.0f
 		),
-		gid + uint2(7, offset));
+		gid + uint2(7, offset)
+	);
 }
-
 
 /// Given input pixels of the form:
 ///
@@ -106,8 +106,8 @@ kernel void separateLumaKernel15(
 	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
 	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
-	constant Uniforms &uniforms [[buffer(0)]],
-	constant int &offset [[buffer(1)]]
+	const constant Uniforms &uniforms [[buffer(0)]],
+	const constant int &offset [[buffer(1)]]
 ) {
 	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
 	const half rawSamples[] = {
@@ -136,8 +136,8 @@ kernel void separateLumaKernel9(
 	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
 	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
-	constant Uniforms &uniforms [[buffer(0)]],
-	constant int &offset [[buffer(1)]]
+	const constant Uniforms &uniforms [[buffer(0)]],
+	const constant int &offset [[buffer(1)]]
 ) {
 	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
 	const half rawSamples[] = {
@@ -162,8 +162,8 @@ kernel void separateLumaKernel7(
 	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
 	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
-	constant Uniforms &uniforms [[buffer(0)]],
-	constant int &offset [[buffer(1)]]
+	const constant Uniforms &uniforms [[buffer(0)]],
+	const constant int &offset [[buffer(1)]]
 ) {
 	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
 	const half rawSamples[] = {
@@ -188,8 +188,8 @@ kernel void separateLumaKernel5(
 	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
 	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
-	constant Uniforms &uniforms [[buffer(0)]],
-	constant int &offset [[buffer(1)]]
+	const constant Uniforms &uniforms [[buffer(0)]],
+	const constant int &offset [[buffer(1)]]
 ) {
 	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
 	const half rawSamples[] = {
