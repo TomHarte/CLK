@@ -38,7 +38,7 @@ static std::unique_ptr<File::Chunk> GetNextChunk(
 	// Read name.
 	char name[11]{};
 	std::size_t name_ptr = 0;
-	while(!serialiser.is_at_end() && name_ptr < sizeof(name)) {
+	while(!serialiser.is_at_end() && name_ptr < sizeof(name) - 1) {
 		name[name_ptr] = char(parser.get_next_byte(serialiser));
 		if(!name[name_ptr]) break;
 		++name_ptr;

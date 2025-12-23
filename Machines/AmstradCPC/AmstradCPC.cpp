@@ -36,6 +36,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <vector>
 
@@ -703,7 +704,7 @@ public:
 			break;
 			case 2: {
 				// The low four bits of the value sent to Port C select a keyboard line.
-				int key_row = value & 15;
+				const int key_row = value & 15;
 				key_state_.set_row(key_row);
 
 				// Bit 4 sets the tape motor on or off.
@@ -766,7 +767,7 @@ class ConcreteMachine:
 public:
 	ConcreteMachine(const Analyser::Static::AmstradCPC::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		z80_(*this),
-		crtc_bus_handler_(ram_, interrupt_timer_),
+		crtc_bus_handler_(ram_.data(), interrupt_timer_),
 		crtc_(crtc_bus_handler_),
 		i8255_port_handler_(key_state_, crtc_, ay_, tape_player_),
 		i8255_(i8255_port_handler_),
@@ -777,7 +778,7 @@ public:
 		set_clock_rate(4000000);
 
 		// ensure memory starts in a random state
-		Memory::Fuzz(ram_, sizeof(ram_));
+		Memory::Fuzz(ram_);
 
 		// register this class as the sleep observer for the FDC and tape
 		fdc_.set_clocking_hint_observer(this);
@@ -819,25 +820,35 @@ public:
 			throw ROMMachine::Error::MissingROMs;
 		}
 
+		const auto install = [&](const ROM::Name source, const ROMType destination) {
+			const auto rom = roms.find(source);
+			auto &target = roms_[size_t(destination)];
+			std::copy_n(
+				rom->second.begin(),
+				std::min(rom->second.size(), target.size()),
+				target.begin()
+			);
+		};
+
 		if(has_amsdos) {
-			roms_[ROMType::AMSDOS] = roms.find(ROM::Name::AMSDOS)->second;
+			install(ROM::Name::AMSDOS, ROMType::AMSDOS);
 		}
-		roms_[ROMType::OS] = roms.find(firmware)->second;
-		roms_[ROMType::BASIC] = roms.find(basic)->second;
+		install(firmware, ROMType::OS);
+		install(basic, ROMType::BASIC);
 
 		// Establish default memory map
 		upper_rom_is_paged_ = true;
 		upper_rom_ = ROMType::BASIC;
 
-		write_pointers_[0] = &ram_[0x0000];
-		write_pointers_[1] = &ram_[0x4000];
-		write_pointers_[2] = &ram_[0x8000];
-		write_pointers_[3] = &ram_[0xc000];
+		set_write_pointer(0, 0);
+		set_write_pointer(1, 1);
+		set_write_pointer(2, 2);
+		set_write_pointer(3, 3);
 
-		read_pointers_[0] = roms_[ROMType::OS].data();
+		read_pointers_[0] = rom_slot(0, ROMType::OS);
 		read_pointers_[1] = write_pointers_[1];
 		read_pointers_[2] = write_pointers_[2];
-		read_pointers_[3] = roms_[upper_rom_].data();
+		read_pointers_[3] = rom_slot(3, upper_rom_);
 
 		// Set total RAM available.
 		has_128k_ = target.model == Model::CPC6128;
@@ -891,7 +902,7 @@ public:
 
 		// Continue only if action strictly required.
 		if(cycle.is_terminal()) {
-			uint16_t address = cycle.address ? *cycle.address : 0x0000;
+			const uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
 
@@ -901,13 +912,13 @@ public:
 					if(
 						use_fast_tape_hack_ &&
 						address == tape_read_byte_address &&
-						read_pointers_[0] == roms_[ROMType::OS].data()
+						read_pointers_[0] == rom_slot(0, ROMType::OS)
 					) {
 						using Parser = Storage::Tape::ZXSpectrum::Parser;
 						Parser parser(Parser::MachineType::AmstradCPC);
 
 						const auto speed =
-							read_pointers_[tape_speed_value_address >> 14][tape_speed_value_address & 16383];
+							read_pointers_[tape_speed_value_address >> 14][tape_speed_value_address];
 						parser.set_cpc_read_speed(speed);
 
 						// Seed with the current pulse; the CPC will have finished the
@@ -925,16 +936,16 @@ public:
 							// Update in-memory CRC.
 							auto crc_value =
 								uint16_t(
-									read_pointers_[tape_crc_address >> 14][tape_crc_address & 16383] |
-									(read_pointers_[(tape_crc_address+1) >> 14][(tape_crc_address+1) & 16383] << 8)
+									read_pointers_[tape_crc_address >> 14][tape_crc_address] |
+									(read_pointers_[(tape_crc_address+1) >> 14][tape_crc_address + 1] << 8)
 								);
 
 							tape_crc_.set_value(crc_value);
 							tape_crc_.add(*byte);
 							crc_value = tape_crc_.get_value();
 
-							write_pointers_[tape_crc_address >> 14][tape_crc_address & 16383] = uint8_t(crc_value);
-							write_pointers_[(tape_crc_address+1) >> 14][(tape_crc_address+1) & 16383] =
+							write_pointers_[tape_crc_address >> 14][tape_crc_address] = uint8_t(crc_value);
+							write_pointers_[(tape_crc_address+1) >> 14][tape_crc_address+1] =
 								uint8_t(crc_value >> 8);
 
 							// Indicate successful byte read.
@@ -953,7 +964,7 @@ public:
 					}
 
 					if constexpr (catches_ssm) {
-						ssm_code_ = (ssm_code_ << 8) | read_pointers_[address >> 14][address & 16383];
+						ssm_code_ = (ssm_code_ << 8) | read_pointers_[address >> 14][address];
 						if(ssm_delegate_) {
 							if((ssm_code_ & 0xff00ff00) == 0xed00ed00) {
 								const auto code = uint16_t(
@@ -987,11 +998,11 @@ public:
 				[[fallthrough]];
 
 				case CPU::Z80::PartialMachineCycle::Read:
-					*cycle.value = read_pointers_[address >> 14][address & 16383];
+					*cycle.value = read_pointers_[address >> 14][address];
 				break;
 
 				case CPU::Z80::PartialMachineCycle::Write:
-					write_pointers_[address >> 14][address & 16383] = *cycle.value;
+					write_pointers_[address >> 14][address] = *cycle.value;
 				break;
 
 				case CPU::Z80::PartialMachineCycle::Output:
@@ -1004,7 +1015,9 @@ public:
 					if constexpr (has_fdc) {
 						if(!(address&0x2000)) {
 							upper_rom_ = (*cycle.value == 7) ? ROMType::AMSDOS : ROMType::BASIC;
-							if(upper_rom_is_paged_) read_pointers_[3] = roms_[upper_rom_].data();
+							if(upper_rom_is_paged_) {
+								read_pointers_[3] = rom_slot(3, upper_rom_);
+							}
 						}
 					}
 
@@ -1224,16 +1237,33 @@ public:
 	}
 
 private:
-	inline void write_to_gate_array(const uint8_t value) {
+	std::array<std::array<uint8_t, 16384>, 3> roms_;
+	std::array<uint8_t, 128 * 1024> ram_;
+
+	void set_write_pointer(const size_t id, const size_t bank) {
+		assert((bank + 1) * 16384 <= ram_.size());
+		write_pointers_[id] = &ram_[(bank - id) * 16384];
+	}
+
+	enum ROMType: int {
+		AMSDOS = 0, OS = 1, BASIC = 2
+	};
+	const uint8_t *rom_slot(const size_t id, const ROMType type) const {
+		assert(size_t(type) < roms_.size());
+		return roms_[size_t(type)].data() - id * 16384;
+	}
+
+	void write_to_gate_array(const uint8_t value) {
 		switch(value >> 6) {
 			case 0: crtc_bus_handler_.select_pen(value & 0x1f);		break;
 			case 1: crtc_bus_handler_.set_colour(value & 0x1f);		break;
 			case 2:
 				// Perform ROM paging.
-				read_pointers_[0] = (value & 4) ? write_pointers_[0] : roms_[ROMType::OS].data();
+				read_pointers_[0] = (value & 4) ? write_pointers_[0] : rom_slot(0, ROMType::OS);
 
 				upper_rom_is_paged_ = !(value & 8);
-				read_pointers_[3] = upper_rom_is_paged_ ? roms_[upper_rom_].data() : write_pointers_[3];
+				assert(size_t(upper_rom_) < roms_.size());
+				read_pointers_[3] = upper_rom_is_paged_ ? rom_slot(3, upper_rom_) : write_pointers_[3];
 
 				// Reset the interrupt timer if requested.
 				if(value & 0x10) interrupt_timer_.reset_count();
@@ -1247,12 +1277,11 @@ private:
 					const bool adjust_low_read_pointer = read_pointers_[0] == write_pointers_[0];
 					const bool adjust_high_read_pointer = read_pointers_[3] == write_pointers_[3];
 
-					const auto RAM_CONFIG = [&](int a, int b, int c, int d) {
-						const auto RAM_BANK = [&](int x) { return &ram_[x * 16384]; };
-						write_pointers_[0] = RAM_BANK(a);
-						write_pointers_[1] = RAM_BANK(b);
-						write_pointers_[2] = RAM_BANK(c);
-						write_pointers_[3] = RAM_BANK(d);
+					const auto RAM_CONFIG = [&](const size_t a, const size_t b, const size_t c, const size_t d) {
+						set_write_pointer(0, a);
+						set_write_pointer(1, b);
+						set_write_pointer(2, c);
+						set_write_pointer(3, d);
 					};
 					switch(value & 7) {
 						case 0:	RAM_CONFIG(0, 1, 2, 3);	break;
@@ -1318,14 +1347,9 @@ private:
 	bool tape_player_is_sleeping_ = false;
 	bool has_128k_ = false;
 
-	enum ROMType: int {
-		AMSDOS = 0, OS = 1, BASIC = 2
-	};
-	std::vector<uint8_t> roms_[3];
 	bool upper_rom_is_paged_ = false;
 	ROMType upper_rom_;
 
-	uint8_t *ram_pages_[4]{};
 	const uint8_t *read_pointers_[4]{};
 	uint8_t *write_pointers_[4]{};
 
@@ -1336,7 +1360,6 @@ private:
 	uint32_t ssm_code_ = 0;
 
 	bool has_run_ = false;
-	uint8_t ram_[128 * 1024];
 };
 
 }
