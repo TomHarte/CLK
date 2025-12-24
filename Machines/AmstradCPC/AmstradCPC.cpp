@@ -1,4 +1,5 @@
 //
+//
 //  AmstradCPC.cpp
 //  Clock Signal
 //
@@ -247,6 +248,7 @@ public:
 
 	/// Palette management: selects a pen to modify.
 	void select_pen(const int pen) {
+		assert(pen >= 0 && pen < 32);
 		pen_ = pen;
 	}
 
@@ -326,7 +328,7 @@ private:
 			if(!pixel_data_) {
 				pixel_pointer_ = pixel_data_ = crt_.begin_data(320, 8);
 			}
-			if(pixel_pointer_) {
+			if(pixel_data_) {
 				// the CPC shuffles output lines as:
 				//	MA13 MA12	RA2 RA1 RA0		MA9 MA8 MA7 MA6 MA5 MA4 MA3 MA2 MA1 MA0		CCLK
 				// ... so form the real access address.
@@ -342,24 +344,28 @@ private:
 				// exactly reaching 320 output pixels.
 				switch(mode_) {
 					case 0:
+						assert(pixel_data_ + 320 >= pixel_data_ + 2 * sizeof(uint16_t));
 						reinterpret_cast<uint16_t *>(pixel_pointer_)[0] = mode0_output_[ram_[address]];
 						reinterpret_cast<uint16_t *>(pixel_pointer_)[1] = mode0_output_[ram_[address+1]];
 						pixel_pointer_ += 2 * sizeof(uint16_t);
 					break;
 
 					case 1:
+						assert(pixel_data_ + 320 >= pixel_data_ + 2 * sizeof(uint32_t));
 						reinterpret_cast<uint32_t *>(pixel_pointer_)[0] = mode1_output_[ram_[address]];
 						reinterpret_cast<uint32_t *>(pixel_pointer_)[1] = mode1_output_[ram_[address+1]];
 						pixel_pointer_ += 2 * sizeof(uint32_t);
 					break;
 
 					case 2:
+						assert(pixel_data_ + 320 >= pixel_data_ + 2 * sizeof(uint64_t));
 						reinterpret_cast<uint64_t *>(pixel_pointer_)[0] = mode2_output_[ram_[address]];
 						reinterpret_cast<uint64_t *>(pixel_pointer_)[1] = mode2_output_[ram_[address+1]];
 						pixel_pointer_ += 2 * sizeof(uint64_t);
 					break;
 
 					case 3:
+						assert(pixel_data_ + 320 >= pixel_data_ + 2 * sizeof(uint16_t));
 						reinterpret_cast<uint16_t *>(pixel_pointer_)[0] = mode3_output_[ram_[address]];
 						reinterpret_cast<uint16_t *>(pixel_pointer_)[1] = mode3_output_[ram_[address+1]];
 						pixel_pointer_ += 2 * sizeof(uint16_t);
