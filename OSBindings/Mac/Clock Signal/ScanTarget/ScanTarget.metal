@@ -81,31 +81,31 @@ struct CopyInterpolator {
 // MARK: - Vertex shaders.
 
 float2 textureLocation(
-	constant Line *line,
+	const constant Line &line,
 	const float offset,
 	constant Uniforms &uniforms
 ) {
 	const auto cyclesSinceRetrace =
-		mix(line->endPoints[0].cyclesSinceRetrace, line->endPoints[1].cyclesSinceRetrace, offset);
+		mix(line.endPoints[0].cyclesSinceRetrace, line.endPoints[1].cyclesSinceRetrace, offset);
 	return float2(
 		uniforms.cycleMultiplier * cyclesSinceRetrace,
-		line->line + 0.5f
+		line.line + 0.5f
 	);
 }
 
 float2 textureLocation(
-	constant Scan *const scan,
+	const constant Scan &scan,
 	const float offset,
-	constant Uniforms &
+	const constant Uniforms &
 ) {
 	return float2(
-		mix(scan->endPoints[0].dataOffset, scan->endPoints[1].dataOffset, offset),
-		scan->dataY + 0.5f);
+		mix(scan.endPoints[0].dataOffset, scan.endPoints[1].dataOffset, offset),
+		scan.dataY + 0.5f);
 }
 
 template <typename Input> SourceInterpolator toDisplay(
-	constant Uniforms &uniforms [[buffer(1)]],
-	constant Input *const inputs [[buffer(0)]],
+	const constant Uniforms &uniforms [[buffer(1)]],
+	const constant Input *const inputs [[buffer(0)]],
 	const uint instanceID [[instance_id]],
 	const uint vertexID [[vertex_id]]
 ) {
@@ -148,7 +148,7 @@ template <typename Input> SourceInterpolator toDisplay(
 		0.0f,
 		1.0f
 	);
-	output.textureCoordinates = textureLocation(&inputs[instanceID], float((vertexID&2) >> 1), uniforms);
+	output.textureCoordinates = textureLocation(inputs[instanceID], float((vertexID&2) >> 1), uniforms);
 
 	return output;
 }
@@ -157,8 +157,8 @@ template <typename Input> SourceInterpolator toDisplay(
 // each instance will therefore produce a quad.
 
 vertex SourceInterpolator scanToDisplay(
-	constant Uniforms &uniforms [[buffer(1)]],
-	constant Scan *const scans [[buffer(0)]],
+	const constant Uniforms &uniforms [[buffer(1)]],
+	const constant Scan *const scans [[buffer(0)]],
 	const uint instanceID [[instance_id]],
 	const uint vertexID [[vertex_id]]
 ) {
@@ -166,8 +166,8 @@ vertex SourceInterpolator scanToDisplay(
 }
 
 vertex SourceInterpolator lineToDisplay(
-	constant Uniforms &uniforms [[buffer(1)]],
-	constant Line *const lines [[buffer(0)]],
+	const constant Uniforms &uniforms [[buffer(1)]],
+	const constant Line *const lines [[buffer(0)]],
 	const uint instanceID [[instance_id]],
 	const uint vertexID [[vertex_id]]
 ) {
@@ -176,8 +176,8 @@ vertex SourceInterpolator lineToDisplay(
 
 // Generates endpoints for a line segment.
 vertex SourceInterpolator scanToComposition(
-	constant Uniforms &uniforms [[buffer(1)]],
-	constant Scan *const scans [[buffer(0)]],
+	const constant Uniforms &uniforms [[buffer(1)]],
+	const constant Scan *const scans [[buffer(0)]],
 	const uint instanceID [[instance_id]],
 	const uint vertexID [[vertex_id]],
 	const texture2d<float> texture [[texture(0)]]
@@ -370,8 +370,8 @@ CompositeSet(PhaseLinkedLuminance8, half);
 
 template <InputEncoding encoding>
 LuminanceChrominance sample_svideo(
-	SourceInterpolator vert [[stage_in]],
-	texture2d<half> texture [[texture(0)]]
+	const SourceInterpolator vert [[stage_in]],
+	const texture2d<half> texture [[texture(0)]]
 ) {
 	if(encoding == InputEncoding::Luminance8Phase8) {
 		const auto luminancePhase = texture.sample(standardSampler, vert.textureCoordinates).rg;
@@ -385,15 +385,18 @@ LuminanceChrominance sample_svideo(
 }
 
 fragment UnfilteredYUVAmplitude compositeSampleLuminance8Phase8(
-	SourceInterpolator vert [[stage_in]],
-	texture2d<half> texture [[texture(0)]]
+	const SourceInterpolator vert [[stage_in]],
+	const texture2d<half> texture [[texture(0)]]
 ) {
 	const half2 luminanceChroma = sample_svideo<InputEncoding::Luminance8Phase8>(vert, texture);
 	const half luminance = mix(luminanceChroma.r, luminanceChroma.g, vert.colourAmplitude);
 	return composite(luminance, quadrature(vert.colourPhase), vert.colourAmplitude);
 }
 
-fragment half4 sampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
+fragment half4 sampleLuminance8Phase8(
+	const SourceInterpolator vert [[stage_in]],
+	const texture2d<half> texture [[texture(0)]]
+) {
 	const half2 luminanceChroma = sample_svideo<InputEncoding::Luminance8Phase8>(vert, texture);
 	const half2 qam = quadrature(vert.colourPhase) * half(0.5f);
 	return half4(luminanceChroma.r,
@@ -402,9 +405,9 @@ fragment half4 sampleLuminance8Phase8(SourceInterpolator vert [[stage_in]], text
 }
 
 fragment half4 directCompositeSampleLuminance8Phase8(
-	SourceInterpolator vert [[stage_in]],
-	texture2d<half> texture [[texture(0)]],
-	constant Uniforms &uniforms [[buffer(0)]]
+	const SourceInterpolator vert [[stage_in]],
+	const texture2d<half> texture [[texture(0)]],
+	const constant Uniforms &uniforms [[buffer(0)]]
 ) {
 	const half2 luminanceChroma = sample_svideo<InputEncoding::Luminance8Phase8>(vert, texture);
 	const half luminance = mix(luminanceChroma.r * uniforms.outputMultiplier, luminanceChroma.g, vert.colourAmplitude);
@@ -412,9 +415,9 @@ fragment half4 directCompositeSampleLuminance8Phase8(
 }
 
 fragment half4 directCompositeSampleLuminance8Phase8WithGamma(
-	SourceInterpolator vert [[stage_in]],
-	texture2d<half> texture [[texture(0)]],
-	constant Uniforms &uniforms [[buffer(0)]]
+	const SourceInterpolator vert [[stage_in]],
+	const texture2d<half> texture [[texture(0)]],
+	const constant Uniforms &uniforms [[buffer(0)]]
 ) {
 	const half2 luminanceChroma = sample_svideo<InputEncoding::Luminance8Phase8>(vert, texture);
 	const half luminance = mix(
@@ -564,19 +567,19 @@ DeclareShaders(Red8Green8Blue8);
 // MARK: - Copying and solid fills.
 
 /// Point samples @c texture.
-fragment half4 copyFragment(CopyInterpolator vert [[stage_in]], texture2d<half> texture [[texture(0)]]) {
+fragment half4 copyFragment(const CopyInterpolator vert [[stage_in]], const texture2d<half> texture [[texture(0)]]) {
 	return texture.sample(standardSampler, vert.textureCoordinates);
 }
 
 /// Bilinearly samples @c texture.
 fragment half4 interpolateFragment(
-	CopyInterpolator vert [[stage_in]],
-	texture2d<half> texture [[texture(0)]]
+	const CopyInterpolator vert [[stage_in]],
+	const texture2d<half> texture [[texture(0)]]
 ) {
 	return texture.sample(linearSampler, vert.textureCoordinates);
 }
 
 /// Fills with black.
-fragment half4 clearFragment(constant Uniforms &uniforms [[buffer(0)]]) {
+fragment half4 clearFragment(const constant Uniforms &uniforms [[buffer(0)]]) {
 	return half4(0.0, 0.0, 0.0, uniforms.outputAlpha);
 }
