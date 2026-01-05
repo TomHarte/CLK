@@ -541,8 +541,6 @@ private:
 }
 
 int main(int argc, char *argv[]) {
-	SDL_Window *window = nullptr;
-
 	// Attempt to parse arguments.
 	const ParsedArguments arguments = parse_arguments(argc, argv);
 
@@ -892,7 +890,12 @@ int main(int argc, char *argv[]) {
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 1);
 	SDL_GL_SetSwapInterval(1);
 
+	SDL_Window *window = nullptr;
+	SDL_GLContext gl_context = nullptr;
 	const auto create_window = [&] {
+		if(window) {
+			SDL_DestroyWindow(window);
+		}
 		window = SDL_CreateWindow(
 			long_machine_name.empty() ?
 				final_path_component(arguments.file_names.front()).c_str() : long_machine_name.c_str(),
@@ -900,6 +903,9 @@ int main(int argc, char *argv[]) {
 			400, 300,
 			SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
 		);
+		if(window) {
+			gl_context = SDL_GL_CreateContext(window);
+		}
 	};
 
 	// Try to get an OpenGL ES context first; this is preferable since it's slightly more direct in driver terms on
@@ -909,7 +915,7 @@ int main(int argc, char *argv[]) {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 	create_window();
 
-	if(!window) {
+	if(!window || !gl_context) {
 		// Fallback: OpenGL 3.2. This might be supported even if ES isn't, e.g. on the Mac.
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -917,10 +923,6 @@ int main(int argc, char *argv[]) {
 		create_window();
 	}
 
-	SDL_GLContext gl_context = nullptr;
-	if(window) {
-		gl_context = SDL_GL_CreateContext(window);
-	}
 	if(!window || !gl_context) {
 		std::cerr << "Could not create " << (window ? "OpenGL context" : "window");
 		std::cerr << "; reported error: \"" << SDL_GetError() << "\"" << std::endl;
