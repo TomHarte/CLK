@@ -934,9 +934,12 @@ int main(int argc, char *argv[]) {
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
 
 	// Setup output, assuming a CRT machine for now, and prepare a best-effort updater.
-	int selected_context_profile_mask;
-	SDL_GL_GetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, &selected_context_profile_mask);
-	const auto api = selected_context_profile_mask == SDL_GL_CONTEXT_PROFILE_ES ?
+	// Ask SDL what sort of profile the program ended up with, to decouple from whatever code is above.
+	const auto api = []{
+		int selected_context_profile_mask;
+		SDL_GL_GetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, &selected_context_profile_mask);
+		return selected_context_profile_mask;
+	}() == SDL_GL_CONTEXT_PROFILE_ES ?
 		Outputs::Display::OpenGL::API::OpenGLES3 :
 		Outputs::Display::OpenGL::API::OpenGL32Core;
 
