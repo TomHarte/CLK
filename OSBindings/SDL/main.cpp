@@ -889,17 +889,33 @@ int main(int argc, char *argv[]) {
 
 	// Ask for no depth buffer, a core profile and vsync-aligned rendering.
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 1);
 	SDL_GL_SetSwapInterval(1);
 
-	window = SDL_CreateWindow(	long_machine_name.empty() ? final_path_component(arguments.file_names.front()).c_str() : long_machine_name.c_str(),
-								SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-								400, 300,
-								SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+	const auto create_window = [&] {
+		window = SDL_CreateWindow(
+			long_machine_name.empty() ?
+				final_path_component(arguments.file_names.front()).c_str() : long_machine_name.c_str(),
+			SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+			400, 300,
+			SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
+		);
+	};
 
-	DynamicWindowTitler window_titler(window);
+	// Try to get an OpenGL ES context first; this is preferable since it's slightly more direct in driver terms on
+	// Wayland, and is hardware accelerated on Raspberry Pis and similar whereas regular OpenGL isn't necessarily.
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+	create_window();
+
+	if(!window) {
+		// Fallback: OpenGL 3.2. This might be supported even if ES isn't, e.g. on the Mac.
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+		create_window();
+	}
 
 	SDL_GLContext gl_context = nullptr;
 	if(window) {
@@ -911,13 +927,19 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
+	DynamicWindowTitler window_titler(window);
 	SDL_GL_MakeCurrent(window, gl_context);
 
 	GLint target_framebuffer = 0;
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
 
 	// Setup output, assuming a CRT machine for now, and prepare a best-effort updater.
-	const auto api = Outputs::Display::OpenGL::API::OpenGL32Core;
+	int selected_context_profile_mask;
+	SDL_GL_GetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, &selected_context_profile_mask);
+	const auto api = selected_context_profile_mask == SDL_GL_CONTEXT_PROFILE_ES ?
+		Outputs::Display::OpenGL::API::OpenGLES3 :
+		Outputs::Display::OpenGL::API::OpenGL32Core;
+
 	Outputs::Display::OpenGL::ScanTarget scan_target(api, target_framebuffer);
 	std::unique_ptr<ActivityObserver> activity_observer;
 	bool uses_mouse;
