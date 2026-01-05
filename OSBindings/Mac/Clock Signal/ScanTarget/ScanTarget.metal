@@ -109,8 +109,6 @@ template <typename Input> SourceInterpolator toDisplay(
 	const uint instanceID [[instance_id]],
 	const uint vertexID [[vertex_id]]
 ) {
-	SourceInterpolator output;
-
 	// Get start and end vertices in regular float2 form.
 	const float2 start = float2(
 		float(inputs[instanceID].endPoints[0].position[0]) / float(uniforms.scale.x),
@@ -125,32 +123,31 @@ template <typename Input> SourceInterpolator toDisplay(
 	const float2 tangent = (end - start);
 	const float2 normal = float2(tangent.y, -tangent.x) / length(tangent);
 
-	// Load up the colour details.
-	output.colourAmplitude = float(inputs[instanceID].compositeAmplitude) / 255.0f;
-	output.unitColourPhase = mix(
-		float(inputs[instanceID].endPoints[0].compositeAngle),
-		float(inputs[instanceID].endPoints[1].compositeAngle),
-		float((vertexID&2) >> 1)
-	) / 64.0f;
-	output.colourPhase = 2.0f * 3.141592654f * output.unitColourPhase;
-
 	// Hence determine this quad's real shape, using vertexID to pick a corner.
-
-	// position2d is now in the range [0, 1].
 	const float2 sourcePosition =
 		start +
 		(float(vertexID&2) * 0.5f) * tangent +
 		(float(vertexID&1) - 0.5f) * normal * uniforms.lineWidth;
 	const float2 position2d = (uniforms.sourceToDisplay * float3(sourcePosition, 1.0f)).xy;
+	// position2d is now in the range [0, 1].
 
-	output.position = float4(
-		position2d,
-		0.0f,
-		1.0f
-	);
-	output.textureCoordinates = textureLocation(inputs[instanceID], float((vertexID&2) >> 1), uniforms);
+	const float unitColourPhase = mix(
+		float(inputs[instanceID].endPoints[0].compositeAngle),
+		float(inputs[instanceID].endPoints[1].compositeAngle),
+		float((vertexID&2) >> 1)
+	) / 64.0f;
 
-	return output;
+	return SourceInterpolator{
+		.position = float4(
+			position2d,
+			0.0f,
+			1.0f
+		),
+		.textureCoordinates = textureLocation(inputs[instanceID], float((vertexID&2) >> 1), uniforms),
+		.unitColourPhase = unitColourPhase,
+		.colourPhase = 2.0f * 3.141592654f * unitColourPhase,
+		.colourAmplitude = half(inputs[instanceID].compositeAmplitude) / half(255.0f),
+	};
 }
 
 // These next two assume the incoming geometry to be a four-vertex triangle strip;
@@ -277,11 +274,11 @@ using UnfilteredYUVAmplitude = half4;	// .x = pointwise luminance (colour subcar
 using RGB = half3;
 
 namespace {
-half2 quadrature(const float phase) {
+constexpr half2 quadrature(const float phase) {
 	return half2(cos(phase), sin(phase));
 }
 
-UnfilteredYUVAmplitude composite(const half level, const half2 quadrature, const half amplitude) {
+constexpr UnfilteredYUVAmplitude composite(const half level, const half2 quadrature, const half amplitude) {
 	return half4(
 		level,
 		half2(0.5f) + quadrature*half(0.5f),
