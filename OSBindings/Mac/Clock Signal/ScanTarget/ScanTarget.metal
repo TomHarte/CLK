@@ -6,12 +6,11 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#include <metal_stdlib>
-
 #include "interpolators.hpp"
 #include "input_encodings.hpp"
 #include "uniforms.hpp"
 
+#include <metal_stdlib>
 using namespace metal;
 
 namespace {
@@ -25,12 +24,6 @@ constexpr sampler standardSampler(
 	coord::pixel,
 	address::clamp_to_edge,
 	filter::nearest
-);
-
-constexpr sampler linearSampler(
-	coord::pixel,
-	address::clamp_to_edge,
-	filter::linear
 );
 
 }
@@ -334,23 +327,3 @@ DeclareShaders(Red4Green4Blue4);
 DeclareShaders(Red8Green8Blue8);
 
 #undef DeclareShaders
-
-// MARK: - Copying and solid fills.
-
-/// Point samples @c texture.
-fragment half4 copyFragment(const CopyInterpolator vert [[stage_in]], const texture2d<half> texture [[texture(0)]]) {
-	return texture.sample(standardSampler, vert.textureCoordinates);
-}
-
-/// Bilinearly samples @c texture.
-fragment half4 interpolateFragment(
-	const CopyInterpolator vert [[stage_in]],
-	const texture2d<half> texture [[texture(0)]]
-) {
-	return texture.sample(linearSampler, vert.textureCoordinates);
-}
-
-/// Fills with black.
-fragment half4 clearFragment(const constant Uniforms &uniforms [[buffer(0)]]) {
-	return half4(0.0, 0.0, 0.0, uniforms.outputAlpha);
-}
