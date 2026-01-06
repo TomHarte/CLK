@@ -21,8 +21,8 @@ constexpr metal::sampler standardSampler(
 // Luminance 1: each sample is either 0 or 1, representing a luminance of 0 or 1.
 template <>
 Luminance sample<InputEncoding::Luminance1>(
-	const SourceInterpolator vert [[stage_in]],
-	const metal::texture2d<ushort> texture [[texture(0)]]
+	const SourceInterpolator vert,
+	const metal::texture2d<ushort> texture
 ) {
 	return metal::clamp(half(texture.sample(standardSampler, vert.textureCoordinates).r), half(0.0f), half(1.0f));
 }
@@ -31,8 +31,8 @@ template <> Luminance sample<InputEncoding::Luminance1>(SourceInterpolator, meta
 // Luminance 8: each sample is an 8-bit quantity representing the linear output level.
 template <>
 Luminance sample<InputEncoding::Luminance8>(
-	const SourceInterpolator vert [[stage_in]],
-	const metal::texture2d<half> texture [[texture(0)]]
+	const SourceInterpolator vert,
+	const metal::texture2d<half> texture
 ) {
 	return texture.sample(standardSampler, vert.textureCoordinates).r;
 }
@@ -42,8 +42,8 @@ template <> Luminance sample<InputEncoding::Luminance8>(SourceInterpolator, meta
 // output being selected according to its current phase.
 template <>
 Luminance sample<InputEncoding::PhaseLinkedLuminance8>(
-	const SourceInterpolator vert [[stage_in]],
-	const metal::texture2d<half> texture [[texture(0)]]
+	const SourceInterpolator vert,
+	const metal::texture2d<half> texture
 ) {
 	const int offset = int(vert.unitColourPhase * 4.0f) & 3;
 	const auto sample = texture.sample(standardSampler, vert.textureCoordinates);
@@ -55,8 +55,8 @@ template <> Luminance sample<InputEncoding::PhaseLinkedLuminance8>(SourceInterpo
 // phase offset of a perfect cosine curve within this sample.
 template <>
 LuminanceChrominance sample<InputEncoding::Luminance8Phase8>(
-	const SourceInterpolator vert [[stage_in]],
-	const metal::texture2d<half> texture [[texture(0)]]
+	const SourceInterpolator vert,
+	const metal::texture2d<half> texture
 ) {
 	const auto luminancePhase = texture.sample(standardSampler, vert.textureCoordinates).rg;
 	const half phaseOffset = 3.141592654 * 4.0 * luminancePhase.g;
