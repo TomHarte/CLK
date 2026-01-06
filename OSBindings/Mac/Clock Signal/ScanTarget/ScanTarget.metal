@@ -9,6 +9,7 @@
 #include <metal_stdlib>
 
 #include "interpolators.hpp"
+#include "input_encodings.hpp"
 #include "uniforms.hpp"
 
 using namespace metal;
@@ -36,33 +37,9 @@ constexpr sampler linearSampler(
 
 // MARK: - Input types.
 
-enum class InputEncoding {
-	Luminance1,
-	Luminance8,
-	PhaseLinkedLuminance8,
-
-	Luminance8Phase8,
-
-	Red8Green8Blue8,
-	Red4Green4Blue4,
-	Red2Green2Blue2,
-	Red1Green1Blue1,
-};
-constexpr bool is_ttl(const InputEncoding encoding) {
-	return encoding == InputEncoding::Luminance1 || encoding == InputEncoding::Red1Green1Blue1;
-}
-
-// Define the per-pixel type of input textures based on data format.
-template <InputEncoding> struct DataFormat { using type = half; };
-template<> struct DataFormat<InputEncoding::Luminance1> { using type = ushort; };
-template<> struct DataFormat<InputEncoding::Red4Green4Blue4> { using type = ushort; };
-template<> struct DataFormat<InputEncoding::Red2Green2Blue2> { using type = ushort; };
-template<> struct DataFormat<InputEncoding::Red1Green1Blue1> { using type = ushort; };
-template <InputEncoding encoding> using data_t = typename DataFormat<encoding>::type;
-
 // Internal type aliases, correlating to the input data and intermediate buffers.
 using Composite = half;					// i.e. a single sample of composite video.
-using LuminanceChrominance = half2;		// i.e. a single sample of s-video; .x = luminance; .y = chroma.
+//using LuminanceChrominance = half2;		// i.e. a single sample of s-video; .x = luminance; .y = chroma.
 
 using UnfilteredYUVAmplitude = half4;	// .x = pointwise luminance (colour subcarrier not yet removed);
 										// .yz = two chrominance channels (with noise at twice the subcarrier frequency);
@@ -90,8 +67,8 @@ constexpr UnfilteredYUVAmplitude composite(const half level, const half2 quadrat
 
 // MARK: - Prototypical sampling functions.
 
-template <InputEncoding encoding> RGB sample_rgb(SourceInterpolator, texture2d<data_t<encoding>>);
-template <InputEncoding encoding> half sample_composite(SourceInterpolator, texture2d<data_t<encoding>>);
+template <InputEncoding encoding> RGB sample_rgb(SourceInterpolator, texture2d<sample_t<encoding>>);
+template <InputEncoding encoding> half sample_composite(SourceInterpolator, texture2d<sample_t<encoding>>);
 
 // MARK: - Composite sampling.
 

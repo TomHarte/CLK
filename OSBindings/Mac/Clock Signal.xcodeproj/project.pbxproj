@@ -782,6 +782,7 @@
 		4BA3AF5F2EF98C110088C3BC /* ComputeKernels.metal in Sources */ = {isa = PBXBuildFile; fileRef = 4BA3AF5D2EF98C110088C3BC /* ComputeKernels.metal */; };
 		4BA3AF612EF98C530088C3BC /* uniforms.hpp in Resources */ = {isa = PBXBuildFile; fileRef = 4BA3AF602EF98C530088C3BC /* uniforms.hpp */; };
 		4BA3AF632F0D511B0088C3BC /* Vertices.metal in Sources */ = {isa = PBXBuildFile; fileRef = 4BA3AF622F0D511B0088C3BC /* Vertices.metal */; };
+		4BA3AF682F0D893C0088C3BC /* Samplers.metal in Sources */ = {isa = PBXBuildFile; fileRef = 4BA3AF672F0D893C0088C3BC /* Samplers.metal */; };
 		4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */; };
 		4BA6B6AE284EDAC100A3B7A8 /* 68000OldVsNew.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA6B6AD284EDAC000A3B7A8 /* 68000OldVsNew.mm */; };
 		4BA91E1D216D85BA00F79557 /* MasterSystemVDPTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA91E1C216D85BA00F79557 /* MasterSystemVDPTests.mm */; };
@@ -2003,6 +2004,8 @@
 		4BA3AF602EF98C530088C3BC /* uniforms.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = uniforms.hpp; sourceTree = "<group>"; };
 		4BA3AF622F0D511B0088C3BC /* Vertices.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Vertices.metal; sourceTree = "<group>"; };
 		4BA3AF652F0D514C0088C3BC /* interpolators.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = interpolators.hpp; sourceTree = "<group>"; };
+		4BA3AF662F0D88E80088C3BC /* input_encodings.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = input_encodings.hpp; sourceTree = "<group>"; };
+		4BA3AF672F0D893C0088C3BC /* Samplers.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Samplers.metal; sourceTree = "<group>"; };
 		4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+StdVector.h"; sourceTree = "<group>"; };
 		4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "NSData+StdVector.mm"; sourceTree = "<group>"; };
 		4BA6B6AD284EDAC000A3B7A8 /* 68000OldVsNew.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000OldVsNew.mm; sourceTree = "<group>"; };
@@ -3037,9 +3040,11 @@
 			children = (
 				4B228CD624D773CA0077EF25 /* CSScanTarget.h */,
 				4B4F2B7024DF99D4000DA6B0 /* CSScanTarget+CppScanTarget.h */,
-				4BA3AF602EF98C530088C3BC /* uniforms.hpp */,
+				4BA3AF662F0D88E80088C3BC /* input_encodings.hpp */,
 				4BA3AF652F0D514C0088C3BC /* interpolators.hpp */,
+				4BA3AF602EF98C530088C3BC /* uniforms.hpp */,
 				4BA3AF5D2EF98C110088C3BC /* ComputeKernels.metal */,
+				4BA3AF672F0D893C0088C3BC /* Samplers.metal */,
 				4B228CDA24DA41880077EF25 /* ScanTarget.metal */,
 				4BA3AF622F0D511B0088C3BC /* Vertices.metal */,
 				4B228CD424D773B30077EF25 /* CSScanTarget.mm */,
@@ -6635,6 +6640,7 @@
 				4B7F1897215486A200388727 /* StaticAnalyser.cpp in Sources */,
 				4B47F6C5241C87A100ED06F7 /* Struct.cpp in Sources */,
 				4B5FADBA1DE3151600AEC565 /* FileHolder.cpp in Sources */,
+				4BA3AF682F0D893C0088C3BC /* Samplers.metal in Sources */,
 				4B643F3A1D77AD1900D431D6 /* CSStaticAnalyser.mm in Sources */,
 				4B622AE5222E0AD5008B59F2 /* DisplayMetrics.cpp in Sources */,
 				4B6FD0362923B88F00EC4760 /* HDV.cpp in Sources */,
