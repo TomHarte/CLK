@@ -67,15 +67,15 @@ Composite sample_comp(
 	const SourceInterpolator vert,
 	half2 colourSubcarrier,
 	const texture2d<half> texture,
-	constant Uniforms &uniforms
+	const constant Uniforms &uniforms
 ) {
-	return sample_comp(vert, sample<encoding>(vert, colourSubcarrier, uniforms, texture));
+	return sample_comp(vert, colourSubcarrier, uniforms, sample<encoding>(vert, colourSubcarrier, uniforms, texture));
 }
 
 Composite sample_comp(
 	const SourceInterpolator vert,
 	half2,
-	constant Uniforms &,
+	const constant Uniforms &,
 	const Luminance underlying
 ) {
 	return underlying;
@@ -84,7 +84,7 @@ Composite sample_comp(
 Composite sample_comp(
 	const SourceInterpolator vert,
 	half2,
-	constant Uniforms &,
+	const constant Uniforms &,
 	const LuminanceChrominance underlying
 ) {
 	return mix(underlying.r, underlying.g, vert.colourAmplitude);
@@ -93,7 +93,7 @@ Composite sample_comp(
 Composite sample_comp(
 	const SourceInterpolator vert,
 	half2 colourSubcarrier,
-	constant Uniforms &uniforms,
+	const constant Uniforms &uniforms,
 	const RGB underlying
 ) {
 	const auto colour = uniforms.fromRGB * underlying;
@@ -101,6 +101,44 @@ Composite sample_comp(
 }
 
 // MARK: - S-Video samplers.
+
+template <InputEncoding encoding>
+LuminanceChrominance sample_svid(
+	const SourceInterpolator vert,
+	half2 colourSubcarrier,
+	const texture2d<half> texture,
+	const constant Uniforms &uniforms
+) {
+	return sample_svid(vert, colourSubcarrier, uniforms, sample<encoding>(vert, colourSubcarrier, uniforms, texture));
+}
+
+LuminanceChrominance sample_svid(
+	const SourceInterpolator vert,
+	half2 colourSubcarrier,
+	constant Uniforms &uniforms,
+	const Luminance underlying
+) {
+	return LuminanceChrominance(underlying, 0.0f);
+}
+
+LuminanceChrominance sample_svid(
+	const SourceInterpolator vert,
+	half2,
+	const constant Uniforms &,
+	const LuminanceChrominance underlying
+) {
+	return underlying;
+}
+
+LuminanceChrominance sample_svid(
+	const SourceInterpolator vert,
+	half2 colourSubcarrier,
+	constant Uniforms &uniforms,
+	const RGB underlying
+) {
+	const auto colour = uniforms.fromRGB * underlying;
+	return LuminanceChrominance(colour.r, dot(colour.gb, colourSubcarrier));
+}
 
 // MARK: - RGB samplers.
 
