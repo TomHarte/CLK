@@ -11,6 +11,8 @@
 #include "uniforms.hpp"
 
 #include <metal_stdlib>
+#include <metal_type_traits>
+
 using namespace metal;
 
 namespace {
@@ -45,13 +47,90 @@ constexpr half2 quadrature(const float phase) {
 	return half2(cos(phase), sin(phase));
 }
 
-constexpr UnfilteredYUVAmplitude composite(const half level, const half2 quadrature, const half amplitude) {
+constexpr UnfilteredYUVAmplitude composite(
+	const half level,
+	const half2 quadrature,
+	const half amplitude
+) {
 	return half4(
 		level,
 		half2(0.5f) + quadrature*half(0.5f),
 		amplitude
 	);
 }
+}
+
+// MARK: - Composite samplers.
+
+template <InputEncoding encoding>
+Composite sample_comp(
+	const SourceInterpolator vert,
+	half2 colourSubcarrier,
+	const texture2d<half> texture,
+	constant Uniforms &uniforms
+) {
+	return sample_comp(vert, sample<encoding>(vert, colourSubcarrier, uniforms, texture));
+}
+
+Composite sample_comp(
+	const SourceInterpolator vert,
+	half2,
+	constant Uniforms &,
+	const Luminance underlying
+) {
+	return underlying;
+}
+
+Composite sample_comp(
+	const SourceInterpolator vert,
+	half2,
+	constant Uniforms &,
+	const LuminanceChrominance underlying
+) {
+	return mix(underlying.r, underlying.g, vert.colourAmplitude);
+}
+
+Composite sample_comp(
+	const SourceInterpolator vert,
+	half2 colourSubcarrier,
+	constant Uniforms &uniforms,
+	const RGB underlying
+) {
+	const auto colour = uniforms.fromRGB * underlying;
+	return mix(colour.r, dot(colour.gb, colourSubcarrier), vert.colourAmplitude);
+}
+
+// MARK: - S-Video samplers.
+
+// MARK: - RGB samplers.
+
+template <InputEncoding encoding>
+RGB sample_rgb2(
+	const SourceInterpolator vert,
+	const texture2d<half> texture
+) {
+	return sample_rgb2(vert, sample<encoding>(vert, texture));
+}
+
+RGB sample_rgb2(
+	const SourceInterpolator vert,
+	const Luminance underlying
+) {
+	return RGB(underlying);
+}
+
+RGB sample_rgb2(
+	const SourceInterpolator vert,
+	const LuminanceChrominance underlying
+) {
+	return RGB(underlying.r);
+}
+
+RGB sample_rgb2(
+	const SourceInterpolator vert,
+	const RGB underlying
+) {
+	return underlying;
 }
 
 // The luminance formats can be sampled either in their natural format, or to the intermediate
