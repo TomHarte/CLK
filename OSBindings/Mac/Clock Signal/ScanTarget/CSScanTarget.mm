@@ -703,51 +703,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			_pipeline = isSVideoOutput ? Pipeline::SVideo : Pipeline::CompositeColour;
 		}
 
-		struct FragmentSamplerDictionary {
-			/// Fragment shader that outputs to the composition buffer for composite processing.
-			NSString *const compositionComposite;
-			/// Fragment shader that outputs to the composition buffer for S-Video processing.
-			NSString *const compositionSVideo;
-
-			/// Fragment shader that outputs directly as monochrome composite.
-			NSString *const directComposite;
-			/// Fragment shader that outputs directly as monochrome composite, with gamma correction.
-			NSString *const directCompositeWithGamma;
-			/// Fragment shader that outputs directly as RGB.
-			NSString *const directRGB;
-			/// Fragment shader that outputs directly as RGB, with gamma correction.
-			NSString *const directRGBWithGamma;
-		};
-		const FragmentSamplerDictionary samplerDictionary[8] = {
-			// Composite formats.
-			{@"compositeSampleLuminance1",				nil,	@"sampleLuminance1",				@"sampleLuminance1",						@"sampleLuminance1",				@"sampleLuminance1"},
-			{@"compositeSampleLuminance8",				nil,	@"sampleLuminance8",				@"sampleLuminance8WithGamma",				@"sampleLuminance8",				@"sampleLuminance8WithGamma"},
-			{@"compositeSamplePhaseLinkedLuminance8",	nil,	@"samplePhaseLinkedLuminance8",		@"samplePhaseLinkedLuminance8WithGamma",	@"samplePhaseLinkedLuminance8",		@"samplePhaseLinkedLuminance8WithGamma"},
-
-			// S-Video formats.
-			{@"compositeSampleLuminance8Phase8", @"sampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8WithGamma", @"directCompositeSampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8WithGamma"},
-
-			// RGB formats.
-			{@"compositeSampleRed1Green1Blue1", @"svideoSampleRed1Green1Blue1", @"directCompositeSampleRed1Green1Blue1", @"directCompositeSampleRed1Green1Blue1WithGamma", @"sampleRed1Green1Blue1", @"sampleRed1Green1Blue1"},
-			{@"compositeSampleRed2Green2Blue2", @"svideoSampleRed2Green2Blue2", @"directCompositeSampleRed2Green2Blue2", @"directCompositeSampleRed2Green2Blue2WithGamma", @"sampleRed2Green2Blue2", @"sampleRed2Green2Blue2WithGamma"},
-			{@"compositeSampleRed4Green4Blue4", @"svideoSampleRed4Green4Blue4", @"directCompositeSampleRed4Green4Blue4", @"directCompositeSampleRed4Green4Blue4WithGamma", @"sampleRed4Green4Blue4", @"sampleRed4Green4Blue4WithGamma"},
-			{@"compositeSampleRed8Green8Blue8", @"svideoSampleRed8Green8Blue8", @"directCompositeSampleRed8Green8Blue8", @"directCompositeSampleRed8Green8Blue8WithGamma", @"sampleRed8Green8Blue8", @"sampleRed8Green8Blue8WithGamma"},
-		};
-
-	#ifndef NDEBUG
-		// Do a quick check that all the shaders named above are defined in the Metal code. I don't think this is possible at compile time.
-		for(int c = 0; c < 8; ++c) {
-	#define Test(x)	if(samplerDictionary[c].x)	assert([library newFunctionWithName:samplerDictionary[c].x]);
-			Test(compositionComposite);
-			Test(compositionSVideo);
-			Test(directComposite);
-			Test(directCompositeWithGamma);
-			Test(directRGB);
-			Test(directRGBWithGamma);
-	#undef Test
-		}
-	#endif
-
 		uniforms()->cyclesMultiplier = 1.0f;
 		if(_pipeline != Pipeline::DirectToDisplay) {
 			// Pick a suitable cycle multiplier.
@@ -762,29 +717,37 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			}
 
 			// Create suitable filters.
-			_lineBufferPixelsPerLine = NSUInteger(modals.cycles_per_line) * NSUInteger(uniforms()->cyclesMultiplier);
-			const float colourCyclesPerLine = float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
+			_lineBufferPixelsPerLine =
+				NSUInteger(modals.cycles_per_line) * NSUInteger(uniforms()->cyclesMultiplier);
+			const float colourCyclesPerLine =
+				float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 
 			// Compute radians per pixel.
 			const float radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / float(_lineBufferPixelsPerLine);
 
 			// Generate the chrominance filter.
 			{
-				simd::float3 firCoefficients[8];
-				const auto chromaCoefficients = boxCoefficients(radiansPerPixel, 3.141592654f * 2.0f);
+				simd::float3 firCoefficients[8]{};
+
+				// Initial seed: a box filter for the chrominance parts and no filter at all for luminance.
+				const auto chromaCoefficients = boxCoefficients(radiansPerPixel, 3.141592654f);
 				_chromaKernelSize = 15;
 				for(size_t c = 0; c < 8; ++c) {
 					// Bit of a fix here: if the pipeline is for composite then assume that chroma separation wasn't
 					// perfect and deemphasise the colour.
-					firCoefficients[c].y = firCoefficients[c].z = (isSVideoOutput ? 2.0f : 1.25f) * chromaCoefficients[c];
-					firCoefficients[c].x = 0.0f;
+					firCoefficients[c].y = firCoefficients[c].z =
+						chromaCoefficients[c] * (isSVideoOutput ? 2.0f : 1.25f);
 					if(fabsf(chromaCoefficients[c]) < 0.01f) {
 						_chromaKernelSize -= 2;
 					}
 				}
 				firCoefficients[7].x = 1.0f;
 
-				// Luminance will be very soft as a result of the separation phase; apply a sharpen filter to try to undo that.
+//				const SignalProcessing::FIRFilter sharpenFilter(15, 1368, 60.0f, 227.5f);
+
+
+				// Luminance will be very soft as a result of the separation phase;
+				// apply a sharpen filter to try to undo that.
 				//
 				// This is applied separately in order to partition three parts of the signal rather than two:
 				//
@@ -793,17 +756,19 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				//		2a) the chrominance; and
 				//		2b) some noise.
 				//
-				// There are real numerical hazards here given the low number of taps I am permitting to be used, so the sharpen
-				// filter below is just one that I found worked well. Since all numbers are fixed, the actual cutoff frequency is
-				// going to be a function of the input clock, which is a bit phoney but the best way to stay safe within the
-				// PCM sampling limits.
+				// There are real numerical hazards here given the low number of taps I am permitting to be used,
+				// so the sharpen filter below is just one that I found worked well. Since all numbers are fixed, the
+				// actual cutoff frequency is going to be a function of the input clock, which is a bit phoney but the
+				// best way to stay safe within the PCM sampling limits.
 				if(!isSVideoOutput) {
-					SignalProcessing::FIRFilter sharpenFilter(15, 1368, 60.0f, 227.5f);
+					const SignalProcessing::FIRFilter sharpenFilter(15, 1368, 60.0f, 227.5f);
 					const auto sharpen = sharpenFilter.get_coefficients();
 					size_t sharpenFilterSize = 15;
 					bool isStart = true;
 					for(size_t c = 0; c < 8; ++c) {
 						firCoefficients[c].x = sharpen[c];
+//						firCoefficients[c].y *= sharpen[c];
+//						firCoefficients[c].z *= sharpen[c];
 						if(fabsf(sharpen[c]) > 0.01f) isStart = false;
 						if(isStart) sharpenFilterSize -= 2;
 					}
@@ -833,12 +798,18 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Update intermediate storage.
 		[self updateModalBuffers];
 
+		const auto fragment_function = [&](NSString *const prefix) {
+			NSString *const functionName = [prefix stringByAppendingFormat:@"%s", name(modals.input_data_type)];
+			id <MTLFunction> function = [library newFunctionWithName:functionName];
+			assert(function);
+			return function;
+		};
+
 		if(_pipeline != Pipeline::DirectToDisplay) {
 			// Create the composition render pass.
 			pipelineDescriptor.colorAttachments[0].pixelFormat = _compositionTexture.pixelFormat;
 			pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToComposition"];
-			pipelineDescriptor.fragmentFunction =
-				[library newFunctionWithName:isSVideoOutput ? samplerDictionary[int(modals.input_data_type)].compositionSVideo : samplerDictionary[int(modals.input_data_type)].compositionComposite];
+			pipelineDescriptor.fragmentFunction = fragment_function(isSVideoOutput ? @"internalSVideo" : @"internalComposite");
 
 			_composePipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 
@@ -857,14 +828,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"interpolateFragment"];
 		} else {
 			const bool isRGBOutput = modals.display_type == Outputs::Display::DisplayType::RGB;
-
-			NSString *shaderName;
-			if(isRGBOutput) {
-				shaderName = [self shouldApplyGamma] ? samplerDictionary[int(modals.input_data_type)].directRGBWithGamma : samplerDictionary[int(modals.input_data_type)].directRGB;
-			} else {
-				shaderName = [self shouldApplyGamma] ? samplerDictionary[int(modals.input_data_type)].directCompositeWithGamma : samplerDictionary[int(modals.input_data_type)].directComposite;
-			}
-			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:shaderName];
+			pipelineDescriptor.fragmentFunction = fragment_function(
+				[isRGBOutput ? @"outputRGB" : @"outputComposite" stringByAppendingString:self.shouldApplyGamma ? @"WithGamma" : @""]
+			);
 		}
 
 		// Enable blending.

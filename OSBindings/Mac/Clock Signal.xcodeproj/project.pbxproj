@@ -295,7 +295,6 @@
 		4B2130E3273A7A0A008A77B4 /* Audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2130E0273A7A0A008A77B4 /* Audio.cpp */; };
 		4B228CD524D773B40077EF25 /* CSScanTarget.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B228CD424D773B30077EF25 /* CSScanTarget.mm */; };
 		4B228CD924DA12C60077EF25 /* CSScanTargetView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B228CD824DA12C60077EF25 /* CSScanTargetView.m */; };
-		4B228CDB24DA41890077EF25 /* ScanTarget.metal in Sources */ = {isa = PBXBuildFile; fileRef = 4B228CDA24DA41880077EF25 /* ScanTarget.metal */; };
 		4B2530F4244E6774007980BF /* fm.json in Resources */ = {isa = PBXBuildFile; fileRef = 4B2530F3244E6773007980BF /* fm.json */; };
 		4B25B5F925BD083C00362C84 /* DiskIIDrive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B80CD6D2568A82600176FCC /* DiskIIDrive.cpp */; };
 		4B2A1CDC2BA775C5004496CE /* I2C.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A1CD92BA775C5004496CE /* I2C.cpp */; };
@@ -778,6 +777,11 @@
 		4B9F11CA2272433900701480 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
 		4B9F11CC22729B3600701480 /* OPCLOGR2.BIN in Resources */ = {isa = PBXBuildFile; fileRef = 4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */; };
 		4BA0F68E1EEA0E8400E9489E /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */; };
+		4BA3AF742F0EC4AD0088C3BC /* CopiesAndFills.metal in Sources */ = {isa = PBXBuildFile; fileRef = 4BA3AF6C2F0EC4AD0088C3BC /* CopiesAndFills.metal */; };
+		4BA3AF752F0EC4AD0088C3BC /* Fragments.metal in Sources */ = {isa = PBXBuildFile; fileRef = 4BA3AF6D2F0EC4AD0088C3BC /* Fragments.metal */; };
+		4BA3AF762F0EC4AD0088C3BC /* Vertices.metal in Sources */ = {isa = PBXBuildFile; fileRef = 4BA3AF722F0EC4AD0088C3BC /* Vertices.metal */; };
+		4BA3AF772F0EC4AD0088C3BC /* Samplers.metal in Sources */ = {isa = PBXBuildFile; fileRef = 4BA3AF702F0EC4AD0088C3BC /* Samplers.metal */; };
+		4BA3AF782F0EC4AD0088C3BC /* ComputeKernels.metal in Sources */ = {isa = PBXBuildFile; fileRef = 4BA3AF6B2F0EC4AD0088C3BC /* ComputeKernels.metal */; };
 		4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */; };
 		4BA6B6AE284EDAC100A3B7A8 /* 68000OldVsNew.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA6B6AD284EDAC000A3B7A8 /* 68000OldVsNew.mm */; };
 		4BA91E1D216D85BA00F79557 /* MasterSystemVDPTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA91E1C216D85BA00F79557 /* MasterSystemVDPTests.mm */; };
@@ -1496,7 +1500,6 @@
 		4B228CD624D773CA0077EF25 /* CSScanTarget.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSScanTarget.h; sourceTree = "<group>"; };
 		4B228CD724DA12C50077EF25 /* CSScanTargetView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSScanTargetView.h; sourceTree = "<group>"; };
 		4B228CD824DA12C60077EF25 /* CSScanTargetView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSScanTargetView.m; sourceTree = "<group>"; };
-		4B228CDA24DA41880077EF25 /* ScanTarget.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = ScanTarget.metal; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.metal; };
 		4B24095A1C45DF85004DA684 /* Stepper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Stepper.hpp; sourceTree = "<group>"; };
 		4B2530F3244E6773007980BF /* fm.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = fm.json; sourceTree = "<group>"; };
 		4B25BC1E2DDD64AA002044CA /* TaskStateSegment.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TaskStateSegment.hpp; sourceTree = "<group>"; };
@@ -1995,6 +1998,14 @@
 		4BA141C12073100800A31EC9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4BA3AE44283317CB00328FED /* RegisterSet.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RegisterSet.hpp; sourceTree = "<group>"; };
 		4BA3AF5C2EF252320088C3BC /* API.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = API.hpp; sourceTree = "<group>"; };
+		4BA3AF6B2F0EC4AD0088C3BC /* ComputeKernels.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = ComputeKernels.metal; sourceTree = "<group>"; };
+		4BA3AF6C2F0EC4AD0088C3BC /* CopiesAndFills.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = CopiesAndFills.metal; sourceTree = "<group>"; };
+		4BA3AF6D2F0EC4AD0088C3BC /* Fragments.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Fragments.metal; sourceTree = "<group>"; };
+		4BA3AF6E2F0EC4AD0088C3BC /* input_encodings.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = input_encodings.hpp; sourceTree = "<group>"; };
+		4BA3AF6F2F0EC4AD0088C3BC /* interpolators.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = interpolators.hpp; sourceTree = "<group>"; };
+		4BA3AF702F0EC4AD0088C3BC /* Samplers.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Samplers.metal; sourceTree = "<group>"; };
+		4BA3AF712F0EC4AD0088C3BC /* uniforms.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = uniforms.hpp; sourceTree = "<group>"; };
+		4BA3AF722F0EC4AD0088C3BC /* Vertices.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Vertices.metal; sourceTree = "<group>"; };
 		4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+StdVector.h"; sourceTree = "<group>"; };
 		4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "NSData+StdVector.mm"; sourceTree = "<group>"; };
 		4BA6B6AD284EDAC000A3B7A8 /* 68000OldVsNew.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000OldVsNew.mm; sourceTree = "<group>"; };
@@ -3027,10 +3038,10 @@
 		4B228CD324D773B30077EF25 /* ScanTarget */ = {
 			isa = PBXGroup;
 			children = (
-				4B228CDA24DA41880077EF25 /* ScanTarget.metal */,
-				4B228CD424D773B30077EF25 /* CSScanTarget.mm */,
+				4BA3AF732F0EC4AD0088C3BC /* Shaders */,
 				4B228CD624D773CA0077EF25 /* CSScanTarget.h */,
 				4B4F2B7024DF99D4000DA6B0 /* CSScanTarget+CppScanTarget.h */,
+				4B228CD424D773B30077EF25 /* CSScanTarget.mm */,
 			);
 			path = ScanTarget;
 			sourceTree = "<group>";
@@ -4396,6 +4407,21 @@
 				4B9F11C82272375400701480 /* qltrace.txt.gz */,
 			);
 			path = "QL Startup";
+			sourceTree = "<group>";
+		};
+		4BA3AF732F0EC4AD0088C3BC /* Shaders */ = {
+			isa = PBXGroup;
+			children = (
+				4BA3AF6E2F0EC4AD0088C3BC /* input_encodings.hpp */,
+				4BA3AF6F2F0EC4AD0088C3BC /* interpolators.hpp */,
+				4BA3AF712F0EC4AD0088C3BC /* uniforms.hpp */,
+				4BA3AF6B2F0EC4AD0088C3BC /* ComputeKernels.metal */,
+				4BA3AF6C2F0EC4AD0088C3BC /* CopiesAndFills.metal */,
+				4BA3AF6D2F0EC4AD0088C3BC /* Fragments.metal */,
+				4BA3AF702F0EC4AD0088C3BC /* Samplers.metal */,
+				4BA3AF722F0EC4AD0088C3BC /* Vertices.metal */,
+			);
+			path = Shaders;
 			sourceTree = "<group>";
 		};
 		4BAB62AA1D3272D200DF5BA0 /* Disk */ = {
@@ -6602,7 +6628,6 @@
 				4B8334841F5DA0360097E338 /* Z80Storage.cpp in Sources */,
 				4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */,
 				4BDA00E022E644AF00AC3CD0 /* CSROMReceiverView.m in Sources */,
-				4B228CDB24DA41890077EF25 /* ScanTarget.metal in Sources */,
 				4B1EC716255398B000A1F44B /* Sound.cpp in Sources */,
 				4B228CD524D773B40077EF25 /* CSScanTarget.mm in Sources */,
 				4BCD634922D6756400F567F1 /* MacintoshDoubleDensityDrive.cpp in Sources */,
@@ -6669,6 +6694,11 @@
 				4BCE0051227CE8CA000CA200 /* Video.cpp in Sources */,
 				4B894536201967B4007DE474 /* Z80.cpp in Sources */,
 				4BCA6CC81D9DD9F000C2D7B2 /* CommodoreROM.cpp in Sources */,
+				4BA3AF742F0EC4AD0088C3BC /* CopiesAndFills.metal in Sources */,
+				4BA3AF752F0EC4AD0088C3BC /* Fragments.metal in Sources */,
+				4BA3AF762F0EC4AD0088C3BC /* Vertices.metal in Sources */,
+				4BA3AF772F0EC4AD0088C3BC /* Samplers.metal in Sources */,
+				4BA3AF782F0EC4AD0088C3BC /* ComputeKernels.metal in Sources */,
 				4BC1317A2346DF2B00E4FF3D /* MSA.cpp in Sources */,
 				4BEBFB4D2002C4BF000708CC /* FAT12.cpp in Sources */,
 				4B9EC0E226AA27BA0060A31F /* Blitter.cpp in Sources */,
