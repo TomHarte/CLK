@@ -454,15 +454,15 @@ half4 internal_composite(
 	return half4(half3(sample_comp<encoding>(vert, quadrature(vert.colourPhase), texture, uniforms)), 1.0f);
 }
 
-template <InputEncoding encoding>
+template <InputEncoding encoding, bool with_gamma>
 half4 output_composite(
 	const SourceInterpolator vert,
 	const texture_t<encoding> texture,
 	const constant Uniforms &uniforms
 ) {
 	const half level = sample_comp<encoding>(vert, quadrature(vert.colourPhase), texture, uniforms);
-	if(is_ttl(encoding)) {
-		return level;
+	if(is_ttl(encoding) || !with_gamma) {
+		return half4(half3(level), uniforms.outputAlpha);
 	}
 	return half4(half3(pow(level, uniforms.outputGamma)), uniforms.outputAlpha);
 }
@@ -473,7 +473,15 @@ half4 output_composite(
 		texture_t<InputEncoding::name> texture [[texture(0)]],\
 		const constant Uniforms &uniforms [[buffer(0)]]\
 	) {	\
-		return output_composite<InputEncoding::name>(vert, texture, uniforms);	\
+		return output_composite<InputEncoding::name, false>(vert, texture, uniforms);	\
+	}	\
+	\
+	fragment half4 outputCompositeWithGamma##name(\
+		SourceInterpolator vert [[stage_in]],\
+		texture_t<InputEncoding::name> texture [[texture(0)]],\
+		const constant Uniforms &uniforms [[buffer(0)]]\
+	) {	\
+		return output_composite<InputEncoding::name, true>(vert, texture, uniforms);	\
 	}	\
 	\
 	fragment half4 internalComposite##name(\
