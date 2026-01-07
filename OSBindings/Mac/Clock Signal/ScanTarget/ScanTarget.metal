@@ -451,7 +451,11 @@ half4 internal_composite(
 	const texture_t<encoding> texture,
 	const constant Uniforms &uniforms
 ) {
-	return half4(half3(sample_comp<encoding>(vert, quadrature(vert.colourPhase), texture, uniforms)), 1.0f);
+	return half4(
+		sample_comp<encoding>(vert, quadrature(vert.colourPhase), texture, uniforms),
+		quadrature(vert.colourPhase),
+		vert.colourAmplitude
+	);
 }
 
 template <InputEncoding encoding, bool with_gamma>
@@ -490,7 +494,7 @@ half4 output_composite(
 		const constant Uniforms &uniforms [[buffer(0)]]\
 	) {	\
 		return internal_composite<InputEncoding::name>(vert, texture, uniforms);	\
-	}	\
+	}
 
 
 //	fragment half4 internalComposite##name(\
