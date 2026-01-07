@@ -128,7 +128,7 @@ LuminanceChrominance sample_svid(
 template <InputEncoding encoding>
 RGB sample_rgb2(
 	const SourceInterpolator vert,
-	const texture2d<half> texture
+	const texture_t<encoding> texture
 ) {
 	return sample_rgb2(vert, sample<encoding>(vert, texture));
 }
@@ -470,6 +470,19 @@ half4 internal_svideo(
 	);
 }
 
+template <InputEncoding encoding, bool with_gamma>
+half4 output_rgb(
+	const SourceInterpolator vert,
+	const texture_t<encoding> texture,
+	const constant Uniforms &uniforms
+) {
+	const auto level = sample_rgb2<encoding>(vert, texture);
+	if(is_ttl(encoding) || !with_gamma) {
+		return half4(level, uniforms.outputAlpha);
+	}
+	return half4(pow(level, uniforms.outputGamma), uniforms.outputAlpha);
+}
+
 #define DeclareShaders(name) \
 	fragment half4 outputComposite##name(\
 		SourceInterpolator vert [[stage_in]],\
@@ -494,6 +507,7 @@ half4 internal_svideo(
 	) {	\
 		return internal_composite<InputEncoding::name>(vert, texture, uniforms);	\
 	} \
+	\
 	fragment half4 internalSVideo##name(\
 		SourceInterpolator vert [[stage_in]],\
 		texture_t<InputEncoding::name> texture [[texture(0)]],\
@@ -501,47 +515,22 @@ half4 internal_svideo(
 	) {	\
 		return internal_svideo<InputEncoding::name>(vert, texture, uniforms);	\
 	} \
-
-
-//	fragment half4 internalComposite##name(\
-		SourceInterpolator vert [[stage_in]],\
-		texture2d<data_t<InputEncoding::name>> texture [[texture(0)]],\
-		constant Uniforms &uniforms [[buffer(0)]]\
-	) {	\
-		const half level = sample_composite<InputEncoding::name>(vert, texture, uniforms, quadrature(vert.colourPhase)); \
-		return half4(half3(level), uniforms.outputAlpha);	\
-	} \
-\
-	fragment half4 outputComposite##name(\
-		SourceInterpolator vert [[stage_in]],\
-		texture2d<data_t<InputEncoding::name>> texture [[texture(0)]],\
-		constant Uniforms &uniforms [[buffer(0)]]\
-	) {	\
-		const half level = sample_composite<InputEncoding::name>(vert, texture, uniforms, quadrature(vert.colourPhase)); \
-		return half4(half3(pow(level, uniforms.outputGamma)), uniforms.outputAlpha);	\
-	} \
-\
-
-//	fragment half4 internalRGB##name(\
-		SourceInterpolator vert [[stage_in]],\
-		texture2d<data_t<InputEncoding::name>> texture [[texture(0)]],\
-		constant Uniforms &uniforms [[buffer(0)]]\
-	) {	\
-		return half4(sample_rgb<InputEncoding::name>(vert, texture) * uniforms.outputMultiplier, uniforms.outputAlpha);	\
-	} \
-\
+	\
 	fragment half4 outputRGB##name(\
 		SourceInterpolator vert [[stage_in]],\
-		texture2d<data_t<InputEncoding::name>> texture [[texture(0)]],\
-		constant Uniforms &uniforms [[buffer(0)]]\
+		texture_t<InputEncoding::name> texture [[texture(0)]],\
+		const constant Uniforms &uniforms [[buffer(0)]]\
 	) {	\
-		auto sample = sample_rgb<InputEncoding::name>(vert, texture) * uniforms.outputMultiplier; \
-		if(!is_ttl(InputEncoding::name)) { \
-			sample = pow(sample, uniforms.outputGamma);	\
-		} \
-		return half4(sample, uniforms.outputAlpha); \
+		return output_rgb<InputEncoding::name, false>(vert, texture, uniforms);	\
+	}	\
+	\
+	fragment half4 outputRGBWithGamma##name(\
+		SourceInterpolator vert [[stage_in]],\
+		texture_t<InputEncoding::name> texture [[texture(0)]],\
+		const constant Uniforms &uniforms [[buffer(0)]]\
+	) {	\
+		return output_rgb<InputEncoding::name, true>(vert, texture, uniforms);	\
 	}
-
 
 DeclareShaders(Luminance1);
 DeclareShaders(Luminance8);
