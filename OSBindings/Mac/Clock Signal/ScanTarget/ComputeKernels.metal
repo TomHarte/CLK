@@ -6,9 +6,9 @@
 //  Copyright © 2025 Thomas Harte. All rights reserved.
 //
 
-#include <metal_stdlib>
-
 #include "uniforms.hpp"
+
+#include <metal_stdlib>
 
 // MARK: - Filters for the chrominance portion of an UnfilteredYUVAmplitude texture, to remove high-frequency noise.
 
