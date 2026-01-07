@@ -11,6 +11,12 @@
 #include "interpolators.hpp"
 #include <metal_stdlib>
 
+// Note to future self:
+//
+// To add a new InputEncoding, add it to the enum and #define below, set the semantic and input
+// data formats below, and then implement the relevant sampler over in Samplers.metal. That should be it.
+// Appropriate fragment logic will be synthesised from the declared semantic and data formats.
+
 enum class InputEncoding {
 	Luminance1,
 	Luminance8,
