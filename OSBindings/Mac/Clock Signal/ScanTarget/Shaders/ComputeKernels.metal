@@ -12,14 +12,16 @@
 
 // MARK: - Filters for the chrominance portion of an UnfilteredYUVAmplitude texture, to remove high-frequency noise.
 
-/// Given input pixels of the form (luminance, 0.5 + 0.5*chrominance*cos(phase), 0.5 + 0.5*chrominance*sin(phase)), applies a lowpass
-/// filter to the two chrominance parts, then uses the toRGB matrix to convert to RGB and stores.
+/// Applies a filter and a colour space conversion, and optionally gamma.
+///
+/// In practice, this takes pixels in UnfilteredYUVAmplitude form, lowpasses the chrominance parts and converts to RGB,
+/// though it's dependent on an appropriate filter being generated externally to do that.
 template <bool applyGamma> void filterChromaKernel(
-	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
-	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
-	const uint2 gid [[thread_position_in_grid]],
-	const constant Uniforms &uniforms [[buffer(0)]],
-	const constant int &offset [[buffer(1)]]
+	const metal::texture2d<half, metal::access::read> inTexture,
+	const metal::texture2d<half, metal::access::write> outTexture,
+	const uint2 gid,
+	const constant Uniforms &uniforms,
+	const constant int &offset
 ) {
 	constexpr half4 moveToZero(0.0f, 0.5f, 0.5f, 0.0f);
 	const half4 rawSamples[] = {
