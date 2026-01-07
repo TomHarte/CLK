@@ -24,6 +24,16 @@ enum class InputEncoding {
 	Red1Green1Blue1,
 };
 
+#define AllEncodings(x)			\
+	x(Luminance1);				\
+	x(Luminance8);				\
+	x(PhaseLinkedLuminance8);	\
+	x(Luminance8Phase8);		\
+	x(Red8Green8Blue8);			\
+	x(Red4Green4Blue4);			\
+	x(Red2Green2Blue2);			\
+	x(Red1Green1Blue1);
+
 /// @returns`true` if `encoding` produces only binary values.
 /// This is used elsewhere potentially to avoid gamma correction — both 0 and 1 map to 0 and 1 regardless of gamma curve.
 constexpr bool is_ttl(const InputEncoding encoding) {
