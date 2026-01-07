@@ -15,23 +15,6 @@
 
 using namespace metal;
 
-namespace {
-
-// The emulator never attempts to tile data, so the clamping method in use by these samplers is arbitrary; coordinates
-// will never be clamped.
-//
-// That said, address::clamp_to_edge offers compatibility all the way back to MTLFeatureSet_iOS_GPUFamily1_v1.
-
-//constexpr sampler standardSampler(
-//	coord::pixel,
-//	address::clamp_to_edge,
-//	filter::nearest
-//);
-
-}
-
-// MARK: - Input types.
-
 // Internal type aliases, correlating to the input data and intermediate buffers.
 using Composite = half;					// i.e. a single sample of composite video.
 //using LuminanceChrominance = half2;		// i.e. a single sample of s-video; .x = luminance; .y = chroma.
@@ -106,10 +89,10 @@ template <InputEncoding encoding>
 LuminanceChrominance sample_svid(
 	const SourceInterpolator vert,
 	half2 colourSubcarrier,
-	const texture2d<half> texture,
+	const texture_t<encoding> texture,
 	const constant Uniforms &uniforms
 ) {
-	return sample_svid(vert, colourSubcarrier, uniforms, sample<encoding>(vert, colourSubcarrier, uniforms, texture));
+	return sample_svid(vert, colourSubcarrier, uniforms, sample<encoding>(vert, texture));
 }
 
 LuminanceChrominance sample_svid(
@@ -471,6 +454,22 @@ half4 output_composite(
 	return half4(half3(pow(level, uniforms.outputGamma)), uniforms.outputAlpha);
 }
 
+template <InputEncoding encoding>
+half4 internal_svideo(
+	const SourceInterpolator vert,
+	const texture_t<encoding> texture,
+	const constant Uniforms &uniforms
+) {
+	const auto quad = quadrature(vert.colourPhase);
+	const half2 luminanceChroma = sample_svid<encoding>(vert, quad, texture, uniforms);
+	const half2 qam = quad * half(0.5f);
+	return half4(
+		luminanceChroma.r,
+		half2(0.5f) + luminanceChroma.g * qam,
+		half(1.0f)
+	);
+}
+
 #define DeclareShaders(name) \
 	fragment half4 outputComposite##name(\
 		SourceInterpolator vert [[stage_in]],\
@@ -494,7 +493,14 @@ half4 output_composite(
 		const constant Uniforms &uniforms [[buffer(0)]]\
 	) {	\
 		return internal_composite<InputEncoding::name>(vert, texture, uniforms);	\
-	}
+	} \
+	fragment half4 internalSVideo##name(\
+		SourceInterpolator vert [[stage_in]],\
+		texture_t<InputEncoding::name> texture [[texture(0)]],\
+		const constant Uniforms &uniforms [[buffer(0)]]\
+	) {	\
+		return internal_svideo<InputEncoding::name>(vert, texture, uniforms);	\
+	} \
 
 
 //	fragment half4 internalComposite##name(\
