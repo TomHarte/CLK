@@ -717,29 +717,37 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			}
 
 			// Create suitable filters.
-			_lineBufferPixelsPerLine = NSUInteger(modals.cycles_per_line) * NSUInteger(uniforms()->cyclesMultiplier);
-			const float colourCyclesPerLine = float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
+			_lineBufferPixelsPerLine =
+				NSUInteger(modals.cycles_per_line) * NSUInteger(uniforms()->cyclesMultiplier);
+			const float colourCyclesPerLine =
+				float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 
 			// Compute radians per pixel.
 			const float radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / float(_lineBufferPixelsPerLine);
 
 			// Generate the chrominance filter.
 			{
-				simd::float3 firCoefficients[8];
-				const auto chromaCoefficients = boxCoefficients(radiansPerPixel, 3.141592654f * 2.0f);
+				simd::float3 firCoefficients[8]{};
+
+				// Initial seed: a box filter for the chrominance parts and no filter at all for luminance.
+				const auto chromaCoefficients = boxCoefficients(radiansPerPixel, 3.141592654f);
 				_chromaKernelSize = 15;
 				for(size_t c = 0; c < 8; ++c) {
 					// Bit of a fix here: if the pipeline is for composite then assume that chroma separation wasn't
 					// perfect and deemphasise the colour.
-					firCoefficients[c].y = firCoefficients[c].z = (isSVideoOutput ? 2.0f : 1.25f) * chromaCoefficients[c];
-					firCoefficients[c].x = 0.0f;
+					firCoefficients[c].y = firCoefficients[c].z =
+						chromaCoefficients[c] * (isSVideoOutput ? 2.0f : 1.25f);
 					if(fabsf(chromaCoefficients[c]) < 0.01f) {
 						_chromaKernelSize -= 2;
 					}
 				}
 				firCoefficients[7].x = 1.0f;
 
-				// Luminance will be very soft as a result of the separation phase; apply a sharpen filter to try to undo that.
+//				const SignalProcessing::FIRFilter sharpenFilter(15, 1368, 60.0f, 227.5f);
+
+
+				// Luminance will be very soft as a result of the separation phase;
+				// apply a sharpen filter to try to undo that.
 				//
 				// This is applied separately in order to partition three parts of the signal rather than two:
 				//
@@ -748,17 +756,19 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				//		2a) the chrominance; and
 				//		2b) some noise.
 				//
-				// There are real numerical hazards here given the low number of taps I am permitting to be used, so the sharpen
-				// filter below is just one that I found worked well. Since all numbers are fixed, the actual cutoff frequency is
-				// going to be a function of the input clock, which is a bit phoney but the best way to stay safe within the
-				// PCM sampling limits.
+				// There are real numerical hazards here given the low number of taps I am permitting to be used,
+				// so the sharpen filter below is just one that I found worked well. Since all numbers are fixed, the
+				// actual cutoff frequency is going to be a function of the input clock, which is a bit phoney but the
+				// best way to stay safe within the PCM sampling limits.
 				if(!isSVideoOutput) {
-					SignalProcessing::FIRFilter sharpenFilter(15, 1368, 60.0f, 227.5f);
+					const SignalProcessing::FIRFilter sharpenFilter(15, 1368, 60.0f, 227.5f);
 					const auto sharpen = sharpenFilter.get_coefficients();
 					size_t sharpenFilterSize = 15;
 					bool isStart = true;
 					for(size_t c = 0; c < 8; ++c) {
 						firCoefficients[c].x = sharpen[c];
+//						firCoefficients[c].y *= sharpen[c];
+//						firCoefficients[c].z *= sharpen[c];
 						if(fabsf(sharpen[c]) > 0.01f) isStart = false;
 						if(isStart) sharpenFilterSize -= 2;
 					}
