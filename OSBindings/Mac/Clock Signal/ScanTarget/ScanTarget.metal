@@ -22,11 +22,11 @@ namespace {
 //
 // That said, address::clamp_to_edge offers compatibility all the way back to MTLFeatureSet_iOS_GPUFamily1_v1.
 
-constexpr sampler standardSampler(
-	coord::pixel,
-	address::clamp_to_edge,
-	filter::nearest
-);
+//constexpr sampler standardSampler(
+//	coord::pixel,
+//	address::clamp_to_edge,
+//	filter::nearest
+//);
 
 }
 
@@ -47,17 +47,17 @@ constexpr half2 quadrature(const float phase) {
 	return half2(cos(phase), sin(phase));
 }
 
-constexpr UnfilteredYUVAmplitude composite(
-	const half level,
-	const half2 quadrature,
-	const half amplitude
-) {
-	return half4(
-		level,
-		half2(0.5f) + quadrature*half(0.5f),
-		amplitude
-	);
-}
+//constexpr UnfilteredYUVAmplitude composite(
+//	const half level,
+//	const half2 quadrature,
+//	const half amplitude
+//) {
+//	return half4(
+//		level,
+//		half2(0.5f) + quadrature*half(0.5f),
+//		amplitude
+//	);
+//}
 }
 
 // MARK: - Composite samplers.
@@ -66,10 +66,10 @@ template <InputEncoding encoding>
 Composite sample_comp(
 	const SourceInterpolator vert,
 	half2 colourSubcarrier,
-	const texture2d<half> texture,
+	const texture_t<encoding> texture,
 	const constant Uniforms &uniforms
 ) {
-	return sample_comp(vert, colourSubcarrier, uniforms, sample<encoding>(vert, colourSubcarrier, uniforms, texture));
+	return sample_comp(vert, colourSubcarrier, uniforms, sample<encoding>(vert, texture));
 }
 
 Composite sample_comp(
@@ -175,7 +175,7 @@ RGB sample_rgb2(
 // composite format used for composition. Direct sampling is always for final output, so the two
 // 8-bit formats also provide a gamma option.
 
-// MARK: - Prototypical sampling functions.
+/* // MARK: - Prototypical sampling functions.
 
 template <InputEncoding encoding> RGB sample_rgb(SourceInterpolator, texture2d<sample_t<encoding>>);
 template <InputEncoding encoding> half sample_composite(SourceInterpolator, texture2d<sample_t<encoding>>);
@@ -443,4 +443,94 @@ DeclareShaders(Red2Green2Blue2);
 DeclareShaders(Red4Green4Blue4);
 DeclareShaders(Red8Green8Blue8);
 
-#undef DeclareShaders
+#undef DeclareShaders */
+
+template <InputEncoding encoding>
+half4 internal_composite(
+	const SourceInterpolator vert,
+	const texture_t<encoding> texture,
+	const constant Uniforms &uniforms
+) {
+	return half4(half3(sample_comp<encoding>(vert, quadrature(vert.colourPhase), texture, uniforms)), 1.0f);
+}
+
+template <InputEncoding encoding>
+half4 output_composite(
+	const SourceInterpolator vert,
+	const texture_t<encoding> texture,
+	const constant Uniforms &uniforms
+) {
+	const half level = sample_comp<encoding>(vert, quadrature(vert.colourPhase), texture, uniforms);
+	if(is_ttl(encoding)) {
+		return level;
+	}
+	return half4(half3(pow(level, uniforms.outputGamma)), uniforms.outputAlpha);
+}
+
+#define DeclareShaders(name) \
+	fragment half4 outputComposite##name(\
+		SourceInterpolator vert [[stage_in]],\
+		texture_t<InputEncoding::name> texture [[texture(0)]],\
+		const constant Uniforms &uniforms [[buffer(0)]]\
+	) {	\
+		return output_composite<InputEncoding::name>(vert, texture, uniforms);	\
+	}	\
+	\
+	fragment half4 internalComposite##name(\
+		SourceInterpolator vert [[stage_in]],\
+		texture_t<InputEncoding::name> texture [[texture(0)]],\
+		const constant Uniforms &uniforms [[buffer(0)]]\
+	) {	\
+		return internal_composite<InputEncoding::name>(vert, texture, uniforms);	\
+	}	\
+
+
+//	fragment half4 internalComposite##name(\
+		SourceInterpolator vert [[stage_in]],\
+		texture2d<data_t<InputEncoding::name>> texture [[texture(0)]],\
+		constant Uniforms &uniforms [[buffer(0)]]\
+	) {	\
+		const half level = sample_composite<InputEncoding::name>(vert, texture, uniforms, quadrature(vert.colourPhase)); \
+		return half4(half3(level), uniforms.outputAlpha);	\
+	} \
+\
+	fragment half4 outputComposite##name(\
+		SourceInterpolator vert [[stage_in]],\
+		texture2d<data_t<InputEncoding::name>> texture [[texture(0)]],\
+		constant Uniforms &uniforms [[buffer(0)]]\
+	) {	\
+		const half level = sample_composite<InputEncoding::name>(vert, texture, uniforms, quadrature(vert.colourPhase)); \
+		return half4(half3(pow(level, uniforms.outputGamma)), uniforms.outputAlpha);	\
+	} \
+\
+
+//	fragment half4 internalRGB##name(\
+		SourceInterpolator vert [[stage_in]],\
+		texture2d<data_t<InputEncoding::name>> texture [[texture(0)]],\
+		constant Uniforms &uniforms [[buffer(0)]]\
+	) {	\
+		return half4(sample_rgb<InputEncoding::name>(vert, texture) * uniforms.outputMultiplier, uniforms.outputAlpha);	\
+	} \
+\
+	fragment half4 outputRGB##name(\
+		SourceInterpolator vert [[stage_in]],\
+		texture2d<data_t<InputEncoding::name>> texture [[texture(0)]],\
+		constant Uniforms &uniforms [[buffer(0)]]\
+	) {	\
+		auto sample = sample_rgb<InputEncoding::name>(vert, texture) * uniforms.outputMultiplier; \
+		if(!is_ttl(InputEncoding::name)) { \
+			sample = pow(sample, uniforms.outputGamma);	\
+		} \
+		return half4(sample, uniforms.outputAlpha); \
+	}
+
+
+DeclareShaders(Luminance1);
+DeclareShaders(Luminance8);
+DeclareShaders(PhaseLinkedLuminance8);
+DeclareShaders(Luminance8Phase8);
+DeclareShaders(Red1Green1Blue1);
+DeclareShaders(Red2Green2Blue2);
+DeclareShaders(Red4Green4Blue4);
+DeclareShaders(Red8Green8Blue8);
+
