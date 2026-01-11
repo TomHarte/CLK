@@ -120,7 +120,7 @@ struct Uniforms {
 	HalfConverter<simd::float3x3> fromRGB;
 
 	HalfConverter<simd::float3> chromaKernel[8];
-	__fp16 lumaKernel[8];
+	HalfConverter<simd::float2> lumaKernel[8];
 
 	__fp16 outputAlpha;
 	__fp16 outputGamma;
@@ -783,14 +783,21 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 			// Generate the luminance separation filter and determine its required size.
 			{
-				auto *const filter = uniforms()->lumaKernel;
+				simd::float2 lumaCoefficients[8]{};
 				const auto coefficients = boxCoefficients(radiansPerPixel, 3.141592654f);
 				_lumaKernelSize = 15;
 				for(size_t c = 0; c < 8; ++c) {
-					filter[c] = __fp16(coefficients[c]);
+					lumaCoefficients[c].x = coefficients[c];
+					lumaCoefficients[c].y = -coefficients[c];
+
 					if(fabsf(coefficients[c]) < 0.01f) {
 						_lumaKernelSize -= 2;
 					}
+				}
+				lumaCoefficients[7].y += 1.0f;
+
+				for(size_t c = 0; c < 8; ++c) {
+					uniforms()->lumaKernel[c] = lumaCoefficients[c];
 				}
 			}
 		}

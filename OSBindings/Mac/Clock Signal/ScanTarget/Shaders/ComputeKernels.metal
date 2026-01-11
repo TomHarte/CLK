@@ -81,7 +81,7 @@ kernel void filterChromaKernelWithGamma(
 
 /// Stores a separated sample, potentially discarding the chrominance section if there was no colour burst.
 void setSeparatedLumaChroma(
-	const half luminance,
+	const half2 luminanceChrominance,
 	const half4 centreSample,
 	const metal::texture2d<half, metal::access::write> outTexture,
 	const uint2 gid,
@@ -89,9 +89,9 @@ void setSeparatedLumaChroma(
 ) {
 	// The mix/steps below ensures that the absence of a colour burst leads the colour subcarrier to be discarded.
 	const half isColour = metal::step(half(0.01f), centreSample.a);
-	const half chroma = (centreSample.r - luminance) / metal::mix(half(1.0f), centreSample.a, isColour);
+	const half chroma = luminanceChrominance.g / metal::mix(half(1.0f), centreSample.a, isColour);
 	outTexture.write(half4(
-			luminance / metal::mix(half(1.0f), (half(1.0f) - centreSample.a), isColour),
+			luminanceChrominance.r / metal::mix(half(1.0f), (half(1.0f) - centreSample.a), isColour),
 			isColour * (centreSample.gb - half2(0.5f)) * chroma + half2(0.5f),
 			1.0f
 		),
@@ -135,13 +135,13 @@ kernel void separateLumaKernel15(
 	};
 
 #define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
-	const half luminance =
+	const half2 luminanceChrominance =
 		Sample(0, 0) + Sample(1, 1) + Sample(2, 2) + Sample(3, 3) + Sample(4, 4) + Sample(5, 5) + Sample(6, 6) +
 		Sample(7, 7) +
 		Sample(8, 6) + Sample(9, 5) + Sample(10, 4) + Sample(11, 3) + Sample(12, 2) + Sample(13, 1) + Sample(14, 0);
 #undef Sample
 
-	return setSeparatedLumaChroma(luminance, centreSample, outTexture, gid, offset);
+	return setSeparatedLumaChroma(luminanceChrominance, centreSample, outTexture, gid, offset);
 }
 
 kernel void separateLumaKernel9(
@@ -161,13 +161,13 @@ kernel void separateLumaKernel9(
 	};
 
 #define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
-	const half luminance =
+	const half2 luminanceChrominance =
 		Sample(0, 3) + Sample(1, 4) + Sample(2, 5) + Sample(3, 6) +
 		Sample(4, 7) +
 		Sample(5, 6) + Sample(6, 5) + Sample(7, 4) + Sample(8, 3);
 #undef Sample
 
-	return setSeparatedLumaChroma(luminance, centreSample, outTexture, gid, offset);
+	return setSeparatedLumaChroma(luminanceChrominance, centreSample, outTexture, gid, offset);
 }
 
 kernel void separateLumaKernel7(
@@ -187,13 +187,13 @@ kernel void separateLumaKernel7(
 	};
 
 #define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
-	const half luminance =
+	const half2 luminanceChrominance =
 		Sample(0, 4) + Sample(1, 5) + Sample(2, 6) +
 		Sample(3, 7) +
 		Sample(4, 6) + Sample(5, 5) + Sample(6, 4);
 #undef Sample
 
-	return setSeparatedLumaChroma(luminance, centreSample, outTexture, gid, offset);
+	return setSeparatedLumaChroma(luminanceChrominance, centreSample, outTexture, gid, offset);
 }
 
 kernel void separateLumaKernel5(
@@ -211,13 +211,13 @@ kernel void separateLumaKernel5(
 	};
 
 #define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
-	const half luminance =
+	const half2 luminanceChrominance =
 		Sample(0, 5) + Sample(1, 6) +
 		Sample(2, 7) +
 		Sample(3, 6) + Sample(4, 5);
 #undef Sample
 
-	return setSeparatedLumaChroma(luminance, centreSample, outTexture, gid, offset);
+	return setSeparatedLumaChroma(luminanceChrominance, centreSample, outTexture, gid, offset);
 }
 
 // MARK: - Solid fills.
