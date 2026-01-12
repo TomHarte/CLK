@@ -78,29 +78,12 @@ public:
 	}
 
 	/*! @returns The number of taps used by this filter. */
-	inline std::size_t get_number_of_taps() const {
+	inline std::size_t size() const {
 		return filter_coefficients_.size();
 	}
 
 	/*! @returns The weighted coefficients that describe this filter. */
-	std::vector<float> get_coefficients() const;
-
-	/*!
-		@returns A filter that would have the effect of adding (and scaling) the outputs of the two filters.
-		Defined only if both have the same number of taps.
-	*/
-	FIRFilter operator+(const FIRFilter &) const;
-
-	/*!
-		@returns A filter that would have the effect of applying the two filters in succession.
-		Defined only if both have the same number of taps.
-	*/
-	FIRFilter operator*(const FIRFilter &) const;
-
-	/*!
-		@returns A filter that would have the opposite effect of this filter.
-	*/
-	FIRFilter operator-() const;
+	std::vector<float> coefficients() const;
 
 private:
 	std::vector<short> filter_coefficients_;

@@ -762,7 +762,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				// best way to stay safe within the PCM sampling limits.
 				if(!isSVideoOutput) {
 					const SignalProcessing::FIRFilter sharpenFilter(15, 1368, 60.0f, 227.5f);
-					const auto sharpen = sharpenFilter.get_coefficients();
+					const auto sharpen = sharpenFilter.coefficients();
 					size_t sharpenFilterSize = 15;
 					bool isStart = true;
 					for(size_t c = 0; c < 8; ++c) {

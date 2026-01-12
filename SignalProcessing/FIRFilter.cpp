@@ -100,7 +100,7 @@ std::vector<short> coefficients_for_idealised_filter_response(
 }
 }
 
-std::vector<float> FIRFilter::get_coefficients() const {
+std::vector<float> FIRFilter::coefficients() const {
 	std::vector<float> coefficients;
 	coefficients.reserve(filter_coefficients_.size());
 	for(const auto short_coefficient: filter_coefficients_) {
@@ -146,42 +146,4 @@ FIRFilter::FIRFilter(const std::vector<float> &coefficients) {
 	for(const auto coefficient: coefficients) {
 		filter_coefficients_.push_back(short(coefficient * FixedMultiplier));
 	}
-}
-
-FIRFilter FIRFilter::operator+(const FIRFilter &rhs) const {
-	const auto coefficients = get_coefficients();
-	const auto rhs_coefficients = rhs.get_coefficients();
-
-	std::vector<float> sum;
-	sum.reserve(coefficients.size());
-	for(std::size_t i = 0; i < coefficients.size(); ++i) {
-		sum.push_back((coefficients[i] + rhs_coefficients[i]) / 2.0f);
-	}
-
-	return FIRFilter(sum);
-}
-
-FIRFilter FIRFilter::operator-() const {
-	const auto coefficients = get_coefficients();
-	std::vector<float> negative_coefficients;
-
-	negative_coefficients.reserve(coefficients.size());
-	for(const auto coefficient: coefficients) {
-		negative_coefficients.push_back(1.0f - coefficient);
-	}
-
-	return FIRFilter(negative_coefficients);
-}
-
-FIRFilter FIRFilter::operator*(const FIRFilter &rhs) const {
-	const std::vector<float> coefficients = get_coefficients();
-	const std::vector<float> rhs_coefficients = rhs.get_coefficients();
-
-	std::vector<float> sum;
-	sum.reserve(coefficients.size());
-	for(std::size_t i = 0; i < coefficients.size(); ++i) {
-		sum.push_back(coefficients[i] * rhs_coefficients[i]);
-	}
-
-	return FIRFilter(sum);
 }
