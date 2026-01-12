@@ -1122,6 +1122,8 @@
 		4BC1317B2346DF2B00E4FF3D /* MSA.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC131782346DF2B00E4FF3D /* MSA.cpp */; };
 		4BC23A2C2467600F001A6030 /* OPLL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC23A2B2467600E001A6030 /* OPLL.cpp */; };
 		4BC23A2D2467600F001A6030 /* OPLL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC23A2B2467600E001A6030 /* OPLL.cpp */; };
+		4BC3A9A32F147F8900ACC885 /* FilterGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3A9A22F147F8900ACC885 /* FilterGenerator.cpp */; };
+		4BC3A9A42F147F8900ACC885 /* FilterGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3A9A22F147F8900ACC885 /* FilterGenerator.cpp */; };
 		4BC57CD92436A62900FBC404 /* State.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC57CD82436A62900FBC404 /* State.cpp */; };
 		4BC57CDA2436A62900FBC404 /* State.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC57CD82436A62900FBC404 /* State.cpp */; };
 		4BC5C3E022C994CD00795658 /* 68000MoveTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BC5C3DF22C994CC00795658 /* 68000MoveTests.mm */; };
@@ -2394,6 +2396,8 @@
 		4BC23A292467600E001A6030 /* OPLBase.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OPLBase.hpp; sourceTree = "<group>"; };
 		4BC23A2A2467600E001A6030 /* EnvelopeGenerator.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = EnvelopeGenerator.hpp; sourceTree = "<group>"; };
 		4BC23A2B2467600E001A6030 /* OPLL.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OPLL.cpp; sourceTree = "<group>"; };
+		4BC3A9A12F147F8900ACC885 /* FilterGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FilterGenerator.hpp; sourceTree = "<group>"; };
+		4BC3A9A22F147F8900ACC885 /* FilterGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FilterGenerator.cpp; sourceTree = "<group>"; };
 		4BC57CD2243427C700FBC404 /* AudioProducer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AudioProducer.hpp; sourceTree = "<group>"; };
 		4BC57CD32434282000FBC404 /* TimedMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TimedMachine.hpp; sourceTree = "<group>"; };
 		4BC57CD424342E0600FBC404 /* MachineTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MachineTypes.hpp; sourceTree = "<group>"; };
@@ -5029,8 +5033,10 @@
 		4BB8616B24E22DC500A00E03 /* ScanTargets */ = {
 			isa = PBXGroup;
 			children = (
-				4BB8616C24E22DC500A00E03 /* BufferingScanTarget.hpp */,
 				4BB8616D24E22DC500A00E03 /* BufferingScanTarget.cpp */,
+				4BC3A9A22F147F8900ACC885 /* FilterGenerator.cpp */,
+				4BB8616C24E22DC500A00E03 /* BufferingScanTarget.hpp */,
+				4BC3A9A12F147F8900ACC885 /* FilterGenerator.hpp */,
 			);
 			path = ScanTargets;
 			sourceTree = "<group>";
@@ -6429,6 +6435,7 @@
 				4BB244D622AABAF600BE20E5 /* z8530.cpp in Sources */,
 				4BAF2B4F2004580C00480230 /* DMK.cpp in Sources */,
 				4BC080D126A257A200D03FD8 /* StaticAnalyser.cpp in Sources */,
+				4BC3A9A32F147F8900ACC885 /* FilterGenerator.cpp in Sources */,
 				4BD424E82193B5830097291A /* Rectangle.cpp in Sources */,
 				4B055A961FAE85BB0060FFFF /* Commodore.cpp in Sources */,
 				4B8318BA22D3E579006DB630 /* MacintoshIMG.cpp in Sources */,
@@ -6510,6 +6517,7 @@
 				4B1B88BB202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */,
 				4B5D5C9725F56FC7001B4623 /* Spectrum.cpp in Sources */,
 				4B4518A11F75FD1C00926311 /* D64.cpp in Sources */,
+				4BC3A9A42F147F8900ACC885 /* FilterGenerator.cpp in Sources */,
 				4BCE0052227CE8CA000CA200 /* DiskIICard.cpp in Sources */,
 				4BF0BC68297108D600CCA2B5 /* MemorySlotHandler.cpp in Sources */,
 				4B2A1CDC2BA775C5004496CE /* I2C.cpp in Sources */,
