@@ -14,6 +14,8 @@
 
 using namespace SignalProcessing;
 
+// MARK: - Kaiser Bessel.
+
 /*
 
 	A Kaiser-Bessel filter is a real time window filter. It looks at the last n samples
@@ -137,19 +139,52 @@ FIRFilter<type> KaiserBessel::filter(
 	);
 }
 
-template
-FIRFilter<ScalarType::Int16> KaiserBessel::filter<ScalarType::Int16>(
-	size_t number_of_taps,
-	const float input_sample_rate,
-	const float low_frequency,
-	float high_frequency,
-	float attenuation
-);
-template
-FIRFilter<ScalarType::Float> KaiserBessel::filter<ScalarType::Float>(
-	size_t number_of_taps,
-	const float input_sample_rate,
-	const float low_frequency,
-	float high_frequency,
-	float attenuation
-);
+// MARK: - Box.
+
+template <ScalarType type>
+FIRFilter<type> Box::filter(
+	const float units_per_sample,
+	const float total_range
+) {
+	const auto filter_size = size_t(std::ceil(total_range / units_per_sample)) | 1;
+	const auto midpoint = filter_size / 2;
+	std::vector<float> coefficients(filter_size);
+
+	const float cutoff = total_range / 2.0f;
+	float total = 0.0f;
+	float distance = 0.0f;
+	for(size_t c = 0; midpoint + c < filter_size; ++c) {
+		const float coefficient = [&]{
+			const auto far = distance + 0.5f * units_per_sample;
+			if(far < cutoff) return 1.0f;
+
+			const auto near = distance - 0.5f * units_per_sample;
+			if(near >= cutoff) return 0.0f;
+
+			return (cutoff - near) / units_per_sample;
+		} ();
+		distance += units_per_sample;
+
+		coefficients[midpoint + c] = coefficient;
+		coefficients[midpoint - c] = coefficient;
+		total += coefficient * 2.0f;
+	}
+	total -= coefficients[midpoint];
+
+	for(auto &coefficient: coefficients) {
+		coefficient /= total;
+	}
+
+	return FIRFilter<type>(
+		coefficients.begin(),
+		coefficients.end()
+	);
+}
+
+
+// MARK: - Explicit instantiations.
+
+template FIRFilter<ScalarType::Int16> KaiserBessel::filter<ScalarType::Int16>(size_t, float, float, float, float);
+template FIRFilter<ScalarType::Float> KaiserBessel::filter<ScalarType::Float>(size_t, float, float, float, float);
+template FIRFilter<ScalarType::Int16> Box::filter<ScalarType::Int16>(float, float);
+template FIRFilter<ScalarType::Float> Box::filter<ScalarType::Float>(float, float);

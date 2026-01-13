@@ -16,7 +16,6 @@
 #define USE_ACCELERATE
 #endif
 
-#include <cstddef>
 #include <algorithm>
 #include <cmath>
 #include <span>
@@ -137,8 +136,6 @@ namespace KaiserBessel {
 static constexpr float DefaultAttenuation = 60.0f;
 
 /*!
-	Creates an instance of @c FIRFilter.
-
 	@param number_of_taps The size of window for input data.
 	@param input_sample_rate The sampling rate of the input signal.
 	@param low_frequency The lowest frequency of signal to retain in the output.
@@ -152,6 +149,14 @@ FIRFilter<type> filter(
 	float low_frequency,
 	float high_frequency,
 	float attenuation = DefaultAttenuation
+);
+}
+
+namespace Box {
+template <ScalarType type>
+FIRFilter<type> filter(
+	float units_per_sample,
+	float total_range
 );
 }
 

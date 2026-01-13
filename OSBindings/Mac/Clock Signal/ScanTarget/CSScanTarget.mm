@@ -731,6 +731,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 				// Initial seed: a box filter for the chrominance parts and no filter at all for luminance.
 				const auto chromaCoefficients = boxCoefficients(radiansPerPixel, 3.141592654f);
+				const auto testBox = SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(radiansPerPixel, 3.141592654f * 2.0f);
+				(void)testBox;
+
 				_chromaKernelSize = 15;
 				for(size_t c = 0; c < 8; ++c) {
 					// Bit of a fix here: if the pipeline is for composite then assume that chroma separation wasn't
@@ -742,6 +745,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 					}
 				}
 				firCoefficients[7].x = 1.0f;
+
 
 //				const SignalProcessing::FIRFilter sharpenFilter(15, 1368, 60.0f, 227.5f);
 
