@@ -1804,7 +1804,6 @@
 		4B83348E1F5DBA6E0097E338 /* 6522Storage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = 6522Storage.hpp; path = Implementation/6522Storage.hpp; sourceTree = "<group>"; };
 		4B8334911F5E24FF0097E338 /* C1540Base.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = C1540Base.hpp; path = Implementation/C1540Base.hpp; sourceTree = "<group>"; };
 		4B8334941F5E25B60097E338 /* C1540.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = C1540.cpp; path = Implementation/C1540.cpp; sourceTree = "<group>"; };
-		4B847B9F2E920C7500774B9B /* CubicCurve.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = CubicCurve.hpp; path = /Users/thomasharte/Projects/CLK/Numeric/CubicCurve.hpp; sourceTree = "<absolute>"; };
 		4B847BA42E94320B00774B9B /* MismatchWarner.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MismatchWarner.hpp; sourceTree = "<group>"; };
 		4B847BA62E96013000774B9B /* RectAccumulator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RectAccumulator.hpp; sourceTree = "<group>"; };
 		4B85322922778E4200F26553 /* Comparative68000.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Comparative68000.hpp; sourceTree = "<group>"; };
@@ -1825,7 +1824,6 @@
 		4B8805FA1DCFF807003085B1 /* Oric.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Oric.hpp; path = Parsers/Oric.hpp; sourceTree = "<group>"; };
 		4B882F582C2F9C6900D84031 /* CPCShakerTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CPCShakerTests.mm; sourceTree = "<group>"; };
 		4B882F5A2C2F9C7700D84031 /* Shaker */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Shaker; sourceTree = "<group>"; };
-		4B884C6F2EA28E0F00073840 /* CompileTimeCounter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CompileTimeCounter.hpp; sourceTree = "<group>"; };
 		4B884C722EA47FCC00073840 /* 6502Mk2.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6502Mk2.hpp; sourceTree = "<group>"; };
 		4B884C762EA5D6C300073840 /* 6502.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6502.hpp; sourceTree = "<group>"; };
 		4B884C792EA6DBAA00073840 /* Decoder.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Decoder.hpp; sourceTree = "<group>"; };
@@ -2398,6 +2396,7 @@
 		4BC23A2B2467600E001A6030 /* OPLL.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OPLL.cpp; sourceTree = "<group>"; };
 		4BC3A9A12F147F8900ACC885 /* FilterGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FilterGenerator.hpp; sourceTree = "<group>"; };
 		4BC3A9A22F147F8900ACC885 /* FilterGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FilterGenerator.cpp; sourceTree = "<group>"; };
+		4BC3A9A52F15EF2D00ACC885 /* CubicCurve.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CubicCurve.hpp; sourceTree = "<group>"; };
 		4BC57CD2243427C700FBC404 /* AudioProducer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AudioProducer.hpp; sourceTree = "<group>"; };
 		4BC57CD32434282000FBC404 /* TimedMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TimedMachine.hpp; sourceTree = "<group>"; };
 		4BC57CD424342E0600FBC404 /* MachineTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MachineTypes.hpp; sourceTree = "<group>"; };
@@ -3209,7 +3208,6 @@
 				4BD191D5219113B80042E144 /* OpenGL */,
 				4BB8616B24E22DC500A00E03 /* ScanTargets */,
 				4BD060A41FE49D3C006E14BE /* Speaker */,
-				4B847B9F2E920C7500774B9B /* CubicCurve.hpp */,
 			);
 			name = Outputs;
 			path = ../../Outputs;
@@ -3829,6 +3827,7 @@
 				4B0B239F2D658C9400153879 /* BitStream.hpp */,
 				4281572E2AA0334300E16AA1 /* Carry.hpp */,
 				4B7BA03E23D55E7900B98D9E /* CRC.hpp */,
+				4BC3A9A52F15EF2D00ACC885 /* CubicCurve.hpp */,
 				4B7BA03F23D55E7900B98D9E /* LFSR.hpp */,
 				4B66E1A8297719270057ED0F /* NumericCoder.hpp */,
 				4BB5B995281B1D3E00522DA9 /* RegisterSizes.hpp */,
@@ -3836,7 +3835,6 @@
 				4BFEA2F12682A90200EBF94C /* Sizes.hpp */,
 				4BD9713A2BFD7E7100C907AA /* StringSimilarity.hpp */,
 				4B0329202D0A78DC00C51EB5 /* UpperBound.hpp */,
-				4B884C6F2EA28E0F00073840 /* CompileTimeCounter.hpp */,
 			);
 			name = Numeric;
 			path = ../../Numeric;

@@ -96,7 +96,7 @@ private:
 
 	float step_rate_ = 0.0f;
 	float position_error_ = 0.0f;
-	std::unique_ptr<SignalProcessing::FIRFilter> filter_;
+	SignalProcessing::FIRFilter<SignalProcessing::ScalarType::Int16> filter_;
 
 	std::mutex filter_parameters_mutex_;
 	struct FilterParameters {
@@ -123,12 +123,11 @@ private:
 		step_rate_ = filter_parameters.input_cycles_per_second / filter_parameters.output_cycles_per_second;
 		position_error_ = 0.0f;
 
-		filter_ = std::make_unique<SignalProcessing::FIRFilter>(
-			unsigned(number_of_taps),
+		filter_ = SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Int16>(
+			size_t(number_of_taps),
 			filter_parameters.input_cycles_per_second,
 			0.0,
-			high_pass_frequency,
-			SignalProcessing::FIRFilter::DefaultAttenuation);
+			high_pass_frequency);
 
 		// Pick the new conversion function.
 		if(	filter_parameters.input_cycles_per_second == filter_parameters.output_cycles_per_second &&
@@ -174,11 +173,11 @@ private:
 		}
 
 		if constexpr (is_stereo) {
-			output_buffer_[output_buffer_pointer_ + 0] = filter_->apply(input_buffer_.data(), 2);
-			output_buffer_[output_buffer_pointer_ + 1] = filter_->apply(input_buffer_.data() + 1, 2);
+			output_buffer_[output_buffer_pointer_ + 0] = filter_.apply(input_buffer_.data(), 2);
+			output_buffer_[output_buffer_pointer_ + 1] = filter_.apply(input_buffer_.data() + 1, 2);
 			output_buffer_pointer_+= 2;
 		} else {
-			output_buffer_[output_buffer_pointer_] = filter_->apply(input_buffer_.data());
+			output_buffer_[output_buffer_pointer_] = filter_.apply(input_buffer_.data());
 			output_buffer_pointer_++;
 		}
 

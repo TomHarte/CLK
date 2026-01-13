@@ -761,18 +761,17 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				// actual cutoff frequency is going to be a function of the input clock, which is a bit phoney but the
 				// best way to stay safe within the PCM sampling limits.
 				if(!isSVideoOutput) {
-					const SignalProcessing::FIRFilter sharpenFilter(15, 1368, 60.0f, 227.5f);
+					const auto sharpenFilter
+						= SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+							15, 1368, 60.0f, 227.5f);
 					const auto sharpen = sharpenFilter.coefficients();
-					size_t sharpenFilterSize = 15;
-					bool isStart = true;
-					for(size_t c = 0; c < 8; ++c) {
-						firCoefficients[c].x = sharpen[c];
-//						firCoefficients[c].y *= sharpen[c];
-//						firCoefficients[c].z *= sharpen[c];
-						if(fabsf(sharpen[c]) > 0.01f) isStart = false;
-						if(isStart) sharpenFilterSize -= 2;
+
+					const size_t offset = (15 - sharpen.size()) / 2;
+					for(size_t c = offset; c < 8; ++c) {
+						firCoefficients[c].x = sharpen[c - offset];
 					}
-					_chromaKernelSize = std::max(_chromaKernelSize, sharpenFilterSize);
+
+					_chromaKernelSize = std::max(_chromaKernelSize, sharpen.size());
 				}
 
 				// Convert to half-size floats.
@@ -787,7 +786,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				const auto coefficients = boxCoefficients(radiansPerPixel, 3.141592654f);
 				_lumaKernelSize = 15;
 				for(size_t c = 0; c < 8; ++c) {
-					lumaCoefficients[c].x = coefficients[c];
+					lumaCoefficients[c].x = coefficients[c] * 1.25f;
 					lumaCoefficients[c].y = -coefficients[c];
 
 					if(fabsf(coefficients[c]) < 0.01f) {

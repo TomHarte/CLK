@@ -37,7 +37,7 @@ using namespace SignalProcessing;
 namespace {
 
 /*! Evaluates the 0th order Bessel function at @c a. */
-constexpr float ino(float a) {
+constexpr float ino(const float a) {
 	float d = 0.0f;
 	float ds = 1.0f;
 	float s = 1.0f;
@@ -51,7 +51,7 @@ constexpr float ino(float a) {
 	return s;
 }
 
-std::vector<short> coefficients_for_idealised_filter_response(
+std::vector<float> coefficients_for_idealised_filter_response(
 	const std::vector<float> &A,
 	const float attenuation,
 	const std::size_t number_of_taps
@@ -91,26 +91,18 @@ std::vector<short> coefficients_for_idealised_filter_response(
 
 	/* Hence produce integer versions. */
 	const float coefficientMultiplier = 1.0f / coefficientTotal;
-	std::vector<short> filter_coefficients;
+	std::vector<float> filter_coefficients;
 	filter_coefficients.reserve(number_of_taps);
 	for(std::size_t i = 0; i < number_of_taps; ++i) {
-		filter_coefficients.push_back(short(filter_coefficients_float[i] * FixedMultiplier * coefficientMultiplier));
+		filter_coefficients.push_back(filter_coefficients_float[i] * coefficientMultiplier);
 	}
 	return filter_coefficients;
 }
 }
 
-std::vector<float> FIRFilter::coefficients() const {
-	std::vector<float> coefficients;
-	coefficients.reserve(filter_coefficients_.size());
-	for(const auto short_coefficient: filter_coefficients_) {
-		coefficients.push_back(float(short_coefficient) / FixedMultiplier);
-	}
-	return coefficients;
-}
-
-FIRFilter::FIRFilter(
-	std::size_t number_of_taps,
+template <ScalarType type>
+FIRFilter<type> KaiserBessel::filter(
+	size_t number_of_taps,
 	const float input_sample_rate,
 	const float low_frequency,
 	float high_frequency,
@@ -138,12 +130,26 @@ FIRFilter::FIRFilter(
 			) / i_pi;
 	}
 
-	filter_coefficients_ = coefficients_for_idealised_filter_response(A, attenuation, number_of_taps);
+	const auto idealised = coefficients_for_idealised_filter_response(A, attenuation, number_of_taps);
+	return FIRFilter<type>(
+		idealised.begin(),
+		idealised.end()
+	);
 }
 
-FIRFilter::FIRFilter(const std::vector<float> &coefficients) {
-	filter_coefficients_.reserve(coefficients.size());
-	for(const auto coefficient: coefficients) {
-		filter_coefficients_.push_back(short(coefficient * FixedMultiplier));
-	}
-}
+template
+FIRFilter<ScalarType::Int16> KaiserBessel::filter<ScalarType::Int16>(
+	size_t number_of_taps,
+	const float input_sample_rate,
+	const float low_frequency,
+	float high_frequency,
+	float attenuation
+);
+template
+FIRFilter<ScalarType::Float> KaiserBessel::filter<ScalarType::Float>(
+	size_t number_of_taps,
+	const float input_sample_rate,
+	const float low_frequency,
+	float high_frequency,
+	float attenuation
+);
