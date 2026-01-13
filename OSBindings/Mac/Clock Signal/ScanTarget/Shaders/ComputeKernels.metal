@@ -91,7 +91,7 @@ void setSeparatedLumaChroma(
 	const half isColour = metal::step(half(0.01f), centreSample.a);
 	const half chroma = luminanceChrominance.g / metal::mix(half(1.0f), centreSample.a, isColour);
 	outTexture.write(half4(
-			luminanceChrominance.r / metal::mix(half(1.0f), (half(1.0f) - centreSample.a), isColour),
+			(luminanceChrominance.r - centreSample.a) / metal::mix(half(1.0f), half(1.0f - centreSample.a * 2.0), isColour),
 			isColour * (centreSample.gb - half2(0.5f)) * chroma + half2(0.5f),
 			1.0f
 		),

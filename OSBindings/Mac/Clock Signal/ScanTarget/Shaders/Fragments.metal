@@ -63,8 +63,12 @@ Composite sample_composite(
 	const constant Uniforms &,
 	const LuminanceChrominance underlying
 ) {
-	// Composite is just a linear interpolation of the two S-Video channels.
-	return metal::mix(underlying.r, underlying.g, vert.colourAmplitude);
+	// Composite is a linear interpolation of the two S-Video channels with an above-zero offset.
+	return
+		metal::dot(
+			underlying,
+			half2(1.0 - 2 * vert.colourAmplitude, vert.colourAmplitude)
+		) + vert.colourAmplitude;
 }
 
 Composite sample_composite(
@@ -76,7 +80,11 @@ Composite sample_composite(
 	// Convert RGB to composite by switching colour space, applying the colour subcarrier to combine the two
 	// chrominance channels into one, then mixing that on top of the luminance.
 	const auto colour = uniforms.fromRGB * underlying;
-	return metal::mix(colour.r, metal::dot(colour.gb, colourSubcarrier), vert.colourAmplitude);
+	return
+		metal::dot(
+			half2(colour.r, metal::dot(colour.gb, colourSubcarrier)),
+			half2(1.0 - 2 * vert.colourAmplitude, vert.colourAmplitude)
+		) + vert.colourAmplitude;
 }
 
 // MARK: - S-Video samplers.
