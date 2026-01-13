@@ -786,7 +786,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				const auto coefficients = boxCoefficients(radiansPerPixel, 3.141592654f);
 				_lumaKernelSize = 15;
 				for(size_t c = 0; c < 8; ++c) {
-					lumaCoefficients[c].x = coefficients[c] * 1.25f;
+					lumaCoefficients[c].x = coefficients[c] * 1.15f;
 					lumaCoefficients[c].y = -coefficients[c];
 
 					if(fabsf(coefficients[c]) < 0.01f) {
