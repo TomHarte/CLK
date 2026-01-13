@@ -17,8 +17,9 @@
 #endif
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
-#include <span>
+#include <numeric>
 #include <vector>
 
 namespace SignalProcessing {
@@ -116,8 +117,28 @@ public:
 		}
 	}
 
-	std::span<const CoefficientType> coefficients() const {
-		return std::span(coefficients_);
+	CoefficientType operator[](const size_t index) const {
+		return coefficients_[index];
+	}
+
+	size_t size() const {
+		return coefficients_.size();
+	}
+
+	FIRFilter &resize(const size_t size) {
+		assert(size & 1);
+
+		if(size >= coefficients_.size()) {
+			// TODO: find a faster solution than this.
+			const auto half_difference = (size - coefficients_.size()) / 2;
+			std::vector<CoefficientType> zeroes(half_difference);
+			coefficients_.insert(coefficients_.begin(), zeroes.begin(), zeroes.end());
+			coefficients_.insert(coefficients_.end(), zeroes.begin(), zeroes.end());
+			return *this;
+		}
+
+//		const auto total = std::accumulate(coefficients_.begin(), coefficients_.end(), CoefficientType{});
+		return *this;
 	}
 
 private:

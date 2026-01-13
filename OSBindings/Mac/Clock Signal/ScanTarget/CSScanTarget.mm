@@ -151,38 +151,6 @@ constexpr MTLResourceOptions SharedResourceOptionsTexture =
 			}	\
 		}	\
 	}
-
-/// @returns the proper 1d kernel to apply a box filter around a certain point a pixel density of @c radiansPerPixel and applying an
-///		angular limit of @c cutoff. The values returned will be the first eight of a fifteen-point filter that is symmetrical around its centre.
-std::array<float, 8> boxCoefficients(float radiansPerPixel, float cutoff) {
-	std::array<float, 8> filter;
-	float total = 0.0f;
-
-	for(size_t c = 0; c < 8; ++c) {
-		// This coefficient occupies the angular window [6.5-c, 7.5-c]*radiansPerPixel.
-		const float startAngle = (6.5f - float(c)) * radiansPerPixel;
-		const float endAngle = (7.5f - float(c)) * radiansPerPixel;
-
-		float coefficient = 0.0f;
-		if(endAngle < cutoff) {
-			coefficient = 1.0f;
-		} else if(startAngle >= cutoff) {
-			coefficient = 0.0f;
-		} else {
-			coefficient = (cutoff - startAngle) / radiansPerPixel;
-		}
-		total += 2.0f * coefficient;	// All but the centre coefficient will be used twice.
-		filter[c] = coefficient;
-	}
-	total = total - filter[7];			// As per above; ensure the centre coefficient is counted only once.
-
-	for(size_t c = 0; c < 8; ++c) {
-		filter[c] /= total;
-	}
-
-	return filter;
-}
-
 }
 
 using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
@@ -730,9 +698,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				simd::float3 firCoefficients[8]{};
 
 				// Initial seed: a box filter for the chrominance parts and no filter at all for luminance.
-				const auto chromaCoefficients = boxCoefficients(radiansPerPixel, 3.141592654f);
-				const auto testBox = SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(radiansPerPixel, 3.141592654f * 2.0f);
-				(void)testBox;
+				const auto chromaCoefficients =
+					SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(
+						radiansPerPixel,
+						3.141592654f * 2.0f
+					).resize(15);
 
 				_chromaKernelSize = 15;
 				for(size_t c = 0; c < 8; ++c) {
@@ -765,10 +735,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				// actual cutoff frequency is going to be a function of the input clock, which is a bit phoney but the
 				// best way to stay safe within the PCM sampling limits.
 				if(!isSVideoOutput) {
-					const auto sharpenFilter
+					const auto sharpen
 						= SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
 							15, 1368, 60.0f, 227.5f);
-					const auto sharpen = sharpenFilter.coefficients();
 
 					const size_t offset = (15 - sharpen.size()) / 2;
 					for(size_t c = offset; c < 8; ++c) {
@@ -787,7 +756,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			// Generate the luminance separation filter and determine its required size.
 			{
 				simd::float2 lumaCoefficients[8]{};
-				const auto coefficients = boxCoefficients(radiansPerPixel, 3.141592654f);
+				const auto coefficients =
+					SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(
+						radiansPerPixel,
+						3.141592654f * 2.0f
+					).resize(15);
 				_lumaKernelSize = 15;
 				for(size_t c = 0; c < 8; ++c) {
 					lumaCoefficients[c].x = coefficients[c];// * 1.15f;
