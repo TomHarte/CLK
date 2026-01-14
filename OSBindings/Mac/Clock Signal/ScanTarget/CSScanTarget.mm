@@ -716,17 +716,15 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 				// Sharpen the luminance a touch if it was sourced through separation.
 				if(!isSVideoOutput) {
-					const auto sharpen
-						= SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-							15, 1368, 60.0f, 227.5f);
-
-					chromaCoefficients.copy_to<Coefficients3::iterator>(
-						firCoefficients.begin(),
-						firCoefficients.end(),
-						[&](auto destination, float value) {
-							destination->x = value;
-						}
-					);
+					SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(15, 1368, 60.0f, 227.5f)
+						.copy_to<Coefficients3::iterator>(
+							firCoefficients.begin(),
+							firCoefficients.end(),
+							[&](auto destination, float value) {
+								destination->x = value;
+							}
+						);
+					_chromaKernelSize = 15;
 				} else {
 					firCoefficients[7].x = 1.0f;
 				}
@@ -757,6 +755,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 					}
 				);
 				lumaCoefficients[7].y += 1.0f;
+				_lumaKernelSize = coefficients.size();
 
 				for(size_t c = 0; c < 8; ++c) {
 					uniforms()->lumaKernel[c] = lumaCoefficients[c];
