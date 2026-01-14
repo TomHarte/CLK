@@ -166,6 +166,7 @@ set(CLK_SOURCES
 	Outputs/OpenGL/ScanTargetGLSLFragments.cpp
 	Outputs/ScanTarget.cpp
 	Outputs/ScanTargets/BufferingScanTarget.cpp
+	Outputs/ScanTargets/FilterGenerator.cpp
 
 	Processors/6502/Implementation/6502Storage.cpp
 	Processors/6502/State/State.cpp
