@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <iterator>
 #include <numeric>
 #include <vector>
 
@@ -125,20 +126,38 @@ public:
 		return coefficients_.size();
 	}
 
-	FIRFilter &resize(const size_t size) {
-		assert(size & 1);
+	template <typename IteratorT>
+	void copy_to(
+		IteratorT begin,
+		IteratorT end,
+		const std::function<void(IteratorT, CoefficientType)> &applier
+	) const {
+		auto dest = begin;
+		auto src = coefficients_.begin();
 
-		if(size >= coefficients_.size()) {
-			// TODO: find a faster solution than this.
-			const auto half_difference = (size - coefficients_.size()) / 2;
-			std::vector<CoefficientType> zeroes(half_difference);
-			coefficients_.insert(coefficients_.begin(), zeroes.begin(), zeroes.end());
-			coefficients_.insert(coefficients_.end(), zeroes.begin(), zeroes.end());
-			return *this;
+		const auto destination_size = size_t(std::distance(begin, end));
+		if(destination_size <= coefficients_.size()) {
+			std::advance(src, (coefficients_.size() - destination_size) / 2);
+		} else {
+			std::advance(dest, (destination_size - coefficients_.size()) / 2);
 		}
 
-//		const auto total = std::accumulate(coefficients_.begin(), coefficients_.end(), CoefficientType{});
-		return *this;
+		auto steps = std::min(destination_size, coefficients_.size());
+		while(steps--) {
+			applier(dest, *src);
+			++dest;
+			++src;
+		}
+	}
+
+	template <typename IteratorT>
+	void copy_to(
+		const IteratorT begin,
+		const IteratorT end
+	) const {
+		copy_to(begin, end, [](const IteratorT target, const CoefficientType coefficient) {
+			*target = coefficient;
+		});
 	}
 
 private:

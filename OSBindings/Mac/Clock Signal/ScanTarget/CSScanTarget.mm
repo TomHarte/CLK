@@ -695,56 +695,40 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 			// Generate the chrominance filter.
 			{
-				simd::float3 firCoefficients[8]{};
+				using Coefficients3 = std::array<simd::float3, 15>;
+				Coefficients3 firCoefficients{};
 
 				// Initial seed: a box filter for the chrominance parts and no filter at all for luminance.
 				const auto chromaCoefficients =
 					SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(
 						radiansPerPixel,
 						3.141592654f * 2.0f
-					).resize(15);
+					);
 
-				_chromaKernelSize = 15;
-				for(size_t c = 0; c < 8; ++c) {
-					// Bit of a fix here: if the pipeline is for composite then assume that chroma separation wasn't
-					// perfect and deemphasise the colour.
-					firCoefficients[c].y = firCoefficients[c].z =
-						chromaCoefficients[c] * (isSVideoOutput ? 2.0f : 1.25f);
-					if(fabsf(chromaCoefficients[c]) < 0.01f) {
-						_chromaKernelSize -= 2;
+				chromaCoefficients.copy_to<Coefficients3::iterator>(
+					firCoefficients.begin(),
+					firCoefficients.end(),
+					[&](auto destination, float value) {
+						destination->y = destination->z = value * (isSVideoOutput ? 2.0f : 1.25f);
 					}
-				}
-				firCoefficients[7].x = 1.0f;
+				);
+				_chromaKernelSize = chromaCoefficients.size();
 
-
-//				const SignalProcessing::FIRFilter sharpenFilter(15, 1368, 60.0f, 227.5f);
-
-
-				// Luminance will be very soft as a result of the separation phase;
-				// apply a sharpen filter to try to undo that.
-				//
-				// This is applied separately in order to partition three parts of the signal rather than two:
-				//
-				//	1) the luminance;
-				//	2) not the luminance:
-				//		2a) the chrominance; and
-				//		2b) some noise.
-				//
-				// There are real numerical hazards here given the low number of taps I am permitting to be used,
-				// so the sharpen filter below is just one that I found worked well. Since all numbers are fixed, the
-				// actual cutoff frequency is going to be a function of the input clock, which is a bit phoney but the
-				// best way to stay safe within the PCM sampling limits.
+				// Sharpen the luminance a touch if it was sourced through separation.
 				if(!isSVideoOutput) {
 					const auto sharpen
 						= SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
 							15, 1368, 60.0f, 227.5f);
 
-					const size_t offset = (15 - sharpen.size()) / 2;
-					for(size_t c = offset; c < 8; ++c) {
-						firCoefficients[c].x = sharpen[c - offset];
-					}
-
-					_chromaKernelSize = std::max(_chromaKernelSize, sharpen.size());
+					chromaCoefficients.copy_to<Coefficients3::iterator>(
+						firCoefficients.begin(),
+						firCoefficients.end(),
+						[&](auto destination, float value) {
+							destination->x = value;
+						}
+					);
+				} else {
+					firCoefficients[7].x = 1.0f;
 				}
 
 				// Convert to half-size floats.
@@ -755,21 +739,23 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 			// Generate the luminance separation filter and determine its required size.
 			{
-				simd::float2 lumaCoefficients[8]{};
+				using Coefficients2 = std::array<simd::float2, 15>;
+				Coefficients2 lumaCoefficients{};
+
 				const auto coefficients =
 					SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(
 						radiansPerPixel,
 						3.141592654f * 2.0f
-					).resize(15);
-				_lumaKernelSize = 15;
-				for(size_t c = 0; c < 8; ++c) {
-					lumaCoefficients[c].x = coefficients[c];// * 1.15f;
-					lumaCoefficients[c].y = -coefficients[c];
+					);
 
-					if(fabsf(coefficients[c]) < 0.01f) {
-						_lumaKernelSize -= 2;
+				coefficients.copy_to<Coefficients2::iterator>(
+					lumaCoefficients.begin(),
+					lumaCoefficients.end(),
+					[&](auto destination, float value) {
+						destination->x = value;
+						destination->y = -value;
 					}
-				}
+				);
 				lumaCoefficients[7].y += 1.0f;
 
 				for(size_t c = 0; c < 8; ++c) {
