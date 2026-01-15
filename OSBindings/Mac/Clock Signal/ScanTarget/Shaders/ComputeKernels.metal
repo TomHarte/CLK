@@ -10,6 +10,10 @@
 
 #include <metal_stdlib>
 
+namespace {
+constexpr constant uint KernelCentre = 15;
+}
+
 // MARK: - Filters for the chrominance portion of an UnfilteredYUVAmplitude texture, to remove high-frequency noise.
 
 /// Applies a filter and a colour space conversion, and optionally gamma.
@@ -59,9 +63,9 @@ template <bool applyGamma> void filterChromaKernel(
 
 	const half4 output = half4(uniforms.toRGB * colour * uniforms.outputMultiplier, uniforms.outputAlpha);
 	if(applyGamma) {
-		outTexture.write(metal::pow(output, uniforms.outputGamma), gid + uint2(7, offset));
+		outTexture.write(metal::pow(output, uniforms.outputGamma), gid + uint2(KernelCentre, offset));
 	} else {
-		outTexture.write(output, gid + uint2(7, offset));
+		outTexture.write(output, gid + uint2(KernelCentre, offset));
 	}
 }
 
@@ -103,7 +107,7 @@ void setSeparatedLumaChroma(
 			isColour * (centreSample.gb - half2(0.5f)) * chroma + half2(0.5f),
 			1.0f
 		),
-		gid + uint2(7, offset)
+		gid + uint2(KernelCentre, offset)
 	);
 }
 
@@ -166,81 +170,81 @@ kernel void separateLumaKernel15(
 	return setSeparatedLumaChroma(luminanceChrominance, centreSample, outTexture, gid, offset);
 }
 
-kernel void separateLumaKernel9(
-	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
-	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
-	const uint2 gid [[thread_position_in_grid]],
-	const constant Uniforms &uniforms [[buffer(0)]],
-	const constant int &offset [[buffer(1)]]
-) {
-	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
-	const half rawSamples[] = {
-		inTexture.read(gid + uint2(3, offset)).r,	inTexture.read(gid + uint2(4, offset)).r,
-		inTexture.read(gid + uint2(5, offset)).r,	inTexture.read(gid + uint2(6, offset)).r,
-		centreSample.r,
-		inTexture.read(gid + uint2(8, offset)).r,	inTexture.read(gid + uint2(9, offset)).r,
-		inTexture.read(gid + uint2(10, offset)).r,	inTexture.read(gid + uint2(11, offset)).r
-	};
-
-#define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
-	const half2 luminanceChrominance =
-		Sample(0, 3) + Sample(1, 4) + Sample(2, 5) + Sample(3, 6) +
-		Sample(4, 7) +
-		Sample(5, 6) + Sample(6, 5) + Sample(7, 4) + Sample(8, 3);
-#undef Sample
-
-	return setSeparatedLumaChroma(luminanceChrominance, centreSample, outTexture, gid, offset);
-}
-
-kernel void separateLumaKernel7(
-	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
-	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
-	const uint2 gid [[thread_position_in_grid]],
-	const constant Uniforms &uniforms [[buffer(0)]],
-	const constant int &offset [[buffer(1)]]
-) {
-	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
-	const half rawSamples[] = {
-		inTexture.read(gid + uint2(4, offset)).r,
-		inTexture.read(gid + uint2(5, offset)).r,	inTexture.read(gid + uint2(6, offset)).r,
-		centreSample.r,
-		inTexture.read(gid + uint2(8, offset)).r,	inTexture.read(gid + uint2(9, offset)).r,
-		inTexture.read(gid + uint2(10, offset)).r
-	};
-
-#define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
-	const half2 luminanceChrominance =
-		Sample(0, 4) + Sample(1, 5) + Sample(2, 6) +
-		Sample(3, 7) +
-		Sample(4, 6) + Sample(5, 5) + Sample(6, 4);
-#undef Sample
-
-	return setSeparatedLumaChroma(luminanceChrominance, centreSample, outTexture, gid, offset);
-}
-
-kernel void separateLumaKernel5(
-	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
-	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
-	const uint2 gid [[thread_position_in_grid]],
-	const constant Uniforms &uniforms [[buffer(0)]],
-	const constant int &offset [[buffer(1)]]
-) {
-	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
-	const half rawSamples[] = {
-		inTexture.read(gid + uint2(5, offset)).r,	inTexture.read(gid + uint2(6, offset)).r,
-		centreSample.r,
-		inTexture.read(gid + uint2(8, offset)).r,	inTexture.read(gid + uint2(9, offset)).r,
-	};
-
-#define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
-	const half2 luminanceChrominance =
-		Sample(0, 5) + Sample(1, 6) +
-		Sample(2, 7) +
-		Sample(3, 6) + Sample(4, 5);
-#undef Sample
-
-	return setSeparatedLumaChroma(luminanceChrominance, centreSample, outTexture, gid, offset);
-}
+//kernel void separateLumaKernel9(
+//	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
+//	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
+//	const uint2 gid [[thread_position_in_grid]],
+//	const constant Uniforms &uniforms [[buffer(0)]],
+//	const constant int &offset [[buffer(1)]]
+//) {
+//	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
+//	const half rawSamples[] = {
+//		inTexture.read(gid + uint2(3, offset)).r,	inTexture.read(gid + uint2(4, offset)).r,
+//		inTexture.read(gid + uint2(5, offset)).r,	inTexture.read(gid + uint2(6, offset)).r,
+//		centreSample.r,
+//		inTexture.read(gid + uint2(8, offset)).r,	inTexture.read(gid + uint2(9, offset)).r,
+//		inTexture.read(gid + uint2(10, offset)).r,	inTexture.read(gid + uint2(11, offset)).r
+//	};
+//
+//#define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
+//	const half2 luminanceChrominance =
+//		Sample(0, 3) + Sample(1, 4) + Sample(2, 5) + Sample(3, 6) +
+//		Sample(4, 7) +
+//		Sample(5, 6) + Sample(6, 5) + Sample(7, 4) + Sample(8, 3);
+//#undef Sample
+//
+//	return setSeparatedLumaChroma(luminanceChrominance, centreSample, outTexture, gid, offset);
+//}
+//
+//kernel void separateLumaKernel7(
+//	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
+//	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
+//	const uint2 gid [[thread_position_in_grid]],
+//	const constant Uniforms &uniforms [[buffer(0)]],
+//	const constant int &offset [[buffer(1)]]
+//) {
+//	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
+//	const half rawSamples[] = {
+//		inTexture.read(gid + uint2(4, offset)).r,
+//		inTexture.read(gid + uint2(5, offset)).r,	inTexture.read(gid + uint2(6, offset)).r,
+//		centreSample.r,
+//		inTexture.read(gid + uint2(8, offset)).r,	inTexture.read(gid + uint2(9, offset)).r,
+//		inTexture.read(gid + uint2(10, offset)).r
+//	};
+//
+//#define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
+//	const half2 luminanceChrominance =
+//		Sample(0, 4) + Sample(1, 5) + Sample(2, 6) +
+//		Sample(3, 7) +
+//		Sample(4, 6) + Sample(5, 5) + Sample(6, 4);
+//#undef Sample
+//
+//	return setSeparatedLumaChroma(luminanceChrominance, centreSample, outTexture, gid, offset);
+//}
+//
+//kernel void separateLumaKernel5(
+//	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
+//	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
+//	const uint2 gid [[thread_position_in_grid]],
+//	const constant Uniforms &uniforms [[buffer(0)]],
+//	const constant int &offset [[buffer(1)]]
+//) {
+//	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
+//	const half rawSamples[] = {
+//		inTexture.read(gid + uint2(5, offset)).r,	inTexture.read(gid + uint2(6, offset)).r,
+//		centreSample.r,
+//		inTexture.read(gid + uint2(8, offset)).r,	inTexture.read(gid + uint2(9, offset)).r,
+//	};
+//
+//#define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
+//	const half2 luminanceChrominance =
+//		Sample(0, 5) + Sample(1, 6) +
+//		Sample(2, 7) +
+//		Sample(3, 6) + Sample(4, 5);
+//#undef Sample
+//
+//	return setSeparatedLumaChroma(luminanceChrominance, centreSample, outTexture, gid, offset);
+//}
 
 // MARK: - Solid fills.
 
