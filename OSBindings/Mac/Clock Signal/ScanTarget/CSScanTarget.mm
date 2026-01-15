@@ -94,7 +94,8 @@
 
 namespace {
 
-constexpr int BufferWidth = 4096;
+constexpr int BufferWidth = 2048;
+constexpr float MinColourSubcarrierMultiplier = 4.0f;
 
 /// Provides a container for __fp16 versions of tightly-packed single-precision plain old data with a copy assignment constructor.
 template <typename NaturalType> struct HalfConverter {
@@ -142,17 +143,22 @@ constexpr MTLResourceOptions SharedResourceOptionsTexture =
 
 #define uniforms() reinterpret_cast<Uniforms *>(_uniformsBuffer.contents)
 
-#define RangePerform(start, end, size, func)	\
-	if((start) != (end)) {	\
-		if((start) < (end)) {	\
-			func((start), (end) - (start));	\
-		} else {	\
-			func((start), (size) - (start));	\
-			if(end) {	\
-				func(0, (end));	\
-			}	\
-		}	\
+void range_perform(
+	const size_t start,
+	const size_t end,
+	const size_t size,
+	const std::function<void(size_t start, size_t length)> &func
+) {
+	if(start == end) return;
+	if(start < end) {
+		func(start, end - start);
+		return;
 	}
+
+	func(start, size - start);
+	if(end) func(0, end);
+}
+
 }
 
 using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
@@ -674,11 +680,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		float &cyclesMultiplier = uniforms()->cyclesMultiplier;
 		if(_pipeline != Pipeline::DirectToDisplay) {
-			// Pick a suitable cycle multiplier;
-			//
-			// Minimum is eight times the colour subcarrier. Four times is enough to capture what's in the subcarrier,
-			// but while decoding it'll be multiplied up so that there's yet-to-be-filtered noise
-			const float minimumSize = 8.0f * float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
+			const float minimumSize =
+				MinColourSubcarrierMultiplier *
+				float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 
 			while(cyclesMultiplier * modals.cycles_per_line < minimumSize) {
 				cyclesMultiplier += 1.0f;
@@ -883,9 +887,19 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder setCullMode:MTLCullModeBack];
 #endif
 
-#define OutputStrips(start, size)	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:size baseInstance:start]
-	RangePerform(start, end, _pipeline != Pipeline::DirectToDisplay ? NumBufferedLines : NumBufferedScans, OutputStrips);
-#undef OutputStrips
+	range_perform(
+		start,
+		end,
+		_pipeline != Pipeline::DirectToDisplay ? NumBufferedLines : NumBufferedScans,
+		[&](const size_t start, const size_t size) {
+			[encoder
+				drawPrimitives:MTLPrimitiveTypeTriangleStrip
+				vertexStart:0
+				vertexCount:4
+				instanceCount:size
+				baseInstance:start
+			];
+		});
 
 	// Complete encoding.
 	[encoder endEncoding];
@@ -921,9 +935,20 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
 	[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
 
-#define OutputScans(start, size)	[encoder drawPrimitives:MTLPrimitiveTypeLine vertexStart:0 vertexCount:2 instanceCount:size baseInstance:start]
-	RangePerform(outputArea.start.scan, outputArea.end.scan, NumBufferedScans, OutputScans);
-#undef OutputScans
+	range_perform(
+		outputArea.start.scan,
+		outputArea.end.scan,
+		NumBufferedScans,
+		[&](const size_t start, const size_t size) {
+			[encoder
+				drawPrimitives:MTLPrimitiveTypeLine
+				vertexStart:0
+				vertexCount:2
+				instanceCount:size
+				baseInstance:start
+			];
+		}
+	);
 	[encoder endEncoding];
 	encoder = nil;
 }
@@ -972,11 +997,20 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		if(outputArea.end.line != outputArea.start.line) {
 
 			// Ensure texture changes are noted.
-			const auto writeAreaModificationStart = size_t(outputArea.start.write_area_x + outputArea.start.write_area_y * BufferWidth) * _bytesPerInputPixel;
-			const auto writeAreaModificationEnd = size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * BufferWidth) * _bytesPerInputPixel;
-#define FlushRegion(start, size)	[_writeAreaBuffer didModifyRange:NSMakeRange(start, size)]
-			RangePerform(writeAreaModificationStart, writeAreaModificationEnd, _totalTextureBytes, FlushRegion);
-#undef FlushRegion
+			const auto writeAreaModificationStart =
+				size_t(outputArea.start.write_area_x + outputArea.start.write_area_y * BufferWidth)
+					* _bytesPerInputPixel;
+			const auto writeAreaModificationEnd =
+				size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * BufferWidth)
+					* _bytesPerInputPixel;
+			range_perform(
+				writeAreaModificationStart,
+				writeAreaModificationEnd,
+				_totalTextureBytes,
+				[&](const size_t start, const size_t size) {
+					[_writeAreaBuffer didModifyRange:NSMakeRange(start, size)];
+				}
+			);
 
 			// Obtain a source for render command encoders.
 			id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
