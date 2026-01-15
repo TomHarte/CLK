@@ -25,28 +25,36 @@ template <bool applyGamma> void filterChromaKernel(
 ) {
 	constexpr half4 moveToZero(0.0f, 0.5f, 0.5f, 0.0f);
 	const half4 rawSamples[] = {
-		inTexture.read(gid + uint2(0, offset)) - moveToZero,
-		inTexture.read(gid + uint2(1, offset)) - moveToZero,
-		inTexture.read(gid + uint2(2, offset)) - moveToZero,
-		inTexture.read(gid + uint2(3, offset)) - moveToZero,
-		inTexture.read(gid + uint2(4, offset)) - moveToZero,
-		inTexture.read(gid + uint2(5, offset)) - moveToZero,
-		inTexture.read(gid + uint2(6, offset)) - moveToZero,
-		inTexture.read(gid + uint2(7, offset)) - moveToZero,
-		inTexture.read(gid + uint2(8, offset)) - moveToZero,
-		inTexture.read(gid + uint2(9, offset)) - moveToZero,
-		inTexture.read(gid + uint2(10, offset)) - moveToZero,
-		inTexture.read(gid + uint2(11, offset)) - moveToZero,
-		inTexture.read(gid + uint2(12, offset)) - moveToZero,
-		inTexture.read(gid + uint2(13, offset)) - moveToZero,
+		inTexture.read(gid + uint2(0, offset)) - moveToZero,	inTexture.read(gid + uint2(1, offset)) - moveToZero,
+		inTexture.read(gid + uint2(2, offset)) - moveToZero,	inTexture.read(gid + uint2(3, offset)) - moveToZero,
+		inTexture.read(gid + uint2(4, offset)) - moveToZero,	inTexture.read(gid + uint2(5, offset)) - moveToZero,
+		inTexture.read(gid + uint2(6, offset)) - moveToZero,	inTexture.read(gid + uint2(7, offset)) - moveToZero,
+		inTexture.read(gid + uint2(8, offset)) - moveToZero,	inTexture.read(gid + uint2(9, offset)) - moveToZero,
+		inTexture.read(gid + uint2(10, offset)) - moveToZero,	inTexture.read(gid + uint2(11, offset)) - moveToZero,
+		inTexture.read(gid + uint2(12, offset)) - moveToZero,	inTexture.read(gid + uint2(13, offset)) - moveToZero,
 		inTexture.read(gid + uint2(14, offset)) - moveToZero,
+		inTexture.read(gid + uint2(15, offset)) - moveToZero,
+		inTexture.read(gid + uint2(16, offset)) - moveToZero,
+		inTexture.read(gid + uint2(17, offset)) - moveToZero,	inTexture.read(gid + uint2(18, offset)) - moveToZero,
+		inTexture.read(gid + uint2(19, offset)) - moveToZero,	inTexture.read(gid + uint2(20, offset)) - moveToZero,
+		inTexture.read(gid + uint2(21, offset)) - moveToZero,	inTexture.read(gid + uint2(22, offset)) - moveToZero,
+		inTexture.read(gid + uint2(23, offset)) - moveToZero,	inTexture.read(gid + uint2(24, offset)) - moveToZero,
+		inTexture.read(gid + uint2(25, offset)) - moveToZero,	inTexture.read(gid + uint2(26, offset)) - moveToZero,
+		inTexture.read(gid + uint2(27, offset)) - moveToZero,	inTexture.read(gid + uint2(28, offset)) - moveToZero,
+		inTexture.read(gid + uint2(29, offset)) - moveToZero,	inTexture.read(gid + uint2(30, offset)) - moveToZero,
 	};
 
 #define Sample(x, y) uniforms.chromaKernel[y] * rawSamples[x].rgb
 	const half3 colour =
-		Sample(0, 0) + Sample(1, 1) + Sample(2, 2) + Sample(3, 3) + Sample(4, 4) + Sample(5, 5) + Sample(6, 6) +
-		Sample(7, 7) +
-		Sample(8, 6) + Sample(9, 5) + Sample(10, 4) + Sample(11, 3) + Sample(12, 2) + Sample(13, 1) + Sample(14, 0);
+		Sample(0, 0) +		Sample(1, 1) +		Sample(2, 2) +		Sample(3, 3) +
+		Sample(4, 4) +		Sample(5, 5) +		Sample(6, 6) +		Sample(7, 7) +
+		Sample(8, 8) +		Sample(9, 9) +		Sample(10, 10) +	Sample(11, 11) +
+		Sample(12, 12) +	Sample(13, 13) +	Sample(14, 14) +
+		Sample(15, 15) +
+		Sample(16, 14) +	Sample(17, 13) +	Sample(18, 12) +
+		Sample(19, 11) +	Sample(20, 10) +	Sample(21, 9) +		Sample(22, 8) +
+		Sample(23, 7) +		Sample(24, 6) +		Sample(25, 5) +		Sample(26, 4) +
+		Sample(27, 3) +		Sample(28, 2) +		Sample(29, 1) +		Sample(30, 0);
 #undef Sample
 
 	const half4 output = half4(uniforms.toRGB * colour * uniforms.outputMultiplier, uniforms.outputAlpha);
@@ -121,24 +129,38 @@ kernel void separateLumaKernel15(
 	const constant Uniforms &uniforms [[buffer(0)]],
 	const constant int &offset [[buffer(1)]]
 ) {
-	const half4 centreSample = inTexture.read(gid + uint2(7, offset));
+	const half4 centreSample = inTexture.read(gid + uint2(15, offset));
 	const half rawSamples[] = {
 		inTexture.read(gid + uint2(0, offset)).r,	inTexture.read(gid + uint2(1, offset)).r,
 		inTexture.read(gid + uint2(2, offset)).r,	inTexture.read(gid + uint2(3, offset)).r,
 		inTexture.read(gid + uint2(4, offset)).r,	inTexture.read(gid + uint2(5, offset)).r,
-		inTexture.read(gid + uint2(6, offset)).r,
+		inTexture.read(gid + uint2(6, offset)).r,	inTexture.read(gid + uint2(7, offset)).r,
+		inTexture.read(gid + uint2(8, offset)).r,	inTexture.read(gid + uint2(9, offset)).r,
+		inTexture.read(gid + uint2(10, offset)).r,	inTexture.read(gid + uint2(11, offset)).r,
+		inTexture.read(gid + uint2(12, offset)).r,	inTexture.read(gid + uint2(13, offset)).r,
+		inTexture.read(gid + uint2(14, offset)).r,
 		centreSample.r,
-		inTexture.read(gid + uint2(8, offset)).r,
-		inTexture.read(gid + uint2(9, offset)).r,	inTexture.read(gid + uint2(10, offset)).r,
-		inTexture.read(gid + uint2(11, offset)).r,	inTexture.read(gid + uint2(12, offset)).r,
-		inTexture.read(gid + uint2(13, offset)).r,	inTexture.read(gid + uint2(14, offset)).r,
+		inTexture.read(gid + uint2(16, offset)).r,
+		inTexture.read(gid + uint2(17, offset)).r,	inTexture.read(gid + uint2(18, offset)).r,
+		inTexture.read(gid + uint2(19, offset)).r,	inTexture.read(gid + uint2(20, offset)).r,
+		inTexture.read(gid + uint2(21, offset)).r,	inTexture.read(gid + uint2(22, offset)).r,
+		inTexture.read(gid + uint2(23, offset)).r,	inTexture.read(gid + uint2(24, offset)).r,
+		inTexture.read(gid + uint2(25, offset)).r,	inTexture.read(gid + uint2(26, offset)).r,
+		inTexture.read(gid + uint2(27, offset)).r,	inTexture.read(gid + uint2(28, offset)).r,
+		inTexture.read(gid + uint2(29, offset)).r,	inTexture.read(gid + uint2(30, offset)).r,
 	};
 
 #define Sample(x, y) uniforms.lumaKernel[y] * rawSamples[x]
 	const half2 luminanceChrominance =
-		Sample(0, 0) + Sample(1, 1) + Sample(2, 2) + Sample(3, 3) + Sample(4, 4) + Sample(5, 5) + Sample(6, 6) +
-		Sample(7, 7) +
-		Sample(8, 6) + Sample(9, 5) + Sample(10, 4) + Sample(11, 3) + Sample(12, 2) + Sample(13, 1) + Sample(14, 0);
+		Sample(0, 0) + 		Sample(1, 1) + 		Sample(2, 2) + 		Sample(3, 3) +
+		Sample(4, 4) + 		Sample(5, 5) + 		Sample(6, 6) +		Sample(7, 7) +
+		Sample(8, 8) + 		Sample(9, 9) + 		Sample(10, 10) +	Sample(11, 11) +
+		Sample(12, 12) + 	Sample(13, 13) + 	Sample(14, 14) +
+		Sample(15, 15) +
+		Sample(16, 14) + 	Sample(17, 13) + 	Sample(18, 12) +
+		Sample(19, 11) + 	Sample(20, 10) + 	Sample(21, 9) + 	Sample(22, 8) +
+		Sample(23, 7) + 	Sample(24, 6) + 	Sample(25, 5) +		Sample(26, 4) +
+		Sample(27, 3) + 	Sample(28, 2) + 	Sample(29, 1) +		Sample(30, 0);
 #undef Sample
 
 	return setSeparatedLumaChroma(luminanceChrominance, centreSample, outTexture, gid, offset);

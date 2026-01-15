@@ -16,7 +16,7 @@
 #include <optional>
 
 #include "BufferingScanTarget.hpp"
-#include "FIRFilter.hpp"
+#include "FilterGenerator.hpp"
 
 /*
 
@@ -94,6 +94,8 @@
 
 namespace {
 
+constexpr int BufferWidth = 4096;
+
 /// Provides a container for __fp16 versions of tightly-packed single-precision plain old data with a copy assignment constructor.
 template <typename NaturalType> struct HalfConverter {
 	__fp16 elements[sizeof(NaturalType) / sizeof(float)];
@@ -119,8 +121,8 @@ struct Uniforms {
 	HalfConverter<simd::float3x3> toRGB;
 	HalfConverter<simd::float3x3> fromRGB;
 
-	HalfConverter<simd::float3> chromaKernel[8];
-	HalfConverter<simd::float2> lumaKernel[8];
+	HalfConverter<simd::float3> chromaKernel[16];
+	HalfConverter<simd::float2> lumaKernel[16];
 
 	__fp16 outputAlpha;
 	__fp16 outputGamma;
@@ -246,7 +248,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// Additional pipeline information.
 	size_t _lumaKernelSize;
-	size_t _chromaKernelSize;
 	std::atomic<bool> _isUsingSupersampling;
 
 	// The output view and its aspect ratio.
@@ -469,7 +470,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// Build a descriptor for any intermediate line texture.
 	MTLTextureDescriptor *const lineTextureDescriptor = [MTLTextureDescriptor
 		texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
-		width:2048		// This 'should do'.
+		width:BufferWidth
 		height:NumBufferedLines
 		mipmapped:NO];
 	lineTextureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
@@ -671,15 +672,19 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			_pipeline = isSVideoOutput ? Pipeline::SVideo : Pipeline::CompositeColour;
 		}
 
-		uniforms()->cyclesMultiplier = 1.0f;
+		float &cyclesMultiplier = uniforms()->cyclesMultiplier;
 		if(_pipeline != Pipeline::DirectToDisplay) {
-			// Pick a suitable cycle multiplier.
-			const float minimumSize = 4.0f * float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
-			while(uniforms()->cyclesMultiplier * modals.cycles_per_line < minimumSize) {
-				uniforms()->cyclesMultiplier += 1.0f;
+			// Pick a suitable cycle multiplier;
+			//
+			// Minimum is eight times the colour subcarrier. Four times is enough to capture what's in the subcarrier,
+			// but while decoding it'll be multiplied up so that there's yet-to-be-filtered noise
+			const float minimumSize = 8.0f * float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 
-				if(uniforms()->cyclesMultiplier * modals.cycles_per_line > 2048) {
-					uniforms()->cyclesMultiplier -= 1.0f;
+			while(cyclesMultiplier * modals.cycles_per_line < minimumSize) {
+				cyclesMultiplier += 1.0f;
+
+				if(cyclesMultiplier * modals.cycles_per_line > BufferWidth) {
+					cyclesMultiplier -= 1.0f;
 					break;
 				}
 			}
@@ -689,17 +694,31 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				NSUInteger(modals.cycles_per_line) * NSUInteger(uniforms()->cyclesMultiplier);
 			const float colourCyclesPerLine =
 				float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
+			using DecodingPath = Outputs::Display::FilterGenerator::DecodingPath;
+
+			Outputs::Display::FilterGenerator generator(
+				_lineBufferPixelsPerLine,
+				colourCyclesPerLine,
+				15,
+				isSVideoOutput ? DecodingPath::SVideo : DecodingPath::Composite
+			);
 
 			// Compute radians per pixel.
 			const float radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / float(_lineBufferPixelsPerLine);
 
 			// Generate the chrominance filter.
 			{
-				using Coefficients3 = std::array<simd::float3, 15>;
+				using Coefficients3 = std::array<simd::float3, 31>;
 				Coefficients3 firCoefficients{};
 
 				// Initial seed: a box filter for the chrominance parts and no filter at all for luminance.
 				const auto chromaCoefficients =
+//					SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+//						firCoefficients.size(),
+//						_lineBufferPixelsPerLine,
+//						0.0,
+//						colourCyclesPerLine * 0.5f
+//					);
 					SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(
 						radiansPerPixel,
 						3.141592654f * 2.0f
@@ -710,13 +729,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 					firCoefficients.end(),
 					[&](auto destination, float value) {
 						destination->y = destination->z = value * (isSVideoOutput ? 2.0f : 1.25f);
+						(void)value;
 					}
 				);
-				_chromaKernelSize = chromaCoefficients.size();
 
 				// Sharpen the luminance a touch if it was sourced through separation.
 				if(!isSVideoOutput) {
-					SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(15, 1368, 60.0f, 227.5f)
+					SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+						firCoefficients.size(), 1368, 20.0f, 227.5f)
 						.copy_to<Coefficients3::iterator>(
 							firCoefficients.begin(),
 							firCoefficients.end(),
@@ -724,20 +744,19 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 								destination->x = value;
 							}
 						);
-					_chromaKernelSize = 15;
 				} else {
-					firCoefficients[7].x = 1.0f;
+					firCoefficients[15].x = 1.0f;
 				}
 
 				// Convert to half-size floats.
-				for(size_t c = 0; c < 8; ++c) {
+				for(size_t c = 0; c < 16; ++c) {
 					uniforms()->chromaKernel[c] = firCoefficients[c];
 				}
 			}
 
 			// Generate the luminance separation filter and determine its required size.
 			{
-				using Coefficients2 = std::array<simd::float2, 15>;
+				using Coefficients2 = std::array<simd::float2, 31>;
 				Coefficients2 lumaCoefficients{};
 
 				const auto coefficients =
@@ -745,6 +764,12 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						radiansPerPixel,
 						3.141592654f * 2.0f
 					);
+//					SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+//						lumaCoefficients.size(),
+//						_lineBufferPixelsPerLine,
+//						0.0,
+//						colourCyclesPerLine * 0.75f
+//					);
 
 				coefficients.copy_to<Coefficients2::iterator>(
 					lumaCoefficients.begin(),
@@ -754,10 +779,26 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						destination->y = -value;
 					}
 				);
-				lumaCoefficients[7].y += 1.0f;
-				_lumaKernelSize = coefficients.size();
 
-				for(size_t c = 0; c < 8; ++c) {
+//				const auto coefficients2 =
+//					SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+//						lumaCoefficients.size(),
+//						_lineBufferPixelsPerLine,
+//						colourCyclesPerLine,
+//						_lineBufferPixelsPerLine * 0.5f
+//					);
+//				coefficients2.copy_to<Coefficients2::iterator>(
+//					lumaCoefficients.begin(),
+//					lumaCoefficients.end(),
+//					[&](auto destination, float value) {
+//						destination->y = value;
+//					}
+//				);
+
+				lumaCoefficients[15].y += 1.0f;
+				_lumaKernelSize = 15;//coefficients.size();
+
+				for(size_t c = 0; c < 16; ++c) {
 					uniforms()->lumaKernel[c] = lumaCoefficients[c];
 				}
 			}
@@ -931,8 +972,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		if(outputArea.end.line != outputArea.start.line) {
 
 			// Ensure texture changes are noted.
-			const auto writeAreaModificationStart = size_t(outputArea.start.write_area_x + outputArea.start.write_area_y * 2048) * _bytesPerInputPixel;
-			const auto writeAreaModificationEnd = size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * 2048) * _bytesPerInputPixel;
+			const auto writeAreaModificationStart = size_t(outputArea.start.write_area_x + outputArea.start.write_area_y * BufferWidth) * _bytesPerInputPixel;
+			const auto writeAreaModificationEnd = size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * BufferWidth) * _bytesPerInputPixel;
 #define FlushRegion(start, size)	[_writeAreaBuffer didModifyRange:NSMakeRange(start, size)]
 			RangePerform(writeAreaModificationStart, writeAreaModificationEnd, _totalTextureBytes, FlushRegion);
 #undef FlushRegion

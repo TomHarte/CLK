@@ -161,6 +161,17 @@ public:
 		});
 	}
 
+	FIRFilter &operator *(const CoefficientType rhs) {
+		for(auto &coefficient: coefficients_) {
+			if constexpr (type == ScalarType::Float) {
+				coefficient *= rhs;
+			} else {
+				coefficient = (coefficient * rhs) >> FixedShift;
+			}
+		}
+		return *this;
+	}
+
 private:
 	std::vector<CoefficientType> coefficients_;
 };

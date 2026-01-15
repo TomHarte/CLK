@@ -30,11 +30,11 @@ struct Uniforms {
 
 	// Describes the filter in use for chroma filtering; it'll be
 	// 15 coefficients but they're symmetrical around the centre.
-	half3 chromaKernel[8];
+	half3 chromaKernel[16];
 
 	// Describes the filter in use for luma filtering; 15 coefficients
 	// symmetrical around the centre.
-	half2 lumaKernel[8];
+	half2 lumaKernel[16];
 
 	// Sets the opacity at which output strips are drawn.
 	half outputAlpha;
