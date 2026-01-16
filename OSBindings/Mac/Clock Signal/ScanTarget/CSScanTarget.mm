@@ -733,24 +733,23 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 					firCoefficients.end(),
 					[&](auto destination, float value) {
 						destination->y = destination->z = value * (isSVideoOutput ? 2.0f : 1.25f);
-						(void)value;
 					}
 				);
 
 				// Sharpen the luminance a touch if it was sourced through separation.
-				if(!isSVideoOutput) {
-					SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-						firCoefficients.size(), 1368, 20.0f, 227.5f)
-						.copy_to<Coefficients3::iterator>(
-							firCoefficients.begin(),
-							firCoefficients.end(),
-							[&](auto destination, float value) {
-								destination->x = value;
-							}
-						);
-				} else {
+//				if(!isSVideoOutput) {
+//					SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+//						firCoefficients.size(), 1368, 20.0f, 227.5f)
+//						.copy_to<Coefficients3::iterator>(
+//							firCoefficients.begin(),
+//							firCoefficients.end(),
+//							[&](auto destination, float value) {
+//								destination->x = value;
+//							}
+//						);
+//				} else {
 					firCoefficients[15].x = 1.0f;
-				}
+//				}
 
 				// Convert to half-size floats.
 				for(size_t c = 0; c < 16; ++c) {
@@ -780,7 +779,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 					lumaCoefficients.end(),
 					[&](auto destination, float value) {
 						destination->x = value;
-						destination->y = -value;
+						destination->y -= value;
 					}
 				);
 
@@ -789,13 +788,13 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 //						lumaCoefficients.size(),
 //						_lineBufferPixelsPerLine,
 //						colourCyclesPerLine,
-//						_lineBufferPixelsPerLine * 0.5f
+//						_lineBufferPixelsPerLine
 //					);
 //				coefficients2.copy_to<Coefficients2::iterator>(
 //					lumaCoefficients.begin(),
 //					lumaCoefficients.end(),
 //					[&](auto destination, float value) {
-//						destination->y = value;
+//						destination->y += value;
 //					}
 //				);
 
