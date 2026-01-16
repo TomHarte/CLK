@@ -243,9 +243,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	NSUInteger _lineBufferPixelsPerLine;
 
 	size_t _lineOffsetBuffer;
-	id<MTLBuffer> _lineOffsetBuffers[NumBufferedLines];	// Allocating NumBufferedLines buffers ensures these can't possibly be exhausted;
-														// for this list to be exhausted there'd have to be more draw calls in flight than
-														// there are lines for them to operate upon.
+	id<MTLBuffer> _lineOffsetBuffers[NumBufferedLines];	// Allocating NumBufferedLines buffers ensures these can't
+														// possibly be exhausted; for this list to be exhausted there'd
+														// have to be more draw calls in flight than there are lines for
+														// them to operate upon.
 
 	// The scan target in C++-world terms and the non-GPU storage for it.
 	BufferingScanTarget _scanTarget;
@@ -325,7 +326,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// There's a ridiculous amount of overhead in this, but it avoids allocations during drawing,
 		// and a single int per instance is all I need.
 		for(size_t c = 0; c < NumBufferedLines; ++c) {
-			_lineOffsetBuffers[c] = [_view.device newBufferWithLength:sizeof(int) options:SharedResourceOptionsStandard];
+			_lineOffsetBuffers[c] =
+				[_view.device newBufferWithLength:sizeof(int) options:SharedResourceOptionsStandard];
 		}
 
 		// Ensure the is-drawing flag is initially clear.
@@ -338,13 +340,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	return self;
 }
 
-/*!
- @method mtkView:drawableSizeWillChange:
- @abstract Called whenever the drawableSize of the view will change
- @discussion Delegate can recompute view and projection matricies or regenerate any buffers to be compatible with the new view size or resolution
- @param view MTKView which called this method
- @param size New drawable size in pixels
- */
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
 	_viewAspectRatio = size.width / size.height;
 	[self setAspectRatio];
@@ -436,9 +431,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	if(_oldFrameBuffer) {
 		[self copyTexture:_oldFrameBuffer to:_frameBuffer];
 	} else {
-		// TODO: this use of clearTexture is the only reasn _frameBuffer has a marked usage of MTLTextureUsageShaderWrite;
-		// it'd probably be smarter to blank it with geometry rather than potentially complicating
-		// its storage further?
+		// TODO: this use of clearTexture is the only reason _frameBuffer has a marked usage of
+		// MTLTextureUsageShaderWrite; it'd probably be smarter to blank it with geometry rather than potentially
+		// complicating its storage further?
 		[self clearTexture:_frameBuffer];
 	}
 
@@ -769,7 +764,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			// Create the composition render pass.
 			pipelineDescriptor.colorAttachments[0].pixelFormat = _compositionTexture.pixelFormat;
 			pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToComposition"];
-			pipelineDescriptor.fragmentFunction = fragment_function(isSVideoOutput ? @"internalSVideo" : @"internalComposite");
+			pipelineDescriptor.fragmentFunction =
+				fragment_function(isSVideoOutput ? @"internalSVideo" : @"internalComposite");
 
 			_composePipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 
@@ -782,14 +778,16 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		// Build the output pipeline.
 		pipelineDescriptor.colorAttachments[0].pixelFormat = _view.colorPixelFormat;
-		pipelineDescriptor.vertexFunction = [library newFunctionWithName:_pipeline == Pipeline::DirectToDisplay ? @"scanToDisplay" : @"lineToDisplay"];
+		pipelineDescriptor.vertexFunction =
+			[library newFunctionWithName:_pipeline == Pipeline::DirectToDisplay ? @"scanToDisplay" : @"lineToDisplay"];
 
 		if(_pipeline != Pipeline::DirectToDisplay) {
 			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"interpolateFragment"];
 		} else {
 			const bool isRGBOutput = modals.display_type == Outputs::Display::DisplayType::RGB;
 			pipelineDescriptor.fragmentFunction = fragment_function(
-				[isRGBOutput ? @"outputRGB" : @"outputComposite" stringByAppendingString:self.shouldApplyGamma ? @"WithGamma" : @""]
+				[isRGBOutput ? @"outputRGB" : @"outputComposite"
+					stringByAppendingString:self.shouldApplyGamma ? @"WithGamma" : @""]
 			);
 		}
 
@@ -870,7 +868,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	encoder = nil;
 }
 
-- (void)composeOutputArea:(const BufferingScanTarget::OutputArea &)outputArea commandBuffer:(id<MTLCommandBuffer>)commandBuffer {
+- (void)
+	composeOutputArea:(const BufferingScanTarget::OutputArea &)outputArea
+	commandBuffer:(id<MTLCommandBuffer>)commandBuffer
+{
 	// Output all scans to the composition buffer.
 	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_compositionRenderPass];
 	[encoder setRenderPipelineState:_composePipeline];
@@ -908,11 +909,17 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	return buffer;
 }
 
-- (void)dispatchComputeCommandEncoder:(id<MTLComputeCommandEncoder>)encoder pipelineState:(id<MTLComputePipelineState>)pipelineState width:(NSUInteger)width height:(NSUInteger)height offsetBuffer:(id<MTLBuffer>)offsetBuffer {
+- (void)
+	dispatchComputeCommandEncoder:(id<MTLComputeCommandEncoder>)encoder
+	pipelineState:(id<MTLComputePipelineState>)pipelineState
+	width:(NSUInteger)width
+	height:(NSUInteger)height
+	offsetBuffer:(id<MTLBuffer>)offsetBuffer
+{
 	[encoder setBuffer:offsetBuffer offset:0 atIndex:1];
 
-	// This follows the recommendations at https://developer.apple.com/documentation/metal/calculating_threadgroup_and_grid_sizes ;
-	// I currently have no independent opinion whatsoever.
+	// Follows https://developer.apple.com/documentation/metal/calculating_threadgroup_and_grid_sizes ;
+	// I have no independent opinion whatsoever.
 	const MTLSize threadsPerThreadgroup = MTLSizeMake(
 		pipelineState.threadExecutionWidth,
 		pipelineState.maxTotalThreadsPerThreadgroup / pipelineState.threadExecutionWidth,
@@ -925,9 +932,48 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder dispatchThreads:threadsPerGrid threadsPerThreadgroup:threadsPerThreadgroup];
 }
 
+- (void)drawInMTKView:(nonnull MTKView *)view {
+	if(_isDrawing.test_and_set()) {
+		_scanTarget.display_metrics_.announce_draw_status(false);
+		return;
+	}
+
+	// Disable supersampling if performance requires it.
+	if(_isUsingSupersampling && _scanTarget.display_metrics_.should_lower_resolution()) {
+		_isUsingSupersampling = false;
+		[self updateSizeBuffers];
+	}
+
+	// Schedule a copy from the current framebuffer to the view;
+	// blitting is unavailable as the target is a framebuffer texture.
+	id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+
+	// Every pixel will be drawn, so don't clear or reload.
+	view.currentRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
+	id<MTLRenderCommandEncoder> encoder =
+		[commandBuffer renderCommandEncoderWithDescriptor:view.currentRenderPassDescriptor];
+
+	[encoder setRenderPipelineState:_isUsingSupersampling ? _supersamplePipeline : _copyPipeline];
+	[encoder setVertexTexture:_frameBuffer atIndex:0];
+	[encoder setFragmentTexture:_frameBuffer atIndex:0];
+
+	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+	[encoder endEncoding];
+	encoder = nil;
+
+	[commandBuffer presentDrawable:view.currentDrawable];
+	[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
+		self->_isDrawing.clear();
+		self->_scanTarget.display_metrics_.announce_draw_status(true);
+	}];
+	[commandBuffer commit];
+}
+
+// MARK: - Per-frame output.
+
 - (void)updateFrameBuffer {
-	// TODO: rethink BufferingScanTarget::perform. Is it now really just for guarding the modals?
 	if(_scanTarget.has_new_modals()) {
+		// TODO: rethink BufferingScanTarget::perform. Is it now really just for guarding the modals?
 		_scanTarget.perform([=] {
 			const Outputs::Display::ScanTarget::Modals *const newModals = _scanTarget.new_modals();
 			if(newModals) {
@@ -1009,11 +1055,30 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 						if(outputArea.end.line > outputArea.start.line) {
-							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offsetBuffer:[self bufferForOffset:outputArea.start.line]];
+							[self
+								dispatchComputeCommandEncoder:computeEncoder
+								pipelineState:_finalisedLineState
+								width:_lineBufferPixelsPerLine
+								height:outputArea.end.line - outputArea.start.line
+								offsetBuffer:[self bufferForOffset:outputArea.start.line]
+							];
 						} else {
-							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offsetBuffer:[self bufferForOffset:outputArea.start.line]];
+							[self
+								dispatchComputeCommandEncoder:computeEncoder
+								pipelineState:_finalisedLineState
+								width:_lineBufferPixelsPerLine
+								height:NumBufferedLines - outputArea.start.line
+								offsetBuffer:[self bufferForOffset:outputArea.start.line]
+							];
+
 							if(outputArea.end.line) {
-								[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line offsetBuffer:[self bufferForOffset:0]];
+								[self
+									dispatchComputeCommandEncoder:computeEncoder
+									pipelineState:_finalisedLineState
+									width:_lineBufferPixelsPerLine
+									height:outputArea.end.line
+									offsetBuffer:[self bufferForOffset:0]
+								];
 							}
 						}
 
@@ -1029,12 +1094,30 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						offsetBuffers[0] = [self bufferForOffset:outputArea.start.line];
 
 						if(outputArea.end.line > outputArea.start.line) {
-							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_separatedLumaState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offsetBuffer:offsetBuffers[0]];
+							[self
+								dispatchComputeCommandEncoder:computeEncoder
+								pipelineState:_separatedLumaState
+								width:_lineBufferPixelsPerLine
+								height:outputArea.end.line - outputArea.start.line
+								offsetBuffer:offsetBuffers[0]
+							];
 						} else {
-							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_separatedLumaState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offsetBuffer:offsetBuffers[0]];
+							[self
+								dispatchComputeCommandEncoder:computeEncoder
+								pipelineState:_separatedLumaState
+								width:_lineBufferPixelsPerLine
+								height:NumBufferedLines - outputArea.start.line
+								offsetBuffer:offsetBuffers[0]
+							];
 							if(outputArea.end.line) {
 								offsetBuffers[1] = [self bufferForOffset:0];
-								[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_separatedLumaState width:_lineBufferPixelsPerLine height:outputArea.end.line offsetBuffer:offsetBuffers[1]];
+								[self
+									dispatchComputeCommandEncoder:computeEncoder
+									pipelineState:_separatedLumaState
+									width:_lineBufferPixelsPerLine
+									height:outputArea.end.line
+									offsetBuffer:offsetBuffers[1]
+								];
 							}
 						}
 
@@ -1044,11 +1127,29 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 						if(outputArea.end.line > outputArea.start.line) {
-							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offsetBuffer:offsetBuffers[0]];
+							[self
+								dispatchComputeCommandEncoder:computeEncoder
+								pipelineState:_finalisedLineState
+								width:_lineBufferPixelsPerLine
+								height:outputArea.end.line - outputArea.start.line
+								offsetBuffer:offsetBuffers[0]
+							];
 						} else {
-							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offsetBuffer:offsetBuffers[0]];
+							[self
+								dispatchComputeCommandEncoder:computeEncoder
+								pipelineState:_finalisedLineState
+								width:_lineBufferPixelsPerLine
+								height:NumBufferedLines - outputArea.start.line
+								offsetBuffer:offsetBuffers[0]
+							];
 							if(outputArea.end.line) {
-								[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line offsetBuffer:offsetBuffers[1]];
+								[self
+									dispatchComputeCommandEncoder:computeEncoder
+									pipelineState:_finalisedLineState
+									width:_lineBufferPixelsPerLine
+									height:outputArea.end.line
+									offsetBuffer:offsetBuffers[1]
+								];
 							}
 						}
 
@@ -1099,45 +1200,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	}
 }
 
-/*!
- @method drawInMTKView:
- @abstract Called on the delegate when it is asked to render into the view
- @discussion Called on the delegate when it is asked to render into the view
- */
-- (void)drawInMTKView:(nonnull MTKView *)view {
-	if(_isDrawing.test_and_set()) {
-		_scanTarget.display_metrics_.announce_draw_status(false);
-		return;
-	}
-
-	// Disable supersampling if performance requires it.
-	if(_isUsingSupersampling && _scanTarget.display_metrics_.should_lower_resolution()) {
-		_isUsingSupersampling = false;
-		[self updateSizeBuffers];
-	}
-
-	// Schedule a copy from the current framebuffer to the view; blitting is unavailable as the target is a framebuffer texture.
-	id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-
-	// Every pixel will be drawn, so don't clear or reload.
-	view.currentRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
-	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:view.currentRenderPassDescriptor];
-
-	[encoder setRenderPipelineState:_isUsingSupersampling ? _supersamplePipeline : _copyPipeline];
-	[encoder setVertexTexture:_frameBuffer atIndex:0];
-	[encoder setFragmentTexture:_frameBuffer atIndex:0];
-
-	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
-	[encoder endEncoding];
-	encoder = nil;
-
-	[commandBuffer presentDrawable:view.currentDrawable];
-	[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
-		self->_isDrawing.clear();
-		self->_scanTarget.display_metrics_.announce_draw_status(true);
-	}];
-	[commandBuffer commit];
-}
+// MARK: - External connections.
 
 - (Outputs::Display::ScanTarget *)scanTarget {
 	return &_scanTarget;
