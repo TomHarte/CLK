@@ -10,6 +10,8 @@
 
 #include "SignalProcessing/FIRFilter.hpp"
 
+#include <algorithm>
+
 namespace Outputs::Display {
 
 class FilterGenerator {
@@ -22,13 +24,17 @@ public:
 	FilterGenerator(
 		float samples_per_line,
 		float subcarrier_frequency,
-		int max_kernel_size,
+		size_t max_kernel_size,
 		DecodingPath
 	);
 
 	struct FilterPair {
 		SignalProcessing::FIRFilter<SignalProcessing::ScalarType::Float> luma;
 		SignalProcessing::FIRFilter<SignalProcessing::ScalarType::Float> chroma;
+
+		size_t size() const {
+			return std::max(luma.size(), chroma.size());
+		}
 	};
 
 	/// A pair of filters to separate luminance and chrominance from an input of composite scalars.
@@ -42,8 +48,10 @@ public:
 private:
 	float samples_per_line_;
 	float subcarrier_frequency_;
-	int max_kernel_size_;
+	size_t max_kernel_size_;
 	DecodingPath decoding_path_;
+
+	float radians_per_sample() const;
 };
 
 }

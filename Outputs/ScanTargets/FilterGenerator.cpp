@@ -13,7 +13,7 @@ using namespace Outputs::Display;
 FilterGenerator::FilterGenerator(
 	const float samples_per_line,
 	const float subcarrier_frequency,
-	const int max_kernel_size,
+	const size_t max_kernel_size,
 	DecodingPath decoding_path
 ) :
 	samples_per_line_(samples_per_line),
@@ -21,42 +21,54 @@ FilterGenerator::FilterGenerator(
 	max_kernel_size_(max_kernel_size),
 	decoding_path_(decoding_path) {}
 
-FilterGenerator::FilterPair FilterGenerator::separation_filter() {
-	const float radians_per_sample =
-		(subcarrier_frequency_ * 3.141592654f * 2.0f) / samples_per_line_;
+float FilterGenerator::radians_per_sample() const {
+	return (subcarrier_frequency_ * 3.141592654f * 2.0f) / samples_per_line_;
+}
 
+FilterGenerator::FilterPair FilterGenerator::separation_filter() {
 	FilterPair result{};
 
-	// Initial seed: a box filter for the chrominance parts and no filter at all for luminance.
-	result.chroma =
+	// Luminance: box.
+	result.luma =
 		SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(
-			radians_per_sample,
+			radians_per_sample(),
 			3.141592654f * 2.0f
-		) * (decoding_path_ == DecodingPath::SVideo ? 2.0f : 1.25f);
+		);
 
-
-//	if(decoding_path_ == DecodingPath::SVideo) {
-//		result.luma = FirF
-//	}
-//
-//				// Sharpen the luminance a touch if it was sourced through separation.
-//				if(!isSVideoOutput) {
-//					SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(15, 1368, 60.0f, 227.5f)
-//						.copy_to<Coefficients3::iterator>(
-//							firCoefficients.begin(),
-//							firCoefficients.end(),
-//							[&](auto destination, float value) {
-//								destination->x = value;
-//							}
-//						);
-//					_chromaKernelSize = 15;
-//				} else {
-//					firCoefficients[7].x = 1.0f;
-//				}
+	// Chrominance: compute as centre sample - luminance.
+	// TODO: would be better to apply a separate notch, but I think I've
+	// confused the scales and offsets.
+	result.chroma = result.luma * -1.0f;
+	result.chroma[result.chroma.size() / 2] += 1.0f;
 
 	return result;
 }
 
 FilterGenerator::FilterPair FilterGenerator::demouldation_filter() {
-	return FilterGenerator::FilterPair{};
+	FilterPair result{};
+
+	// Use a box filter for chrominance.
+	result.chroma =
+		SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(
+			radians_per_sample(),
+			3.141592654f * 2.0f
+		) * (decoding_path_ == DecodingPath::SVideo ? 2.0f : 1.25f);
+
+	// S-Video: don't filter luminance at all.
+	if(decoding_path_ == DecodingPath::SVideo) {
+		const float identity[] = { 1.0f };
+		result.luma =
+			SignalProcessing::FIRFilter<SignalProcessing::ScalarType::Float>(
+				std::begin(identity),
+				std::end(identity)
+			);
+		return result;
+	}
+
+	// Composite: sharpen the luminance a touch.
+	result.luma =
+		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+			max_kernel_size_, 1368, 60.0f, 227.5f);
+
+	return result;
 }

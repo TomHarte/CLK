@@ -522,11 +522,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			NSString *kernelFunction;
 			switch(_lumaKernelSize) {
 				default:	kernelFunction = @"separateLumaKernel15";	break;
-				case 9:		kernelFunction = @"separateLumaKernel9";	break;
-				case 7:		kernelFunction = @"separateLumaKernel7";	break;
-				case 1:
-				case 3:
-				case 5:		kernelFunction = @"separateLumaKernel5";	break;
+//				case 9:		kernelFunction = @"separateLumaKernel9";	break;
+//				case 7:		kernelFunction = @"separateLumaKernel7";	break;
+//				case 1:
+//				case 3:
+//				case 5:		kernelFunction = @"separateLumaKernel5";	break;
 			}
 
 			_separatedLumaState =
@@ -707,103 +707,48 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				isSVideoOutput ? DecodingPath::SVideo : DecodingPath::Composite
 			);
 
-			// Compute radians per pixel.
-			const float radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / float(_lineBufferPixelsPerLine);
-
-			// Generate the chrominance filter.
-			{
-				using Coefficients3 = std::array<simd::float3, 31>;
-				Coefficients3 firCoefficients{};
-
-				// Initial seed: a box filter for the chrominance parts and no filter at all for luminance.
-				const auto chromaCoefficients =
-//					SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-//						firCoefficients.size(),
-//						_lineBufferPixelsPerLine,
-//						0.0,
-//						colourCyclesPerLine * 0.5f
-//					);
-					SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(
-						radiansPerPixel,
-						3.141592654f * 2.0f
-					);
-
-				chromaCoefficients.copy_to<Coefficients3::iterator>(
-					firCoefficients.begin(),
-					firCoefficients.end(),
-					[&](auto destination, float value) {
-						destination->y = destination->z = value * (isSVideoOutput ? 2.0f : 1.25f);
-					}
-				);
-
-				// Sharpen the luminance a touch if it was sourced through separation.
-//				if(!isSVideoOutput) {
-//					SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-//						firCoefficients.size(), 1368, 20.0f, 227.5f)
-//						.copy_to<Coefficients3::iterator>(
-//							firCoefficients.begin(),
-//							firCoefficients.end(),
-//							[&](auto destination, float value) {
-//								destination->x = value;
-//							}
-//						);
-//				} else {
-					firCoefficients[15].x = 1.0f;
-//				}
-
-				// Convert to half-size floats.
-				for(size_t c = 0; c < 16; ++c) {
-					uniforms()->chromaKernel[c] = firCoefficients[c];
+			const auto separation = generator.separation_filter();
+			using Coefficients2 = std::array<simd::float2, 31>;
+			Coefficients2 separation_multiplexed{};
+			separation.luma.copy_to<Coefficients2::iterator>(
+				separation_multiplexed.begin(),
+				separation_multiplexed.end(),
+				[&](auto destination, const float value) {
+					destination->x = value;
 				}
+			);
+			separation.chroma.copy_to<Coefficients2::iterator>(
+				separation_multiplexed.begin(),
+				separation_multiplexed.end(),
+				[&](auto destination, const float value) {
+					destination->y = value;
+				}
+			);
+			for(size_t c = 0; c < 16; ++c) {
+				uniforms()->lumaKernel[c] = separation_multiplexed[c];
 			}
+			_lumaKernelSize = separation.size();
 
-			// Generate the luminance separation filter and determine its required size.
-			{
-				using Coefficients2 = std::array<simd::float2, 31>;
-				Coefficients2 lumaCoefficients{};
-
-				const auto coefficients =
-					SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(
-						radiansPerPixel,
-						3.141592654f * 2.0f
-					);
-//					SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-//						lumaCoefficients.size(),
-//						_lineBufferPixelsPerLine,
-//						0.0,
-//						colourCyclesPerLine * 0.75f
-//					);
-
-				coefficients.copy_to<Coefficients2::iterator>(
-					lumaCoefficients.begin(),
-					lumaCoefficients.end(),
-					[&](auto destination, float value) {
-						destination->x = value;
-						destination->y -= value;
-					}
-				);
-
-//				const auto coefficients2 =
-//					SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-//						lumaCoefficients.size(),
-//						_lineBufferPixelsPerLine,
-//						colourCyclesPerLine,
-//						_lineBufferPixelsPerLine
-//					);
-//				coefficients2.copy_to<Coefficients2::iterator>(
-//					lumaCoefficients.begin(),
-//					lumaCoefficients.end(),
-//					[&](auto destination, float value) {
-//						destination->y += value;
-//					}
-//				);
-
-				lumaCoefficients[15].y += 1.0f;
-				_lumaKernelSize = 15;//coefficients.size();
-
-				for(size_t c = 0; c < 16; ++c) {
-					uniforms()->lumaKernel[c] = lumaCoefficients[c];
+			const auto demodulation = generator.demouldation_filter();
+			using Coefficients3 = std::array<simd::float3, 31>;
+			Coefficients3 demodulation_multiplexed{};
+			demodulation.luma.copy_to<Coefficients3::iterator>(
+				demodulation_multiplexed.begin(),
+				demodulation_multiplexed.end(),
+				[&](auto destination, const float value) {
+					destination->x = value;
 				}
+			);
+			demodulation.chroma.copy_to<Coefficients3::iterator>(
+				demodulation_multiplexed.begin(),
+				demodulation_multiplexed.end(),
+				[&](auto destination, const float value) {
+					destination->y = destination->z = value;
+				}
+			);
+			// Convert to half-size floats.
+			for(size_t c = 0; c < 16; ++c) {
+				uniforms()->chromaKernel[c] = demodulation_multiplexed[c];
 			}
 		}
 

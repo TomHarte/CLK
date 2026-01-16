@@ -122,9 +122,22 @@ public:
 	CoefficientType operator[](const size_t index) const {
 		return coefficients_[index];
 	}
+	CoefficientType &operator[](const size_t index) {
+		return coefficients_[index];
+	}
 
 	size_t size() const {
 		return coefficients_.size();
+	}
+
+	using iterator = std::vector<CoefficientType>::iterator;
+
+	iterator begin() {
+		return coefficients_.begin();
+	}
+
+	iterator end() {
+		return coefficients_.end();
 	}
 
 	template <typename IteratorT>
@@ -161,15 +174,16 @@ public:
 		});
 	}
 
-	FIRFilter &operator *(const CoefficientType rhs) {
-		for(auto &coefficient: coefficients_) {
+	FIRFilter operator *(const CoefficientType rhs) {
+		auto copy = *this;
+		for(auto &coefficient: copy.coefficients_) {
 			if constexpr (type == ScalarType::Float) {
 				coefficient *= rhs;
 			} else {
 				coefficient = (coefficient * rhs) >> FixedShift;
 			}
 		}
-		return *this;
+		return copy;
 	}
 
 private:
