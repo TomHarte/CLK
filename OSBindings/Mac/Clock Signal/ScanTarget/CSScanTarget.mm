@@ -94,8 +94,8 @@
 
 namespace {
 
-constexpr int BufferWidth = 2560;
-constexpr float MinColourSubcarrierMultiplier = 8.0f;
+constexpr int BufferWidth = 1536;
+constexpr float MinColourSubcarrierMultiplier = 4.0f;
 
 /// Provides a container for __fp16 versions of tightly-packed single-precision plain old data with a copy assignment constructor.
 template <typename NaturalType> struct HalfConverter {
@@ -168,11 +168,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLCommandQueue> _commandQueue;
 
 	// Pipelines.
-	id<MTLRenderPipelineState> _composePipeline;		// For rendering to the composition texture.
-	id<MTLRenderPipelineState> _outputPipeline;			// For drawing to the frame buffer.
-	id<MTLRenderPipelineState> _copyPipeline;			// For copying from one texture to another.
-	id<MTLRenderPipelineState> _supersamplePipeline;	// For resampling from one texture to one that is 1/4 as large.
-	id<MTLRenderPipelineState> _clearPipeline;			// For applying additional inter-frame clearing (cf. the stencil).
+	id<MTLRenderPipelineState> _composePipeline;		// Renders to the composition texture.
+	id<MTLRenderPipelineState> _outputPipeline;			// Draws to the frame buffer.
+	id<MTLRenderPipelineState> _copyPipeline;			// Copies from one texture to another.
+	id<MTLRenderPipelineState> _supersamplePipeline;	// Resamples from one texture to one that is 1/4 as large.
+	id<MTLRenderPipelineState> _clearPipeline;			// Applies additional inter-frame clearing (cf. the stencil).
 
 	// Buffers.
 	id<MTLBuffer> _uniformsBuffer;	// A static buffer, containing a copy of the Uniforms struct.
@@ -688,14 +688,17 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				cyclesMultiplier += 1.0f;
 
 				if(cyclesMultiplier * modals.cycles_per_line > BufferWidth) {
-					cyclesMultiplier -= 1.0f;
+					if(cyclesMultiplier > 1.0f) {
+						cyclesMultiplier -= 1.0f;
+					} else {
+						cyclesMultiplier = float(BufferWidth) / float(modals.cycles_per_line);
+					}
 					break;
 				}
 			}
 
 			// Create suitable filters.
-			_lineBufferPixelsPerLine =
-				NSUInteger(modals.cycles_per_line) * NSUInteger(uniforms()->cyclesMultiplier);
+			_lineBufferPixelsPerLine = NSUInteger(modals.cycles_per_line * cyclesMultiplier);
 			const float colourCyclesPerLine =
 				float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 			using DecodingPath = Outputs::Display::FilterGenerator::DecodingPath;
