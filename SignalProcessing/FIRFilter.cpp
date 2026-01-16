@@ -69,14 +69,14 @@ std::vector<float> coefficients_for_idealised_filter_response(
 		}
 	} ();
 
-	std::vector<float> filter_coefficients_float(number_of_taps);
+	std::vector<float> filter_coefficients(number_of_taps);
 
 	/* Work out the right hand side of the filter coefficients. */
 	const float I0 = ino(a);
 	const std::size_t Np = (number_of_taps - 1) / 2;
 	const float Np_squared = float(Np * Np);
 	for(std::size_t i = 0; i <= Np; ++i) {
-		filter_coefficients_float[Np + i] =
+		filter_coefficients[Np + i] =
 				A[i] *
 				ino(a * sqrtf(1.0f - (float(i * i) / Np_squared) )) /
 				I0;
@@ -84,19 +84,14 @@ std::vector<float> coefficients_for_idealised_filter_response(
 
 	/* Coefficients are symmetrical, so copy from right hand side to left. */
 	for(std::size_t i = 0; i < Np; ++i) {
-		filter_coefficients_float[i] = filter_coefficients_float[number_of_taps - 1 - i];
+		filter_coefficients[i] = filter_coefficients[number_of_taps - 1 - i];
 	}
 
 	/* Scale back up to retain 100% of input volume. */
-	const float coefficientTotal =
-		std::accumulate(filter_coefficients_float.begin(), filter_coefficients_float.end(), 0.0f);
-
-	/* Hence produce integer versions. */
-	const float coefficientMultiplier = 1.0f / coefficientTotal;
-	std::vector<float> filter_coefficients;
-	filter_coefficients.reserve(number_of_taps);
-	for(std::size_t i = 0; i < number_of_taps; ++i) {
-		filter_coefficients.push_back(filter_coefficients_float[i] * coefficientMultiplier);
+	const float total = std::accumulate(filter_coefficients.begin(), filter_coefficients.end(), 0.0f);
+	const float multiplier = 1.0f / total;
+	for(float &coefficient: filter_coefficients) {
+		coefficient *= multiplier;
 	}
 	return filter_coefficients;
 }

@@ -58,7 +58,7 @@ public:
 		}
 
 		// Trim.
-		static constexpr CoefficientType threshold = type == ScalarType::Int16 ? 2 : 0.001f;
+		static constexpr CoefficientType threshold = type == ScalarType::Int16 ? 2 : 0.0001f;
 		while(!coefficients_.empty()) {
 			if(
 				std::abs(coefficients_.front()) > threshold ||
