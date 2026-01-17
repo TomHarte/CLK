@@ -38,7 +38,7 @@ FilterGenerator::FilterPair FilterGenerator::separation_filter() {
 	// Chrominance: compute as centre sample - luminance.
 	// TODO: would be better to apply a separate notch, but I think I've
 	// confused the scales and offsets.
-	result.chroma = result.luma;// * -1.0f;
+	result.chroma = result.luma * -1.0f;
 	result.chroma.resize(max_kernel_size_);
 	SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
 		max_kernel_size_,
@@ -49,7 +49,7 @@ FilterGenerator::FilterPair FilterGenerator::separation_filter() {
 		result.chroma.begin(),
 		result.chroma.end(),
 		[](const auto iterator, const float value) {
-			*iterator -= value;
+			*iterator += value;
 		}
 	);
 
