@@ -8,6 +8,8 @@
 
 #include "FilterGenerator.hpp"
 
+#include <numbers>
+
 using namespace Outputs::Display;
 
 FilterGenerator::FilterGenerator(
@@ -22,7 +24,7 @@ FilterGenerator::FilterGenerator(
 	decoding_path_(decoding_path) {}
 
 float FilterGenerator::radians_per_sample() const {
-	return (subcarrier_frequency_ * 3.141592654f * 2.0f) / samples_per_line_;
+	return std::numbers::pi_v<float> * 2.0f * subcarrier_frequency_ / samples_per_line_;
 }
 
 FilterGenerator::FilterPair FilterGenerator::separation_filter() {
@@ -30,9 +32,15 @@ FilterGenerator::FilterPair FilterGenerator::separation_filter() {
 
 	// Luminance: box.
 	result.luma =
+//		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+//			max_kernel_size_,
+//			samples_per_line_,
+//			0.0f,
+//			subcarrier_frequency_ * 0.25f
+//		);
 		SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(
 			radians_per_sample(),
-			3.141592654f * 2.0f
+			std::numbers::pi_v<float> * 2.0f
 		);
 
 	// Chrominance: compute as subcarrier - luminance.
