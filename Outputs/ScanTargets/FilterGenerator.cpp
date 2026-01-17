@@ -35,24 +35,23 @@ FilterGenerator::FilterPair FilterGenerator::separation_filter() {
 			3.141592654f * 2.0f
 		);
 
-	// Chrominance: compute as centre sample - luminance.
+	// Chrominance: compute as subcarrier - luminance.
 
-	// TODO: attempting a notch as below seems to introduce a phase shift.
+	// TODO: attempting a notch as below seems to introduce a phase shift or time delay.
 	// I'm not smart enough currently to understand why.
-	// I need to fix or, at the minimum, predict that for correction later.
+	// I need to fix or, at the minimum, predict it for correction later.
 
-	result.chroma = result.luma * -1.0f;
-	result.chroma.resize(max_kernel_size_);
-	SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+	result.chroma = SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
 		max_kernel_size_,
 		samples_per_line_,
-		subcarrier_frequency_ * 0.9f,
+		subcarrier_frequency_,
 		samples_per_line_
-	).copy_to<SignalProcessing::FIRFilter<SignalProcessing::ScalarType::Float>::iterator>(
+	);
+	result.luma.copy_to<SignalProcessing::FIRFilter<SignalProcessing::ScalarType::Float>::iterator>(
 		result.chroma.begin(),
 		result.chroma.end(),
 		[](const auto iterator, const float value) {
-			*iterator += value;
+			*iterator -= value;
 		}
 	);
 
