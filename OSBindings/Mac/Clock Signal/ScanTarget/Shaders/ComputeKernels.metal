@@ -94,20 +94,21 @@ kernel void filterChromaKernelWithGamma(
 /// Stores a separated sample, potentially discarding the chrominance section if there was no colour burst.
 void setSeparatedLumaChroma(
 	const half2 luminanceChrominance,
-	const half4 centreSample,
+	const half2 quadrature,
+	const half colourAmplitude,
 	const metal::texture2d<half, metal::access::write> outTexture,
 	const uint2 gid,
 	const int offset
 ) {
 	// The mix/steps below ensures that the absence of a colour burst leads the colour subcarrier to be discarded.
-	const half isColour = metal::step(half(0.01f), centreSample.a);
-	const auto chromaScaler = metal::mix(half(1.0f), centreSample.a, isColour);
-	const auto lumaScaler = metal::mix(half(1.0f), half(1.0f - centreSample.a * 2.0), isColour);
+	const half isColour = metal::step(half(0.01f), colourAmplitude);
+	const auto chromaScaler = metal::mix(half(1.0f), colourAmplitude, isColour);
+	const auto lumaScaler = metal::mix(half(1.0f), half(1.0f - colourAmplitude * 2.0), isColour);
 
 	const half chroma = luminanceChrominance.g / chromaScaler;
 	outTexture.write(half4(
-			(luminanceChrominance.r - centreSample.a) / lumaScaler,
-			isColour * (centreSample.gb - half2(0.5f)) * chroma + half2(0.5f),
+			(luminanceChrominance.r - colourAmplitude) / lumaScaler,
+			isColour * quadrature * chroma + half2(0.5f),
 			1.0f
 		),
 		gid + uint2(KernelCentre, offset)
@@ -170,7 +171,14 @@ kernel void separateLumaKernel15(
 		Sample(27) + 	Sample(28) + 	Sample(29) +	Sample(30);
 #undef Sample
 
-	return setSeparatedLumaChroma(luminanceChrominance, centreSample, outTexture, gid, offset);
+	return setSeparatedLumaChroma(
+		luminanceChrominance,
+		centreSample.gb - half2(0.5),
+		centreSample.a,
+		outTexture,
+		gid,
+		offset
+	);
 }
 
 // MARK: - Solid fills.
