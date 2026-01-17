@@ -38,8 +38,20 @@ FilterGenerator::FilterPair FilterGenerator::separation_filter() {
 	// Chrominance: compute as centre sample - luminance.
 	// TODO: would be better to apply a separate notch, but I think I've
 	// confused the scales and offsets.
-	result.chroma = result.luma * -1.0f;
-	result.chroma[result.chroma.size() / 2] += 1.0f;
+	result.chroma = result.luma;// * -1.0f;
+	result.chroma.resize(max_kernel_size_);
+	SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+		max_kernel_size_,
+		samples_per_line_,
+		subcarrier_frequency_ * 0.9f,
+		samples_per_line_
+	).copy_to<SignalProcessing::FIRFilter<SignalProcessing::ScalarType::Float>::iterator>(
+		result.chroma.begin(),
+		result.chroma.end(),
+		[](const auto iterator, const float value) {
+			*iterator -= value;
+		}
+	);
 
 	return result;
 }
@@ -47,12 +59,14 @@ FilterGenerator::FilterPair FilterGenerator::separation_filter() {
 FilterGenerator::FilterPair FilterGenerator::demouldation_filter() {
 	FilterPair result{};
 
-	// Use a box filter for chrominance.
 	result.chroma =
-		SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(
-			radians_per_sample(),
-			3.141592654f * 2.0f
-		) * (decoding_path_ == DecodingPath::SVideo ? 2.0f : 1.25f);
+		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+			max_kernel_size_,
+			samples_per_line_,
+			40.0f,
+			subcarrier_frequency_ * 0.5f
+		)
+		* (decoding_path_ == DecodingPath::SVideo ? 2.0f : 0.5f);
 
 	// S-Video: don't filter luminance at all.
 	if(decoding_path_ == DecodingPath::SVideo) {
@@ -68,7 +82,7 @@ FilterGenerator::FilterPair FilterGenerator::demouldation_filter() {
 	// Composite: sharpen the luminance a touch.
 	result.luma =
 		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-			max_kernel_size_, 1368, 60.0f, 227.5f);
+			max_kernel_size_, samples_per_line_, 10.0f, subcarrier_frequency_);
 
 	return result;
 }

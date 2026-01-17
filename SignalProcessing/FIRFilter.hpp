@@ -130,6 +130,10 @@ public:
 		return coefficients_.size();
 	}
 
+	void resize(const size_t size) {
+		coefficients_.resize(size);
+	}
+
 	using iterator = std::vector<CoefficientType>::iterator;
 
 	iterator begin() {
