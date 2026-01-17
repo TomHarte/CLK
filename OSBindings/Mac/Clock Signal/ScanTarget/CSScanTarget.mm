@@ -94,8 +94,8 @@
 
 namespace {
 
-constexpr int BufferWidth = 2560;//1536;
 constexpr float MinColourSubcarrierMultiplier = 8.0f;
+constexpr int BufferWidth = (MinColourSubcarrierMultiplier > 5.0f) ? 3072 : 1536;
 
 /// Provides a container for __fp16 versions of tightly-packed single-precision plain old data with a copy assignment constructor.
 template <typename NaturalType> struct HalfConverter {
