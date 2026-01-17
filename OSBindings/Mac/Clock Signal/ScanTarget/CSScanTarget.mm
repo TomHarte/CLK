@@ -711,14 +711,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			separation.luma.copy_to<Coefficients2::iterator>(
 				separation_multiplexed.begin(),
 				separation_multiplexed.end(),
-				[&](auto destination, const float value) {
+				[](const auto destination, const float value) {
 					destination->x = value;
 				}
 			);
 			separation.chroma.copy_to<Coefficients2::iterator>(
 				separation_multiplexed.begin(),
 				separation_multiplexed.end(),
-				[&](auto destination, const float value) {
+				[](const auto destination, const float value) {
 					destination->y = value;
 				}
 			);
@@ -733,14 +733,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			demodulation.luma.copy_to<Coefficients3::iterator>(
 				demodulation_multiplexed.begin(),
 				demodulation_multiplexed.end(),
-				[&](auto destination, const float value) {
+				[](const auto destination, const float value) {
 					destination->x = value;
 				}
 			);
 			demodulation.chroma.copy_to<Coefficients3::iterator>(
 				demodulation_multiplexed.begin(),
 				demodulation_multiplexed.end(),
-				[&](auto destination, const float value) {
+				[](const auto destination, const float value) {
 					destination->y = destination->z = value;
 				}
 			);

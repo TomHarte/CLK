@@ -36,8 +36,11 @@ FilterGenerator::FilterPair FilterGenerator::separation_filter() {
 		);
 
 	// Chrominance: compute as centre sample - luminance.
-	// TODO: would be better to apply a separate notch, but I think I've
-	// confused the scales and offsets.
+
+	// TODO: attempting a notch as below seems to introduce a phase shift.
+	// I'm not smart enough currently to understand why.
+	// I need to fix or, at the minimum, predict that for correction later.
+
 	result.chroma = result.luma * -1.0f;
 	result.chroma.resize(max_kernel_size_);
 	SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
