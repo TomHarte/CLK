@@ -173,7 +173,7 @@ kernel void separateLumaKernel15(
 
 	return setSeparatedLumaChroma(
 		luminanceChrominance,
-		centreSample.gb - half2(0.5),
+		centreSample.gb - half2(0.5f),
 		centreSample.a,
 		outTexture,
 		gid,

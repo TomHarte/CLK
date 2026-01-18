@@ -30,32 +30,35 @@ float FilterGenerator::radians_per_sample() const {
 FilterGenerator::FilterPair FilterGenerator::separation_filter() {
 	FilterPair result{};
 
-	// Luminance: box.
+	// Luminance.
 	result.luma =
-//		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-//			max_kernel_size_,
-//			samples_per_line_,
-//			0.0f,
-//			subcarrier_frequency_ * 0.25f
-//		);
 		SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(
 			radians_per_sample(),
 			std::numbers::pi_v<float> * 2.0f
 		);
 
-	// Chrominance: compute as subcarrier - luminance.
+//	Usually provides a better luminance filter, but has issues with in-phase NTSC colour:
+//
+//		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+//			max_kernel_size_,
+//			samples_per_line_,
+//			0.0f,
+//			subcarrier_frequency_ * 0.5f
+//		);
 
-	// TODO: attempting a notch as below seems to introduce a phase shift or time delay.
-	// I'm not smart enough currently to understand why.
-	// I need to fix or, at the minimum, predict it for correction later.
-
+	// Chrominance.
 	result.chroma = SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
 		max_kernel_size_,
 		samples_per_line_,
 		subcarrier_frequency_,
 		samples_per_line_
 	);
-	result.luma.copy_to<SignalProcessing::FIRFilter<SignalProcessing::ScalarType::Float>::iterator>(
+	SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+		max_kernel_size_,
+		samples_per_line_,
+		0.0f,
+		subcarrier_frequency_
+	).copy_to<SignalProcessing::FIRFilter<SignalProcessing::ScalarType::Float>::iterator>(
 		result.chroma.begin(),
 		result.chroma.end(),
 		[](const auto iterator, const float value) {
@@ -69,30 +72,36 @@ FilterGenerator::FilterPair FilterGenerator::separation_filter() {
 FilterGenerator::FilterPair FilterGenerator::demouldation_filter() {
 	FilterPair result{};
 
-	result.chroma =
-		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-			max_kernel_size_,
-			samples_per_line_,
-			40.0f,
-			subcarrier_frequency_ * 0.5f
-		)
-		* (decoding_path_ == DecodingPath::SVideo ? 2.0f : 0.5f);
-
-	// S-Video: don't filter luminance at all.
 	if(decoding_path_ == DecodingPath::SVideo) {
+		// S-Video: don't filter luminance at all.
 		const float identity[] = { 1.0f };
 		result.luma =
 			SignalProcessing::FIRFilter<SignalProcessing::ScalarType::Float>(
 				std::begin(identity),
 				std::end(identity)
 			);
-		return result;
+	} else {
+		// Composite: sharpen the luminance a touch.
+		result.luma =
+			SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+				max_kernel_size_, samples_per_line_, 100.0f, subcarrier_frequency_);
 	}
 
-	// Composite: sharpen the luminance a touch.
-	result.luma =
-		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-			max_kernel_size_, samples_per_line_, 10.0f, subcarrier_frequency_);
+	result.chroma =
+		SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(
+			radians_per_sample(),
+			std::numbers::pi_v<float> * 2.0f
+		)
+		* (decoding_path_ == DecodingPath::SVideo ? 2.0f : 0.5f);
+
+//	Usually provides a better chroma filter, but has issues with in-phase NTSC colour:
+//
+//		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+//			max_kernel_size_,
+//			samples_per_line_,
+//			0.0f,
+//			subcarrier_frequency_ * 0.5f
+//		)
 
 	return result;
 }
