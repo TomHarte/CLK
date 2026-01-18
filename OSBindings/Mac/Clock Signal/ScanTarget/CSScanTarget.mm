@@ -141,8 +141,6 @@ constexpr MTLResourceOptions SharedResourceOptionsStandard =
 constexpr MTLResourceOptions SharedResourceOptionsTexture =
 	MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeManaged;
 
-#define uniforms() reinterpret_cast<Uniforms *>(_uniformsBuffer.contents)
-
 void range_perform(
 	const size_t start,
 	const size_t end,
@@ -263,6 +261,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// Previously set modals, to avoid unnecessary buffer churn.
 	std::optional<Outputs::Display::ScanTarget::Modals> _priorModals;
+}
+
+- (Uniforms *)uniforms {
+	return reinterpret_cast<Uniforms *>(_uniformsBuffer.contents);
 }
 
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view {
@@ -442,7 +444,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (BOOL)shouldApplyGamma {
-	return fabsf(float(uniforms()->outputGamma) - 1.0f) > 0.01f;
+	return fabsf(float(self.uniforms->outputGamma) - 1.0f) > 0.01f;
 }
 
 - (void)clearTexture:(id<MTLTexture>)texture {
@@ -574,27 +576,27 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	}
 
 	// Store.
-	uniforms()->sourcetoDisplay = sourceToDisplay;
+	self.uniforms->sourcetoDisplay = sourceToDisplay;
 }
 
 - (void)setModals:(const Outputs::Display::ScanTarget::Modals &)modals {
 	//
 	// Populate uniforms.
 	//
-	uniforms()->scale[0] = modals.output_scale.x;
-	uniforms()->scale[1] = modals.output_scale.y;
-	uniforms()->lineWidth = 1.05f / modals.expected_vertical_lines;
+	self.uniforms->scale[0] = modals.output_scale.x;
+	self.uniforms->scale[1] = modals.output_scale.y;
+	self.uniforms->lineWidth = 1.05f / modals.expected_vertical_lines;
 	[self setAspectRatio];
 
 	const auto toRGB = to_rgb_matrix(modals.composite_colour_space);
-	uniforms()->toRGB = simd::float3x3(
+	self.uniforms->toRGB = simd::float3x3(
 		simd::float3{toRGB[0], toRGB[1], toRGB[2]},
 		simd::float3{toRGB[3], toRGB[4], toRGB[5]},
 		simd::float3{toRGB[6], toRGB[7], toRGB[8]}
 	);
 
 	const auto fromRGB = from_rgb_matrix(modals.composite_colour_space);
-	uniforms()->fromRGB = simd::float3x3(
+	self.uniforms->fromRGB = simd::float3x3(
 		simd::float3{fromRGB[0], fromRGB[1], fromRGB[2]},
 		simd::float3{fromRGB[3], fromRGB[4], fromRGB[5]},
 		simd::float3{fromRGB[6], fromRGB[7], fromRGB[8]}
@@ -602,11 +604,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// This is fixed for now; consider making it a function of frame rate and/or of whether frame syncing
 	// is ongoing (which would require a way to signal that to this scan target).
-	uniforms()->outputAlpha = __fp16(0.64f);
-	uniforms()->outputMultiplier = __fp16(modals.brightness);
+	self.uniforms->outputAlpha = __fp16(0.64f);
+	self.uniforms->outputMultiplier = __fp16(modals.brightness);
 
 	const float displayGamma = 2.2f;	// This is assumed.
-	uniforms()->outputGamma = __fp16(displayGamma / modals.intended_gamma);
+	self.uniforms->outputGamma = __fp16(displayGamma / modals.intended_gamma);
 
 	if(
 		!_priorModals ||
@@ -673,7 +675,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			_pipeline = isSVideoOutput ? Pipeline::SVideo : Pipeline::CompositeColour;
 		}
 
-		float &cyclesMultiplier = uniforms()->cyclesMultiplier;
+		float &cyclesMultiplier = self.uniforms->cyclesMultiplier;
 		if(_pipeline != Pipeline::DirectToDisplay) {
 			const float minimumSize =
 				MinColourSubcarrierMultiplier *
@@ -723,7 +725,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				}
 			);
 			for(size_t c = 0; c < 16; ++c) {
-				uniforms()->lumaKernel[c] = separation_multiplexed[c];
+				self.uniforms->lumaKernel[c] = separation_multiplexed[c];
 			}
 			_lumaKernelSize = separation.size();
 
@@ -746,7 +748,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			);
 			// Convert to half-size floats.
 			for(size_t c = 0; c < 16; ++c) {
-				uniforms()->chromaKernel[c] = demodulation_multiplexed[c];
+				self.uniforms->chromaKernel[c] = demodulation_multiplexed[c];
 			}
 		}
 
