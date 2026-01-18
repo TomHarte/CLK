@@ -16,6 +16,8 @@ namespace Outputs::Display {
 
 class FilterGenerator {
 public:
+	static constexpr size_t MaxKernelSize = 31;
+
 	enum class DecodingPath {
 		Composite,
 		SVideo
@@ -24,7 +26,6 @@ public:
 	FilterGenerator(
 		float samples_per_line,
 		float subcarrier_frequency,
-		size_t max_kernel_size,
 		DecodingPath
 	);
 
@@ -48,7 +49,6 @@ public:
 private:
 	float samples_per_line_;
 	float subcarrier_frequency_;
-	size_t max_kernel_size_;
 	DecodingPath decoding_path_;
 
 	float radians_per_sample() const;

@@ -15,12 +15,10 @@ using namespace Outputs::Display;
 FilterGenerator::FilterGenerator(
 	const float samples_per_line,
 	const float subcarrier_frequency,
-	const size_t max_kernel_size,
 	DecodingPath decoding_path
 ) :
 	samples_per_line_(samples_per_line),
 	subcarrier_frequency_(subcarrier_frequency),
-	max_kernel_size_(max_kernel_size),
 	decoding_path_(decoding_path) {}
 
 float FilterGenerator::radians_per_sample() const {
@@ -32,29 +30,22 @@ FilterGenerator::FilterPair FilterGenerator::separation_filter() {
 
 	// Luminance.
 	result.luma =
-		SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(
-			radians_per_sample(),
-			std::numbers::pi_v<float> * 2.0f
+		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+			MaxKernelSize,
+			samples_per_line_,
+			10.0f,
+			subcarrier_frequency_ * 0.5f
 		);
-
-//	Usually provides a better luminance filter, but has issues with in-phase NTSC colour:
-//
-//		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-//			max_kernel_size_,
-//			samples_per_line_,
-//			0.0f,
-//			subcarrier_frequency_ * 0.5f
-//		);
 
 	// Chrominance.
 	result.chroma = SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-		max_kernel_size_,
+		15,
 		samples_per_line_,
 		subcarrier_frequency_,
 		samples_per_line_
 	);
 	SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-		max_kernel_size_,
+		15,
 		samples_per_line_,
 		0.0f,
 		subcarrier_frequency_
@@ -84,24 +75,17 @@ FilterGenerator::FilterPair FilterGenerator::demouldation_filter() {
 		// Composite: sharpen the luminance a touch.
 		result.luma =
 			SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-				max_kernel_size_, samples_per_line_, 10.0f, subcarrier_frequency_);
+				MaxKernelSize, samples_per_line_, 30.0f, subcarrier_frequency_);
 	}
 
 	result.chroma =
-		SignalProcessing::Box::filter<SignalProcessing::ScalarType::Float>(
-			radians_per_sample(),
-			std::numbers::pi_v<float> * 2.0f
+		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
+			MaxKernelSize,
+			samples_per_line_,
+			0.0f,
+			subcarrier_frequency_ * 0.5f
 		)
 		* (decoding_path_ == DecodingPath::SVideo ? 2.0f : 0.5f);
-
-//	Usually provides a better chroma filter, but has issues with in-phase NTSC colour:
-//
-//		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-//			max_kernel_size_,
-//			samples_per_line_,
-//			0.0f,
-//			subcarrier_frequency_ * 0.5f
-//		)
 
 	return result;
 }

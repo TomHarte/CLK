@@ -703,7 +703,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			Outputs::Display::FilterGenerator generator(
 				_lineBufferPixelsPerLine,
 				colourCyclesPerLine,
-				15,
 				isSVideoOutput ? DecodingPath::SVideo : DecodingPath::Composite
 			);
 
