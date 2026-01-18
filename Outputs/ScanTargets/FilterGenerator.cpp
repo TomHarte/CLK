@@ -84,7 +84,7 @@ FilterGenerator::FilterPair FilterGenerator::demouldation_filter() {
 		// Composite: sharpen the luminance a touch.
 		result.luma =
 			SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-				max_kernel_size_, samples_per_line_, 100.0f, subcarrier_frequency_);
+				max_kernel_size_, samples_per_line_, 10.0f, subcarrier_frequency_);
 	}
 
 	result.chroma =
