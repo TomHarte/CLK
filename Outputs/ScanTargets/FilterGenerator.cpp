@@ -33,7 +33,9 @@ FilterGenerator::FilterPair FilterGenerator::separation_filter() {
 		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
 			MaxKernelSize,
 			samples_per_line_,
-			10.0f,
+			subcarrier_frequency_ / 6.0f,	// Based on the broad logic that artefact colour 'sort of' assumes  that
+											// subcarrier_frequency_/4 pixels won't be discernable, and /6 is a bit
+											// smaller than that. Hands are suitably waved.
 			subcarrier_frequency_ * 0.5f
 		);
 
@@ -63,20 +65,13 @@ FilterGenerator::FilterPair FilterGenerator::separation_filter() {
 FilterGenerator::FilterPair FilterGenerator::demouldation_filter() {
 	FilterPair result{};
 
-	if(decoding_path_ == DecodingPath::SVideo) {
-		// S-Video: don't filter luminance at all.
-		const float identity[] = { 1.0f };
-		result.luma =
-			SignalProcessing::FIRFilter<SignalProcessing::ScalarType::Float>(
-				std::begin(identity),
-				std::end(identity)
-			);
-	} else {
-		// Composite: sharpen the luminance a touch.
-		result.luma =
-			SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-				MaxKernelSize, samples_per_line_, 30.0f, subcarrier_frequency_);
-	}
+	// Don't filter luminance at all.
+	const float identity[] = { 1.0f };
+	result.luma =
+		SignalProcessing::FIRFilter<SignalProcessing::ScalarType::Float>(
+			std::begin(identity),
+			std::end(identity)
+		);
 
 	result.chroma =
 		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
