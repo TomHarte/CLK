@@ -16,41 +16,58 @@
 #define USE_ACCELERATE
 #endif
 
-#include <cstddef>
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <functional>
+#include <iterator>
+#include <numeric>
 #include <vector>
 
 namespace SignalProcessing {
 constexpr float FixedMultiplier = 32767.0f;
 constexpr int FixedShift = 15;
 
-/*!
-	The FIR filter takes a 1d PCM signal with a given sample rate and applies a band-pass filter to it.
+enum class ScalarType {
+	Int16,
+	Float,
+};
 
-	The number of taps (ie, samples considered simultaneously to make an output sample) is configurable;
-	smaller numbers permit a filter that operates more quickly and with less lag but less effectively.
-*/
+template <ScalarType type>
 class FIRFilter {
 public:
-	/*! A suggested default attenuation value. */
-	static constexpr float DefaultAttenuation = 60.0f;
+	using CoefficientType = std::conditional_t<
+		type == ScalarType::Int16,
+		int16_t,
+		float
+	>;
 
-	/*!
-		Creates an instance of @c FIRFilter.
+	FIRFilter() = default;
 
-		@param number_of_taps The size of window for input data.
-		@param input_sample_rate The sampling rate of the input signal.
-		@param low_frequency The lowest frequency of signal to retain in the output.
-		@param high_frequency The highest frequency of signal to retain in the output.
-		@param attenuation The attenuation of the discarded frequencies.
-	*/
-	FIRFilter(
-		std::size_t number_of_taps,
-		float input_sample_rate,
-		float low_frequency,
-		float high_frequency,
-		float attenuation = DefaultAttenuation
-	);
-	FIRFilter(const std::vector<float> &coefficients);
+	template <typename IteratorT>
+	FIRFilter(const IteratorT begin, const IteratorT end) {
+		// Copy into place, possibly converting to fixed point.
+		if constexpr (type == ScalarType::Float) {
+			std::copy(begin, end, std::back_inserter(coefficients_));
+		} else {
+			IteratorT it = begin;
+			while(it != end) {
+				coefficients_.push_back(int16_t(*it * FixedMultiplier));
+				++it;
+			}
+		}
+
+		// Trim.
+		static constexpr CoefficientType threshold = type == ScalarType::Int16 ? 2 : 0.0001f;
+		while(!coefficients_.empty()) {
+			if(
+				std::abs(coefficients_.front()) > threshold ||
+				std::abs(coefficients_.back()) > threshold
+			) break;
+			coefficients_.erase(coefficients_.begin());
+			if(!coefficients_.empty()) coefficients_.erase(coefficients_.end() - 1);
+		}
+	}
 
 	/*!
 		Applies the filter to one batch of input samples, returning the net result.
@@ -58,52 +75,159 @@ public:
 		@param src The source buffer to apply the filter to.
 		@returns The result of applying the filter.
 	*/
-	inline short apply(const short *const src, const size_t stride = 1) const {
+	CoefficientType apply(const CoefficientType *const src, const size_t stride = 1) const {
 		#ifdef USE_ACCELERATE
-			short result;
+		if constexpr (type == ScalarType::Int16) {
+			int16_t result;
 			vDSP_dotpr_s1_15(
-				filter_coefficients_.data(),
+				coefficients_.data(),
 				1,
 				src,
-				vDSP_Stride(stride), &result, filter_coefficients_.size()
+				vDSP_Stride(stride),
+				&result,
+				coefficients_.size()
 			);
 			return result;
-		#else
-			int outputValue = 0;
-			for(std::size_t c = 0; c < filter_coefficients_.size(); ++c) {
-				outputValue += filter_coefficients_[c] * src[c * stride];
-			}
-			return short(outputValue >> FixedShift);
+		} else {
+			float result;
+			vDSP_dotpr(
+				coefficients_.data(),
+				1,
+				src,
+				vDSP_Stride(stride),
+				&result,
+				coefficients_.size()
+			);
+			return result;
+		}
 		#endif
+
+		using AccumulatorType = std::conditional_t<
+			type == ScalarType::Int16,
+			int,
+			float
+		>;
+		AccumulatorType result = 0;
+		for(size_t c = 0; c < coefficients_.size(); ++c) {
+			result += coefficients_[c] * src[c * stride];
+		}
+
+		if constexpr (type == ScalarType::Int16) {
+			return CoefficientType(result >> FixedShift);
+		} else {
+			return result;
+		}
 	}
 
-	/*! @returns The number of taps used by this filter. */
-	inline std::size_t get_number_of_taps() const {
-		return filter_coefficients_.size();
+	CoefficientType operator[](const size_t index) const {
+		return coefficients_[index];
+	}
+	CoefficientType &operator[](const size_t index) {
+		return coefficients_[index];
 	}
 
-	/*! @returns The weighted coefficients that describe this filter. */
-	std::vector<float> get_coefficients() const;
+	size_t size() const {
+		return coefficients_.size();
+	}
 
-	/*!
-		@returns A filter that would have the effect of adding (and scaling) the outputs of the two filters.
-		Defined only if both have the same number of taps.
-	*/
-	FIRFilter operator+(const FIRFilter &) const;
+	void resize(const size_t size) {
+		coefficients_.resize(size);
+	}
 
-	/*!
-		@returns A filter that would have the effect of applying the two filters in succession.
-		Defined only if both have the same number of taps.
-	*/
-	FIRFilter operator*(const FIRFilter &) const;
+	using iterator = std::vector<CoefficientType>::iterator;
 
-	/*!
-		@returns A filter that would have the opposite effect of this filter.
-	*/
-	FIRFilter operator-() const;
+	iterator begin() {
+		return coefficients_.begin();
+	}
+
+	iterator end() {
+		return coefficients_.end();
+	}
+
+	template <typename IteratorT>
+	void copy_to(
+		IteratorT begin,
+		IteratorT end,
+		const std::function<void(IteratorT, CoefficientType)> &applier
+	) const {
+		auto dest = begin;
+		auto src = coefficients_.begin();
+
+		const auto destination_size = size_t(std::distance(begin, end));
+		if(destination_size <= coefficients_.size()) {
+			std::advance(src, (coefficients_.size() - destination_size) / 2);
+		} else {
+			std::advance(dest, (destination_size - coefficients_.size()) / 2);
+		}
+
+		auto steps = std::min(destination_size, coefficients_.size());
+		while(steps--) {
+			applier(dest, *src);
+			++dest;
+			++src;
+		}
+	}
+
+	template <typename IteratorT>
+	void copy_to(
+		const IteratorT begin,
+		const IteratorT end
+	) const {
+		copy_to(begin, end, [](const IteratorT target, const CoefficientType coefficient) {
+			*target = coefficient;
+		});
+	}
+
+	FIRFilter operator *(const CoefficientType rhs) {
+		auto copy = *this;
+		for(auto &coefficient: copy.coefficients_) {
+			if constexpr (type == ScalarType::Float) {
+				coefficient *= rhs;
+			} else {
+				coefficient = (coefficient * rhs) >> FixedShift;
+			}
+		}
+		return copy;
+	}
 
 private:
-	std::vector<short> filter_coefficients_;
+	std::vector<CoefficientType> coefficients_;
 };
+
+/*!
+	The FIR filter takes a 1d PCM signal with a given sample rate and applies a band-pass filter to it.
+
+	The number of taps (ie, samples considered simultaneously to make an output sample) is configurable;
+	smaller numbers permit a filter that operates more quickly and with less lag but less effectively.
+*/
+
+
+namespace KaiserBessel {
+static constexpr float DefaultAttenuation = 60.0f;
+
+/*!
+	@param number_of_taps The size of window for input data.
+	@param input_sample_rate The sampling rate of the input signal.
+	@param low_frequency The lowest frequency of signal to retain in the output.
+	@param high_frequency The highest frequency of signal to retain in the output.
+	@param attenuation The attenuation of the discarded frequencies.
+*/
+template <ScalarType type>
+FIRFilter<type> filter(
+	size_t number_of_taps,
+	float input_sample_rate,
+	float low_frequency,
+	float high_frequency,
+	float attenuation = DefaultAttenuation
+);
+}
+
+namespace Box {
+template <ScalarType type>
+FIRFilter<type> filter(
+	float units_per_sample,
+	float total_range
+);
+}
 
 }

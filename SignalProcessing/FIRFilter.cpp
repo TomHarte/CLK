@@ -14,6 +14,8 @@
 
 using namespace SignalProcessing;
 
+// MARK: - Kaiser Bessel.
+
 /*
 
 	A Kaiser-Bessel filter is a real time window filter. It looks at the last n samples
@@ -37,7 +39,7 @@ using namespace SignalProcessing;
 namespace {
 
 /*! Evaluates the 0th order Bessel function at @c a. */
-constexpr float ino(float a) {
+constexpr float ino(const float a) {
 	float d = 0.0f;
 	float ds = 1.0f;
 	float s = 1.0f;
@@ -51,7 +53,7 @@ constexpr float ino(float a) {
 	return s;
 }
 
-std::vector<short> coefficients_for_idealised_filter_response(
+std::vector<float> coefficients_for_idealised_filter_response(
 	const std::vector<float> &A,
 	const float attenuation,
 	const std::size_t number_of_taps
@@ -67,14 +69,14 @@ std::vector<short> coefficients_for_idealised_filter_response(
 		}
 	} ();
 
-	std::vector<float> filter_coefficients_float(number_of_taps);
+	std::vector<float> filter_coefficients(number_of_taps);
 
 	/* Work out the right hand side of the filter coefficients. */
 	const float I0 = ino(a);
 	const std::size_t Np = (number_of_taps - 1) / 2;
 	const float Np_squared = float(Np * Np);
 	for(std::size_t i = 0; i <= Np; ++i) {
-		filter_coefficients_float[Np + i] =
+		filter_coefficients[Np + i] =
 				A[i] *
 				ino(a * sqrtf(1.0f - (float(i * i) / Np_squared) )) /
 				I0;
@@ -82,35 +84,22 @@ std::vector<short> coefficients_for_idealised_filter_response(
 
 	/* Coefficients are symmetrical, so copy from right hand side to left. */
 	for(std::size_t i = 0; i < Np; ++i) {
-		filter_coefficients_float[i] = filter_coefficients_float[number_of_taps - 1 - i];
+		filter_coefficients[i] = filter_coefficients[number_of_taps - 1 - i];
 	}
 
 	/* Scale back up to retain 100% of input volume. */
-	const float coefficientTotal =
-		std::accumulate(filter_coefficients_float.begin(), filter_coefficients_float.end(), 0.0f);
-
-	/* Hence produce integer versions. */
-	const float coefficientMultiplier = 1.0f / coefficientTotal;
-	std::vector<short> filter_coefficients;
-	filter_coefficients.reserve(number_of_taps);
-	for(std::size_t i = 0; i < number_of_taps; ++i) {
-		filter_coefficients.push_back(short(filter_coefficients_float[i] * FixedMultiplier * coefficientMultiplier));
+	const float total = std::accumulate(filter_coefficients.begin(), filter_coefficients.end(), 0.0f);
+	const float multiplier = 1.0f / total;
+	for(float &coefficient: filter_coefficients) {
+		coefficient *= multiplier;
 	}
 	return filter_coefficients;
 }
 }
 
-std::vector<float> FIRFilter::get_coefficients() const {
-	std::vector<float> coefficients;
-	coefficients.reserve(filter_coefficients_.size());
-	for(const auto short_coefficient: filter_coefficients_) {
-		coefficients.push_back(float(short_coefficient) / FixedMultiplier);
-	}
-	return coefficients;
-}
-
-FIRFilter::FIRFilter(
-	std::size_t number_of_taps,
+template <ScalarType type>
+FIRFilter<type> KaiserBessel::filter(
+	size_t number_of_taps,
 	const float input_sample_rate,
 	const float low_frequency,
 	float high_frequency,
@@ -138,50 +127,59 @@ FIRFilter::FIRFilter(
 			) / i_pi;
 	}
 
-	filter_coefficients_ = coefficients_for_idealised_filter_response(A, attenuation, number_of_taps);
+	const auto idealised = coefficients_for_idealised_filter_response(A, attenuation, number_of_taps);
+	return FIRFilter<type>(
+		idealised.begin(),
+		idealised.end()
+	);
 }
 
-FIRFilter::FIRFilter(const std::vector<float> &coefficients) {
-	filter_coefficients_.reserve(coefficients.size());
-	for(const auto coefficient: coefficients) {
-		filter_coefficients_.push_back(short(coefficient * FixedMultiplier));
+// MARK: - Box.
+
+template <ScalarType type>
+FIRFilter<type> Box::filter(
+	const float units_per_sample,
+	const float total_range
+) {
+	const auto filter_size = size_t(std::ceil(total_range / units_per_sample)) | 1;
+	const auto midpoint = filter_size / 2;
+	std::vector<float> coefficients(filter_size);
+
+	const float cutoff = total_range / 2.0f;
+	float total = 0.0f;
+	float distance = 0.0f;
+	for(size_t c = 0; midpoint + c < filter_size; ++c) {
+		const float coefficient = [&]{
+			const auto far = distance + 0.5f * units_per_sample;
+			if(far < cutoff) return 1.0f;
+
+			const auto near = distance - 0.5f * units_per_sample;
+			if(near >= cutoff) return 0.0f;
+
+			return (cutoff - near) / units_per_sample;
+		} ();
+		distance += units_per_sample;
+
+		coefficients[midpoint + c] = coefficient;
+		coefficients[midpoint - c] = coefficient;
+		total += coefficient * 2.0f;
 	}
-}
+	total -= coefficients[midpoint];
 
-FIRFilter FIRFilter::operator+(const FIRFilter &rhs) const {
-	const auto coefficients = get_coefficients();
-	const auto rhs_coefficients = rhs.get_coefficients();
-
-	std::vector<float> sum;
-	sum.reserve(coefficients.size());
-	for(std::size_t i = 0; i < coefficients.size(); ++i) {
-		sum.push_back((coefficients[i] + rhs_coefficients[i]) / 2.0f);
-	}
-
-	return FIRFilter(sum);
-}
-
-FIRFilter FIRFilter::operator-() const {
-	const auto coefficients = get_coefficients();
-	std::vector<float> negative_coefficients;
-
-	negative_coefficients.reserve(coefficients.size());
-	for(const auto coefficient: coefficients) {
-		negative_coefficients.push_back(1.0f - coefficient);
-	}
-
-	return FIRFilter(negative_coefficients);
-}
-
-FIRFilter FIRFilter::operator*(const FIRFilter &rhs) const {
-	const std::vector<float> coefficients = get_coefficients();
-	const std::vector<float> rhs_coefficients = rhs.get_coefficients();
-
-	std::vector<float> sum;
-	sum.reserve(coefficients.size());
-	for(std::size_t i = 0; i < coefficients.size(); ++i) {
-		sum.push_back(coefficients[i] * rhs_coefficients[i]);
+	for(auto &coefficient: coefficients) {
+		coefficient /= total;
 	}
 
-	return FIRFilter(sum);
+	return FIRFilter<type>(
+		coefficients.begin(),
+		coefficients.end()
+	);
 }
+
+
+// MARK: - Explicit instantiations.
+
+template FIRFilter<ScalarType::Int16> KaiserBessel::filter<ScalarType::Int16>(size_t, float, float, float, float);
+template FIRFilter<ScalarType::Float> KaiserBessel::filter<ScalarType::Float>(size_t, float, float, float, float);
+template FIRFilter<ScalarType::Int16> Box::filter<ScalarType::Int16>(float, float);
+template FIRFilter<ScalarType::Float> Box::filter<ScalarType::Float>(float, float);
