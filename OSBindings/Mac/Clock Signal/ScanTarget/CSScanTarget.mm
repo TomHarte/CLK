@@ -130,6 +130,9 @@ struct Uniforms {
 	__fp16 outputMultiplier;
 };
 
+// Kernel sizes above and in the shaders themselves assume a maximum filter kernel size.
+static_assert(Outputs::Display::FilterGenerator::MaxKernelSize == 31);
+
 constexpr size_t NumBufferedLines = 500;
 constexpr size_t NumBufferedScans = NumBufferedLines * 4;
 
@@ -252,7 +255,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	std::atomic_flag _isDrawing;
 
 	// Additional pipeline information.
-	size_t _lumaKernelSize;
 	std::atomic<bool> _isUsingSupersampling;
 
 	// The output view and its aspect ratio.
@@ -506,7 +508,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		[self clearTexture:_finalisedLineTexture];
 
 		NSString *const kernelFunction =
-			[self shouldApplyGamma] ? @"filterChromaKernelWithGamma" : @"filterChromaKernelNoGamma";
+			[self shouldApplyGamma] ? @"demodulateKernelWithGamma" : @"demodulateKernelNoGamma";
 		_finalisedLineState =
 			[_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:kernelFunction] error:nil];
 	}
@@ -515,20 +517,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	if(_pipeline == Pipeline::CompositeColour) {
 		if(!_separatedLumaTexture) {
 			_separatedLumaTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
-
-			NSString *kernelFunction;
-			switch(_lumaKernelSize) {
-				default:	kernelFunction = @"separateLumaKernel15";	break;
-//				case 9:		kernelFunction = @"separateLumaKernel9";	break;
-//				case 7:		kernelFunction = @"separateLumaKernel7";	break;
-//				case 1:
-//				case 3:
-//				case 5:		kernelFunction = @"separateLumaKernel5";	break;
-			}
-
 			_separatedLumaState =
 				[_view.device
-					newComputePipelineStateWithFunction:[library newFunctionWithName:kernelFunction]
+					newComputePipelineStateWithFunction:[library newFunctionWithName:@"separateKernel"]
 					error:nil];
 		}
 	} else {
@@ -726,7 +717,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			for(size_t c = 0; c < 16; ++c) {
 				self.uniforms->lumaKernel[c] = separation_multiplexed[c];
 			}
-			_lumaKernelSize = separation.size();
 
 			const auto demodulation = generator.demouldation_filter();
 			using Coefficients3 = std::array<simd::float3, 31>;

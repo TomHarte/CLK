@@ -20,7 +20,7 @@ constexpr constant uint KernelCentre = 15;
 ///
 /// In practice, this takes pixels in UnfilteredYUVAmplitude form, lowpasses the chrominance parts and converts to RGB,
 /// though it's dependent on an appropriate filter being generated externally to do that.
-template <bool applyGamma> void filterChromaKernel(
+template <bool applyGamma> void demodulateKernel(
 	const metal::texture2d<half, metal::access::read> inTexture,
 	const metal::texture2d<half, metal::access::write> outTexture,
 	const uint2 gid,
@@ -69,24 +69,24 @@ template <bool applyGamma> void filterChromaKernel(
 	}
 }
 
-kernel void filterChromaKernelNoGamma(
+kernel void demodulateKernelNoGamma(
 	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
 	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
 	const constant Uniforms &uniforms [[buffer(0)]],
 	const constant int &offset [[buffer(1)]]
 ) {
-	filterChromaKernel<false>(inTexture, outTexture, gid, uniforms, offset);
+	demodulateKernel<false>(inTexture, outTexture, gid, uniforms, offset);
 }
 
-kernel void filterChromaKernelWithGamma(
+kernel void demodulateKernelWithGamma(
 	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
 	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
 	const constant Uniforms &uniforms [[buffer(0)]],
 	const constant int &offset [[buffer(1)]]
 ) {
-	filterChromaKernel<true>(inTexture, outTexture, gid, uniforms, offset);
+	demodulateKernel<true>(inTexture, outTexture, gid, uniforms, offset);
 }
 
 // MARK: - Luma/chroma separation filters of various sizes.
@@ -130,7 +130,7 @@ void setSeparatedLumaChroma(
 /// Regardless of kernel size, weights are always taken to be centred on index 7 of the `lumaKernel`
 /// member of `Uniforms`.
 
-kernel void separateLumaKernel15(
+kernel void separateKernel(
 	const metal::texture2d<half, metal::access::read> inTexture [[texture(0)]],
 	const metal::texture2d<half, metal::access::write> outTexture [[texture(1)]],
 	const uint2 gid [[thread_position_in_grid]],
