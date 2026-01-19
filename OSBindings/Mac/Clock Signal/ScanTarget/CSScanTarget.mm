@@ -131,7 +131,7 @@ struct Uniforms {
 };
 
 // Kernel sizes above and in the shaders themselves assume a maximum filter kernel size.
-static_assert(Outputs::Display::FilterGenerator::MaxKernelSize == 31);
+static_assert(Outputs::Display::FilterGenerator::MaxKernelSize <= 31);
 
 constexpr size_t NumBufferedLines = 500;
 constexpr size_t NumBufferedScans = NumBufferedLines * 4;
