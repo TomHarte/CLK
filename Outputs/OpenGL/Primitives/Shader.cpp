@@ -18,8 +18,8 @@ thread_local const Shader *bound_shader = nullptr;
 using Logger = Log::Logger<Log::Source::OpenGL>;
 }
 
-GLuint Shader::compile_shader(const std::string &source, GLenum type) {
-	GLuint shader = glCreateShader(type);
+GLuint Shader::compile_shader(const std::string &source, const GLenum type) {
+	const GLuint shader = glCreateShader(type);
 
 	switch(api_) {
 		case API::OpenGL32Core: {
@@ -54,18 +54,17 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 	test_gl(glCompileShader, shader);
 
 	if constexpr (Logger::ErrorsEnabled) {
-		GLint isCompiled = 0;
-		test_gl(glGetShaderiv, shader, GL_COMPILE_STATUS, &isCompiled);
-		if(isCompiled == GL_FALSE) {
-			GLint logLength;
-			test_gl(glGetShaderiv, shader, GL_INFO_LOG_LENGTH, &logLength);
-			if(logLength > 0) {
-				const auto length = std::vector<GLchar>::size_type(logLength);
+		GLint is_compiled = 0;
+		test_gl(glGetShaderiv, shader, GL_COMPILE_STATUS, &is_compiled);
+		if(is_compiled == GL_FALSE) {
+			Logger::error().append("Failed to compile: %s", source.c_str());
+			GLint log_length;
+			test_gl(glGetShaderiv, shader, GL_INFO_LOG_LENGTH, &log_length);
+			if(log_length > 0) {
+				const auto length = std::vector<GLchar>::size_type(log_length);
 				std::vector<GLchar> log(length);
-				test_gl(glGetShaderInfoLog, shader, logLength, &logLength, log.data());
-				Logger::error().append("Sought to compile: %s", source.c_str());
+				test_gl(glGetShaderInfoLog, shader, log_length, &log_length, log.data());
 				Logger::error().append("Compile log: %s", log.data());
-				Logger::error().append("");
 			}
 
 			throw (type == GL_VERTEX_SHADER) ? VertexShaderCompilationError : FragmentShaderCompilationError;
@@ -99,7 +98,11 @@ Shader::Shader(
 	init(vertex_shader, fragment_shader, bindings);
 }
 
-void Shader::init(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<AttributeBinding> &attribute_bindings) {
+void Shader::init(
+	const std::string &vertex_shader,
+	const std::string &fragment_shader,
+	const std::vector<AttributeBinding> &attribute_bindings
+) {
 	shader_program_ = glCreateProgram();
 	const GLuint vertex = compile_shader(vertex_shader, GL_VERTEX_SHADER);
 	const GLuint fragment = compile_shader(fragment_shader, GL_FRAGMENT_SHADER);
@@ -115,13 +118,20 @@ void Shader::init(const std::string &vertex_shader, const std::string &fragment_
 			switch(error) {
 				case 0: break;
 				case GL_INVALID_VALUE:
-					Logger::error().append("GL_INVALID_VALUE when attempting to bind %s to index %d (i.e. index is greater than or equal to GL_MAX_VERTEX_ATTRIBS)", binding.name.c_str(), binding.index);
+					Logger::error().append(
+						"GL_INVALID_VALUE when attempting to bind %s to index %d "
+						"(i.e. index is greater than or equal to GL_MAX_VERTEX_ATTRIBS)",
+							binding.name.c_str(), binding.index);
 				break;
 				case GL_INVALID_OPERATION:
-					Logger::error().append("GL_INVALID_OPERATION when attempting to bind %s to index %d (i.e. name begins with gl_)", binding.name.c_str(), binding.index);
+					Logger::error().append(
+						"GL_INVALID_OPERATION when attempting to bind %s to index %d "
+						"(i.e. name begins with gl_)",
+							binding.name.c_str(), binding.index);
 				break;
 				default:
-					Logger::error().append("Error %d when attempting to bind %s to index %d", error, binding.name.c_str(), binding.index);
+					Logger::error().append(
+						"Error %d when attempting to bind %s to index %d", error, binding.name.c_str(), binding.index);
 				break;
 			}
 		}
@@ -130,17 +140,17 @@ void Shader::init(const std::string &vertex_shader, const std::string &fragment_
 	test_gl(glLinkProgram, shader_program_);
 
 	if constexpr (Logger::ErrorsEnabled) {
-		GLint logLength;
-		test_gl(glGetProgramiv, shader_program_, GL_INFO_LOG_LENGTH, &logLength);
-		if(logLength > 0) {
-			std::vector<GLchar> log(logLength);
-			test_gl(glGetProgramInfoLog, shader_program_, logLength, &logLength, log.data());
+		GLint log_length;
+		test_gl(glGetProgramiv, shader_program_, GL_INFO_LOG_LENGTH, &log_length);
+		if(log_length > 0) {
+			std::vector<GLchar> log(log_length);
+			test_gl(glGetProgramInfoLog, shader_program_, log_length, &log_length, log.data());
 			Logger::error().append("Link log: %s", log.data());
 		}
 
-		GLint didLink = 0;
-		test_gl(glGetProgramiv, shader_program_, GL_LINK_STATUS, &didLink);
-		if(didLink == GL_FALSE) {
+		GLint did_link = 0;
+		test_gl(glGetProgramiv, shader_program_, GL_LINK_STATUS, &did_link);
+		if(did_link == GL_FALSE) {
 			throw ProgramLinkageError;
 		}
 	}
@@ -174,8 +184,16 @@ GLint Shader::get_uniform_location(const std::string &name) const {
 	return location;
 }
 
-void Shader::enable_vertex_attribute_with_pointer(const std::string &name, GLint size, GLenum type, GLboolean normalised, GLsizei stride, const GLvoid *pointer, GLuint divisor) {
-	GLint location = get_attrib_location(name);
+void Shader::enable_vertex_attribute_with_pointer(
+	const std::string &name,
+	const GLint size,
+	const GLenum type,
+	const GLboolean normalised,
+	const GLsizei stride,
+	const GLvoid *const pointer,
+	const GLuint divisor
+) {
+	const auto location = get_attrib_location(name);
 	if(location >= 0) {
 		test_gl(glEnableVertexAttribArray, GLuint(location));
 		test_gl(glVertexAttribPointer, GLuint(location), size, type, normalised, stride, pointer);
@@ -196,80 +214,103 @@ void Shader::enable_vertex_attribute_with_pointer(const std::string &name, GLint
 		} \
 	}
 
-void Shader::set_uniform(const std::string &name, GLint value) {
+void Shader::set_uniform(const std::string &name, const GLint value) {
 	enqueue_function([name, value, this] {
 		with_location(glUniform1i, value);
 	});
 }
 
-void Shader::set_uniform(const std::string &name, GLuint value) {
+void Shader::set_uniform(const std::string &name, const GLuint value) {
 	enqueue_function([name, value, this] {
 		with_location(glUniform1ui, value);
 	});
 }
 
-void Shader::set_uniform(const std::string &name, GLfloat value) {
+void Shader::set_uniform(const std::string &name, const GLfloat value) {
 	enqueue_function([name, value, this] {
 		with_location(glUniform1f, value);
 	});
 }
 
 
-void Shader::set_uniform(const std::string &name, GLint value1, GLint value2) {
+void Shader::set_uniform(const std::string &name, const GLint value1, const GLint value2) {
 	enqueue_function([name, value1, value2, this] {
 		with_location(glUniform2i, value1, value2);
 	});
 }
 
-void Shader::set_uniform(const std::string &name, GLfloat value1, GLfloat value2) {
+void Shader::set_uniform(const std::string &name, const GLfloat value1, const GLfloat value2) {
 	enqueue_function([name, value1, value2, this] {
 		with_location(glUniform2f, value1, value2);
 	});
 }
 
-void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2) {
+void Shader::set_uniform(const std::string &name, const GLuint value1, const GLuint value2) {
 	enqueue_function([name, value1, value2, this] {
 		with_location(glUniform2ui, value1, value2);
 	});
 }
 
-void Shader::set_uniform(const std::string &name, GLint value1, GLint value2, GLint value3) {
+void Shader::set_uniform(const std::string &name, const GLint value1, const GLint value2, const GLint value3) {
 	enqueue_function([name, value1, value2, value3, this] {
 		with_location(glUniform3i, value1, value2, value3);
 	});
 }
 
-void Shader::set_uniform(const std::string &name, GLfloat value1, GLfloat value2, GLfloat value3) {
+void Shader::set_uniform(const std::string &name, const GLfloat value1, const GLfloat value2, const GLfloat value3) {
 	enqueue_function([name, value1, value2, value3, this] {
 		with_location(glUniform3f, value1, value2, value3);
 	});
 }
 
-void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2, GLuint value3) {
+void Shader::set_uniform(const std::string &name, const GLuint value1, const GLuint value2, const GLuint value3) {
 	enqueue_function([name, value1, value2, value3, this] {
 		with_location(glUniform3ui, value1, value2, value3);
 	});
 }
 
-void Shader::set_uniform(const std::string &name, GLint value1, GLint value2, GLint value3, GLint value4) {
+void Shader::set_uniform(
+	const std::string &name,
+	const GLint value1,
+	const GLint value2,
+	const GLint value3,
+	const GLint value4
+) {
 	enqueue_function([name, value1, value2, value3, value4, this] {
 		with_location(glUniform4i, value1, value2, value3, value4);
 	});
 }
 
-void Shader::set_uniform(const std::string &name, GLfloat value1, GLfloat value2, GLfloat value3, GLfloat value4) {
+void Shader::set_uniform(
+	const std::string &name,
+	const GLfloat value1,
+	const GLfloat value2,
+	const GLfloat value3,
+	const GLfloat value4
+) {
 	enqueue_function([name, value1, value2, value3, value4, this] {
 		with_location(glUniform4f, value1, value2, value3, value4);
 	});
 }
 
-void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2, GLuint value3, GLuint value4) {
+void Shader::set_uniform(
+	const std::string &name,
+	const GLuint value1,
+	const GLuint value2,
+	const GLuint value3,
+	const GLuint value4
+) {
 	enqueue_function([name, value1, value2, value3, value4, this] {
 		with_location(glUniform4ui, value1, value2, value3, value4);
 	});
 }
 
-void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLint *values) {
+void Shader::set_uniform(
+	const std::string &name,
+	const GLint size,
+	const GLsizei count,
+	const GLint *const values
+) {
 	std::size_t number_of_values = std::size_t(count) * std::size_t(size);
 	std::vector<GLint> values_copy(values, values + number_of_values);
 
@@ -283,7 +324,7 @@ void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, con
 	});
 }
 
-void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLfloat *values) {
+void Shader::set_uniform(const std::string &name, const GLint size, const GLsizei count, const GLfloat *const values) {
 	std::size_t number_of_values = std::size_t(count) * std::size_t(size);
 	std::vector<GLfloat> values_copy(values, values + number_of_values);
 
@@ -297,7 +338,7 @@ void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, con
 	});
 }
 
-void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLuint *values) {
+void Shader::set_uniform(const std::string &name, const GLint size, const GLsizei count, const GLuint *const values) {
 	std::size_t number_of_values = std::size_t(count) * std::size_t(size);
 	std::vector<GLuint> values_copy(values, values + number_of_values);
 
@@ -311,11 +352,22 @@ void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, con
 	});
 }
 
-void Shader::set_uniform_matrix(const std::string &name, GLint size, bool transpose, const GLfloat *values) {
+void Shader::set_uniform_matrix(
+	const std::string &name,
+	const GLint size,
+	const bool transpose,
+	const GLfloat *const values
+) {
 	set_uniform_matrix(name, size, 1, transpose, values);
 }
 
-void Shader::set_uniform_matrix(const std::string &name, GLint size, GLsizei count, bool transpose, const GLfloat *values) {
+void Shader::set_uniform_matrix(
+	const std::string &name,
+	const GLint size,
+	const GLsizei count,
+	const bool transpose,
+	const GLfloat *const values
+) {
 	std::size_t number_of_values = std::size_t(count) * std::size_t(size) * std::size_t(size);
 	std::vector<GLfloat> values_copy(values, values + number_of_values);
 
@@ -329,13 +381,13 @@ void Shader::set_uniform_matrix(const std::string &name, GLint size, GLsizei cou
 	});
 }
 
-void Shader::enqueue_function(std::function<void(void)> function) {
-	std::lock_guard function_guard(function_mutex_);
+void Shader::enqueue_function(const std::function<void(void)> function) {
+	const std::lock_guard function_guard(function_mutex_);
 	enqueued_functions_.push_back(function);
 }
 
 void Shader::flush_functions() const {
-	std::lock_guard function_guard(function_mutex_);
+	const std::lock_guard function_guard(function_mutex_);
 	for(std::function<void(void)> &function : enqueued_functions_) {
 		function();
 		test_gl_error();

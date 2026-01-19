@@ -13,20 +13,20 @@ using namespace Outputs::Display::OpenGL;
 Rectangle::Rectangle(const API api, const float x, const float y, const float width, const float height):
 	pixel_shader_(
 		api,
-		R"str(
+		R"glsl(
 			in vec2 position;
 			void main(void) {
 				gl_Position = vec4(position, 0.0, 1.0);
 			}
-		)str",
-		R"str(
+		)glsl",
+		R"glsl(
 			uniform vec4 colour;
 			out vec4 fragColour;
 
 			void main(void) {
 				fragColour = colour;
 			}
-		)str"
+		)glsl"
 	){
 	pixel_shader_.bind();
 
@@ -36,7 +36,7 @@ Rectangle::Rectangle(const API api, const float x, const float y, const float wi
 	test_gl(glBindVertexArray, drawing_vertex_array_);
 	test_gl(glBindBuffer, GL_ARRAY_BUFFER, drawing_array_buffer_);
 
-	GLint position_attribute = pixel_shader_.get_attrib_location("position");
+	const GLint position_attribute = pixel_shader_.get_attrib_location("position");
 	test_gl(glEnableVertexAttribArray, GLuint(position_attribute));
 
 	test_gl(glVertexAttribPointer,
@@ -49,20 +49,20 @@ Rectangle::Rectangle(const API api, const float x, const float y, const float wi
 
 	colour_uniform_ = pixel_shader_.get_uniform_location("colour");
 
-	float buffer[4*2];
-
 	// Store positions.
-	buffer[0] = x;			buffer[1] = y;
-	buffer[2] = x;			buffer[3] = y + height;
-	buffer[4] = x + width;	buffer[5] = y;
-	buffer[6] = x + width;	buffer[7] = y + height;
+	const float buffer[4*2] = {
+		x,			y,
+		x,			y + height,
+		x + width,	y,
+		x + width,	y + height
+	};
 
 	// Upload buffer.
 	test_gl(glBindBuffer, GL_ARRAY_BUFFER, drawing_array_buffer_);
 	test_gl(glBufferData, GL_ARRAY_BUFFER, sizeof(buffer), buffer, GL_STATIC_DRAW);
 }
 
-void Rectangle::draw(float red, float green, float blue) {
+void Rectangle::draw(const float red, const float green, const float blue) {
 	pixel_shader_.bind();
 	test_gl(glUniform4f, colour_uniform_, red, green, blue, 1.0);
 
