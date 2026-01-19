@@ -39,15 +39,17 @@ FilterGenerator::FilterPair FilterGenerator::separation_filter() {
 			subcarrier_frequency_ * 0.5f
 		);
 
-	// Chrominance.
+	// Chrominance; attempt to pick the smallest kernel that covers at least one
+	// complete cycle of the colour subcarrier.
+	const auto chroma_size = size_t(ceil(samples_per_line_ / subcarrier_frequency_)) | 1;
 	result.chroma = SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-		15,
+		chroma_size,
 		samples_per_line_,
 		subcarrier_frequency_,
 		samples_per_line_
 	);
 	SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
-		15,
+		chroma_size,
 		samples_per_line_,
 		0.0f,
 		subcarrier_frequency_
