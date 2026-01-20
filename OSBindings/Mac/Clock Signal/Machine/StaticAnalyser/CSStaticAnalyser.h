@@ -30,13 +30,13 @@ typedef NS_ENUM(NSInteger, CSMachineAppleIIModel) {
 	CSMachineAppleIIModelAppleII,
 	CSMachineAppleIIModelAppleIIPlus,
 	CSMachineAppleIIModelAppleIIe,
-	CSMachineAppleIIModelAppleEnhancedIIe
+	CSMachineAppleIIModelAppleEnhancedIIe,
 };
 
 typedef NS_ENUM(NSInteger, CSMachineAppleIIDiskController) {
 	CSMachineAppleIIDiskControllerNone,
 	CSMachineAppleIIDiskControllerSixteenSector,
-	CSMachineAppleIIDiskControllerThirteenSector
+	CSMachineAppleIIDiskControllerThirteenSector,
 };
 
 typedef NS_ENUM(NSInteger, CSMachineAppleIIgsModel) {
@@ -63,7 +63,7 @@ typedef NS_ENUM(NSInteger, CSMachineCommodoreTEDModel) {
 typedef NS_ENUM(NSInteger, CSMachineCPCModel) {
 	CSMachineCPCModel464,
 	CSMachineCPCModel664,
-	CSMachineCPCModel6128
+	CSMachineCPCModel6128,
 };
 
 typedef NS_ENUM(NSInteger, CSMachineEnterpriseModel) {
@@ -74,7 +74,7 @@ typedef NS_ENUM(NSInteger, CSMachineEnterpriseModel) {
 
 typedef NS_ENUM(NSInteger, CSMachineEnterpriseSpeed) {
 	CSMachineEnterpriseSpeed4MHz,
-	CSMachineEnterpriseSpeed6MHz
+	CSMachineEnterpriseSpeed6MHz,
 };
 
 typedef NS_ENUM(NSInteger, CSMachineEnterpriseEXOS) {
@@ -105,7 +105,7 @@ typedef NS_ENUM(NSInteger, CSMachineMacintoshModel) {
 typedef NS_ENUM(NSInteger, CSMachineOricModel) {
 	CSMachineOricModelOric1,
 	CSMachineOricModelOricAtmos,
-	CSMachineOricModelPravetz
+	CSMachineOricModelPravetz,
 };
 
 typedef NS_ENUM(NSInteger, CSMachineOricDiskInterface) {
@@ -113,7 +113,13 @@ typedef NS_ENUM(NSInteger, CSMachineOricDiskInterface) {
 	CSMachineOricDiskInterfaceMicrodisc,
 	CSMachineOricDiskInterfacePravetz,
 	CSMachineOricDiskInterfaceJasmin,
-	CSMachineOricDiskInterfaceBD500
+	CSMachineOricDiskInterfaceBD500,
+};
+
+typedef NS_ENUM(NSInteger, CSMachinePlus4DiskDrive) {
+	CSMachinePlus4DiskDriveNone,
+	CSMachinePlus4DiskDriveC1541,
+	CSMachinePlus4DiskDriveC1551,
 };
 
 typedef NS_ENUM(NSInteger, CSMachineSpectrumModel) {
@@ -184,7 +190,7 @@ typedef int Kilobytes;
 	secondProcessor:(CSMachineBBCMicroSecondProcessor)secondProcessor;
 
 - (instancetype)initWithCommodoreTEDModel:(CSMachineCommodoreTEDModel)model
-	hasC1541:(BOOL)hasC1541;
+	diskDrive:(CSMachinePlus4DiskDrive)diskDrive;
 
 - (instancetype)initWithElectronDFS:(BOOL)dfs
 	adfs:(BOOL)adfs
