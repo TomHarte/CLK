@@ -79,7 +79,7 @@ FilterGenerator::FilterPair FilterGenerator::demouldation_filter() {
 		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
 			MaxKernelSize,
 			samples_per_line_,
-			0.0f,
+			subcarrier_frequency_ * 0.05f,
 			subcarrier_frequency_ * 0.5f
 		)
 		* (decoding_path_ == DecodingPath::SVideo ? 2.0f : 0.5f);
