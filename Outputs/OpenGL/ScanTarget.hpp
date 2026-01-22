@@ -94,7 +94,6 @@ private:
 	GLuint line_buffer_name_ = 0, line_vertex_array_ = 0;
 
 	template <typename T> void allocate_buffer(const T &array, GLuint &buffer_name, GLuint &vertex_array_name);
-	template <typename T> void patch_buffer(const T &array, GLuint target, uint16_t submit_pointer, uint16_t read_pointer);
 
 	GLuint write_area_texture_name_ = 0;
 	bool texture_exists_ = false;
