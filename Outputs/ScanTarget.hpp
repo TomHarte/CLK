@@ -235,6 +235,19 @@ enum class InputDataType {
 	Red8Green8Blue8,		// 4 bytes/pixel; first is red, second is green, third is blue, fourth is vacant.
 };
 
+constexpr const char *name(const InputDataType data_type) {
+	switch(data_type) {
+		case InputDataType::Luminance1: 			return "Luminance1";
+		case InputDataType::Luminance8: 			return "Luminance8";
+		case InputDataType::PhaseLinkedLuminance8: 	return "PhaseLinkedLuminance8";
+		case InputDataType::Luminance8Phase8: 		return "Luminance8Phase8";
+		case InputDataType::Red1Green1Blue1: 		return "Red1Green1Blue1";
+		case InputDataType::Red2Green2Blue2: 		return "Red2Green2Blue2";
+		case InputDataType::Red4Green4Blue4: 		return "Red4Green4Blue4";
+		case InputDataType::Red8Green8Blue8: 		return "Red8Green8Blue8";
+	}
+}
+
 /// @returns the number of bytes per sample for data of type @c data_type.
 /// Guaranteed to be 1, 2 or 4 for valid data types.
 constexpr inline size_t size_for_data_type(InputDataType data_type) {

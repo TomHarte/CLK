@@ -16,7 +16,7 @@
 #include <optional>
 
 #include "BufferingScanTarget.hpp"
-#include "FIRFilter.hpp"
+#include "FilterGenerator.hpp"
 
 /*
 
@@ -94,6 +94,9 @@
 
 namespace {
 
+constexpr float MinColourSubcarrierMultiplier = 8.0f;
+constexpr int BufferWidth = (MinColourSubcarrierMultiplier > 5.0f) ? 3072 : 1536;
+
 /// Provides a container for __fp16 versions of tightly-packed single-precision plain old data with a copy assignment constructor.
 template <typename NaturalType> struct HalfConverter {
 	__fp16 elements[sizeof(NaturalType) / sizeof(float)];
@@ -119,13 +122,16 @@ struct Uniforms {
 	HalfConverter<simd::float3x3> toRGB;
 	HalfConverter<simd::float3x3> fromRGB;
 
-	HalfConverter<simd::float3> chromaKernel[8];
-	__fp16 lumaKernel[8];
+	HalfConverter<simd::float3> chromaKernel[16];
+	HalfConverter<simd::float2> lumaKernel[16];
 
 	__fp16 outputAlpha;
 	__fp16 outputGamma;
 	__fp16 outputMultiplier;
 };
+
+// Kernel sizes above and in the shaders themselves assume a maximum filter kernel size.
+static_assert(Outputs::Display::FilterGenerator::MaxKernelSize <= 31);
 
 constexpr size_t NumBufferedLines = 500;
 constexpr size_t NumBufferedScans = NumBufferedLines * 4;
@@ -138,49 +144,20 @@ constexpr MTLResourceOptions SharedResourceOptionsStandard =
 constexpr MTLResourceOptions SharedResourceOptionsTexture =
 	MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeManaged;
 
-#define uniforms() reinterpret_cast<Uniforms *>(_uniformsBuffer.contents)
-
-#define RangePerform(start, end, size, func)	\
-	if((start) != (end)) {	\
-		if((start) < (end)) {	\
-			func((start), (end) - (start));	\
-		} else {	\
-			func((start), (size) - (start));	\
-			if(end) {	\
-				func(0, (end));	\
-			}	\
-		}	\
+void range_perform(
+	const size_t start,
+	const size_t end,
+	const size_t size,
+	const std::function<void(size_t start, size_t length)> &func
+) {
+	if(start == end) return;
+	if(start < end) {
+		func(start, end - start);
+		return;
 	}
 
-/// @returns the proper 1d kernel to apply a box filter around a certain point a pixel density of @c radiansPerPixel and applying an
-///		angular limit of @c cutoff. The values returned will be the first eight of a fifteen-point filter that is symmetrical around its centre.
-std::array<float, 8> boxCoefficients(float radiansPerPixel, float cutoff) {
-	std::array<float, 8> filter;
-	float total = 0.0f;
-
-	for(size_t c = 0; c < 8; ++c) {
-		// This coefficient occupies the angular window [6.5-c, 7.5-c]*radiansPerPixel.
-		const float startAngle = (6.5f - float(c)) * radiansPerPixel;
-		const float endAngle = (7.5f - float(c)) * radiansPerPixel;
-
-		float coefficient = 0.0f;
-		if(endAngle < cutoff) {
-			coefficient = 1.0f;
-		} else if(startAngle >= cutoff) {
-			coefficient = 0.0f;
-		} else {
-			coefficient = (cutoff - startAngle) / radiansPerPixel;
-		}
-		total += 2.0f * coefficient;	// All but the centre coefficient will be used twice.
-		filter[c] = coefficient;
-	}
-	total = total - filter[7];			// As per above; ensure the centre coefficient is counted only once.
-
-	for(size_t c = 0; c < 8; ++c) {
-		filter[c] /= total;
-	}
-
-	return filter;
+	func(start, size - start);
+	if(end) func(0, end);
 }
 
 }
@@ -192,11 +169,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLCommandQueue> _commandQueue;
 
 	// Pipelines.
-	id<MTLRenderPipelineState> _composePipeline;		// For rendering to the composition texture.
-	id<MTLRenderPipelineState> _outputPipeline;			// For drawing to the frame buffer.
-	id<MTLRenderPipelineState> _copyPipeline;			// For copying from one texture to another.
-	id<MTLRenderPipelineState> _supersamplePipeline;	// For resampling from one texture to one that is 1/4 as large.
-	id<MTLRenderPipelineState> _clearPipeline;			// For applying additional inter-frame clearing (cf. the stencil).
+	id<MTLRenderPipelineState> _composePipeline;		// Renders to the composition texture.
+	id<MTLRenderPipelineState> _outputPipeline;			// Draws to the frame buffer.
+	id<MTLRenderPipelineState> _copyPipeline;			// Copies from one texture to another.
+	id<MTLRenderPipelineState> _supersamplePipeline;	// Resamples from one texture to one that is 1/4 as large.
+	id<MTLRenderPipelineState> _clearPipeline;			// Applies additional inter-frame clearing (cf. the stencil).
 
 	// Buffers.
 	id<MTLBuffer> _uniformsBuffer;	// A static buffer, containing a copy of the Uniforms struct.
@@ -267,9 +244,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	NSUInteger _lineBufferPixelsPerLine;
 
 	size_t _lineOffsetBuffer;
-	id<MTLBuffer> _lineOffsetBuffers[NumBufferedLines];	// Allocating NumBufferedLines buffers ensures these can't possibly be exhausted;
-														// for this list to be exhausted there'd have to be more draw calls in flight than
-														// there are lines for them to operate upon.
+	id<MTLBuffer> _lineOffsetBuffers[NumBufferedLines];	// Allocating NumBufferedLines buffers ensures these can't
+														// possibly be exhausted; for this list to be exhausted there'd
+														// have to be more draw calls in flight than there are lines for
+														// them to operate upon.
 
 	// The scan target in C++-world terms and the non-GPU storage for it.
 	BufferingScanTarget _scanTarget;
@@ -277,8 +255,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	std::atomic_flag _isDrawing;
 
 	// Additional pipeline information.
-	size_t _lumaKernelSize;
-	size_t _chromaKernelSize;
 	std::atomic<bool> _isUsingSupersampling;
 
 	// The output view and its aspect ratio.
@@ -287,6 +263,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// Previously set modals, to avoid unnecessary buffer churn.
 	std::optional<Outputs::Display::ScanTarget::Modals> _priorModals;
+}
+
+- (Uniforms *)uniforms {
+	return reinterpret_cast<Uniforms *>(_uniformsBuffer.contents);
 }
 
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view {
@@ -350,7 +330,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// There's a ridiculous amount of overhead in this, but it avoids allocations during drawing,
 		// and a single int per instance is all I need.
 		for(size_t c = 0; c < NumBufferedLines; ++c) {
-			_lineOffsetBuffers[c] = [_view.device newBufferWithLength:sizeof(int) options:SharedResourceOptionsStandard];
+			_lineOffsetBuffers[c] =
+				[_view.device newBufferWithLength:sizeof(int) options:SharedResourceOptionsStandard];
 		}
 
 		// Ensure the is-drawing flag is initially clear.
@@ -363,13 +344,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	return self;
 }
 
-/*!
- @method mtkView:drawableSizeWillChange:
- @abstract Called whenever the drawableSize of the view will change
- @discussion Delegate can recompute view and projection matricies or regenerate any buffers to be compatible with the new view size or resolution
- @param view MTKView which called this method
- @param size New drawable size in pixels
- */
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
 	_viewAspectRatio = size.width / size.height;
 	[self setAspectRatio];
@@ -461,9 +435,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	if(_oldFrameBuffer) {
 		[self copyTexture:_oldFrameBuffer to:_frameBuffer];
 	} else {
-		// TODO: this use of clearTexture is the only reasn _frameBuffer has a marked usage of MTLTextureUsageShaderWrite;
-		// it'd probably be smarter to blank it with geometry rather than potentially complicating
-		// its storage further?
+		// TODO: this use of clearTexture is the only reason _frameBuffer has a marked usage of
+		// MTLTextureUsageShaderWrite; it'd probably be smarter to blank it with geometry rather than potentially
+		// complicating its storage further?
 		[self clearTexture:_frameBuffer];
 	}
 
@@ -472,7 +446,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (BOOL)shouldApplyGamma {
-	return fabsf(float(uniforms()->outputGamma) - 1.0f) > 0.01f;
+	return fabsf(float(self.uniforms->outputGamma) - 1.0f) > 0.01f;
 }
 
 - (void)clearTexture:(id<MTLTexture>)texture {
@@ -501,7 +475,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// Build a descriptor for any intermediate line texture.
 	MTLTextureDescriptor *const lineTextureDescriptor = [MTLTextureDescriptor
 		texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
-		width:2048		// This 'should do'.
+		width:BufferWidth
 		height:NumBufferedLines
 		mipmapped:NO];
 	lineTextureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
@@ -534,7 +508,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		[self clearTexture:_finalisedLineTexture];
 
 		NSString *const kernelFunction =
-			[self shouldApplyGamma] ? @"filterChromaKernelWithGamma" : @"filterChromaKernelNoGamma";
+			[self shouldApplyGamma] ? @"demodulateKernelWithGamma" : @"demodulateKernelNoGamma";
 		_finalisedLineState =
 			[_view.device newComputePipelineStateWithFunction:[library newFunctionWithName:kernelFunction] error:nil];
 	}
@@ -543,20 +517,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	if(_pipeline == Pipeline::CompositeColour) {
 		if(!_separatedLumaTexture) {
 			_separatedLumaTexture = [_view.device newTextureWithDescriptor:lineTextureDescriptor];
-
-			NSString *kernelFunction;
-			switch(_lumaKernelSize) {
-				default:	kernelFunction = @"separateLumaKernel15";	break;
-				case 9:		kernelFunction = @"separateLumaKernel9";	break;
-				case 7:		kernelFunction = @"separateLumaKernel7";	break;
-				case 1:
-				case 3:
-				case 5:		kernelFunction = @"separateLumaKernel5";	break;
-			}
-
 			_separatedLumaState =
 				[_view.device
-					newComputePipelineStateWithFunction:[library newFunctionWithName:kernelFunction]
+					newComputePipelineStateWithFunction:[library newFunctionWithName:@"separateKernel"]
 					error:nil];
 		}
 	} else {
@@ -604,27 +567,27 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	}
 
 	// Store.
-	uniforms()->sourcetoDisplay = sourceToDisplay;
+	self.uniforms->sourcetoDisplay = sourceToDisplay;
 }
 
 - (void)setModals:(const Outputs::Display::ScanTarget::Modals &)modals {
 	//
 	// Populate uniforms.
 	//
-	uniforms()->scale[0] = modals.output_scale.x;
-	uniforms()->scale[1] = modals.output_scale.y;
-	uniforms()->lineWidth = 1.05f / modals.expected_vertical_lines;
+	self.uniforms->scale[0] = modals.output_scale.x;
+	self.uniforms->scale[1] = modals.output_scale.y;
+	self.uniforms->lineWidth = 1.05f / modals.expected_vertical_lines;
 	[self setAspectRatio];
 
 	const auto toRGB = to_rgb_matrix(modals.composite_colour_space);
-	uniforms()->toRGB = simd::float3x3(
+	self.uniforms->toRGB = simd::float3x3(
 		simd::float3{toRGB[0], toRGB[1], toRGB[2]},
 		simd::float3{toRGB[3], toRGB[4], toRGB[5]},
 		simd::float3{toRGB[6], toRGB[7], toRGB[8]}
 	);
 
 	const auto fromRGB = from_rgb_matrix(modals.composite_colour_space);
-	uniforms()->fromRGB = simd::float3x3(
+	self.uniforms->fromRGB = simd::float3x3(
 		simd::float3{fromRGB[0], fromRGB[1], fromRGB[2]},
 		simd::float3{fromRGB[3], fromRGB[4], fromRGB[5]},
 		simd::float3{fromRGB[6], fromRGB[7], fromRGB[8]}
@@ -632,11 +595,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// This is fixed for now; consider making it a function of frame rate and/or of whether frame syncing
 	// is ongoing (which would require a way to signal that to this scan target).
-	uniforms()->outputAlpha = __fp16(0.64f);
-	uniforms()->outputMultiplier = __fp16(modals.brightness);
+	self.uniforms->outputAlpha = __fp16(0.64f);
+	self.uniforms->outputMultiplier = __fp16(modals.brightness);
 
 	const float displayGamma = 2.2f;	// This is assumed.
-	uniforms()->outputGamma = __fp16(displayGamma / modals.intended_gamma);
+	self.uniforms->outputGamma = __fp16(displayGamma / modals.intended_gamma);
 
 	if(
 		!_priorModals ||
@@ -703,142 +666,97 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			_pipeline = isSVideoOutput ? Pipeline::SVideo : Pipeline::CompositeColour;
 		}
 
-		struct FragmentSamplerDictionary {
-			/// Fragment shader that outputs to the composition buffer for composite processing.
-			NSString *const compositionComposite;
-			/// Fragment shader that outputs to the composition buffer for S-Video processing.
-			NSString *const compositionSVideo;
-
-			/// Fragment shader that outputs directly as monochrome composite.
-			NSString *const directComposite;
-			/// Fragment shader that outputs directly as monochrome composite, with gamma correction.
-			NSString *const directCompositeWithGamma;
-			/// Fragment shader that outputs directly as RGB.
-			NSString *const directRGB;
-			/// Fragment shader that outputs directly as RGB, with gamma correction.
-			NSString *const directRGBWithGamma;
-		};
-		const FragmentSamplerDictionary samplerDictionary[8] = {
-			// Composite formats.
-			{@"compositeSampleLuminance1",				nil,	@"sampleLuminance1",				@"sampleLuminance1",						@"sampleLuminance1",				@"sampleLuminance1"},
-			{@"compositeSampleLuminance8",				nil,	@"sampleLuminance8",				@"sampleLuminance8WithGamma",				@"sampleLuminance8",				@"sampleLuminance8WithGamma"},
-			{@"compositeSamplePhaseLinkedLuminance8",	nil,	@"samplePhaseLinkedLuminance8",		@"samplePhaseLinkedLuminance8WithGamma",	@"samplePhaseLinkedLuminance8",		@"samplePhaseLinkedLuminance8WithGamma"},
-
-			// S-Video formats.
-			{@"compositeSampleLuminance8Phase8", @"sampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8WithGamma", @"directCompositeSampleLuminance8Phase8", @"directCompositeSampleLuminance8Phase8WithGamma"},
-
-			// RGB formats.
-			{@"compositeSampleRed1Green1Blue1", @"svideoSampleRed1Green1Blue1", @"directCompositeSampleRed1Green1Blue1", @"directCompositeSampleRed1Green1Blue1WithGamma", @"sampleRed1Green1Blue1", @"sampleRed1Green1Blue1"},
-			{@"compositeSampleRed2Green2Blue2", @"svideoSampleRed2Green2Blue2", @"directCompositeSampleRed2Green2Blue2", @"directCompositeSampleRed2Green2Blue2WithGamma", @"sampleRed2Green2Blue2", @"sampleRed2Green2Blue2WithGamma"},
-			{@"compositeSampleRed4Green4Blue4", @"svideoSampleRed4Green4Blue4", @"directCompositeSampleRed4Green4Blue4", @"directCompositeSampleRed4Green4Blue4WithGamma", @"sampleRed4Green4Blue4", @"sampleRed4Green4Blue4WithGamma"},
-			{@"compositeSampleRed8Green8Blue8", @"svideoSampleRed8Green8Blue8", @"directCompositeSampleRed8Green8Blue8", @"directCompositeSampleRed8Green8Blue8WithGamma", @"sampleRed8Green8Blue8", @"sampleRed8Green8Blue8WithGamma"},
-		};
-
-	#ifndef NDEBUG
-		// Do a quick check that all the shaders named above are defined in the Metal code. I don't think this is possible at compile time.
-		for(int c = 0; c < 8; ++c) {
-	#define Test(x)	if(samplerDictionary[c].x)	assert([library newFunctionWithName:samplerDictionary[c].x]);
-			Test(compositionComposite);
-			Test(compositionSVideo);
-			Test(directComposite);
-			Test(directCompositeWithGamma);
-			Test(directRGB);
-			Test(directRGBWithGamma);
-	#undef Test
-		}
-	#endif
-
-		uniforms()->cyclesMultiplier = 1.0f;
+		float &cyclesMultiplier = self.uniforms->cyclesMultiplier;
 		if(_pipeline != Pipeline::DirectToDisplay) {
-			// Pick a suitable cycle multiplier.
-			const float minimumSize = 4.0f * float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
-			while(uniforms()->cyclesMultiplier * modals.cycles_per_line < minimumSize) {
-				uniforms()->cyclesMultiplier += 1.0f;
+			const float minimumSize =
+				MinColourSubcarrierMultiplier *
+				float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 
-				if(uniforms()->cyclesMultiplier * modals.cycles_per_line > 2048) {
-					uniforms()->cyclesMultiplier -= 1.0f;
+			while(cyclesMultiplier * modals.cycles_per_line < minimumSize) {
+				cyclesMultiplier += 1.0f;
+
+				if(cyclesMultiplier * modals.cycles_per_line > BufferWidth) {
+					if(cyclesMultiplier > 1.0f) {
+						cyclesMultiplier -= 1.0f;
+					} else {
+						cyclesMultiplier = float(BufferWidth) / float(modals.cycles_per_line);
+					}
 					break;
 				}
 			}
 
 			// Create suitable filters.
-			_lineBufferPixelsPerLine = NSUInteger(modals.cycles_per_line) * NSUInteger(uniforms()->cyclesMultiplier);
-			const float colourCyclesPerLine = float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
+			_lineBufferPixelsPerLine = NSUInteger(modals.cycles_per_line * cyclesMultiplier);
+			const float colourCyclesPerLine =
+				float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
+			using DecodingPath = Outputs::Display::FilterGenerator::DecodingPath;
 
-			// Compute radians per pixel.
-			const float radiansPerPixel = (colourCyclesPerLine * 3.141592654f * 2.0f) / float(_lineBufferPixelsPerLine);
+			Outputs::Display::FilterGenerator generator(
+				_lineBufferPixelsPerLine,
+				colourCyclesPerLine,
+				isSVideoOutput ? DecodingPath::SVideo : DecodingPath::Composite
+			);
 
-			// Generate the chrominance filter.
-			{
-				simd::float3 firCoefficients[8];
-				const auto chromaCoefficients = boxCoefficients(radiansPerPixel, 3.141592654f * 2.0f);
-				_chromaKernelSize = 15;
-				for(size_t c = 0; c < 8; ++c) {
-					// Bit of a fix here: if the pipeline is for composite then assume that chroma separation wasn't
-					// perfect and deemphasise the colour.
-					firCoefficients[c].y = firCoefficients[c].z = (isSVideoOutput ? 2.0f : 1.25f) * chromaCoefficients[c];
-					firCoefficients[c].x = 0.0f;
-					if(fabsf(chromaCoefficients[c]) < 0.01f) {
-						_chromaKernelSize -= 2;
-					}
+			const auto separation = generator.separation_filter();
+			using Coefficients2 = std::array<simd::float2, 31>;
+			Coefficients2 separation_multiplexed{};
+			separation.luma.copy_to<Coefficients2::iterator>(
+				separation_multiplexed.begin(),
+				separation_multiplexed.end(),
+				[](const auto destination, const float value) {
+					destination->x = value;
 				}
-				firCoefficients[7].x = 1.0f;
-
-				// Luminance will be very soft as a result of the separation phase; apply a sharpen filter to try to undo that.
-				//
-				// This is applied separately in order to partition three parts of the signal rather than two:
-				//
-				//	1) the luminance;
-				//	2) not the luminance:
-				//		2a) the chrominance; and
-				//		2b) some noise.
-				//
-				// There are real numerical hazards here given the low number of taps I am permitting to be used, so the sharpen
-				// filter below is just one that I found worked well. Since all numbers are fixed, the actual cutoff frequency is
-				// going to be a function of the input clock, which is a bit phoney but the best way to stay safe within the
-				// PCM sampling limits.
-				if(!isSVideoOutput) {
-					SignalProcessing::FIRFilter sharpenFilter(15, 1368, 60.0f, 227.5f);
-					const auto sharpen = sharpenFilter.get_coefficients();
-					size_t sharpenFilterSize = 15;
-					bool isStart = true;
-					for(size_t c = 0; c < 8; ++c) {
-						firCoefficients[c].x = sharpen[c];
-						if(fabsf(sharpen[c]) > 0.01f) isStart = false;
-						if(isStart) sharpenFilterSize -= 2;
-					}
-					_chromaKernelSize = std::max(_chromaKernelSize, sharpenFilterSize);
+			);
+			separation.chroma.copy_to<Coefficients2::iterator>(
+				separation_multiplexed.begin(),
+				separation_multiplexed.end(),
+				[](const auto destination, const float value) {
+					destination->y = value;
 				}
-
-				// Convert to half-size floats.
-				for(size_t c = 0; c < 8; ++c) {
-					uniforms()->chromaKernel[c] = firCoefficients[c];
-				}
+			);
+			for(size_t c = 0; c < 16; ++c) {
+				self.uniforms->lumaKernel[c] = separation_multiplexed[c];
 			}
 
-			// Generate the luminance separation filter and determine its required size.
-			{
-				auto *const filter = uniforms()->lumaKernel;
-				const auto coefficients = boxCoefficients(radiansPerPixel, 3.141592654f);
-				_lumaKernelSize = 15;
-				for(size_t c = 0; c < 8; ++c) {
-					filter[c] = __fp16(coefficients[c]);
-					if(fabsf(coefficients[c]) < 0.01f) {
-						_lumaKernelSize -= 2;
-					}
+			const auto demodulation = generator.demouldation_filter();
+			using Coefficients3 = std::array<simd::float3, 31>;
+			Coefficients3 demodulation_multiplexed{};
+			demodulation.luma.copy_to<Coefficients3::iterator>(
+				demodulation_multiplexed.begin(),
+				demodulation_multiplexed.end(),
+				[](const auto destination, const float value) {
+					destination->x = value;
 				}
+			);
+			demodulation.chroma.copy_to<Coefficients3::iterator>(
+				demodulation_multiplexed.begin(),
+				demodulation_multiplexed.end(),
+				[](const auto destination, const float value) {
+					destination->y = destination->z = value;
+				}
+			);
+			// Convert to half-size floats.
+			for(size_t c = 0; c < 16; ++c) {
+				self.uniforms->chromaKernel[c] = demodulation_multiplexed[c];
 			}
 		}
 
 		// Update intermediate storage.
 		[self updateModalBuffers];
 
+		const auto fragment_function = [&](NSString *const prefix) {
+			NSString *const functionName = [prefix stringByAppendingFormat:@"%s", name(modals.input_data_type)];
+			id <MTLFunction> function = [library newFunctionWithName:functionName];
+			assert(function);
+			return function;
+		};
+
 		if(_pipeline != Pipeline::DirectToDisplay) {
 			// Create the composition render pass.
 			pipelineDescriptor.colorAttachments[0].pixelFormat = _compositionTexture.pixelFormat;
 			pipelineDescriptor.vertexFunction = [library newFunctionWithName:@"scanToComposition"];
 			pipelineDescriptor.fragmentFunction =
-				[library newFunctionWithName:isSVideoOutput ? samplerDictionary[int(modals.input_data_type)].compositionSVideo : samplerDictionary[int(modals.input_data_type)].compositionComposite];
+				fragment_function(isSVideoOutput ? @"internalSVideo" : @"internalComposite");
 
 			_composePipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 
@@ -851,20 +769,17 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		// Build the output pipeline.
 		pipelineDescriptor.colorAttachments[0].pixelFormat = _view.colorPixelFormat;
-		pipelineDescriptor.vertexFunction = [library newFunctionWithName:_pipeline == Pipeline::DirectToDisplay ? @"scanToDisplay" : @"lineToDisplay"];
+		pipelineDescriptor.vertexFunction =
+			[library newFunctionWithName:_pipeline == Pipeline::DirectToDisplay ? @"scanToDisplay" : @"lineToDisplay"];
 
 		if(_pipeline != Pipeline::DirectToDisplay) {
 			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"interpolateFragment"];
 		} else {
 			const bool isRGBOutput = modals.display_type == Outputs::Display::DisplayType::RGB;
-
-			NSString *shaderName;
-			if(isRGBOutput) {
-				shaderName = [self shouldApplyGamma] ? samplerDictionary[int(modals.input_data_type)].directRGBWithGamma : samplerDictionary[int(modals.input_data_type)].directRGB;
-			} else {
-				shaderName = [self shouldApplyGamma] ? samplerDictionary[int(modals.input_data_type)].directCompositeWithGamma : samplerDictionary[int(modals.input_data_type)].directComposite;
-			}
-			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:shaderName];
+			pipelineDescriptor.fragmentFunction = fragment_function(
+				[isRGBOutput ? @"outputRGB" : @"outputComposite"
+					stringByAppendingString:self.shouldApplyGamma ? @"WithGamma" : @""]
+			);
 		}
 
 		// Enable blending.
@@ -908,9 +823,19 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder setCullMode:MTLCullModeBack];
 #endif
 
-#define OutputStrips(start, size)	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:size baseInstance:start]
-	RangePerform(start, end, _pipeline != Pipeline::DirectToDisplay ? NumBufferedLines : NumBufferedScans, OutputStrips);
-#undef OutputStrips
+	range_perform(
+		start,
+		end,
+		_pipeline != Pipeline::DirectToDisplay ? NumBufferedLines : NumBufferedScans,
+		[&](const size_t start, const size_t size) {
+			[encoder
+				drawPrimitives:MTLPrimitiveTypeTriangleStrip
+				vertexStart:0
+				vertexCount:4
+				instanceCount:size
+				baseInstance:start
+			];
+		});
 
 	// Complete encoding.
 	[encoder endEncoding];
@@ -934,7 +859,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	encoder = nil;
 }
 
-- (void)composeOutputArea:(const BufferingScanTarget::OutputArea &)outputArea commandBuffer:(id<MTLCommandBuffer>)commandBuffer {
+- (void)
+	composeOutputArea:(const BufferingScanTarget::OutputArea &)outputArea
+	commandBuffer:(id<MTLCommandBuffer>)commandBuffer
+{
 	// Output all scans to the composition buffer.
 	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_compositionRenderPass];
 	[encoder setRenderPipelineState:_composePipeline];
@@ -946,9 +874,20 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
 	[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
 
-#define OutputScans(start, size)	[encoder drawPrimitives:MTLPrimitiveTypeLine vertexStart:0 vertexCount:2 instanceCount:size baseInstance:start]
-	RangePerform(outputArea.start.scan, outputArea.end.scan, NumBufferedScans, OutputScans);
-#undef OutputScans
+	range_perform(
+		outputArea.start.scan,
+		outputArea.end.scan,
+		NumBufferedScans,
+		[&](const size_t start, const size_t size) {
+			[encoder
+				drawPrimitives:MTLPrimitiveTypeLine
+				vertexStart:0
+				vertexCount:2
+				instanceCount:size
+				baseInstance:start
+			];
+		}
+	);
 	[encoder endEncoding];
 	encoder = nil;
 }
@@ -961,11 +900,17 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	return buffer;
 }
 
-- (void)dispatchComputeCommandEncoder:(id<MTLComputeCommandEncoder>)encoder pipelineState:(id<MTLComputePipelineState>)pipelineState width:(NSUInteger)width height:(NSUInteger)height offsetBuffer:(id<MTLBuffer>)offsetBuffer {
+- (void)
+	dispatchComputeCommandEncoder:(id<MTLComputeCommandEncoder>)encoder
+	pipelineState:(id<MTLComputePipelineState>)pipelineState
+	width:(NSUInteger)width
+	height:(NSUInteger)height
+	offsetBuffer:(id<MTLBuffer>)offsetBuffer
+{
 	[encoder setBuffer:offsetBuffer offset:0 atIndex:1];
 
-	// This follows the recommendations at https://developer.apple.com/documentation/metal/calculating_threadgroup_and_grid_sizes ;
-	// I currently have no independent opinion whatsoever.
+	// Follows https://developer.apple.com/documentation/metal/calculating_threadgroup_and_grid_sizes ;
+	// I have no independent opinion whatsoever.
 	const MTLSize threadsPerThreadgroup = MTLSizeMake(
 		pipelineState.threadExecutionWidth,
 		pipelineState.maxTotalThreadsPerThreadgroup / pipelineState.threadExecutionWidth,
@@ -978,9 +923,48 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder dispatchThreads:threadsPerGrid threadsPerThreadgroup:threadsPerThreadgroup];
 }
 
+- (void)drawInMTKView:(nonnull MTKView *)view {
+	if(_isDrawing.test_and_set()) {
+		_scanTarget.display_metrics_.announce_draw_status(false);
+		return;
+	}
+
+	// Disable supersampling if performance requires it.
+	if(_isUsingSupersampling && _scanTarget.display_metrics_.should_lower_resolution()) {
+		_isUsingSupersampling = false;
+		[self updateSizeBuffers];
+	}
+
+	// Schedule a copy from the current framebuffer to the view;
+	// blitting is unavailable as the target is a framebuffer texture.
+	id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+
+	// Every pixel will be drawn, so don't clear or reload.
+	view.currentRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
+	id<MTLRenderCommandEncoder> encoder =
+		[commandBuffer renderCommandEncoderWithDescriptor:view.currentRenderPassDescriptor];
+
+	[encoder setRenderPipelineState:_isUsingSupersampling ? _supersamplePipeline : _copyPipeline];
+	[encoder setVertexTexture:_frameBuffer atIndex:0];
+	[encoder setFragmentTexture:_frameBuffer atIndex:0];
+
+	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+	[encoder endEncoding];
+	encoder = nil;
+
+	[commandBuffer presentDrawable:view.currentDrawable];
+	[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
+		self->_isDrawing.clear();
+		self->_scanTarget.display_metrics_.announce_draw_status(true);
+	}];
+	[commandBuffer commit];
+}
+
+// MARK: - Per-frame output.
+
 - (void)updateFrameBuffer {
-	// TODO: rethink BufferingScanTarget::perform. Is it now really just for guarding the modals?
 	if(_scanTarget.has_new_modals()) {
+		// TODO: rethink BufferingScanTarget::perform. Is it now really just for guarding the modals?
 		_scanTarget.perform([=] {
 			const Outputs::Display::ScanTarget::Modals *const newModals = _scanTarget.new_modals();
 			if(newModals) {
@@ -997,11 +981,20 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		if(outputArea.end.line != outputArea.start.line) {
 
 			// Ensure texture changes are noted.
-			const auto writeAreaModificationStart = size_t(outputArea.start.write_area_x + outputArea.start.write_area_y * 2048) * _bytesPerInputPixel;
-			const auto writeAreaModificationEnd = size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * 2048) * _bytesPerInputPixel;
-#define FlushRegion(start, size)	[_writeAreaBuffer didModifyRange:NSMakeRange(start, size)]
-			RangePerform(writeAreaModificationStart, writeAreaModificationEnd, _totalTextureBytes, FlushRegion);
-#undef FlushRegion
+			const auto writeAreaModificationStart =
+				size_t(outputArea.start.write_area_x + outputArea.start.write_area_y * BufferWidth)
+					* _bytesPerInputPixel;
+			const auto writeAreaModificationEnd =
+				size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * BufferWidth)
+					* _bytesPerInputPixel;
+			range_perform(
+				writeAreaModificationStart,
+				writeAreaModificationEnd,
+				_totalTextureBytes,
+				[&](const size_t start, const size_t size) {
+					[_writeAreaBuffer didModifyRange:NSMakeRange(start, size)];
+				}
+			);
 
 			// Obtain a source for render command encoders.
 			id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
@@ -1053,11 +1046,30 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 						if(outputArea.end.line > outputArea.start.line) {
-							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offsetBuffer:[self bufferForOffset:outputArea.start.line]];
+							[self
+								dispatchComputeCommandEncoder:computeEncoder
+								pipelineState:_finalisedLineState
+								width:_lineBufferPixelsPerLine
+								height:outputArea.end.line - outputArea.start.line
+								offsetBuffer:[self bufferForOffset:outputArea.start.line]
+							];
 						} else {
-							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offsetBuffer:[self bufferForOffset:outputArea.start.line]];
+							[self
+								dispatchComputeCommandEncoder:computeEncoder
+								pipelineState:_finalisedLineState
+								width:_lineBufferPixelsPerLine
+								height:NumBufferedLines - outputArea.start.line
+								offsetBuffer:[self bufferForOffset:outputArea.start.line]
+							];
+
 							if(outputArea.end.line) {
-								[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line offsetBuffer:[self bufferForOffset:0]];
+								[self
+									dispatchComputeCommandEncoder:computeEncoder
+									pipelineState:_finalisedLineState
+									width:_lineBufferPixelsPerLine
+									height:outputArea.end.line
+									offsetBuffer:[self bufferForOffset:0]
+								];
 							}
 						}
 
@@ -1073,12 +1085,30 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						offsetBuffers[0] = [self bufferForOffset:outputArea.start.line];
 
 						if(outputArea.end.line > outputArea.start.line) {
-							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_separatedLumaState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offsetBuffer:offsetBuffers[0]];
+							[self
+								dispatchComputeCommandEncoder:computeEncoder
+								pipelineState:_separatedLumaState
+								width:_lineBufferPixelsPerLine
+								height:outputArea.end.line - outputArea.start.line
+								offsetBuffer:offsetBuffers[0]
+							];
 						} else {
-							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_separatedLumaState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offsetBuffer:offsetBuffers[0]];
+							[self
+								dispatchComputeCommandEncoder:computeEncoder
+								pipelineState:_separatedLumaState
+								width:_lineBufferPixelsPerLine
+								height:NumBufferedLines - outputArea.start.line
+								offsetBuffer:offsetBuffers[0]
+							];
 							if(outputArea.end.line) {
 								offsetBuffers[1] = [self bufferForOffset:0];
-								[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_separatedLumaState width:_lineBufferPixelsPerLine height:outputArea.end.line offsetBuffer:offsetBuffers[1]];
+								[self
+									dispatchComputeCommandEncoder:computeEncoder
+									pipelineState:_separatedLumaState
+									width:_lineBufferPixelsPerLine
+									height:outputArea.end.line
+									offsetBuffer:offsetBuffers[1]
+								];
 							}
 						}
 
@@ -1088,11 +1118,29 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 						if(outputArea.end.line > outputArea.start.line) {
-							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line - outputArea.start.line offsetBuffer:offsetBuffers[0]];
+							[self
+								dispatchComputeCommandEncoder:computeEncoder
+								pipelineState:_finalisedLineState
+								width:_lineBufferPixelsPerLine
+								height:outputArea.end.line - outputArea.start.line
+								offsetBuffer:offsetBuffers[0]
+							];
 						} else {
-							[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:NumBufferedLines - outputArea.start.line offsetBuffer:offsetBuffers[0]];
+							[self
+								dispatchComputeCommandEncoder:computeEncoder
+								pipelineState:_finalisedLineState
+								width:_lineBufferPixelsPerLine
+								height:NumBufferedLines - outputArea.start.line
+								offsetBuffer:offsetBuffers[0]
+							];
 							if(outputArea.end.line) {
-								[self dispatchComputeCommandEncoder:computeEncoder pipelineState:_finalisedLineState width:_lineBufferPixelsPerLine height:outputArea.end.line offsetBuffer:offsetBuffers[1]];
+								[self
+									dispatchComputeCommandEncoder:computeEncoder
+									pipelineState:_finalisedLineState
+									width:_lineBufferPixelsPerLine
+									height:outputArea.end.line
+									offsetBuffer:offsetBuffers[1]
+								];
 							}
 						}
 
@@ -1143,45 +1191,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	}
 }
 
-/*!
- @method drawInMTKView:
- @abstract Called on the delegate when it is asked to render into the view
- @discussion Called on the delegate when it is asked to render into the view
- */
-- (void)drawInMTKView:(nonnull MTKView *)view {
-	if(_isDrawing.test_and_set()) {
-		_scanTarget.display_metrics_.announce_draw_status(false);
-		return;
-	}
-
-	// Disable supersampling if performance requires it.
-	if(_isUsingSupersampling && _scanTarget.display_metrics_.should_lower_resolution()) {
-		_isUsingSupersampling = false;
-		[self updateSizeBuffers];
-	}
-
-	// Schedule a copy from the current framebuffer to the view; blitting is unavailable as the target is a framebuffer texture.
-	id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-
-	// Every pixel will be drawn, so don't clear or reload.
-	view.currentRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
-	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:view.currentRenderPassDescriptor];
-
-	[encoder setRenderPipelineState:_isUsingSupersampling ? _supersamplePipeline : _copyPipeline];
-	[encoder setVertexTexture:_frameBuffer atIndex:0];
-	[encoder setFragmentTexture:_frameBuffer atIndex:0];
-
-	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
-	[encoder endEncoding];
-	encoder = nil;
-
-	[commandBuffer presentDrawable:view.currentDrawable];
-	[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
-		self->_isDrawing.clear();
-		self->_scanTarget.display_metrics_.announce_draw_status(true);
-	}];
-	[commandBuffer commit];
-}
+// MARK: - External connections.
 
 - (Outputs::Display::ScanTarget *)scanTarget {
 	return &_scanTarget;

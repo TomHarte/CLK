@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
 
 project(CLK
 	LANGUAGES CXX
-	VERSION 25.12.12
+	VERSION 26.01.06
 )
 
 set(CMAKE_CXX_STANDARD 20)
