@@ -82,7 +82,7 @@ FilterGenerator::FilterPair FilterGenerator::demouldation_filter() {
 			subcarrier_frequency_ * 0.05f,
 			subcarrier_frequency_ * 0.5f
 		)
-		* (decoding_path_ == DecodingPath::SVideo ? 2.0f : 0.5f);
+		* (decoding_path_ == DecodingPath::SVideo ? 2.0f : 1.0f);
 
 	return result;
 }
