@@ -34,7 +34,19 @@ namespace {
 
 constexpr char vertex_shader[] = R"glsl(
 
+#if	defined(INPUT_RED1_GREEN1_BLUE1) || \
+	defined(INPUT_RED2_GREEN2_BLUE2) || \
+	defined(INPUT_RED4_GREEN4_BLUE4)
+uniform usampler2D source;
+#endif
+
+#if	defined(INPUT_LUMINANCE1) || \
+	defined(INPUT_LUMINANCE8) || \
+	defined(INPUT_PHASE_LINKED_LUMINANCE8) || \
+	defined(INPUT_LUMINANCE8_PHASE8) || \
+	defined(INPUT_RED8_GREEN8_BLUE8)
 uniform sampler2D source;
+#endif
 
 in mediump float startDataX;
 in float startClock;
@@ -146,6 +158,73 @@ lowp vec2 quadrature() {
 
 
 
+#ifdef INPUT_RED1_GREEN1_BLUE1
+
+	uniform usampler2D source;
+	#define SYNTHESISE_SVIDEO
+	#define SYNTHESISE_COMPOSITE
+
+	lowp vec3 sample_rgb() {
+		uvec3 colour = texture(source, coordinate).rrr & uvec3(4u, 2u, 1u);
+		return clamp(vec3(colour), 0.0, 1.0);
+	}
+
+#endif
+
+
+
+#ifdef INPUT_RED2_GREEN2_BLUE2
+
+	uniform usampler2D source;
+	#define SYNTHESISE_SVIDEO
+	#define SYNTHESISE_COMPOSITE
+
+	lowp vec3 sample_rgb() {
+		uint colour = texture(source, coordinate).r;
+		return vec3(
+			float((colour >> 4) & 3u),
+			float((colour >> 2) & 3u),
+			float((colour >> 0) & 3u)
+		) / 3.0;
+	}
+
+#endif
+
+
+
+#ifdef INPUT_RED4_GREEN4_BLUE4
+
+	uniform usampler2D source;
+	#define SYNTHESISE_SVIDEO
+	#define SYNTHESISE_COMPOSITE
+
+	lowp vec3 sample_rgb() {
+		uvec2 colour = texture(source, coordinate).rg;
+		return vec3(
+			float(colour.r) / 15.0,
+			float(colour.g & 240u) / 240.0,
+			float(colour.g & 15u) / 15.0
+		);
+	}
+
+#endif
+
+
+
+#ifdef INPUT_RED8_GREEN8_BLUE8
+
+	uniform sampler2D source;
+	#define SYNTHESISE_SVIDEO
+	#define SYNTHESISE_COMPOSITE
+
+	lowp vec3 sample_rgb() {
+		return texture(source, coordinate).rgb;
+	}
+
+#endif
+
+
+
 #ifdef SYNTHESISE_COMPOSITE
 
 	#ifdef SYNTHESISE_SVIDEO
@@ -154,7 +233,7 @@ lowp vec2 quadrature() {
 			lowp vec3 colour = fromRGB * sample_rgb();
 			lowp vec2 q = quadrature();
 
-			lowp float chroma = q * colour.gb;
+			lowp float chroma = dot(q, colour.gb);
 
 			return vec4(
 				colour.r * (1.0 - 2.0 * compositeAmplitude)  + chroma * compositeAmplitude,
@@ -186,7 +265,7 @@ lowp vec2 quadrature() {
 	lowp vec4 sample_svideo() {
 		lowp vec3 colour = fromRGB * sample_rgb();
 		lowp vec2 q = quadrature();
-		lowp float chroma = q * colour.gb;
+		lowp float chroma = dot(q, colour.gb);
 
 		return vec4(
 			colour.r,
@@ -227,8 +306,8 @@ using namespace Outputs::Display::OpenGL;
 CompositionShader::CompositionShader() {
 	const auto prefix =
 		std::string() +
-		"#define INPUT_LUMINANCE8_PHASE8\n" +
-		"#define OUTPUT_SVIDEO\n";
+		"#define INPUT_RED8_GREEN8_BLUE8\n" +
+		"#define OUTPUT_COMPOSITE\n";
 
 	const auto vertex = prefix + vertex_shader;
 	const auto fragment = prefix + fragment_shader;
