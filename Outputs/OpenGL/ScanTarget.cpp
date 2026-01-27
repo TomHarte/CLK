@@ -11,6 +11,8 @@
 #include "OpenGL.hpp"
 #include "Primitives/Rectangle.hpp"
 
+#include "CompositionShader.hpp"
+
 #include <algorithm>
 #include <cassert>
 #include <cstring>
@@ -101,6 +103,9 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 
 	// Establish initial state for is_drawing_to_accumulation_buffer_.
 	is_drawing_to_accumulation_buffer_.clear();
+
+	CompositionShader test;
+	(void)test;
 }
 
 ScanTarget::~ScanTarget() {

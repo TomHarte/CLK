@@ -139,20 +139,20 @@ void Shader::init(
 
 	test_gl(glLinkProgram, shader_program_);
 
-	if constexpr (Logger::ErrorsEnabled) {
-		GLint log_length;
-		test_gl(glGetProgramiv, shader_program_, GL_INFO_LOG_LENGTH, &log_length);
-		if(log_length > 0) {
-			std::vector<GLchar> log(log_length);
-			test_gl(glGetProgramInfoLog, shader_program_, log_length, &log_length, log.data());
-			Logger::error().append("Link log: %s", log.data());
+	GLint did_link = 0;
+	test_gl(glGetProgramiv, shader_program_, GL_LINK_STATUS, &did_link);
+	if(did_link == GL_FALSE) {
+		if constexpr (Logger::ErrorsEnabled) {
+			GLint log_length;
+			test_gl(glGetProgramiv, shader_program_, GL_INFO_LOG_LENGTH, &log_length);
+			if(log_length > 0) {
+				std::vector<GLchar> log(log_length);
+				test_gl(glGetProgramInfoLog, shader_program_, log_length, &log_length, log.data());
+				Logger::error().append("Link log: %s", log.data());
+			}
 		}
 
-		GLint did_link = 0;
-		test_gl(glGetProgramiv, shader_program_, GL_LINK_STATUS, &did_link);
-		if(did_link == GL_FALSE) {
-			throw ProgramLinkageError;
-		}
+		throw ProgramLinkageError;
 	}
 }
 

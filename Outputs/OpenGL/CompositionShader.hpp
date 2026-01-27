@@ -18,10 +18,11 @@ namespace Outputs::Display::OpenGL {
 */
 class CompositionShader {
 public:
+	CompositionShader();
 	void bind() const;
 
 private:
-	Shader shader_;
+//	Shader shader_;
 };
 
 }

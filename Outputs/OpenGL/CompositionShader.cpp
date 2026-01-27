@@ -34,6 +34,8 @@ namespace {
 
 constexpr char vertex_shader[] = R"glsl(
 
+uniform sampler2D source;
+
 in mediump float startDataX;
 in float startClock;
 
@@ -43,14 +45,18 @@ in float endClock;
 in float dataY;
 in float lineY;
 
-out vec2 textureCoordinate;
-uniform usampler2D textureName;
+out mediump vec2 coordinate;
+out highp float phase;
+out lowp float compositeAmplitude;
 
 void main(void) {
 	float lateral = float(gl_VertexID & 1);
 	float longitudinal = float((gl_VertexID & 2) >> 1);
 
-	textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY + 0.5) / vec2(textureSize(textureName, 0));
+	coordinate = vec2(mix(startDataX, endDataX, lateral), dataY + 0.5) / vec2(textureSize(source, 0));
+	phase = 0;
+	compositeAmplitude = 0.16;
+
 	vec2 eyePosition = vec2(mix(startClock, endClock, lateral), lineY + longitudinal) / vec2(2048.0, 2048.0);
 	gl_Position = vec4(eyePosition*2.0 - vec2(1.0), 0.0, 1.0);
 }
@@ -61,7 +67,7 @@ constexpr char fragment_shader[] = R"glsl(
 
 uniform lowp mat3 fromRGB;
 
-in mediump vec2 textureCoordinate;
+in mediump vec2 coordinate;
 in highp float phase;
 in lowp float compositeAmplitude;
 
@@ -77,7 +83,7 @@ lowp vec2 quadrature() {
 
 	lowp vec4 sample_composite() {
 		return vec4(
-			clamp(texture(textureName, coordinate).r * 255.0, 0.0, 1.0),
+			clamp(texture(source, coordinate).r * 255.0, 0.0, 1.0),
 			quadrature(),
 			compositeAmplitude
 		);
@@ -93,7 +99,7 @@ lowp vec2 quadrature() {
 
 	lowp vec4 sample_composite() {
 		return vec4(
-			texture(textureName, coordinate).r,
+			texture(source, coordinate).r,
 			quadrature(),
 			compositeAmplitude
 		);
@@ -108,7 +114,7 @@ lowp vec2 quadrature() {
 	uniform sampler2D source;
 
 	lowp vec4 sample_composite() {
-		const vec4 source = texture(textureName, coordinate);
+		const vec4 source = texture(source, coordinate);
 		const float offset = floor(coordinate * 4.0);
 		return vec4(
 			source[offset],
@@ -127,7 +133,7 @@ lowp vec2 quadrature() {
 	#define SYNTHESISE_SVIDEO
 
 	lowp vec2 sample_svideo() {
-		const vec2 source = texture(textureName, coordinate).rg;
+		const vec2 source = texture(source, coordinate).rg;
 		const float offset = floor(coordinate * 4.0);
 		return vec4(
 			source[offset],
@@ -215,3 +221,23 @@ void main(void) {
 
 
 }
+
+using namespace Outputs::Display::OpenGL;
+
+CompositionShader::CompositionShader() {
+	const auto prefix =
+		std::string() +
+		"#define INPUT_LUMINANCE1\n" +
+		"#define OUTPUT_COMPOSITE\n";
+
+	const auto vertex = prefix + vertex_shader;
+	const auto fragment = prefix + fragment_shader;
+
+	Shader test(
+		API::OpenGL32Core,
+		vertex,
+		fragment
+	);
+	(void)test;
+}
+
