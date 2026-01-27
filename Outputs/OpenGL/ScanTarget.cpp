@@ -104,8 +104,30 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 	// Establish initial state for is_drawing_to_accumulation_buffer_.
 	is_drawing_to_accumulation_buffer_.clear();
 
-	CompositionShader test;
-	(void)test;
+
+	// TEST CODE. NOCOMMIT.
+	OpenGL::composition_shader(api, InputDataType::Luminance1, DisplayType::CompositeColour);
+	OpenGL::composition_shader(api, InputDataType::Luminance8, DisplayType::CompositeColour);
+	OpenGL::composition_shader(api, InputDataType::PhaseLinkedLuminance8, DisplayType::CompositeColour);
+
+	OpenGL::composition_shader(api, InputDataType::Luminance8Phase8, DisplayType::SVideo);
+	OpenGL::composition_shader(api, InputDataType::Luminance8Phase8, DisplayType::CompositeColour);
+
+	OpenGL::composition_shader(api, InputDataType::Red1Green1Blue1, DisplayType::RGB);
+	OpenGL::composition_shader(api, InputDataType::Red1Green1Blue1, DisplayType::SVideo);
+	OpenGL::composition_shader(api, InputDataType::Red1Green1Blue1, DisplayType::CompositeColour);
+
+	OpenGL::composition_shader(api, InputDataType::Red2Green2Blue2, DisplayType::RGB);
+	OpenGL::composition_shader(api, InputDataType::Red2Green2Blue2, DisplayType::SVideo);
+	OpenGL::composition_shader(api, InputDataType::Red2Green2Blue2, DisplayType::CompositeColour);
+
+	OpenGL::composition_shader(api, InputDataType::Red4Green4Blue4, DisplayType::RGB);
+	OpenGL::composition_shader(api, InputDataType::Red4Green4Blue4, DisplayType::SVideo);
+	OpenGL::composition_shader(api, InputDataType::Red4Green4Blue4, DisplayType::CompositeColour);
+
+	OpenGL::composition_shader(api, InputDataType::Red8Green8Blue8, DisplayType::RGB);
+	OpenGL::composition_shader(api, InputDataType::Red8Green8Blue8, DisplayType::SVideo);
+	OpenGL::composition_shader(api, InputDataType::Red8Green8Blue8, DisplayType::CompositeColour);
 }
 
 ScanTarget::~ScanTarget() {

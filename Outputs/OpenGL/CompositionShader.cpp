@@ -297,26 +297,52 @@ void main(void) {
 }
 
 )glsl";
-
-
 }
 
-using namespace Outputs::Display::OpenGL;
+using namespace Outputs::Display;
 
-CompositionShader::CompositionShader() {
-	const auto prefix =
-		std::string() +
-		"#define INPUT_RED8_GREEN8_BLUE8\n" +
-		"#define OUTPUT_COMPOSITE\n";
+OpenGL::Shader composition_shader(
+	const OpenGL::API api,
+	const InputDataType input,
+	const DisplayType display
+) {
+	std::string prefix;
+
+	prefix += "#define INPUT_";
+	prefix += [&] {
+		switch(input) {
+			case InputDataType::Luminance1: return "LUMINANCE1";
+			case InputDataType::Luminance8: return "LUMINANCE8";
+			case InputDataType::PhaseLinkedLuminance8: return "PHASE_LINKED_LUMINANCE8";
+			case InputDataType::Luminance8Phase8: return "LUMINANCE8_PHASE8";
+			case InputDataType::Red1Green1Blue1: return "RED1_GREEN1_BLUE1";
+			case InputDataType::Red2Green2Blue2: return "RED2_GREEN2_BLUE2";
+			case InputDataType::Red4Green4Blue4: return "RED4_GREEN4_BLUE4";
+			case InputDataType::Red8Green8Blue8: return "RED8_GREEN8_BLUE8";
+		}
+		__builtin_unreachable();
+	} ();
+	prefix += "\n";
+
+	prefix += "#define OUTPUT_";
+	prefix += [&] {
+		switch(display) {
+			case DisplayType::RGB: return "RGB";
+			case DisplayType::SVideo: return "SVIDEO";
+			case DisplayType::CompositeColour:
+			case DisplayType::CompositeMonochrome:
+				return "COMPOSITE";
+		}
+		__builtin_unreachable();
+	} ();
+	prefix += "\n";
 
 	const auto vertex = prefix + vertex_shader;
 	const auto fragment = prefix + fragment_shader;
 
-	Shader test(
-		API::OpenGL32Core,
+	return OpenGL::Shader(
+		api,
 		vertex,
 		fragment
 	);
-	(void)test;
 }
-

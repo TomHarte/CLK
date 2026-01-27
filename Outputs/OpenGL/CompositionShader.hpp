@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "Outputs/ScanTarget.hpp"
 #include "Outputs/OpenGL/Primitives/Shader.hpp"
 
 namespace Outputs::Display::OpenGL {
@@ -16,13 +17,6 @@ namespace Outputs::Display::OpenGL {
 	A composition shader processes `Scan`s into a line buffer. It can include a downard conversion
 	from RGB to S-Video or composite, or from S-Video to composite.
 */
-class CompositionShader {
-public:
-	CompositionShader();
-	void bind() const;
-
-private:
-//	Shader shader_;
-};
+Shader composition_shader(API, InputDataType, DisplayType);
 
 }
