@@ -301,7 +301,7 @@ void main(void) {
 
 using namespace Outputs::Display;
 
-OpenGL::Shader composition_shader(
+OpenGL::Shader OpenGL::composition_shader(
 	const OpenGL::API api,
 	const InputDataType input,
 	const DisplayType display
