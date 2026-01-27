@@ -337,12 +337,9 @@ OpenGL::Shader OpenGL::composition_shader(
 	} ();
 	prefix += "\n";
 
-	const auto vertex = prefix + vertex_shader;
-	const auto fragment = prefix + fragment_shader;
-
 	return OpenGL::Shader(
 		api,
-		vertex,
-		fragment
+		prefix + vertex_shader,
+		prefix + fragment_shader
 	);
 }
