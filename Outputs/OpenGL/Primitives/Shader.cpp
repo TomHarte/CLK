@@ -53,10 +53,10 @@ GLuint Shader::compile_shader(const std::string &source, const GLenum type) {
 	}
 	test_gl(glCompileShader, shader);
 
-	if constexpr (Logger::ErrorsEnabled) {
-		GLint is_compiled = 0;
-		test_gl(glGetShaderiv, shader, GL_COMPILE_STATUS, &is_compiled);
-		if(is_compiled == GL_FALSE) {
+	GLint is_compiled = 0;
+	test_gl(glGetShaderiv, shader, GL_COMPILE_STATUS, &is_compiled);
+	if(is_compiled == GL_FALSE) {
+		if constexpr (Logger::ErrorsEnabled) {
 			Logger::error().append("Failed to compile: %s", source.c_str());
 			GLint log_length;
 			test_gl(glGetShaderiv, shader, GL_INFO_LOG_LENGTH, &log_length);
@@ -66,9 +66,9 @@ GLuint Shader::compile_shader(const std::string &source, const GLenum type) {
 				test_gl(glGetShaderInfoLog, shader, log_length, &log_length, log.data());
 				Logger::error().append("Compile log: %s", log.data());
 			}
-
-			throw (type == GL_VERTEX_SHADER) ? VertexShaderCompilationError : FragmentShaderCompilationError;
 		}
+
+		throw (type == GL_VERTEX_SHADER) ? VertexShaderCompilationError : FragmentShaderCompilationError;
 	}
 
 	return shader;

@@ -227,7 +227,7 @@ using namespace Outputs::Display::OpenGL;
 CompositionShader::CompositionShader() {
 	const auto prefix =
 		std::string() +
-		"#define INPUT_LUMINANCE1\n" +
+		"#define INPUT_PHASE_LINKED_LUMINANCE8\n" +
 		"#define OUTPUT_COMPOSITE\n";
 
 	const auto vertex = prefix + vertex_shader;
