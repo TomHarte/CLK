@@ -342,4 +342,6 @@ OpenGL::Shader OpenGL::composition_shader(
 		prefix + vertex_shader,
 		prefix + fragment_shader
 	);
+
+	// TODO: bind inputs to match ScanTarget::Scan.
 }
