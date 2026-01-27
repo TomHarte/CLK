@@ -127,7 +127,7 @@ lowp vec2 quadrature() {
 
 	lowp vec4 sample_composite() {
 		vec4 source = texture(source, coordinate);
-		int offset = int(floor(phase * 4.0));
+		int offset = int(floor(phase * 4.0)) & 3;
 		return vec4(
 			source[offset],
 			quadrature(),
