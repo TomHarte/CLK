@@ -205,7 +205,12 @@ public:
 	explicit LogLine(const bool is_info) noexcept : is_info_(is_info) {}
 
 	~LogLine() {
-		if(output_ == accumulator_.last && source == accumulator_.source && is_info_ == accumulator_.is_info) {
+		if(
+			output_ == accumulator_.last &&
+			source == accumulator_.source &&
+			is_info_ == accumulator_.is_info &&
+			is_info_
+		) {
 			++accumulator_.count;
 			return;
 		}
