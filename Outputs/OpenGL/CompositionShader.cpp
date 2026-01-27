@@ -114,8 +114,8 @@ lowp vec2 quadrature() {
 	uniform sampler2D source;
 
 	lowp vec4 sample_composite() {
-		const vec4 source = texture(source, coordinate);
-		const float offset = floor(coordinate * 4.0);
+		vec4 source = texture(source, coordinate);
+		int offset = int(floor(phase * 4.0));
 		return vec4(
 			source[offset],
 			quadrature(),
@@ -130,11 +130,11 @@ lowp vec2 quadrature() {
 #ifdef INPUT_LUMINANCE8_PHASE8
 
 	uniform sampler2D source;
-	#define SYNTHESISE_SVIDEO
+	#define SYNTHESISE_COMPOSITE
 
-	lowp vec2 sample_svideo() {
-		const vec2 source = texture(source, coordinate).rg;
-		const float offset = floor(coordinate * 4.0);
+	lowp vec4 sample_svideo() {
+		lowp vec2 source = texture(source, coordinate).rg;
+		int offset = int(floor(coordinate * 4.0));
 		return vec4(
 			source[offset],
 			quadrature(),
@@ -151,10 +151,10 @@ lowp vec2 quadrature() {
 	#ifdef SYNTHESISE_SVIDEO
 
 		lowp vec4 sample_composite() {
-			const vec3 colour = fromRGB * sample_rgb();
-			const q = quadrature();
+			lowp vec3 colour = fromRGB * sample_rgb();
+			lowp vec2 q = quadrature();
 
-			const lowp float chroma = q * colour.gb;
+			lowp float chroma = q * colour.gb;
 
 			return vec4(
 				colour.r * (1.0 - 2.0 * compositeAmplitude)  + chroma * compositeAmplitude,
@@ -166,11 +166,11 @@ lowp vec2 quadrature() {
 	#else
 
 		lowp vec4 sample_composite() {
-			const vec2 colour = sample_svideo();
+			lowp vec4 colour = sample_svideo();
 
 			return vec4(
 				colour.r * (1.0 - 2.0 * compositeAmplitude)  + colour.g * compositeAmplitude,
-				quadrature(),
+				colour.ba,
 				compositeAmplitude
 			);
 		}
@@ -184,9 +184,9 @@ lowp vec2 quadrature() {
 #ifdef SYNTHESISE_SVIDEO
 
 	lowp vec4 sample_svideo() {
-		const vec3 colour = fromRGB * sample_rgb();
-		const q = quadrature();
-		const lowp float chroma = q * colour.gb;
+		lowp vec3 colour = fromRGB * sample_rgb();
+		lowp vec2 q = quadrature();
+		lowp float chroma = q * colour.gb;
 
 		return vec4(
 			colour.r,
@@ -227,8 +227,8 @@ using namespace Outputs::Display::OpenGL;
 CompositionShader::CompositionShader() {
 	const auto prefix =
 		std::string() +
-		"#define INPUT_PHASE_LINKED_LUMINANCE8\n" +
-		"#define OUTPUT_COMPOSITE\n";
+		"#define INPUT_LUMINANCE8_PHASE8\n" +
+		"#define OUTPUT_SVIDEO\n";
 
 	const auto vertex = prefix + vertex_shader;
 	const auto fragment = prefix + fragment_shader;
