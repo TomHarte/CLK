@@ -33,7 +33,7 @@ namespace {
 //		support integers or bitwise operations.
 //
 
-// TODO: adapt S-Video output to match documentation.
+// TODO: implement NO_BITWISE.
 
 constexpr char vertex_shader[] = R"glsl(
 
