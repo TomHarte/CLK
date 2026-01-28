@@ -331,8 +331,16 @@ using namespace Outputs::Display;
 OpenGL::Shader OpenGL::composition_shader(
 	const OpenGL::API api,
 	const InputDataType input,
-	const DisplayType display
+	const DisplayType display,
+	const float cycles_multiplier,
+	const int source_width,
+	const int source_height,
+	const int target_width,
+	const int target_height
 ) {
+	//
+	// Compose and compiler shader.
+	//
 	std::string prefix;
 
 	prefix += "#define INPUT_";
@@ -374,6 +382,9 @@ OpenGL::Shader OpenGL::composition_shader(
 		prefix + fragment_shader
 	);
 
+	//
+	// Enable vertex attributes.
+	//
 	BufferingScanTarget::Scan scan;
 	const auto enable = [&](const std::string &name, auto &element, const bool normalise) {
 		assert(sizeof(element) == 1 || sizeof(element) == 2);
@@ -398,6 +409,13 @@ OpenGL::Shader OpenGL::composition_shader(
 	enable("scanDataY", scan.data_y, false);
 	enable("scanLine", scan.line, false);
 	enable("scanCompositeAmplitude", scan.scan.composite_amplitude, true);
+
+	//
+	// Set uniforms.
+	//
+	shader.set_uniform("cyclesSinceRetraceMultiplier", cycles_multiplier);
+	shader.set_uniform("sourceSize", float(source_width), float(source_height));
+	shader.set_uniform("targetSize", float(target_width), float(target_height));
 
 	return shader;
 }

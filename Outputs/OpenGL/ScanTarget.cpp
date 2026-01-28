@@ -11,6 +11,7 @@
 #include "OpenGL.hpp"
 #include "Primitives/Rectangle.hpp"
 
+#include "Outputs/ScanTargets/FilterGenerator.hpp"
 #include "CompositionShader.hpp"
 
 #include <algorithm>
@@ -106,28 +107,43 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 
 
 	// TEST CODE. NOCOMMIT.
-	OpenGL::composition_shader(api, InputDataType::Luminance1, DisplayType::CompositeColour);
-	OpenGL::composition_shader(api, InputDataType::Luminance8, DisplayType::CompositeColour);
-	OpenGL::composition_shader(api, InputDataType::PhaseLinkedLuminance8, DisplayType::CompositeColour);
+	const auto buffer_width = FilterGenerator::SuggestedBufferWidth;
+	const float sample_multiplier =
+		FilterGenerator::suggested_sample_multiplier(227.5f, 1320);
 
-	OpenGL::composition_shader(api, InputDataType::Luminance8Phase8, DisplayType::SVideo);
-	OpenGL::composition_shader(api, InputDataType::Luminance8Phase8, DisplayType::CompositeColour);
+	for(auto &pair: {
+		std::make_pair(InputDataType::Luminance1, DisplayType::CompositeColour),
+		std::make_pair(InputDataType::Luminance8, DisplayType::CompositeColour),
+		std::make_pair(InputDataType::PhaseLinkedLuminance8, DisplayType::CompositeColour),
 
-	OpenGL::composition_shader(api, InputDataType::Red1Green1Blue1, DisplayType::RGB);
-	OpenGL::composition_shader(api, InputDataType::Red1Green1Blue1, DisplayType::SVideo);
-	OpenGL::composition_shader(api, InputDataType::Red1Green1Blue1, DisplayType::CompositeColour);
+		std::make_pair(InputDataType::Luminance8Phase8, DisplayType::SVideo),
+		std::make_pair(InputDataType::Luminance8Phase8, DisplayType::CompositeColour),
 
-	OpenGL::composition_shader(api, InputDataType::Red2Green2Blue2, DisplayType::RGB);
-	OpenGL::composition_shader(api, InputDataType::Red2Green2Blue2, DisplayType::SVideo);
-	OpenGL::composition_shader(api, InputDataType::Red2Green2Blue2, DisplayType::CompositeColour);
+		std::make_pair(InputDataType::Red1Green1Blue1, DisplayType::RGB),
+		std::make_pair(InputDataType::Red1Green1Blue1, DisplayType::SVideo),
+		std::make_pair(InputDataType::Red1Green1Blue1, DisplayType::CompositeColour),
 
-	OpenGL::composition_shader(api, InputDataType::Red4Green4Blue4, DisplayType::RGB);
-	OpenGL::composition_shader(api, InputDataType::Red4Green4Blue4, DisplayType::SVideo);
-	OpenGL::composition_shader(api, InputDataType::Red4Green4Blue4, DisplayType::CompositeColour);
+		std::make_pair(InputDataType::Red2Green2Blue2, DisplayType::RGB),
+		std::make_pair(InputDataType::Red2Green2Blue2, DisplayType::SVideo),
+		std::make_pair(InputDataType::Red2Green2Blue2, DisplayType::CompositeColour),
 
-	OpenGL::composition_shader(api, InputDataType::Red8Green8Blue8, DisplayType::RGB);
-	OpenGL::composition_shader(api, InputDataType::Red8Green8Blue8, DisplayType::SVideo);
-	OpenGL::composition_shader(api, InputDataType::Red8Green8Blue8, DisplayType::CompositeColour);
+		std::make_pair(InputDataType::Red4Green4Blue4, DisplayType::RGB),
+		std::make_pair(InputDataType::Red4Green4Blue4, DisplayType::SVideo),
+		std::make_pair(InputDataType::Red4Green4Blue4, DisplayType::CompositeColour),
+
+		std::make_pair(InputDataType::Red8Green8Blue8, DisplayType::RGB),
+		std::make_pair(InputDataType::Red8Green8Blue8, DisplayType::SVideo),
+		std::make_pair(InputDataType::Red8Green8Blue8, DisplayType::CompositeColour),
+	}) {
+		OpenGL::composition_shader(
+			api,
+			pair.first,
+			pair.second,
+			sample_multiplier,
+			2048, 2048,
+			buffer_width, 2048
+		).bind();
+	}
 }
 
 ScanTarget::~ScanTarget() {

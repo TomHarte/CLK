@@ -40,9 +40,15 @@ namespace Outputs::Display::OpenGL {
 	Aside: the demodulation shader only _finishes_ demodulation — the earlier multiply
 	by cos and sin started it.
 */
-Shader composition_shader(API, InputDataType, DisplayType);
-
-// TODO: either a method for setting uniforms, or added arguments above. I don't
-// think it's too costly to fix them at construction.
+Shader composition_shader(
+	API,
+	InputDataType,
+	DisplayType,
+	float cyclesMultiplier,
+	int source_width,
+	int source_height,
+	int target_width,
+	int target_height
+);
 
 }
