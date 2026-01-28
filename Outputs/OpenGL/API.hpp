@@ -13,4 +13,8 @@ enum class API {
 	OpenGL32Core,
 	OpenGLES3,
 };
+
+constexpr bool supports_bitwise_operations(const API) {
+	return true;
+}
 }

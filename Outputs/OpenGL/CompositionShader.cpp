@@ -364,67 +364,40 @@ OpenGL::Shader OpenGL::composition_shader(
 	} ();
 	prefix += "\n";
 
+	if(!supports_bitwise_operations(api)) {
+		prefix += "#define NO_BITWISE\n";
+	}
+
 	auto shader = OpenGL::Shader(
 		api,
 		prefix + vertex_shader,
 		prefix + fragment_shader
 	);
 
-#define rt_offset_of(field) reinterpret_cast<void *>((reinterpret_cast<uint8_t *>(&scan.field) - reinterpret_cast<uint8_t *>(&scan)))
 	BufferingScanTarget::Scan scan;
+	const auto enable = [&](const std::string &name, auto &element, const bool normalise) {
+		assert(sizeof(element) == 1 || sizeof(element) == 2);
+		shader.enable_vertex_attribute_with_pointer(
+			name,
+			1,
+			sizeof(element) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE,
+			normalise ? GL_TRUE : GL_FALSE,
+			sizeof(scan),
+			reinterpret_cast<void *>((reinterpret_cast<uint8_t *>(&element) - reinterpret_cast<uint8_t *>(&scan))),
+			1
+		);
+	};
 
 	for(int c = 0; c < 2; c++) {
 		const std::string endpoint = std::string("scanEndpoint") + std::to_string(c);
-
-		shader.enable_vertex_attribute_with_pointer(
-			endpoint + "DataOffset",
-			1, GL_UNSIGNED_SHORT, GL_FALSE,
-			sizeof(scan),
-			rt_offset_of(scan.end_points[c].data_offset),
-			1
-		);
-
-		shader.enable_vertex_attribute_with_pointer(
-			endpoint + "CyclesSinceRetrace",
-			1, GL_UNSIGNED_SHORT, GL_FALSE,
-			sizeof(scan),
-			rt_offset_of(scan.end_points[c].cycles_since_end_of_horizontal_retrace),
-			1
-		);
-
-		shader.enable_vertex_attribute_with_pointer(
-			endpoint + "CompositeAngle",
-			1, GL_UNSIGNED_BYTE, GL_FALSE,
-			sizeof(scan),
-			rt_offset_of(scan.end_points[c].cycles_since_end_of_horizontal_retrace),
-			1
-		);
+		enable(endpoint + "DataOffset", scan.scan.end_points[c].data_offset, false);
+		enable(endpoint + "CyclesSinceRetrace", scan.scan.end_points[c].cycles_since_end_of_horizontal_retrace, false);
+		enable(endpoint + "CompositeAngle", scan.scan.end_points[c].composite_angle, false);
 	}
 
-	shader.enable_vertex_attribute_with_pointer(
-		"scanDataY",
-		1, GL_UNSIGNED_SHORT, GL_FALSE,
-		sizeof(scan),
-		rt_offset_of(data_y),
-		1
-	);
-
-	shader.enable_vertex_attribute_with_pointer(
-		"scanLine",
-		1, GL_UNSIGNED_SHORT, GL_FALSE,
-		sizeof(scan),
-		rt_offset_of(line),
-		1
-	);
-
-	shader.enable_vertex_attribute_with_pointer(
-		"scanCompositeAmplitude",
-		1, GL_UNSIGNED_BYTE, GL_FALSE,
-		sizeof(scan),
-		rt_offset_of(scan.composite_amplitude),
-		1
-	);
-#undef rt_offset_of
+	enable("scanDataY", scan.data_y, false);
+	enable("scanLine", scan.line, false);
+	enable("scanCompositeAmplitude", scan.scan.composite_amplitude, true);
 
 	return shader;
 }
