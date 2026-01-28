@@ -32,45 +32,68 @@ namespace {
 //		support integers or bitwise operations.
 //
 
+// TODO: adapt S-Video output to match documentation.
+
 constexpr char vertex_shader[] = R"glsl(
 
-#if	defined(INPUT_RED1_GREEN1_BLUE1) || \
-	defined(INPUT_RED2_GREEN2_BLUE2) || \
-	defined(INPUT_RED4_GREEN4_BLUE4)
-uniform usampler2D source;
-#endif
+uniform mediump float cyclesSinceRetraceMultiplier;
+uniform mediump vec2 sourceSize;
+uniform mediump vec2 targetSize;
 
-#if	defined(INPUT_LUMINANCE1) || \
-	defined(INPUT_LUMINANCE8) || \
-	defined(INPUT_PHASE_LINKED_LUMINANCE8) || \
-	defined(INPUT_LUMINANCE8_PHASE8) || \
-	defined(INPUT_RED8_GREEN8_BLUE8)
-uniform sampler2D source;
-#endif
+in mediump float scanEndpoint0CyclesSinceRetrace;
+in mediump float scanEndpoint0DataOffset;
+in mediump float scanEndpoint0CompositeAngle;
 
-in mediump float startDataX;
-in float startClock;
+in mediump float scanEndpoint1CyclesSinceRetrace;
+in mediump float scanEndpoint1DataOffset;
+in mediump float scanEndpoint1CompositeAngle;
 
-in float endDataX;
-in float endClock;
-
-in float dataY;
-in float lineY;
+in mediump float scanDataY;
+in mediump float scanLine;
+in mediump float scanCompositeAmplitude;
 
 out mediump vec2 coordinate;
 out highp float phase;
+out highp float unitPhase;
 out lowp float compositeAmplitude;
 
 void main(void) {
 	float lateral = float(gl_VertexID & 1);
 	float longitudinal = float((gl_VertexID & 2) >> 1);
 
-	coordinate = vec2(mix(startDataX, endDataX, lateral), dataY + 0.5) / vec2(textureSize(source, 0));
-	phase = 0;
-	compositeAmplitude = 0.16;
+	// Texture: interpolates x = [start -> end]DataX; y = dataY.
+	coordinate = vec2(
+		mix(
+			scanEndpoint0DataOffset,
+			scanEndpoint1DataOffset,
+			lateral
+		),
+		scanDataY + 0.5
+	) / sourceSize;
 
-	vec2 eyePosition = vec2(mix(startClock, endClock, lateral), lineY + longitudinal) / vec2(2048.0, 2048.0);
-	gl_Position = vec4(eyePosition*2.0 - vec2(1.0), 0.0, 1.0);
+	// Phase and amplitude.
+	unitPhase = mix(
+		scanEndpoint0CompositeAngle,
+		scanEndpoint1CompositeAngle,
+		lateral
+	) / 64.0;
+	phase = 2.0 * 3.141592654 * unitPhase;
+	compositeAmplitude = scanCompositeAmplitude;
+
+	// Position: inteprolates x = [start -> end]Clock; y = line.
+	vec2 eyePosition = vec2(
+		mix(
+			scanEndpoint0CyclesSinceRetrace,
+			scanEndpoint1CyclesSinceRetrace,
+			lateral
+		) * cyclesSinceRetraceMultiplier,
+		scanLine + longitudinal
+	) / targetSize;
+	gl_Position = vec4(
+		eyePosition * vec2(2.0, -2.0) + vec2(-1.0, 1.0),
+		0.0,
+		1.0
+	);
 }
 
 )glsl";
@@ -81,6 +104,7 @@ uniform lowp mat3 fromRGB;
 
 in mediump vec2 coordinate;
 in highp float phase;
+in highp float unitPhase;
 in lowp float compositeAmplitude;
 
 lowp vec2 quadrature() {
@@ -127,7 +151,7 @@ lowp vec2 quadrature() {
 
 	lowp vec4 sample_composite() {
 		vec4 source = texture(source, coordinate);
-		int offset = int(floor(phase * 4.0)) & 3;
+		int offset = int(floor(unitPhase * 4.0)) & 3;
 		return vec4(
 			source[offset],
 			quadrature(),
