@@ -156,6 +156,16 @@ void Shader::init(
 	}
 }
 
+Shader::Shader(Shader &&rhs) {
+	api_ = rhs.api_;
+	shader_program_ = rhs.shader_program_;
+
+	if(bound_shader == &rhs) {
+		bound_shader = this;
+	}
+	rhs.shader_program_ = 0;
+}
+
 Shader::~Shader() {
 	if(bound_shader == this) Shader::unbind();
 	glDeleteProgram(shader_program_);

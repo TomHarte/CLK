@@ -363,11 +363,12 @@ OpenGL::Shader OpenGL::composition_shader(
 	} ();
 	prefix += "\n";
 
-	return OpenGL::Shader(
+	auto shader = OpenGL::Shader(
 		api,
 		prefix + vertex_shader,
 		prefix + fragment_shader
 	);
 
 	// TODO: bind inputs to match ScanTarget::Scan.
+	return std::move(shader);
 }

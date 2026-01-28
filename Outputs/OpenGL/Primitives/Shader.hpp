@@ -65,6 +65,9 @@ public:
 	);
 	~Shader();
 
+	// Allow moves.
+	Shader(Shader&&);
+
 	/*!
 		Performs an @c glUseProgram to make this the active shader unless:
 			(i) it was the previous shader bound; and
