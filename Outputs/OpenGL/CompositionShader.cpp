@@ -170,11 +170,13 @@ lowp vec2 quadrature() {
 
 	lowp vec4 sample_svideo() {
 		lowp vec2 source = texture(source, coordinate).rg;
-		int offset = int(floor(coordinate * 4.0));
+		float chroma = cos(phase + source.g); 
+		lowp vec2 q = quadrature();
+		
 		return vec4(
-			source[offset],
-			quadrature(),
-			compositeAmplitude
+			source.r,
+			chroma * q,
+			1.0
 		);
 	}
 
@@ -293,8 +295,8 @@ lowp vec2 quadrature() {
 
 		return vec4(
 			colour.r,
-			chroma,
-			q
+			chroma * q,
+			1.0
 		);
 	}
 
