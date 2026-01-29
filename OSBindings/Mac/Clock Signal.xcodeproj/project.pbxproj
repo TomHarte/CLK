@@ -1164,6 +1164,7 @@
 		4BD191F52191180E0042E144 /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD191F22191180E0042E144 /* ScanTarget.cpp */; };
 		4BD235B42F27AC680094AFAE /* CompositionShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD235B32F27AC680094AFAE /* CompositionShader.cpp */; };
 		4BD235B72F2C11A40094AFAE /* VertexArray.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD235B62F2C11A40094AFAE /* VertexArray.cpp */; };
+		4BD235BA2F2C22280094AFAE /* CopyShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD235B92F2C22280094AFAE /* CopyShader.cpp */; };
 		4BD388882239E198002D14B5 /* 68000Tests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BD388872239E198002D14B5 /* 68000Tests.mm */; };
 		4BD424E02193B5340097291A /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD424DD2193B5340097291A /* TextureTarget.cpp */; };
 		4BD424E62193B5830097291A /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD424E12193B5820097291A /* Shader.cpp */; };
@@ -2466,6 +2467,8 @@
 		4BD235B32F27AC680094AFAE /* CompositionShader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CompositionShader.cpp; sourceTree = "<group>"; };
 		4BD235B52F2C11A40094AFAE /* VertexArray.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = VertexArray.hpp; sourceTree = "<group>"; };
 		4BD235B62F2C11A40094AFAE /* VertexArray.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VertexArray.cpp; sourceTree = "<group>"; };
+		4BD235B82F2C22280094AFAE /* CopyShader.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CopyShader.hpp; sourceTree = "<group>"; };
+		4BD235B92F2C22280094AFAE /* CopyShader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CopyShader.cpp; sourceTree = "<group>"; };
 		4BD388411FE34E010042B588 /* 9918Base.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 9918Base.hpp; sourceTree = "<group>"; };
 		4BD388872239E198002D14B5 /* 68000Tests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000Tests.mm; sourceTree = "<group>"; };
 		4BD424DD2193B5340097291A /* TextureTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TextureTarget.cpp; sourceTree = "<group>"; };
@@ -5383,10 +5386,12 @@
 			isa = PBXGroup;
 			children = (
 				4BD235B32F27AC680094AFAE /* CompositionShader.cpp */,
+				4BD235B92F2C22280094AFAE /* CopyShader.cpp */,
 				4BD191F22191180E0042E144 /* ScanTarget.cpp */,
 				4BD5D2672199148100DDF17D /* ScanTargetGLSLFragments.cpp */,
 				4BA3AF5C2EF252320088C3BC /* API.hpp */,
 				4BD235B22F27AC680094AFAE /* CompositionShader.hpp */,
+				4BD235B82F2C22280094AFAE /* CopyShader.hpp */,
 				4BD191D9219113B80042E144 /* OpenGL.hpp */,
 				4BD191F32191180E0042E144 /* ScanTarget.hpp */,
 				4B961408222760E0001A7BF2 /* Screenshot.hpp */,
@@ -6270,6 +6275,7 @@
 				4B2E86D025D8D8C70024F1E9 /* Keyboard.cpp in Sources */,
 				4B89452F201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B894531201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
+				4BD235BA2F2C22280094AFAE /* CopyShader.cpp in Sources */,
 				4BB5057B2B962DDF0031C43C /* Electron.cpp in Sources */,
 				4B0ACC2D23775819008902D0 /* IntelligentKeyboard.cpp in Sources */,
 				4B894539201967B4007DE474 /* Tape.cpp in Sources */,
