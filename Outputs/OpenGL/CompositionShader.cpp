@@ -387,30 +387,30 @@ OpenGL::Shader OpenGL::composition_shader(
 	//
 	// Enable vertex attributes.
 	//
-	BufferingScanTarget::Scan scan;
-	const auto enable = [&](const std::string &name, auto &element, const bool normalise) {
-		assert(sizeof(element) == 1 || sizeof(element) == 2);
-		shader.enable_vertex_attribute_with_pointer(
-			name,
-			1,
-			sizeof(element) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE,
-			normalise ? GL_TRUE : GL_FALSE,
-			sizeof(scan),
-			reinterpret_cast<void *>((reinterpret_cast<uint8_t *>(&element) - reinterpret_cast<uint8_t *>(&scan))),
-			1
-		);
-	};
-
-	for(int c = 0; c < 2; c++) {
-		const std::string endpoint = std::string("scanEndpoint") + std::to_string(c);
-		enable(endpoint + "DataOffset", scan.scan.end_points[c].data_offset, false);
-		enable(endpoint + "CyclesSinceRetrace", scan.scan.end_points[c].cycles_since_end_of_horizontal_retrace, false);
-		enable(endpoint + "CompositeAngle", scan.scan.end_points[c].composite_angle, false);
-	}
-
-	enable("scanDataY", scan.data_y, false);
-	enable("scanLine", scan.line, false);
-	enable("scanCompositeAmplitude", scan.scan.composite_amplitude, true);
+//	BufferingScanTarget::Scan scan;
+//	const auto enable = [&](const std::string &name, auto &element, const bool normalise) {
+//		assert(sizeof(element) == 1 || sizeof(element) == 2);
+//		shader.enable_vertex_attribute_with_pointer(
+//			name,
+//			1,
+//			sizeof(element) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE,
+//			normalise ? GL_TRUE : GL_FALSE,
+//			sizeof(scan),
+//			reinterpret_cast<void *>((reinterpret_cast<uint8_t *>(&element) - reinterpret_cast<uint8_t *>(&scan))),
+//			1
+//		);
+//	};
+//
+//	for(int c = 0; c < 2; c++) {
+//		const std::string endpoint = std::string("scanEndpoint") + std::to_string(c);
+//		enable(endpoint + "DataOffset", scan.scan.end_points[c].data_offset, false);
+//		enable(endpoint + "CyclesSinceRetrace", scan.scan.end_points[c].cycles_since_end_of_horizontal_retrace, false);
+//		enable(endpoint + "CompositeAngle", scan.scan.end_points[c].composite_angle, false);
+//	}
+//
+//	enable("scanDataY", scan.data_y, false);
+//	enable("scanLine", scan.line, false);
+//	enable("scanCompositeAmplitude", scan.scan.composite_amplitude, true);
 
 	//
 	// Set uniforms.

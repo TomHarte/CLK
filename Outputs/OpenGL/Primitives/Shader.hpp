@@ -65,8 +65,10 @@ public:
 	);
 	~Shader();
 
-	// Allow moves.
+	// Allow moves, including move assignment, and default construction to create something vacant.
 	Shader(Shader&&);
+	Shader &operator =(Shader &&);
+	Shader() = default;
 
 	/*!
 		Performs an @c glUseProgram to make this the active shader unless:
@@ -146,7 +148,7 @@ private:
 
 	GLuint compile_shader(const std::string &source, GLenum type);
 	API api_;
-	GLuint shader_program_;
+	GLuint shader_program_ = 0;
 
 	void flush_functions() const;
 	mutable std::vector<std::function<void(void)>> enqueued_functions_;

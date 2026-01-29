@@ -244,6 +244,31 @@ void ScanTarget::setup_pipeline() {
 		input_shader_->set_uniform("textureName", GLint(SourceDataTextureUnit - GL_TEXTURE0));
 	}
 
+	//
+	// New pipeline starts here!
+	//
+	const auto buffer_width = FilterGenerator::SuggestedBufferWidth;
+	const float sample_multiplier =
+		FilterGenerator::suggested_sample_multiplier(227.5f, 1320);
+
+	if(
+		!existing_modals_ ||
+		existing_modals_->input_data_type != modals.input_data_type ||
+		existing_modals_->display_type != modals.display_type ||
+		existing_modals_->composite_colour_space != modals.composite_colour_space
+	) {
+		composition_shader_ = OpenGL::composition_shader(
+			api_,
+			modals.input_data_type,
+			modals.display_type,
+			modals.composite_colour_space,
+			sample_multiplier,
+			2048, 2048,
+			buffer_width, 2048,
+			GL_TEXTURE0
+		);
+	}
+
 	existing_modals_ = modals;
 }
 
@@ -277,10 +302,13 @@ void ScanTarget::update(int, int output_height) {
 
 		// Establish the pipeline if necessary.
 		const auto new_modals = BufferingScanTarget::new_modals();
-		const bool did_setup_pipeline = bool(new_modals);
-		if(did_setup_pipeline) {
-			setup_pipeline();
-		}
+		const bool did_setup_pipeline = [&] {
+			if(bool(new_modals)) {
+				setup_pipeline();
+				return true;
+			}
+			return false;
+		} ();
 
 		// Determine the start time of this submission group and the number of lines it will contain.
 		line_submission_begin_time_ = std::chrono::high_resolution_clock::now();

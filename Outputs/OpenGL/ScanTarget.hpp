@@ -121,6 +121,8 @@ private:
 	std::unique_ptr<Shader> output_shader_;
 	std::unique_ptr<Shader> qam_separation_shader_;
 
+	Shader composition_shader_;
+
 	/*!
 		Produces a shader that composes fragment of the input stream to a single buffer,
 		normalising the data into one of four forms: RGB, 8-bit luminance,

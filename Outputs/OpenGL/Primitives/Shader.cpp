@@ -156,7 +156,7 @@ void Shader::init(
 	}
 }
 
-Shader::Shader(Shader &&rhs) {
+Shader &Shader::operator =(Shader &&rhs) {
 	api_ = rhs.api_;
 	shader_program_ = rhs.shader_program_;
 
@@ -164,6 +164,11 @@ Shader::Shader(Shader &&rhs) {
 		bound_shader = this;
 	}
 	rhs.shader_program_ = 0;
+	return *this;
+}
+
+Shader::Shader(Shader &&rhs) {
+	*this = std::move(rhs);
 }
 
 Shader::~Shader() {
