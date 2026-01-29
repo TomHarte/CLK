@@ -8,6 +8,7 @@
 
 #include "FilterGenerator.hpp"
 
+#include <cmath>
 #include <numbers>
 
 using namespace Outputs::Display;
@@ -85,4 +86,23 @@ FilterGenerator::FilterPair FilterGenerator::demouldation_filter() {
 		* (decoding_path_ == DecodingPath::SVideo ? 2.0f : 1.0f);
 
 	return result;
+}
+
+float FilterGenerator::suggested_sample_multiplier(
+	const float per_line_subcarrier_frequency,
+	const int samples_per_line,
+	const int buffer_width
+) {
+	// Determine the minimum output width that will capture sufficient colour subcarrier information.
+	const float minimum = MinColourSubcarrierMultiplier * per_line_subcarrier_frequency;
+
+	// Prefer the minimum integer multiple that is at or above that minimum width.
+	const float ideal = std::ceil(minimum / float(samples_per_line));
+	if(ideal * float(samples_per_line) <= buffer_width) {
+		return ideal;
+	}
+
+	// Failing that, pick a smaller integer if one is available; otherwise saturate the available pixels.
+	// Integer multiples are preferable for not unduly aliasing the incoming pixel data (even if point-sampled).
+	return ideal > 1.0f ? ideal - 1.0f : float(buffer_width) / float(samples_per_line);
 }

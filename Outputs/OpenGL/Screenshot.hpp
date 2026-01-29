@@ -10,7 +10,7 @@
 
 #include "OpenGL.hpp"
 
-#include <utility>
+#include <algorithm>
 #include <vector>
 
 namespace Outputs::Display::OpenGL {
@@ -35,16 +35,26 @@ struct Screenshot {
 		// Grab the framebuffer contents, temporarily setting single-byte alignment.
 		int prior_alignment;
 		glGetIntegerv(GL_PACK_ALIGNMENT, &prior_alignment);
-		glReadPixels((dimensions[2] - GLint(width)) >> 1, 0, GLint(width), GLint(height), GL_RGBA, GL_UNSIGNED_BYTE, pixel_data.data());
+		glReadPixels(
+			(dimensions[2] - GLint(width)) >> 1,
+			0,
+			GLint(width),
+			GLint(height),
+			GL_RGBA,
+			GL_UNSIGNED_BYTE,
+			pixel_data.data()
+		);
 		glPixelStorei(GL_PACK_ALIGNMENT, prior_alignment);
 
 		// Flip the contents into raster order.
 		const size_t line_size = size_t(width * 4);
 		for(size_t y = 0; y < size_t(height) / 2; ++y) {
 			const size_t flipped_y = size_t(height - 1) - y;
-			for(size_t x = 0; x < line_size; x++) {
-				std::swap(pixel_data[flipped_y * line_size + x], pixel_data[y * line_size + x]);
-			}
+			std::swap_ranges(
+				&pixel_data[flipped_y * line_size],
+				&pixel_data[flipped_y * line_size + line_size],
+				&pixel_data[y * line_size]
+			);
 		}
 	}
 

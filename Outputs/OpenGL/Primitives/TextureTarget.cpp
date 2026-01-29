@@ -20,10 +20,11 @@ TextureTarget::TextureTarget(
 	const GLint mag_filter,
 	const bool has_stencil_buffer
 ) :
-		api_(api),
-		width_(width),
-		height_(height),
-		texture_unit_(texture_unit) {
+	api_(api),
+	width_(width),
+	height_(height),
+	texture_unit_(texture_unit)
+{
 	// Generate and bind a frame buffer.
 	test_gl(glGenFramebuffers, 1, &framebuffer_);
 	test_gl(glBindFramebuffer, GL_FRAMEBUFFER, framebuffer_);
@@ -39,7 +40,18 @@ TextureTarget::TextureTarget(
 	bind_texture();
 
 	// Set dimensions and set the user-supplied magnification filter.
-	test_gl(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA, GLsizei(expanded_width_), GLsizei(expanded_height_), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	test_gl(
+		glTexImage2D,
+		GL_TEXTURE_2D,
+		0,
+		GL_RGBA,
+		GLsizei(expanded_width_),
+		GLsizei(expanded_height_),
+		0,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE,
+		nullptr
+	);
 	test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
 	test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -102,30 +114,30 @@ void TextureTarget::bind_texture() const {
 void TextureTarget::draw(const float aspect_ratio, const float colour_threshold) const {
 	if(!pixel_shader_) {
 		const char *const vertex_shader =
-		R"str(
-			in vec2 texCoord;
-			in vec2 position;
+			R"glsl(
+				in vec2 texCoord;
+				in vec2 position;
 
-			out vec2 texCoordVarying;
+				out vec2 texCoordVarying;
 
-			void main(void) {
-				texCoordVarying = texCoord;
-				gl_Position = vec4(position, 0.0, 1.0);
-			}
-		)str";
+				void main(void) {
+					texCoordVarying = texCoord;
+					gl_Position = vec4(position, 0.0, 1.0);
+				}
+			)glsl";
 		const char *const fragment_shader =
-		R"str(
-			in vec2 texCoordVarying;
+			R"glsl(
+				in vec2 texCoordVarying;
 
-			uniform sampler2D texID;
-			uniform float threshold;
+				uniform sampler2D texID;
+				uniform float threshold;
 
-			out vec4 fragColour;
+				out vec4 fragColour;
 
-			void main(void) {
-				fragColour = clamp(texture(texID, texCoordVarying), threshold, 1.0);
-			}
-		)str";
+				void main(void) {
+					fragColour = clamp(texture(texID, texCoordVarying), threshold, 1.0);
+				}
+			)glsl";
 		pixel_shader_ = std::make_unique<Shader>(api_, vertex_shader, fragment_shader);
 		pixel_shader_->bind();
 
@@ -142,8 +154,24 @@ void TextureTarget::draw(const float aspect_ratio, const float colour_threshold)
 		test_gl(glEnableVertexAttribArray, GLuint(tex_coord_attribute));
 
 		const GLsizei vertex_stride = 4 * sizeof(GLfloat);
-		test_gl(glVertexAttribPointer, GLuint(position_attribute),	2, GL_FLOAT,	GL_FALSE,	vertex_stride,	(void *)0);
-		test_gl(glVertexAttribPointer, GLuint(tex_coord_attribute),	2, GL_FLOAT,	GL_FALSE,	vertex_stride,	(void *)(2 * sizeof(GLfloat)));
+		test_gl(
+			glVertexAttribPointer,
+			GLuint(position_attribute),
+			2,
+			GL_FLOAT,
+			GL_FALSE,
+			vertex_stride,
+			(void *)0
+		);
+		test_gl(
+			glVertexAttribPointer,
+			GLuint(tex_coord_attribute),
+			2,
+			GL_FLOAT,
+			GL_FALSE,
+			vertex_stride,
+			(void *)(2 * sizeof(GLfloat))
+		);
 
 		const GLint texIDUniform = pixel_shader_->get_uniform_location("texID");
 		test_gl(glUniform1i, texIDUniform, GLint(texture_unit_ - GL_TEXTURE0));
@@ -166,8 +194,8 @@ void TextureTarget::draw(const float aspect_ratio, const float colour_threshold)
 		buffer[15] = buffer[7];
 
 		// determine positions; rule is to keep the same height and centre
-		float internal_aspect_ratio = float(width_) / float(height_);
-		float aspect_ratio_ratio = internal_aspect_ratio / aspect_ratio;
+		const float internal_aspect_ratio = float(width_) / float(height_);
+		const float aspect_ratio_ratio = internal_aspect_ratio / aspect_ratio;
 
 		buffer[0] = -aspect_ratio_ratio;	buffer[1] = -1.0f;
 		buffer[4] = -aspect_ratio_ratio;	buffer[5] = 1.0f;

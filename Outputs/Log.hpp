@@ -205,12 +205,7 @@ public:
 	explicit LogLine(const bool is_info) noexcept : is_info_(is_info) {}
 
 	~LogLine() {
-		if(output_ == accumulator_.last && source == accumulator_.source && is_info_ == accumulator_.is_info) {
-			++accumulator_.count;
-			return;
-		}
-
-		if(!accumulator_.last.empty()) {
+		const auto output = [&] {
 			const char *const unadorned_prefix = prefix(accumulator_.source);
 			std::string prefix;
 			if(unadorned_prefix) {
@@ -226,12 +221,31 @@ public:
 				out << " [* " << accumulator_.count << "]";
 			}
 			if(EndLine) out << EndLine;
+
+			accumulator_.last = "";
+		};
+
+		if(
+			output_ == accumulator_.last &&
+			source == accumulator_.source &&
+			is_info_ == accumulator_.is_info
+		) {
+			++accumulator_.count;
+			return;
+		}
+
+		if(!accumulator_.last.empty()) {
+			output();
 		}
 
 		accumulator_.count = 1;
 		accumulator_.last = output_;
 		accumulator_.source = source;
 		accumulator_.is_info = is_info_;
+
+		if(!is_info_) {
+			output();
+		}
 	}
 
 	template <size_t size, typename... Args>

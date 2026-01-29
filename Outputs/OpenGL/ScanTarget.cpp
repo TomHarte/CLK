@@ -11,6 +11,9 @@
 #include "OpenGL.hpp"
 #include "Primitives/Rectangle.hpp"
 
+#include "Outputs/ScanTargets/FilterGenerator.hpp"
+#include "CompositionShader.hpp"
+
 #include <algorithm>
 #include <cassert>
 #include <cstring>
@@ -41,7 +44,9 @@ constexpr GLenum QAMChromaTextureUnit = GL_TEXTURE2;
 /// The texture unit that contains the current display.
 constexpr GLenum AccumulationTextureUnit = GL_TEXTURE3;
 
-constexpr GLint internalFormatForDepth(std::size_t depth) {
+using Logger = Log::Logger<Log::Source::OpenGL>;
+
+constexpr GLint internalFormatForDepth(const std::size_t depth) {
 	switch(depth) {
 		default: return GL_FALSE;
 		case 1: return GL_R8UI;
@@ -51,7 +56,7 @@ constexpr GLint internalFormatForDepth(std::size_t depth) {
 	}
 }
 
-constexpr GLenum formatForDepth(std::size_t depth) {
+constexpr GLenum formatForDepth(const std::size_t depth) {
 	switch(depth) {
 		default: return GL_FALSE;
 		case 1: return GL_RED_INTEGER;
@@ -61,11 +66,11 @@ constexpr GLenum formatForDepth(std::size_t depth) {
 	}
 }
 
-using Logger = Log::Logger<Log::Source::OpenGL>;
-
-}
-
-template <typename T> void ScanTarget::allocate_buffer(const T &array, GLuint &buffer_name, GLuint &vertex_array_name) {
+template <typename T> void allocate_buffer(
+	const T &array,
+	GLuint &buffer_name,
+	GLuint &vertex_array_name
+) {
 	const auto buffer_size = array.size() * sizeof(array[0]);
 	test_gl(glGenBuffers, 1, &buffer_name);
 	test_gl(glBindBuffer, GL_ARRAY_BUFFER, buffer_name);
@@ -74,6 +79,7 @@ template <typename T> void ScanTarget::allocate_buffer(const T &array, GLuint &b
 	test_gl(glGenVertexArrays, 1, &vertex_array_name);
 	test_gl(glBindVertexArray, vertex_array_name);
 	test_gl(glBindBuffer, GL_ARRAY_BUFFER, buffer_name);
+}
 }
 
 ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const float output_gamma) :
@@ -101,6 +107,47 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 
 	// Establish initial state for is_drawing_to_accumulation_buffer_.
 	is_drawing_to_accumulation_buffer_.clear();
+
+
+	// TEST CODE. NOCOMMIT.
+	const auto buffer_width = FilterGenerator::SuggestedBufferWidth;
+	const float sample_multiplier =
+		FilterGenerator::suggested_sample_multiplier(227.5f, 1320);
+
+	for(auto &pair: {
+		std::make_pair(InputDataType::Luminance1, DisplayType::CompositeColour),
+		std::make_pair(InputDataType::Luminance8, DisplayType::CompositeColour),
+		std::make_pair(InputDataType::PhaseLinkedLuminance8, DisplayType::CompositeColour),
+
+		std::make_pair(InputDataType::Luminance8Phase8, DisplayType::SVideo),
+		std::make_pair(InputDataType::Luminance8Phase8, DisplayType::CompositeColour),
+
+		std::make_pair(InputDataType::Red1Green1Blue1, DisplayType::RGB),
+		std::make_pair(InputDataType::Red1Green1Blue1, DisplayType::SVideo),
+		std::make_pair(InputDataType::Red1Green1Blue1, DisplayType::CompositeColour),
+
+		std::make_pair(InputDataType::Red2Green2Blue2, DisplayType::RGB),
+		std::make_pair(InputDataType::Red2Green2Blue2, DisplayType::SVideo),
+		std::make_pair(InputDataType::Red2Green2Blue2, DisplayType::CompositeColour),
+
+		std::make_pair(InputDataType::Red4Green4Blue4, DisplayType::RGB),
+		std::make_pair(InputDataType::Red4Green4Blue4, DisplayType::SVideo),
+		std::make_pair(InputDataType::Red4Green4Blue4, DisplayType::CompositeColour),
+
+		std::make_pair(InputDataType::Red8Green8Blue8, DisplayType::RGB),
+		std::make_pair(InputDataType::Red8Green8Blue8, DisplayType::SVideo),
+		std::make_pair(InputDataType::Red8Green8Blue8, DisplayType::CompositeColour),
+	}) {
+		OpenGL::composition_shader(
+			api,
+			pair.first,
+			pair.second,
+			sample_multiplier,
+			2048, 2048,
+			buffer_width, 2048,
+			GL_TEXTURE0
+		).bind();
+	}
 }
 
 ScanTarget::~ScanTarget() {

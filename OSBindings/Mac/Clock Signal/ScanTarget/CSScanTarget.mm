@@ -93,9 +93,7 @@
 */
 
 namespace {
-
-constexpr float MinColourSubcarrierMultiplier = 8.0f;
-constexpr int BufferWidth = (MinColourSubcarrierMultiplier > 5.0f) ? 3072 : 1536;
+constexpr auto BufferWidth = Outputs::Display::FilterGenerator::SuggestedBufferWidth;
 
 /// Provides a container for __fp16 versions of tightly-packed single-precision plain old data with a copy assignment constructor.
 template <typename NaturalType> struct HalfConverter {
@@ -668,22 +666,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		float &cyclesMultiplier = self.uniforms->cyclesMultiplier;
 		if(_pipeline != Pipeline::DirectToDisplay) {
-			const float minimumSize =
-				MinColourSubcarrierMultiplier *
-				float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
-
-			while(cyclesMultiplier * modals.cycles_per_line < minimumSize) {
-				cyclesMultiplier += 1.0f;
-
-				if(cyclesMultiplier * modals.cycles_per_line > BufferWidth) {
-					if(cyclesMultiplier > 1.0f) {
-						cyclesMultiplier -= 1.0f;
-					} else {
-						cyclesMultiplier = float(BufferWidth) / float(modals.cycles_per_line);
-					}
-					break;
-				}
-			}
+			cyclesMultiplier =
+				Outputs::Display::FilterGenerator::suggested_sample_multiplier(
+					float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator),
+					modals.cycles_per_line
+				);
 
 			// Create suitable filters.
 			_lineBufferPixelsPerLine = NSUInteger(modals.cycles_per_line * cyclesMultiplier);
