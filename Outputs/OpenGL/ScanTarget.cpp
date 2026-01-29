@@ -113,6 +113,7 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 	const float sample_multiplier =
 		FilterGenerator::suggested_sample_multiplier(227.5f, 1320);
 
+	VertexArray va(scan_buffer_);
 	for(auto &pair: {
 		std::make_pair(InputDataType::Luminance1, DisplayType::CompositeColour),
 		std::make_pair(InputDataType::Luminance8, DisplayType::CompositeColour),
@@ -145,6 +146,7 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 			sample_multiplier,
 			BufferingScanTarget::WriteAreaWidth, BufferingScanTarget::WriteAreaHeight,
 			buffer_width, 2048,	// TODO: substitute real composition buffer sizes.
+			va,
 			GL_TEXTURE0
 		).bind();
 	}
@@ -267,6 +269,7 @@ void ScanTarget::setup_pipeline() {
 			sample_multiplier,
 			2048, 2048,
 			buffer_width, 2048,
+			array,
 			GL_TEXTURE0
 		);
 	}

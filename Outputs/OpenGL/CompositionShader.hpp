@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Outputs/ScanTarget.hpp"
+#include "Outputs/OpenGL/Primitives/VertexArray.hpp"
 #include "Outputs/OpenGL/Primitives/Shader.hpp"
 
 namespace Outputs::Display::OpenGL {
@@ -18,7 +19,6 @@ namespace Outputs::Display::OpenGL {
 	from RGB to S-Video or composite, or from S-Video to composite.
 
 	The shader is configured to accept a buffer of ScanTarget::Scan as vertex attributes.
-	**That vertex array must be bound before this function is called.**
 
 	Output formats are:
 
@@ -51,6 +51,7 @@ Shader composition_shader(
 	int source_height,
 	int target_width,
 	int target_height,
+	const VertexArray &,
 	GLenum source_texture_unit
 );
 

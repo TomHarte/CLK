@@ -27,9 +27,9 @@ public:
 	VertexArray(VertexArray &&);
 	VertexArray &operator =(VertexArray &&);
 
-	void bind();
-	void bind_buffer();
-	void bind_all();
+	void bind() const;
+	void bind_buffer() const;
+	void bind_all() const;
 
 private:
 	GLuint buffer_ = 0;

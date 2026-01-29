@@ -39,15 +39,15 @@ VertexArray &VertexArray::operator =(VertexArray &&rhs) {
 	return *this;
 }
 
-void VertexArray::bind() {
+void VertexArray::bind() const {
 	test_gl(glBindVertexArray, vertex_array_);
 }
 
-void VertexArray::bind_buffer() {
+void VertexArray::bind_buffer() const {
 	test_gl(glBindBuffer, GL_ARRAY_BUFFER, buffer_);
 }
 
-void VertexArray::bind_all() {
+void VertexArray::bind_all() const {
 	bind();
 	bind_buffer();
 }

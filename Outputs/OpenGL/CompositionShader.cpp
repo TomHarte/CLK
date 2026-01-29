@@ -338,6 +338,7 @@ OpenGL::Shader OpenGL::composition_shader(
 	const int source_height,
 	const int target_width,
 	const int target_height,
+	const VertexArray &vertex_array,
 	const GLenum source_texture_unit
 ) {
 	//
@@ -388,6 +389,7 @@ OpenGL::Shader OpenGL::composition_shader(
 	// Enable vertex attributes.
 	//
 	BufferingScanTarget::Scan scan;
+	vertex_array.bind();
 	const auto enable = [&](const std::string &name, auto &element, const bool normalise) {
 		assert(sizeof(element) == 1 || sizeof(element) == 2);
 		shader.enable_vertex_attribute_with_pointer(
