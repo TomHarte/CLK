@@ -111,30 +111,7 @@ void Shader::init(
 	test_gl(glAttachShader, shader_program_, fragment);
 
 	for(const auto &binding : attribute_bindings) {
-		test_gl(glBindAttribLocation, shader_program_, binding.index, binding.name.c_str());
-
-		if constexpr (Logger::ErrorsEnabled) {
-			const auto error = glGetError();
-			switch(error) {
-				case 0: break;
-				case GL_INVALID_VALUE:
-					Logger::error().append(
-						"GL_INVALID_VALUE when attempting to bind %s to index %d "
-						"(i.e. index is greater than or equal to GL_MAX_VERTEX_ATTRIBS)",
-							binding.name.c_str(), binding.index);
-				break;
-				case GL_INVALID_OPERATION:
-					Logger::error().append(
-						"GL_INVALID_OPERATION when attempting to bind %s to index %d "
-						"(i.e. name begins with gl_)",
-							binding.name.c_str(), binding.index);
-				break;
-				default:
-					Logger::error().append(
-						"Error %d when attempting to bind %s to index %d", error, binding.name.c_str(), binding.index);
-				break;
-			}
-		}
+		bind_attrib_location(binding.name, binding.index);
 	}
 
 	test_gl(glLinkProgram, shader_program_);
@@ -187,6 +164,33 @@ void Shader::bind() const {
 void Shader::unbind() {
 	bound_shader = nullptr;
 	test_gl(glUseProgram, 0);
+}
+
+void Shader::bind_attrib_location(const std::string &name, const GLuint index) {
+	test_gl(glBindAttribLocation, shader_program_, index, name.c_str());
+
+	if constexpr (Logger::ErrorsEnabled) {
+		const auto error = glGetError();
+		switch(error) {
+			case 0: break;
+			case GL_INVALID_VALUE:
+				Logger::error().append(
+					"GL_INVALID_VALUE when attempting to bind %s to index %d "
+					"(i.e. index is greater than or equal to GL_MAX_VERTEX_ATTRIBS)",
+						name.c_str(), index);
+			break;
+			case GL_INVALID_OPERATION:
+				Logger::error().append(
+					"GL_INVALID_OPERATION when attempting to bind %s to index %d "
+					"(i.e. name begins with gl_)",
+						name.c_str(), index);
+			break;
+			default:
+				Logger::error().append(
+					"Error %d when attempting to bind %s to index %d", error, name.c_str(), index);
+			break;
+		}
+	}
 }
 
 GLint Shader::get_attrib_location(const std::string &name) const {

@@ -85,6 +85,13 @@ public:
 	static void unbind();
 
 	/*!
+		Performs a @c glBindAttribLocation call.
+		@param name The name of the attribute to bind.
+		@param index The index to bind to.
+	*/
+	void bind_attrib_location(const std::string &name, GLuint index);
+
+	/*!
 		Performs a @c glGetAttribLocation call.
 		@param name The name of the attribute to locate.
 		@returns The location of the requested attribute.
