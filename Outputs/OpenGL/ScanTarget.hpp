@@ -93,8 +93,6 @@ private:
 	GLuint scan_buffer_name_ = 0, scan_vertex_array_ = 0;
 	GLuint line_buffer_name_ = 0, line_vertex_array_ = 0;
 
-	template <typename T> void allocate_buffer(const T &array, GLuint &buffer_name, GLuint &vertex_array_name);
-
 	GLuint write_area_texture_name_ = 0;
 	bool texture_exists_ = false;
 
