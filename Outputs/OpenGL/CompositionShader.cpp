@@ -332,6 +332,7 @@ OpenGL::Shader OpenGL::composition_shader(
 	const OpenGL::API api,
 	const InputDataType input,
 	const DisplayType display,
+	const ColourSpace colour_space,
 	const float cycles_multiplier,
 	const int source_width,
 	const int source_height,
@@ -418,6 +419,7 @@ OpenGL::Shader OpenGL::composition_shader(
 	shader.set_uniform("sourceSize", float(source_width), float(source_height));
 	shader.set_uniform("targetSize", float(target_width), float(target_height));
 	shader.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
+	shader.set_uniform_matrix("fromRGB", 3, false, from_rgb_matrix(colour_space).data());
 
 	return shader;
 }

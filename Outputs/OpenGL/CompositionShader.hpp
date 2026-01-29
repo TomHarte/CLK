@@ -44,6 +44,7 @@ Shader composition_shader(
 	API,
 	InputDataType,
 	DisplayType,
+	ColourSpace,
 	float cyclesMultiplier,
 	int source_width,
 	int source_height,

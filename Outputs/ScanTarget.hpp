@@ -250,7 +250,7 @@ constexpr const char *name(const InputDataType data_type) {
 
 /// @returns the number of bytes per sample for data of type @c data_type.
 /// Guaranteed to be 1, 2 or 4 for valid data types.
-constexpr inline size_t size_for_data_type(InputDataType data_type) {
+constexpr inline size_t size_for_data_type(const InputDataType data_type) {
 	switch(data_type) {
 		case InputDataType::Luminance1:
 		case InputDataType::Luminance8:
@@ -273,7 +273,7 @@ constexpr inline size_t size_for_data_type(InputDataType data_type) {
 
 /// @returns @c true if this data type presents normalised data, i.e. each byte holds a
 /// value in the range [0, 255] representing a real number in the range [0.0, 1.0]; @c false otherwise.
-constexpr inline size_t data_type_is_normalised(InputDataType data_type) {
+constexpr inline size_t data_type_is_normalised(const InputDataType data_type) {
 	switch(data_type) {
 		case InputDataType::Luminance8:
 		case InputDataType::Luminance8Phase8:
@@ -292,7 +292,7 @@ constexpr inline size_t data_type_is_normalised(InputDataType data_type) {
 
 /// @returns The 'natural' display type for data of type @c data_type. The natural display is whichever would
 /// display it with the least number of conversions. Caveat: a colour display is assumed for pure-composite data types.
-constexpr inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
+constexpr inline DisplayType natural_display_type_for_data_type(const InputDataType data_type) {
 	switch(data_type) {
 		default:
 		case InputDataType::Luminance1:
@@ -312,31 +312,43 @@ constexpr inline DisplayType natural_display_type_for_data_type(InputDataType da
 }
 
 /// @returns A 3x3 matrix in row-major order to convert from @c colour_space to RGB.
-inline std::array<float, 9> to_rgb_matrix(ColourSpace colour_space) {
-	const std::array<float, 9> yiq_to_rgb = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
-	const std::array<float, 9> yuv_to_rgb = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
+inline std::array<float, 9> to_rgb_matrix(const ColourSpace colour_space) {
+	static constexpr std::array<float, 9> yiq_to_rgb = {
+		1.0f, 1.0f, 1.0f,
+		0.956f, -0.272f, -1.106f,
+		0.621f, -0.647f, 1.703f
+	};
+	static constexpr std::array<float, 9> yuv_to_rgb = {
+		1.0f, 1.0f, 1.0f,
+		0.0f, -0.39465f, 2.03211f,
+		1.13983f, -0.58060f, 0.0f
+	};
 
 	switch(colour_space) {
 		case ColourSpace::YIQ:	return yiq_to_rgb;
 		case ColourSpace::YUV:	return yuv_to_rgb;
 	}
-
-	// Should be unreachable.
-	return std::array<float, 9>{};
+	__builtin_unreachable();
 }
 
-/// @returns A 3x3 matrix in row-major order to convert to @c colour_space to RGB.
-inline std::array<float, 9> from_rgb_matrix(ColourSpace colour_space) {
-	const std::array<float, 9> rgb_to_yiq = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
-	const std::array<float, 9> rgb_to_yuv = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
+/// @returns A 3x3 matrix in row-major order to convert to @c colour_space from RGB.
+inline std::array<float, 9> from_rgb_matrix(const ColourSpace colour_space) {
+	static constexpr std::array<float, 9> rgb_to_yiq = {
+		0.299f, 0.596f, 0.211f,
+		0.587f, -0.274f, -0.523f,
+		0.114f, -0.322f, 0.312f
+	};
+	static constexpr std::array<float, 9> rgb_to_yuv = {
+		0.299f, -0.14713f, 0.615f,
+		0.587f, -0.28886f, -0.51499f,
+		0.114f, 0.436f, -0.10001f
+	};
 
 	switch(colour_space) {
 		case ColourSpace::YIQ:	return rgb_to_yiq;
 		case ColourSpace::YUV:	return rgb_to_yuv;
 	}
-
-	// Should be unreachable.
-	return std::array<float, 9>{};
+	__builtin_unreachable();
 }
 
 /*!

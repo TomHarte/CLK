@@ -142,6 +142,7 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 			api,
 			pair.first,
 			pair.second,
+			ColourSpace::YIQ,
 			sample_multiplier,
 			2048, 2048,
 			buffer_width, 2048,
