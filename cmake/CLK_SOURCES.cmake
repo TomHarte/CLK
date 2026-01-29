@@ -162,6 +162,7 @@ set(CLK_SOURCES
 	Outputs/OpenGL/Primitives/Rectangle.cpp
 	Outputs/OpenGL/Primitives/Shader.cpp
 	Outputs/OpenGL/Primitives/TextureTarget.cpp
+	Outputs/OpenGL/Primitives/VertexArray.cpp
 	Outputs/OpenGL/CompositionShader.cpp
 	Outputs/OpenGL/ScanTarget.cpp
 	Outputs/OpenGL/ScanTargetGLSLFragments.cpp

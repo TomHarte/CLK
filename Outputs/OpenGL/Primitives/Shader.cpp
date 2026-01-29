@@ -135,12 +135,11 @@ void Shader::init(
 
 Shader &Shader::operator =(Shader &&rhs) {
 	api_ = rhs.api_;
-	shader_program_ = rhs.shader_program_;
+	std::swap(shader_program_, rhs.shader_program_);
 
 	if(bound_shader == &rhs) {
 		bound_shader = this;
 	}
-	rhs.shader_program_ = 0;
 	return *this;
 }
 

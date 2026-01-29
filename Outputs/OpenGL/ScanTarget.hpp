@@ -14,8 +14,9 @@
 
 #include "API.hpp"
 #include "OpenGL.hpp"
-#include "Primitives/TextureTarget.hpp"
 #include "Primitives/Rectangle.hpp"
+#include "Primitives/TextureTarget.hpp"
+#include "Primitives/VertexArray.hpp"
 
 #include "SignalProcessing/FIRFilter.hpp"
 
