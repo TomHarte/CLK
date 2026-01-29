@@ -18,6 +18,7 @@ namespace Outputs::Display::OpenGL {
 	from RGB to S-Video or composite, or from S-Video to composite.
 
 	The shader is configured to accept a buffer of ScanTarget::Scan as vertex attributes.
+	**That vertex array must be bound before this function is called.**
 
 	Output formats are:
 
