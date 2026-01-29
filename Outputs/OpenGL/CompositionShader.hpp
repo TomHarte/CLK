@@ -48,7 +48,8 @@ Shader composition_shader(
 	int source_width,
 	int source_height,
 	int target_width,
-	int target_height
+	int target_height,
+	GLenum source_texture_unit
 );
 
 }

@@ -141,7 +141,8 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 			pair.second,
 			sample_multiplier,
 			2048, 2048,
-			buffer_width, 2048
+			buffer_width, 2048,
+			GL_TEXTURE0
 		).bind();
 	}
 }

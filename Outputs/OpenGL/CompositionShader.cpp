@@ -336,7 +336,8 @@ OpenGL::Shader OpenGL::composition_shader(
 	const int source_width,
 	const int source_height,
 	const int target_width,
-	const int target_height
+	const int target_height,
+	const GLenum source_texture_unit
 ) {
 	//
 	// Compose and compiler shader.
@@ -416,6 +417,7 @@ OpenGL::Shader OpenGL::composition_shader(
 	shader.set_uniform("cyclesSinceRetraceMultiplier", cycles_multiplier);
 	shader.set_uniform("sourceSize", float(source_width), float(source_height));
 	shader.set_uniform("targetSize", float(target_width), float(target_height));
+	shader.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
 
 	return shader;
 }
