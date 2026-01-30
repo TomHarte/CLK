@@ -30,12 +30,6 @@ TextureTarget::TextureTarget(
 	test_gl(glGenFramebuffers, 1, &framebuffer_);
 	test_gl(glBindFramebuffer, GL_FRAMEBUFFER, framebuffer_);
 
-	// Round the width and height up to the next power of two.
-	expanded_width_ = 1;
-	while(expanded_width_ < width)		expanded_width_ <<= 1;
-	expanded_height_ = 1;
-	while(expanded_height_ < height)	expanded_height_ <<= 1;
-
 	// Generate a texture and bind it to the nominated texture unit.
 	test_gl(glGenTextures, 1, &texture_);
 	bind_texture();
@@ -46,15 +40,15 @@ TextureTarget::TextureTarget(
 		GL_TEXTURE_2D,
 		0,
 		GL_RGBA,
-		GLsizei(expanded_width_),
-		GLsizei(expanded_height_),
+		GLsizei(width_),
+		GLsizei(height_),
 		0,
 		GL_RGBA,
 		GL_UNSIGNED_BYTE,
 		nullptr
 	);
 	test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
-	test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
 	// Set the texture as colour attachment 0 on the frame buffer.
 	test_gl(glFramebufferTexture2D, GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_, 0);
@@ -63,7 +57,7 @@ TextureTarget::TextureTarget(
 	if(has_stencil_buffer) {
 		test_gl(glGenRenderbuffers, 1, &renderbuffer_);
 		test_gl(glBindRenderbuffer, GL_RENDERBUFFER, renderbuffer_);
-		test_gl(glRenderbufferStorage, GL_RENDERBUFFER, GL_STENCIL_INDEX8, expanded_width_, expanded_height_);
+		test_gl(glRenderbufferStorage, GL_RENDERBUFFER, GL_STENCIL_INDEX8, width_, height_);
 		test_gl(glFramebufferRenderbuffer, GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderbuffer_);
 	}
 
@@ -114,8 +108,9 @@ TextureTarget &TextureTarget::operator =(TextureTarget &&rhs) {
 	std::swap(width_, rhs.width_);
 	std::swap(height_, rhs.height_);
 	std::swap(texture_unit_, rhs.texture_unit_);
-	std::swap(texture_unit_, rhs.texture_unit_);
-	GLsizei expanded_width_ = 0, expanded_height_ = 0;
+
+	// Other fields in the TextureTarget relate to the `draw` functionality below, which I intend to
+	// eliminate. Therefore just let them be.
 
 	return *this;
 }
@@ -207,8 +202,8 @@ void TextureTarget::draw(const float aspect_ratio, const float colour_threshold)
 		buffer[2] = 0.0f;
 		buffer[3] = 0.0f;
 		buffer[6] = 0.0f;
-		buffer[7] = float(height_) / float(expanded_height_);
-		buffer[10] = float(width_) / float(expanded_width_);
+		buffer[7] = 1.0f;//float(height_) / float(expanded_height_);
+		buffer[10] = 1.0f;//float(width_) / float(expanded_width_);
 		buffer[11] = 0.0f;
 		buffer[14] = buffer[10];
 		buffer[15] = buffer[7];
