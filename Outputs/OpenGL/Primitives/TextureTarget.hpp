@@ -76,7 +76,7 @@ public:
 		0.5f being substituted elsewhere. This provides a way to ensure that the sort of
 		persistent low-value errors that can result from an IIR are hidden.
 	*/
-	void draw(float aspect_ratio, float colour_threshold = 0.0f) const;
+	[[deprecated]] void draw(float aspect_ratio, float colour_threshold = 0.0f) const;
 
 private:
 	API api_{};
