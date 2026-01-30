@@ -122,7 +122,10 @@ private:
 	std::unique_ptr<Shader> output_shader_;
 	std::unique_ptr<Shader> qam_separation_shader_;
 
+	VertexArray scans_;
+	TextureTarget composition_buffer_;
 	Shader composition_shader_;
+	Shader copy_shader_;
 
 	/*!
 		Produces a shader that composes fragment of the input stream to a single buffer,

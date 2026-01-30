@@ -8,6 +8,7 @@
 
 #include "TextureTarget.hpp"
 
+#include <algorithm>
 #include <stdexcept>
 
 using namespace Outputs::Display::OpenGL;
@@ -96,9 +97,27 @@ TextureTarget::TextureTarget(
 TextureTarget::~TextureTarget() {
 	glDeleteFramebuffers(1, &framebuffer_);
 	glDeleteTextures(1, &texture_);
-	if(renderbuffer_) glDeleteRenderbuffers(1, &renderbuffer_);
-	if(drawing_vertex_array_) glDeleteVertexArrays(1, &drawing_vertex_array_);
-	if(drawing_array_buffer_) glDeleteBuffers(1, &drawing_array_buffer_);
+	glDeleteRenderbuffers(1, &renderbuffer_);
+	glDeleteVertexArrays(1, &drawing_vertex_array_);
+	glDeleteBuffers(1, &drawing_array_buffer_);
+}
+
+TextureTarget::TextureTarget(TextureTarget &&rhs) {
+	*this = std::move(rhs);
+}
+
+TextureTarget &TextureTarget::operator =(TextureTarget &&rhs) {
+	api_ = rhs.api_;
+	std::swap(framebuffer_, rhs.framebuffer_);
+	std::swap(texture_, rhs.texture_);
+	std::swap(renderbuffer_, rhs.renderbuffer_);
+	std::swap(width_, rhs.width_);
+	std::swap(height_, rhs.height_);
+	std::swap(texture_unit_, rhs.texture_unit_);
+	std::swap(texture_unit_, rhs.texture_unit_);
+	GLsizei expanded_width_ = 0, expanded_height_ = 0;
+
+	return *this;
 }
 
 void TextureTarget::bind_framebuffer() {
@@ -111,6 +130,7 @@ void TextureTarget::bind_texture() const {
 	test_gl(glBindTexture, GL_TEXTURE_2D, texture_);
 }
 
+// TODO: eliminate below, plus relevant local storage.
 void TextureTarget::draw(const float aspect_ratio, const float colour_threshold) const {
 	if(!pixel_shader_) {
 		const char *const vertex_shader =

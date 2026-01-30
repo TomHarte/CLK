@@ -233,6 +233,17 @@ enum class InputDataType {
 	Red4Green4Blue4,		// 2 bytes/pixel; low nibble in first byte is red, high nibble in second is green, low is blue.
 							// i.e. if it were a little endian word, 0xgb0r; or 0x0rgb big endian.
 	Red8Green8Blue8,		// 4 bytes/pixel; first is red, second is green, third is blue, fourth is vacant.
+
+	// TODO, probably:
+	//
+	//	TaggedRGBW8		—	top two bits select a channel, either red, green or blue (and something else for the fourth
+	//						option; white maybe?). Low six bits are an intensity. I'm imagining this is good for
+	//						handheld systems with known subpixel layouts; the scan target can be fed with the subpixels.
+	//						Correlated assumption: such systems are old enough that 6 bits of intensity is sufficient.
+	//						If I decide to switch from 'brightness' as a final modal output property to a full-on
+	//						matrix transform then the tag will stop meaning RGB literally and just pick a
+	//						single channel, in which case 'white' makes sense as 'all channels'.
+	//
 };
 
 constexpr const char *name(const InputDataType data_type) {
