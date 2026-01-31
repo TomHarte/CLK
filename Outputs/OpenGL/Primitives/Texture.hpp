@@ -15,12 +15,19 @@ namespace Outputs::Display::OpenGL {
 /*!
 	Holds a texture of size @c width and @c height, which is bound to @c texture_unit.
 
-	Textures are always four-channel with byte values per channel. Both clamp directions are set to `GL_CLAMP_TO_EDGE`.
-	The magnification and minification filters as specified are attached.
+	Textures are always a single byte per channel. Both clamp directions are set to `GL_CLAMP_TO_EDGE`.
+	The magnification and minification filters are as specified.
 */
 class Texture {
 public:
-	Texture(GLenum texture_unit, GLint mag_filter, GLint min_filter, GLsizei width, GLsizei height);
+	Texture(
+		size_t channels,
+		GLenum texture_unit,
+		GLint mag_filter,
+		GLint min_filter,
+		GLsizei width,
+		GLsizei height
+	);
 	~Texture();
 
 	Texture() = default;
@@ -34,6 +41,10 @@ public:
 		Binds this texture; sets the active texture unit as a side effect.
 	*/
 	void bind();
+
+	bool empty() const {
+		return texture_ == 0;
+	}
 
 private:
 	GLenum texture_unit_ = GL_TEXTURE0;

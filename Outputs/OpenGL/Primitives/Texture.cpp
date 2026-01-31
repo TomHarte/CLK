@@ -10,7 +10,30 @@
 
 using namespace Outputs::Display::OpenGL;
 
+namespace {
+constexpr GLint internal_format_for_depth(const std::size_t depth) {
+	switch(depth) {
+		default: return GL_FALSE;
+		case 1: return GL_R8UI;
+		case 2: return GL_RG8UI;
+		case 3: return GL_RGB8UI;
+		case 4: return GL_RGBA8UI;
+	}
+}
+
+constexpr GLenum format_for_depth(const std::size_t depth) {
+	switch(depth) {
+		default: return GL_FALSE;
+		case 1: return GL_RED_INTEGER;
+		case 2: return GL_RG_INTEGER;
+		case 3: return GL_RGB_INTEGER;
+		case 4: return GL_RGBA_INTEGER;
+	}
+}
+}
+
 Texture::Texture(
+	const size_t channels,
 	const GLenum texture_unit,
 	const GLint mag_filter,
 	const GLint min_filter,
@@ -29,11 +52,11 @@ Texture::Texture(
 		glTexImage2D,
 		GL_TEXTURE_2D,
 		0,
-		GL_RGBA,
+		internal_format_for_depth(channels),
 		GLsizei(width_),
 		GLsizei(height_),
 		0,
-		GL_RGBA,
+		format_for_depth(channels),
 		GL_UNSIGNED_BYTE,
 		nullptr
 	);

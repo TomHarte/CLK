@@ -15,6 +15,7 @@
 #include "API.hpp"
 #include "OpenGL.hpp"
 #include "Primitives/Rectangle.hpp"
+#include "Primitives/Texture.hpp"
 #include "Primitives/TextureTarget.hpp"
 #include "Primitives/VertexArray.hpp"
 
@@ -94,9 +95,6 @@ private:
 	GLuint scan_buffer_name_ = 0, scan_vertex_array_ = 0;
 	GLuint line_buffer_name_ = 0, line_vertex_array_ = 0;
 
-	GLuint write_area_texture_name_ = 0;
-	bool texture_exists_ = false;
-
 	// Receives scan target modals.
 	std::optional<ScanTarget::Modals> existing_modals_;
 	void setup_pipeline();
@@ -121,11 +119,6 @@ private:
 	std::unique_ptr<Shader> input_shader_;
 	std::unique_ptr<Shader> output_shader_;
 	std::unique_ptr<Shader> qam_separation_shader_;
-
-	VertexArray scans_;
-	TextureTarget composition_buffer_;
-	Shader composition_shader_;
-	Shader copy_shader_;
 
 	/*!
 		Produces a shader that composes fragment of the input stream to a single buffer,
@@ -160,6 +153,15 @@ private:
 	std::array<Scan, LineBufferHeight*5> scan_buffer_;
 	std::array<Line, LineBufferHeight> line_buffer_;
 	std::array<LineMetadata, LineBufferHeight> line_metadata_buffer_;
+
+	//
+	// NEW PIPELINE. Starts here.
+	//
+	Texture source_texture_;
+	VertexArray scans_;
+	TextureTarget composition_buffer_;
+	Shader composition_shader_;
+	Shader copy_shader_;
 };
 
 }

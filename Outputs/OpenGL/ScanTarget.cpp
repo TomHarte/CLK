@@ -99,8 +99,6 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 	// and specify GL_MAP_PERSISTENT_BIT. Then map the buffer now, and let the client
 	// write straight into it.
 
-	test_gl(glGenTextures, 1, &write_area_texture_name_);
-
 	test_gl(glBlendFunc, GL_SRC_ALPHA, GL_CONSTANT_COLOR);
 	test_gl(glBlendColor, 0.4f, 0.4f, 0.4f, 1.0f);
 
@@ -109,53 +107,52 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 
 
 	// TEST CODE. NOCOMMIT.
-	const auto buffer_width = FilterGenerator::SuggestedBufferWidth;
-	const float sample_multiplier =
-		FilterGenerator::suggested_sample_multiplier(227.5f, 1320);
-
-	VertexArray va(scan_buffer_);
-	for(auto &pair: {
-		std::make_pair(InputDataType::Luminance1, DisplayType::CompositeColour),
-		std::make_pair(InputDataType::Luminance8, DisplayType::CompositeColour),
-		std::make_pair(InputDataType::PhaseLinkedLuminance8, DisplayType::CompositeColour),
-
-		std::make_pair(InputDataType::Luminance8Phase8, DisplayType::SVideo),
-		std::make_pair(InputDataType::Luminance8Phase8, DisplayType::CompositeColour),
-
-		std::make_pair(InputDataType::Red1Green1Blue1, DisplayType::RGB),
-		std::make_pair(InputDataType::Red1Green1Blue1, DisplayType::SVideo),
-		std::make_pair(InputDataType::Red1Green1Blue1, DisplayType::CompositeColour),
-
-		std::make_pair(InputDataType::Red2Green2Blue2, DisplayType::RGB),
-		std::make_pair(InputDataType::Red2Green2Blue2, DisplayType::SVideo),
-		std::make_pair(InputDataType::Red2Green2Blue2, DisplayType::CompositeColour),
-
-		std::make_pair(InputDataType::Red4Green4Blue4, DisplayType::RGB),
-		std::make_pair(InputDataType::Red4Green4Blue4, DisplayType::SVideo),
-		std::make_pair(InputDataType::Red4Green4Blue4, DisplayType::CompositeColour),
-
-		std::make_pair(InputDataType::Red8Green8Blue8, DisplayType::RGB),
-		std::make_pair(InputDataType::Red8Green8Blue8, DisplayType::SVideo),
-		std::make_pair(InputDataType::Red8Green8Blue8, DisplayType::CompositeColour),
-	}) {
-		OpenGL::composition_shader(
-			api,
-			pair.first,
-			pair.second,
-			ColourSpace::YIQ,
-			sample_multiplier,
-			BufferingScanTarget::WriteAreaWidth, BufferingScanTarget::WriteAreaHeight,
-			buffer_width, 2048,	// TODO: substitute real composition buffer sizes.
-			va,
-			GL_TEXTURE0
-		).bind();
-	}
+//	const auto buffer_width = FilterGenerator::SuggestedBufferWidth;
+//	const float sample_multiplier =
+//		FilterGenerator::suggested_sample_multiplier(227.5f, 1320);
+//
+//	VertexArray va(scan_buffer_);
+//	for(auto &pair: {
+//		std::make_pair(InputDataType::Luminance1, DisplayType::CompositeColour),
+//		std::make_pair(InputDataType::Luminance8, DisplayType::CompositeColour),
+//		std::make_pair(InputDataType::PhaseLinkedLuminance8, DisplayType::CompositeColour),
+//
+//		std::make_pair(InputDataType::Luminance8Phase8, DisplayType::SVideo),
+//		std::make_pair(InputDataType::Luminance8Phase8, DisplayType::CompositeColour),
+//
+//		std::make_pair(InputDataType::Red1Green1Blue1, DisplayType::RGB),
+//		std::make_pair(InputDataType::Red1Green1Blue1, DisplayType::SVideo),
+//		std::make_pair(InputDataType::Red1Green1Blue1, DisplayType::CompositeColour),
+//
+//		std::make_pair(InputDataType::Red2Green2Blue2, DisplayType::RGB),
+//		std::make_pair(InputDataType::Red2Green2Blue2, DisplayType::SVideo),
+//		std::make_pair(InputDataType::Red2Green2Blue2, DisplayType::CompositeColour),
+//
+//		std::make_pair(InputDataType::Red4Green4Blue4, DisplayType::RGB),
+//		std::make_pair(InputDataType::Red4Green4Blue4, DisplayType::SVideo),
+//		std::make_pair(InputDataType::Red4Green4Blue4, DisplayType::CompositeColour),
+//
+//		std::make_pair(InputDataType::Red8Green8Blue8, DisplayType::RGB),
+//		std::make_pair(InputDataType::Red8Green8Blue8, DisplayType::SVideo),
+//		std::make_pair(InputDataType::Red8Green8Blue8, DisplayType::CompositeColour),
+//	}) {
+//		OpenGL::composition_shader(
+//			api,
+//			pair.first,
+//			pair.second,
+//			ColourSpace::YIQ,
+//			sample_multiplier,
+//			BufferingScanTarget::WriteAreaWidth, BufferingScanTarget::WriteAreaHeight,
+//			buffer_width, 2048,	// TODO: substitute real composition buffer sizes.
+//			va,
+//			GL_TEXTURE0
+//		).bind();
+//	}
 }
 
 ScanTarget::~ScanTarget() {
 	perform([&] {
 		glDeleteBuffers(1, &scan_buffer_name_);
-		glDeleteTextures(1, &write_area_texture_name_);
 		glDeleteVertexArrays(1, &scan_vertex_array_);
 	});
 }
@@ -352,28 +349,19 @@ void ScanTarget::update(int, int output_height) {
 
 		// Submit texture.
 		if(area.start.write_area_x != area.end.write_area_x || area.start.write_area_y != area.end.write_area_y) {
-			test_gl(glActiveTexture, SourceDataTextureUnit);
-			test_gl(glBindTexture, GL_TEXTURE_2D, write_area_texture_name_);
-
 			// Create storage for the texture if it doesn't yet exist; this was deferred until here
 			// because the pixel format wasn't initially known.
-			if(!texture_exists_) {
-				test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-				test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-				test_gl(glTexImage2D,
-					GL_TEXTURE_2D,
-					0,
-					internalFormatForDepth(write_area_data_size()),
+			if(source_texture_.empty()) {
+				source_texture_ = Texture(
+					write_area_data_size(),
+					SourceDataTextureUnit,
+					GL_NEAREST,
+					GL_NEAREST,
 					WriteAreaWidth,
-					WriteAreaHeight,
-					0,
-					formatForDepth(write_area_data_size()),
-					GL_UNSIGNED_BYTE,
-					nullptr);
-				texture_exists_ = true;
+					WriteAreaHeight
+				);
 			}
+			source_texture_.bind();
 
 			if(area.end.write_area_y >= area.start.write_area_y) {
 				// Submit the direct region from the submit pointer to the read pointer.
