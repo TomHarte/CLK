@@ -86,7 +86,8 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 	target_framebuffer_(target_framebuffer),
 	output_gamma_(output_gamma),
 	unprocessed_line_texture_(api, LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_NEAREST, false),
-	full_display_rectangle_(api, -1.0f, -1.0f, 2.0f, 2.0f) {
+	full_display_rectangle_(api, -1.0f, -1.0f, 2.0f, 2.0f),
+	scans_(scan_buffer_) {
 
 	set_scan_buffer(scan_buffer_.data(), scan_buffer_.size());
 	set_line_buffer(line_buffer_.data(), line_metadata_buffer_.data(), line_buffer_.size());
@@ -358,8 +359,12 @@ void ScanTarget::update(int, int output_height) {
 		}
 
 		// Submit scans; only the new ones need to be communicated.
-		const size_t new_scans = (area.end.scan - area.start.scan + scan_buffer_.size()) % scan_buffer_.size();
-		if(new_scans) {
+		if(area.end.scan != area.start.scan) {
+			const size_t new_scans = (area.end.scan - area.start.scan + scan_buffer_.size()) % scan_buffer_.size();
+
+			//
+			// OLD PIPELINE: submit new scans.
+			//
 			test_gl(glBindBuffer, GL_ARRAY_BUFFER, scan_buffer_name_);
 
 			// Map only the required portion of the buffer.
@@ -386,10 +391,12 @@ void ScanTarget::update(int, int output_height) {
 			// Flush and unmap the buffer.
 			test_gl(glFlushMappedBufferRange, GL_ARRAY_BUFFER, 0, GLsizeiptr(new_scans_size));
 			test_gl(glUnmapBuffer, GL_ARRAY_BUFFER);
-		}
 
-		// Push new input to the unprocessed line buffer.
-		if(new_scans) {
+			//
+			// OLD PIPELINE: draw new scans.
+			//
+
+			// Push new input to the unprocessed line buffer.
 			unprocessed_line_texture_.bind_framebuffer();
 
 			// Clear newly-touched lines; that is everything from (read+1) to submit.
@@ -424,6 +431,11 @@ void ScanTarget::update(int, int output_height) {
 			test_gl(glBindVertexArray, scan_vertex_array_);
 			input_shader_->bind();
 			test_gl(glDrawArraysInstanced, GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans));
+
+
+			//
+			// TODO: NEW PIPELINE.
+			//
 		}
 
 		// Logic for reducing resolution: start doing so if the metrics object reports that
