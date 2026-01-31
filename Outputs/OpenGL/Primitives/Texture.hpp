@@ -34,8 +34,9 @@ public:
 	Texture(Texture &&);
 	Texture &operator =(Texture &&);
 
-	GLsizei width() const	{	return width_;	}
-	GLsizei height() const	{	return height_;	}
+	GLsizei width() const	{	return width_;		}
+	GLsizei height() const	{	return height_;		}
+	size_t channels() const	{	return channels_;	}
 
 	/*!
 		Binds this texture; sets the active texture unit as a side effect.
@@ -47,6 +48,7 @@ public:
 	}
 
 private:
+	size_t channels_ = 0;
 	GLenum texture_unit_ = GL_TEXTURE0;
 	GLuint texture_ = 0;
 	GLsizei width_ = 0, height_ = 0;

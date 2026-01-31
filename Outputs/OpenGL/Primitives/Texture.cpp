@@ -40,6 +40,7 @@ Texture::Texture(
 	const GLsizei width,
 	const GLsizei height
 ) :
+	channels_(channels),
 	texture_unit_(texture_unit),
 	width_(width),
 	height_(height)
@@ -80,6 +81,7 @@ Texture::Texture(Texture &&rhs) {
 }
 
 Texture &Texture::operator =(Texture &&rhs) {
+	std::swap(channels_, rhs.channels_);
 	std::swap(texture_, rhs.texture_);
 	std::swap(texture_unit_, rhs.texture_unit_);
 	std::swap(width_, rhs.width_);

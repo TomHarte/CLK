@@ -167,6 +167,18 @@ void ScanTarget::setup_pipeline() {
 	const auto modals = BufferingScanTarget::modals();
 	const auto data_type_size = Outputs::Display::size_for_data_type(modals.input_data_type);
 
+	// Possibly create a new source texture.
+	if(source_texture_.empty() || source_texture_.channels() != data_type_size) {
+		source_texture_ = Texture(
+			data_type_size,
+			SourceDataTextureUnit,
+			GL_NEAREST,
+			GL_NEAREST,
+			WriteAreaWidth,
+			WriteAreaHeight
+		);
+	}
+
 	// Resize the texture only if required.
 	const size_t required_size = WriteAreaWidth*WriteAreaHeight*data_type_size;
 	if(required_size != write_area_texture_.size()) {
@@ -349,18 +361,6 @@ void ScanTarget::update(int, int output_height) {
 
 		// Submit texture.
 		if(area.start.write_area_x != area.end.write_area_x || area.start.write_area_y != area.end.write_area_y) {
-			// Create storage for the texture if it doesn't yet exist; this was deferred until here
-			// because the pixel format wasn't initially known.
-			if(source_texture_.empty()) {
-				source_texture_ = Texture(
-					write_area_data_size(),
-					SourceDataTextureUnit,
-					GL_NEAREST,
-					GL_NEAREST,
-					WriteAreaWidth,
-					WriteAreaHeight
-				);
-			}
 			source_texture_.bind();
 
 			if(area.end.write_area_y >= area.start.write_area_y) {
