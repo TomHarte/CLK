@@ -30,6 +30,9 @@ public:
 	void bind() const;
 	void bind_buffer() const;
 	void bind_all() const;
+	bool empty() const {
+		return buffer_ == 0;
+	}
 
 private:
 	GLuint buffer_ = 0;

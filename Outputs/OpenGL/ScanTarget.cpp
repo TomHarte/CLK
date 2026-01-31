@@ -328,6 +328,35 @@ void ScanTarget::update(int, int output_height) {
 		line_submission_begin_time_ = std::chrono::high_resolution_clock::now();
 		lines_submitted_ = (area.end.line - area.start.line + line_buffer_.size()) % line_buffer_.size();
 
+		// Submit texture.
+		if(area.start.write_area_x != area.end.write_area_x || area.start.write_area_y != area.end.write_area_y) {
+			source_texture_.bind();
+
+			const auto submit = [&](const GLint y_begin, const GLint y_end) {
+				test_gl(glTexSubImage2D,
+					GL_TEXTURE_2D, 0,
+					0, y_begin,
+					WriteAreaWidth,
+					y_end - y_begin,
+					formatForDepth(write_area_data_size()),
+					GL_UNSIGNED_BYTE,
+					&write_area_texture_[size_t(y_begin * WriteAreaWidth) * source_texture_.channels()]
+				);
+			};
+
+			// Both of the following upload to area.end.write_area_y + 1 to include whatever line the write area
+			// is currently on. It may have partial source areas along it, despite being incomplete.
+			if(area.end.write_area_y >= area.start.write_area_y) {
+				// Submit the direct region from the submit pointer to the read pointer.
+				submit(area.start.write_area_y, area.end.write_area_y + 1);
+			} else {
+				// The circular buffer wrapped around; submit the data from the read pointer to the end of
+				// the buffer and from the start of the buffer to the submit pointer.
+				submit(area.start.write_area_y, WriteAreaHeight);
+				submit(0, area.end.write_area_y + 1);
+			}
+		}
+
 		// Submit scans; only the new ones need to be communicated.
 		const size_t new_scans = (area.end.scan - area.start.scan + scan_buffer_.size()) % scan_buffer_.size();
 		if(new_scans) {
@@ -357,42 +386,6 @@ void ScanTarget::update(int, int output_height) {
 			// Flush and unmap the buffer.
 			test_gl(glFlushMappedBufferRange, GL_ARRAY_BUFFER, 0, GLsizeiptr(new_scans_size));
 			test_gl(glUnmapBuffer, GL_ARRAY_BUFFER);
-		}
-
-		// Submit texture.
-		if(area.start.write_area_x != area.end.write_area_x || area.start.write_area_y != area.end.write_area_y) {
-			source_texture_.bind();
-
-			if(area.end.write_area_y >= area.start.write_area_y) {
-				// Submit the direct region from the submit pointer to the read pointer.
-				test_gl(glTexSubImage2D,
-					GL_TEXTURE_2D, 0,
-					0, area.start.write_area_y,
-					WriteAreaWidth,
-					1 + area.end.write_area_y - area.start.write_area_y,
-					formatForDepth(write_area_data_size()),
-					GL_UNSIGNED_BYTE,
-					&write_area_texture_[size_t(area.start.write_area_y * WriteAreaWidth) * write_area_data_size()]);
-			} else {
-				// The circular buffer wrapped around; submit the data from the read pointer to the end of
-				// the buffer and from the start of the buffer to the submit pointer.
-				test_gl(glTexSubImage2D,
-					GL_TEXTURE_2D, 0,
-					0, area.start.write_area_y,
-					WriteAreaWidth,
-					WriteAreaHeight - area.start.write_area_y,
-					formatForDepth(write_area_data_size()),
-					GL_UNSIGNED_BYTE,
-					&write_area_texture_[size_t(area.start.write_area_y * WriteAreaWidth) * write_area_data_size()]);
-				test_gl(glTexSubImage2D,
-					GL_TEXTURE_2D, 0,
-					0, 0,
-					WriteAreaWidth,
-					1 + area.end.write_area_y,
-					formatForDepth(write_area_data_size()),
-					GL_UNSIGNED_BYTE,
-					&write_area_texture_[0]);
-			}
 		}
 
 		// Push new input to the unprocessed line buffer.
