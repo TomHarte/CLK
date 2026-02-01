@@ -18,7 +18,8 @@ void main(void) {
 	float lateral = float(gl_VertexID & 1);
 	float longitudinal = float((gl_VertexID & 2) >> 1);
 
-	gl_Position = vec4)
+	coordinate = vec2(lateral, longitudinal); 
+	gl_Position = vec4(
 		lateral * 2.0 - 1.0,
 		longitudinal * 2.0 - 1.0,
 		0.0,

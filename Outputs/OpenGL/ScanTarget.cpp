@@ -12,6 +12,7 @@
 
 #include "Outputs/ScanTargets/FilterGenerator.hpp"
 #include "CompositionShader.hpp"
+#include "CopyShader.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -262,6 +263,10 @@ void ScanTarget::setup_pipeline() {
 	const float sample_multiplier =
 		FilterGenerator::suggested_sample_multiplier(227.5f, 1320);
 
+	if(copy_shader_.empty()) {
+		copy_shader_ = copy_shader(api_, GL_TEXTURE4, {}, {});
+	}
+
 	if(
 		!existing_modals_ ||
 		existing_modals_->input_data_type != modals.input_data_type ||
@@ -466,30 +471,30 @@ void ScanTarget::update(int, int output_height) {
 			// Submit new scans.
 			// First implementation: put all new scans at the start of the buffer, for a simple
 			// glDrawArraysInstanced call below.
-//			scans_.bind_buffer();
-//			size_t buffer_destination = 0;
-//			const auto submit = [&](const size_t begin, const size_t end) {
-//				test_gl([&]{ 
-//					glBufferSubData(
-//						GL_ARRAY_BUFFER,
-//						buffer_destination,
-//						(end - begin) * sizeof(Scan),
-//						&scan_buffer_[begin]
-//					);
-//				});
-//				buffer_destination += (end - begin) * sizeof(Scan);
-//			};
-//			if(area.start.scan < area.end.scan) {
-//				submit(area.start.scan, area.end.scan);
-//			} else {
-//				submit(area.start.scan, scan_buffer_.size());
-//				submit(0, area.end.scan);
-//			}
+			scans_.bind_buffer();
+			size_t buffer_destination = 0;
+			const auto submit = [&](const size_t begin, const size_t end) {
+				test_gl([&]{ 
+					glBufferSubData(
+						GL_ARRAY_BUFFER,
+						buffer_destination,
+						(end - begin) * sizeof(Scan),
+						&scan_buffer_[begin]
+					);
+				});
+				buffer_destination += (end - begin) * sizeof(Scan);
+			};
+			if(area.start.scan < area.end.scan) {
+				submit(area.start.scan, area.end.scan);
+			} else {
+				submit(area.start.scan, scan_buffer_.size());
+				submit(0, area.end.scan);
+			}
 
 			// Populate composition buffer.
 			composition_buffer_.bind_framebuffer();
-//			scans_.bind();
-//			composition_shader_.bind();
+			scans_.bind();
+			composition_shader_.bind();
 			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
 		}
 
