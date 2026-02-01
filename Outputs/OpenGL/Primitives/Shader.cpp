@@ -34,7 +34,7 @@ GLuint Shader::compile_shader(const std::string &source, const GLenum type) {
 				)glsl",
 				source.c_str()
 			};
-			test_gl(glShaderSource, shader, 2, sources, NULL);
+			test_gl([&]{ glShaderSource(shader, 2, sources, NULL); });
 		} break;
 		case API::OpenGLES3:
 			// OpenGL ES: supply default precisions for where they might have
@@ -48,22 +48,22 @@ GLuint Shader::compile_shader(const std::string &source, const GLenum type) {
 				)glsl",
 				source.c_str()
 			};
-			test_gl(glShaderSource, shader, 2, sources, NULL);
+			test_gl([&]{ glShaderSource(shader, 2, sources, NULL); });
 		break;
 	}
-	test_gl(glCompileShader, shader);
+	test_gl([&]{ glCompileShader(shader); });
 
 	GLint is_compiled = 0;
-	test_gl(glGetShaderiv, shader, GL_COMPILE_STATUS, &is_compiled);
+	test_gl([&]{ glGetShaderiv(shader, GL_COMPILE_STATUS, &is_compiled); });
 	if(is_compiled == GL_FALSE) {
 		if constexpr (Logger::ErrorsEnabled) {
 			Logger::error().append("Failed to compile: %s", source.c_str());
 			GLint log_length;
-			test_gl(glGetShaderiv, shader, GL_INFO_LOG_LENGTH, &log_length);
+			test_gl([&]{ glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_length); });
 			if(log_length > 0) {
 				const auto length = std::vector<GLchar>::size_type(log_length);
 				std::vector<GLchar> log(length);
-				test_gl(glGetShaderInfoLog, shader, log_length, &log_length, log.data());
+				test_gl([&]{ glGetShaderInfoLog(shader, log_length, &log_length, log.data()); });
 				Logger::error().append("Compile log: %s", log.data());
 			}
 		}
@@ -107,24 +107,24 @@ void Shader::init(
 	const GLuint vertex = compile_shader(vertex_shader, GL_VERTEX_SHADER);
 	const GLuint fragment = compile_shader(fragment_shader, GL_FRAGMENT_SHADER);
 
-	test_gl(glAttachShader, shader_program_, vertex);
-	test_gl(glAttachShader, shader_program_, fragment);
+	test_gl([&]{ glAttachShader(shader_program_, vertex); });
+	test_gl([&]{ glAttachShader(shader_program_, fragment); });
 
 	for(const auto &binding : attribute_bindings) {
 		bind_attrib_location(binding.name, binding.index);
 	}
 
-	test_gl(glLinkProgram, shader_program_);
+	test_gl([&]{ glLinkProgram(shader_program_); });
 
 	GLint did_link = 0;
-	test_gl(glGetProgramiv, shader_program_, GL_LINK_STATUS, &did_link);
+	test_gl([&]{ glGetProgramiv(shader_program_, GL_LINK_STATUS, &did_link); });
 	if(did_link == GL_FALSE) {
 		if constexpr (Logger::ErrorsEnabled) {
 			GLint log_length;
-			test_gl(glGetProgramiv, shader_program_, GL_INFO_LOG_LENGTH, &log_length);
+			test_gl([&]{ glGetProgramiv(shader_program_, GL_INFO_LOG_LENGTH, &log_length); });
 			if(log_length > 0) {
 				std::vector<GLchar> log(log_length);
-				test_gl(glGetProgramInfoLog, shader_program_, log_length, &log_length, log.data());
+				test_gl([&]{ glGetProgramInfoLog(shader_program_, log_length, &log_length, log.data()); });
 				Logger::error().append("Link log: %s", log.data());
 			}
 		}
@@ -154,7 +154,7 @@ Shader::~Shader() {
 
 void Shader::bind() const {
 	if(bound_shader != this) {
-		test_gl(glUseProgram, shader_program_);
+		test_gl([&]{ glUseProgram(shader_program_); });
 		bound_shader = this;
 	}
 	flush_functions();
@@ -162,11 +162,11 @@ void Shader::bind() const {
 
 void Shader::unbind() {
 	bound_shader = nullptr;
-	test_gl(glUseProgram, 0);
+	test_gl([&]{ glUseProgram(0); });
 }
 
 void Shader::bind_attrib_location(const std::string &name, const GLuint index) {
-	test_gl(glBindAttribLocation, shader_program_, index, name.c_str());
+	test_gl([&]{ glBindAttribLocation(shader_program_, index, name.c_str()); });
 
 	if constexpr (Logger::ErrorsEnabled) {
 		const auto error = glGetError();
@@ -213,9 +213,9 @@ void Shader::enable_vertex_attribute_with_pointer(
 ) {
 	const auto location = get_attrib_location(name);
 	if(location >= 0) {
-		test_gl(glEnableVertexAttribArray, GLuint(location));
-		test_gl(glVertexAttribPointer, GLuint(location), size, type, normalised, stride, pointer);
-		test_gl(glVertexAttribDivisor, GLuint(location), divisor);
+		test_gl([&]{ glEnableVertexAttribArray(GLuint(location)); });
+		test_gl([&]{ glVertexAttribPointer(GLuint(location), size, type, normalised, stride, pointer); });
+		test_gl([&]{ glVertexAttribDivisor(GLuint(location), divisor); });
 	} else {
 		Logger::error().append("Couldn't enable vertex attribute %s", name.c_str());
 	}

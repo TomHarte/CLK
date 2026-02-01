@@ -51,7 +51,14 @@ inline void test_gl_error() {}
 #endif
 
 #ifndef NDEBUG
-#define test_gl(command, ...) do { command(__VA_ARGS__); test_gl_error(); } while(false);
+template <typename Func>
+inline void test_gl(const Func &&perform) {
+	perform();
+	test_gl_error();
+}
 #else
-#define test_gl(command, ...) command(__VA_ARGS__)
+template <typename Func>
+inline void test_gl(const Func &&perform) {
+	perform();
+}
 #endif

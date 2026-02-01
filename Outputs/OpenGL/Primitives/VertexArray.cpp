@@ -15,13 +15,13 @@ using namespace Outputs::Display::OpenGL;
 VertexArray::VertexArray(const size_t num_elements, const size_t element_size) {
 	const auto buffer_size = num_elements * element_size;
 
-	test_gl(glGenBuffers, 1, &buffer_);
-	test_gl(glBindBuffer, GL_ARRAY_BUFFER, buffer_);
-	test_gl(glBufferData, GL_ARRAY_BUFFER, GLsizeiptr(buffer_size), NULL, GL_STREAM_DRAW);
+	test_gl([&]{ glGenBuffers(1, &buffer_); });
+	test_gl([&]{ glBindBuffer(GL_ARRAY_BUFFER, buffer_); });
+	test_gl([&]{ glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(buffer_size), NULL, GL_STREAM_DRAW); });
 
-	test_gl(glGenVertexArrays, 1, &vertex_array_);
-	test_gl(glBindVertexArray, vertex_array_);
-	test_gl(glBindBuffer, GL_ARRAY_BUFFER, buffer_);
+	test_gl([&]{ glGenVertexArrays(1, &vertex_array_); });
+	test_gl([&]{ glBindVertexArray(vertex_array_); });
+	test_gl([&]{ glBindBuffer(GL_ARRAY_BUFFER, buffer_); });
 }
 
 VertexArray::~VertexArray() {
@@ -40,11 +40,11 @@ VertexArray &VertexArray::operator =(VertexArray &&rhs) {
 }
 
 void VertexArray::bind() const {
-	test_gl(glBindVertexArray, vertex_array_);
+	test_gl([&]{ glBindVertexArray(vertex_array_); });
 }
 
 void VertexArray::bind_buffer() const {
-	test_gl(glBindBuffer, GL_ARRAY_BUFFER, buffer_);
+	test_gl([&]{ glBindBuffer(GL_ARRAY_BUFFER, buffer_); });
 }
 
 void VertexArray::bind_all() const {
