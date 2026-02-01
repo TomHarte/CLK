@@ -65,6 +65,10 @@ public:
 		return height_;
 	}
 
+	bool empty() const {
+		return framebuffer_ == 0;
+	}
+
 	/*!
 		Draws this texture to the currently-bound framebuffer, which has the aspect ratio
 		@c aspect_ratio. This texture will fill the height of the frame buffer, and pick

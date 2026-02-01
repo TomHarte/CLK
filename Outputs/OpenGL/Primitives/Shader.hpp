@@ -146,6 +146,10 @@ public:
 	void set_uniform_matrix(const std::string &name, GLint size, bool transpose, const GLfloat *values);
 	void set_uniform_matrix(const std::string &name, GLint size, GLsizei count, bool transpose, const GLfloat *values);
 
+	bool empty() const {
+		return shader_program_ == 0;
+	}
+
 private:
 	void init(
 		const std::string &vertex_shader,

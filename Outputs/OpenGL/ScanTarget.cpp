@@ -284,6 +284,10 @@ void ScanTarget::setup_pipeline() {
 		);
 	}
 
+	if(composition_buffer_.empty()) {
+		composition_buffer_ = TextureTarget(api_, buffer_width, 2048, GL_TEXTURE4, GL_NEAREST, false);
+	}
+
 	existing_modals_ = modals;
 }
 
@@ -434,8 +438,26 @@ void ScanTarget::update(int, int output_height) {
 
 
 			//
-			// TODO: NEW PIPELINE.
+			// NEW PIPELINE.
 			//
+
+			// Submit new scans.
+			scans_.bind_buffer();
+			const auto submit = [&](const size_t begin, const size_t end) {
+				test_gl(glBufferSubData, GL_ARRAY_BUFFER, begin, (end - begin) * sizeof(Scan), &scan_buffer_[begin]);
+			};
+			if(area.start.scan < area.end.scan) {
+				submit(area.start.scan, area.end.scan);
+			} else {
+				submit(area.start.scan, scan_buffer_.size());
+				submit(0, area.end.scan);
+			}
+
+			// Populate composition buffer.
+			composition_buffer_.bind_framebuffer();
+			scans_.bind();
+			composition_shader_.bind();
+			test_gl(glDrawArraysInstanced, GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans));
 		}
 
 		// Logic for reducing resolution: start doing so if the metrics object reports that
@@ -613,15 +635,22 @@ void ScanTarget::update(int, int output_height) {
 void ScanTarget::draw(int output_width, int output_height) {
 	while(is_drawing_to_accumulation_buffer_.test_and_set(std::memory_order_acquire));
 
-	if(accumulation_texture_) {
+//	if(accumulation_texture_) {
+//		// Copy the accumulation texture to the target.
+//		test_gl(glBindFramebuffer, GL_FRAMEBUFFER, target_framebuffer_);
+//		test_gl(glViewport, 0, 0, (GLsizei)output_width, (GLsizei)output_height);
+//
+//		test_gl(glClearColor, 0.0f, 0.0f, 0.0f, 0.0f);
+//		test_gl(glClear, GL_COLOR_BUFFER_BIT);
+//		accumulation_texture_->bind_texture();
+//		accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
+//	}
+
+	if(!composition_buffer_.empty()) {
 		// Copy the accumulation texture to the target.
 		test_gl(glBindFramebuffer, GL_FRAMEBUFFER, target_framebuffer_);
 		test_gl(glViewport, 0, 0, (GLsizei)output_width, (GLsizei)output_height);
-
-		test_gl(glClearColor, 0.0f, 0.0f, 0.0f, 0.0f);
-		test_gl(glClear, GL_COLOR_BUFFER_BIT);
-		accumulation_texture_->bind_texture();
-		accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
+		composition_buffer_.draw(float(output_width) / float(output_height), 4.0f / 255.0f);
 	}
 
 	is_drawing_to_accumulation_buffer_.clear(std::memory_order_release);
