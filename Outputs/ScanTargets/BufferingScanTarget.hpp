@@ -52,12 +52,12 @@ public:
 		Outputs::Display::ScanTarget::Scan scan;
 
 		/// Stores the y coordinate for this scan's data within the write area texture.
-		/// Use this plus the scan's endpoints' data_offsets to locate this data in 2d.
-		/// Note that the data_offsets will have been adjusted to be relative to the line
+		/// Use this plus the scan's endpoints' `data_offsets` to locate this data in 2d.
+		/// Note that the `data_offsets` will have been adjusted to be relative to the line
 		/// they fall within, not the data allocation.
 		uint16_t data_y;
 		/// Stores the y coordinate assigned to this scan within the intermediate buffers.
-		/// Use this plus this scan's endpoints' x locations to determine where to composite
+		/// Use this plus this scan's endpoint x locations to determine where to compose
 		/// this data for intermediate processing.
 		uint16_t line;
 	};
@@ -150,7 +150,12 @@ public:
 
 	/// Performs @c action ensuring that no other @c perform actions, or any
 	/// change to modals, occurs simultaneously.
-	void perform(const std::function<void(void)> &action);
+	template <typename FuncT>
+	void perform(FuncT &&function) {
+		while(is_updating_.test_and_set(std::memory_order_acquire));
+		function();
+		is_updating_.clear(std::memory_order_release);
+	}
 
 	/// @returns new Modals if any have been set since the last call to get_new_modals().
 	///		The caller must be within a @c perform block.

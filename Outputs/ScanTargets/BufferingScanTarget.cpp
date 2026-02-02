@@ -376,12 +376,6 @@ void BufferingScanTarget::complete_output_area(const OutputArea &area) {
 #endif
 }
 
-void BufferingScanTarget::perform(const std::function<void(void)> &function) {
-	while(is_updating_.test_and_set(std::memory_order_acquire));
-	function();
-	is_updating_.clear(std::memory_order_release);
-}
-
 void BufferingScanTarget::set_scan_buffer(Scan *const buffer, const size_t size) {
 	scan_buffer_ = buffer;
 	scan_buffer_size_ = size;
