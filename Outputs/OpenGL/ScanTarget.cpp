@@ -260,18 +260,25 @@ void ScanTarget::setup_pipeline() {
 	// New pipeline starts here!
 	//
 	const auto buffer_width = FilterGenerator::SuggestedBufferWidth;
+	const auto subcarrier_frequency = [](const Modals &modals) {
+		return float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
+	};
 	const float sample_multiplier =
-		FilterGenerator::suggested_sample_multiplier(227.5f, 1320);
+		FilterGenerator::suggested_sample_multiplier(
+			subcarrier_frequency(modals),
+			modals.cycles_per_line
+		);
 
-	if(copy_shader_.empty()) {
-		copy_shader_ = copy_shader(api_, GL_TEXTURE4, {}, {});
-	}
+//	if(copy_shader_.empty()) {
+//		copy_shader_ = copy_shader(api_, GL_TEXTURE4, {}, {});
+//	}
 
 	if(
 		!existing_modals_ ||
 		existing_modals_->input_data_type != modals.input_data_type ||
 		existing_modals_->display_type != modals.display_type ||
-		existing_modals_->composite_colour_space != modals.composite_colour_space
+		existing_modals_->composite_colour_space != modals.composite_colour_space ||
+		subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
 	) {
 		composition_shader_ = OpenGL::composition_shader(
 			api_,

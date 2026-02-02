@@ -54,7 +54,7 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Soft/Master System/R-Type (NTSC).sms&quot;"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile\ Documents/com\~apple\~CloudDocs/Soft/Archimedes/Lemmings.adf&quot;"
@@ -62,6 +62,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--new=zxspectrum"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--display=CompositeColour"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
