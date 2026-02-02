@@ -160,13 +160,6 @@ private:
 	GLuint compile_shader(const std::string &source, GLenum type);
 	API api_;
 	GLuint shader_program_ = 0;
-
-	void flush_functions() const;
-	mutable std::vector<std::function<void(void)>> enqueued_functions_;
-	mutable std::mutex function_mutex_;
-
-protected:
-	void enqueue_function(std::function<void(void)> function);
 };
 
 }

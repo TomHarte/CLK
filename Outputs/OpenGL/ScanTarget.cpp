@@ -673,23 +673,23 @@ void ScanTarget::update(int, int output_height) {
 void ScanTarget::draw(int output_width, int output_height) {
 	while(is_drawing_to_accumulation_buffer_.test_and_set(std::memory_order_acquire));
 
-//	if(accumulation_texture_) {
-//		// Copy the accumulation texture to the target.
-//		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
-//		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
-//
-//		test_gl([&]{ glClearColor(0.0f, 0.0f, 0.0f, 0.0f); });
-//		test_gl([&]{ glClear(GL_COLOR_BUFFER_BIT); });
-//		accumulation_texture_->bind_texture();
-//		accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
-//	}
-
-	if(!composition_buffer_.empty()) {
+	if(accumulation_texture_) {
 		// Copy the accumulation texture to the target.
 		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
 		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
-		composition_buffer_.draw(float(output_width) / float(output_height), 4.0f / 255.0f);
+
+		test_gl([&]{ glClearColor(0.0f, 0.0f, 0.0f, 0.0f); });
+		test_gl([&]{ glClear(GL_COLOR_BUFFER_BIT); });
+		accumulation_texture_->bind_texture();
+		accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
 	}
+
+//	if(!composition_buffer_.empty()) {
+//		// Copy the accumulation texture to the target.
+//		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
+//		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
+//		composition_buffer_.draw(float(output_width) / float(output_height), 4.0f / 255.0f);
+//	}
 
 	is_drawing_to_accumulation_buffer_.clear(std::memory_order_release);
 }
