@@ -157,6 +157,9 @@ private:
 		const std::vector<AttributeBinding> &
 	);
 
+	template <typename FuncT>
+	void with_location(const std::string &, FuncT &&);
+
 	GLuint compile_shader(const std::string &source, GLenum type);
 	API api_;
 	GLuint shader_program_ = 0;
