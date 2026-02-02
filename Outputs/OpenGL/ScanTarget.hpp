@@ -160,6 +160,7 @@ private:
 	Texture source_texture_;
 	VertexArray scans_;
 	TextureTarget composition_buffer_;
+	TextureTarget output_buffer_;
 	Shader composition_shader_;
 	Shader copy_shader_;
 };

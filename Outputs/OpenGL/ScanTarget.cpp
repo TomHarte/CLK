@@ -31,6 +31,11 @@ namespace {
 /// The texture unit from which to source input data.
 constexpr GLenum SourceDataTextureUnit = GL_TEXTURE0;
 
+
+//
+// Old Pipeline.
+//
+
 /// The texture unit which contains raw line-by-line composite, S-Video or RGB data.
 constexpr GLenum UnprocessedLineBufferTextureUnit = GL_TEXTURE1;
 
@@ -43,6 +48,13 @@ constexpr GLenum QAMChromaTextureUnit = GL_TEXTURE2;
 
 /// The texture unit that contains the current display.
 constexpr GLenum AccumulationTextureUnit = GL_TEXTURE3;
+
+//
+// New pipeline.
+//
+
+/// The texture unit that contains the current display.
+constexpr GLenum OutputTextureUnit = GL_TEXTURE4;
 
 using Logger = Log::Logger<Log::Source::OpenGL>;
 
@@ -269,9 +281,9 @@ void ScanTarget::setup_pipeline() {
 			modals.cycles_per_line
 		);
 
-//	if(copy_shader_.empty()) {
-//		copy_shader_ = copy_shader(api_, GL_TEXTURE4, {}, {});
-//	}
+	if(copy_shader_.empty()) {
+		copy_shader_ = copy_shader(api_, OutputTextureUnit, {}, {});
+	}
 
 	if(
 		!existing_modals_ ||
@@ -325,7 +337,7 @@ bool ScanTarget::is_soft_display_type() {
 	return display_type == DisplayType::CompositeColour || display_type == DisplayType::CompositeMonochrome;
 }
 
-void ScanTarget::update(int, int output_height) {
+void ScanTarget::update(const int output_width, const int output_height) {
 	// If the GPU is still busy, don't wait; we'll catch it next time.
 	if(fence_ != nullptr) {
 		if(glClientWaitSync(fence_, GL_SYNC_FLUSH_COMMANDS_BIT, 0) == GL_TIMEOUT_EXPIRED) {
@@ -343,6 +355,24 @@ void ScanTarget::update(int, int output_height) {
 		lines_submitted_,
 		std::chrono::high_resolution_clock::now() - line_submission_begin_time_,
 		true);
+
+	// Make sure there's a buffer.
+	const auto output_buffer_width = output_width * 2;
+	const auto output_buffer_height = output_height * 2;
+	if(
+		output_buffer_.empty() ||
+		output_buffer_.width() != output_buffer_width ||
+		output_buffer_.height() != output_buffer_height
+	) {
+		output_buffer_ = TextureTarget(
+			api_,
+			output_buffer_width,
+			output_buffer_height,
+			OutputTextureUnit,
+			GL_NEAREST,
+			false	// TODO: should probably be true, if I'm going to use stencil.
+		);
+	}
 
 	// Grab the new output list.
 	perform([&] {
@@ -689,6 +719,8 @@ void ScanTarget::draw(int output_width, int output_height) {
 	}
 
 	if(!composition_buffer_.empty()) {
+//		copy_shader_.bind();
+//		glDrawElements(GL_TRIANGLE_STRIP, 0, GL_UNSIGNED_BYTE, nullptr);
 		// Copy the accumulation texture to the target.
 		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
 		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
