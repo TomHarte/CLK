@@ -90,10 +90,6 @@ void main(void) {
 		) * cyclesSinceRetraceMultiplier,
 		scanLine + longitudinal
 	) / targetSize;
-	eyePosition = vec2(
-		lateral * 0.5,
-		(scanLine + longitudinal * 512.0) / targetSize.y
-	);
 	gl_Position = vec4(
 		eyePosition * vec2(2.0, -2.0) + vec2(-1.0, 1.0),
 		0.0,
