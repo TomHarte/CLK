@@ -11,8 +11,8 @@
 #include "OpenGL.hpp"
 
 #include "Outputs/ScanTargets/FilterGenerator.hpp"
-#include "CompositionShader.hpp"
-#include "CopyShader.hpp"
+#include "Outputs/OpenGL/Shaders/CompositionShader.hpp"
+#include "Outputs/OpenGL/Shaders/CopyShader.hpp"
 
 #include <algorithm>
 #include <cassert>

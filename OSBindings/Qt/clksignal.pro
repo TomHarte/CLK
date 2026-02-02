@@ -125,6 +125,7 @@ SOURCES += \
 	$$SRC/Outputs/ScanTargets/*.cpp \
 	$$SRC/Outputs/OpenGL/*.cpp \
 	$$SRC/Outputs/OpenGL/Primitives/*.cpp \
+	$$SRC/Outputs/OpenGL/Shaders/*.cpp \
 \
 	$$SRC/Processors/6502/Implementation/*.cpp \
 	$$SRC/Processors/6502/State/*.cpp \
@@ -272,6 +273,7 @@ HEADERS += \
 	$$SRC/Outputs/ScanTargets/*.hpp \
 	$$SRC/Outputs/OpenGL/*.hpp \
 	$$SRC/Outputs/OpenGL/Primitives/*.hpp \
+	$$SRC/Outputs/OpenGL/Shaders/*.hpp \
 	$$SRC/Outputs/Speaker/*.hpp \
 	$$SRC/Outputs/Speaker/Implementation/*.hpp \
 \

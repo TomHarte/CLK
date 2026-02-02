@@ -15,7 +15,7 @@
 #include "Machines/MachineTypes.hpp"
 
 #include "Activity/Observer.hpp"
-#include "Outputs/OpenGL/Primitives/Rectangle.hpp"
+#include "Outputs/OpenGL/Shaders/Rectangle.hpp"
 #include "Outputs/OpenGL/ScanTarget.hpp"
 #include "Outputs/OpenGL/Screenshot.hpp"
 

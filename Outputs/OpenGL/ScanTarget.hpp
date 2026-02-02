@@ -14,7 +14,7 @@
 
 #include "API.hpp"
 #include "OpenGL.hpp"
-#include "Primitives/Rectangle.hpp"
+#include "Shaders/Rectangle.hpp"
 #include "Primitives/Texture.hpp"
 #include "Primitives/TextureTarget.hpp"
 #include "Primitives/VertexArray.hpp"
