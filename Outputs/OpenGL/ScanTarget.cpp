@@ -273,9 +273,6 @@ void ScanTarget::setup_pipeline() {
 		existing_modals_->display_type != modals.display_type ||
 		existing_modals_->composite_colour_space != modals.composite_colour_space
 	) {
-		// TODO: a temporary vertex array is created here for now, to avoid messing
-		// with the bindings of the real scan vertex array. Move past that.
-		VertexArray array(scan_buffer_);
 		composition_shader_ = OpenGL::composition_shader(
 			api_,
 			modals.input_data_type,
@@ -284,7 +281,7 @@ void ScanTarget::setup_pipeline() {
 			sample_multiplier,
 			2048, 2048,
 			buffer_width, 2048,
-			array,
+			scans_,
 			GL_TEXTURE0
 		);
 	}
