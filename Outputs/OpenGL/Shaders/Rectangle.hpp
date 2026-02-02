@@ -10,7 +10,7 @@
 
 #include "Outputs/OpenGL/API.hpp"
 #include "Outputs/OpenGL/OpenGL.hpp"
-#include "Shader.hpp"
+#include "Outputs/OpenGL/Primitives/Shader.hpp"
 #include <memory>
 
 namespace Outputs::Display::OpenGL {
