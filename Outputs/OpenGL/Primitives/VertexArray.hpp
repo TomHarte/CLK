@@ -18,7 +18,7 @@ class VertexArray {
 public:
 	template <typename ContainerT>
 	VertexArray(const ContainerT &container) :
-		VertexArray(container.size(), sizeof(container.front())) {}
+		VertexArray(std::size(container), sizeof(container[0])) {}
 
 	VertexArray(size_t num_elements, size_t element_size);
 	~VertexArray();

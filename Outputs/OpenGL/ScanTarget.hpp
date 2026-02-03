@@ -19,6 +19,7 @@
 #include "Primitives/TextureTarget.hpp"
 #include "Primitives/VertexArray.hpp"
 
+#include "Shaders/CopyShader.hpp"
 #include "Shaders/Rectangle.hpp"
 #include "Shaders/DirtyZone.hpp"
 
@@ -166,7 +167,7 @@ private:
 	TextureTarget composition_buffer_;
 	TextureTarget output_buffer_;
 	Shader composition_shader_;
-	Shader copy_shader_;
+	CopyShader copy_shader_;
 
 	std::array<DirtyZone, 2> dirty_zones_buffer_;
 	VertexArray dirty_zones_;

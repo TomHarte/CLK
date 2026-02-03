@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "Outputs/OpenGL/Primitives/VertexArray.hpp"
 #include "Outputs/OpenGL/Primitives/Shader.hpp"
 
 #include <optional>
@@ -31,11 +32,27 @@ namespace Outputs::Display::OpenGL {
 	(would need support in the ScanTarget modals and therefore also a correlated
 	change in the other scan targets)
 */
-Shader copy_shader(
-	API,
-	const GLenum source_texture_unit,
-	std::optional<float> brightness,	// Optionally: multiply all input
-	std::optional<float> gamma
-);
+class CopyShader {
+public:
+	CopyShader(
+		API,
+		std::optional<float> brightness,	// Optionally: multiply all input
+		std::optional<float> gamma
+	);
+
+	CopyShader() = default;
+	CopyShader(CopyShader &&) = default;
+	CopyShader &operator =(CopyShader &&) = default;
+
+	void perform(const GLenum source);
+	bool empty() const {
+		return shader_.empty();
+	}
+
+private:
+	Shader shader_;
+	VertexArray vertices_;
+	GLenum source_ = 0;
+};
 
 }

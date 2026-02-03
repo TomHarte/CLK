@@ -41,7 +41,7 @@ inline void test_gl_error() {
 			case GL_INVALID_FRAMEBUFFER_OPERATION:	std::cerr << "GL_INVALID_FRAMEBUFFER_OPERATION";	break;
 			case GL_OUT_OF_MEMORY:					std::cerr << "GL_OUT_OF_MEMORY";					break;
 		};
-		std::cerr << " at line " << __LINE__ << " in " << __FILE__ << std::endl;	\
+		std::cerr << " at line " << __LINE__ << " in " << __FILE__ << std::endl;
 		assert(false);
 	}
 }
