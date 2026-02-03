@@ -35,6 +35,7 @@
 
 #include <algorithm>
 #include <array>
+#include <concepts>
 #include <cstdint>
 #include <optional>
 
@@ -740,7 +741,9 @@ private:
 	const uint8_t *processor_read_memory_map_[64]{};
 	uint8_t *processor_write_memory_map_[64]{};
 
-	void write_to_map(const std::function<void(uint16_t, size_t)> &store, uint16_t address, size_t length) {
+	template <typename FuncT>
+	requires std::invocable<FuncT, uint16_t, size_t>
+	void write_to_map(FuncT &&store, uint16_t address, size_t length) {
 		address >>= 10;
 		length >>= 10;
 		size_t offset = 0;

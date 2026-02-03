@@ -829,7 +829,9 @@ void WD1770::posit_event(const int new_event_type) {
 	END_SECTION()
 }
 
-void WD1770::update_status(const std::function<void(Status &)> updater) {
+template <typename FuncT>
+requires std::invocable<FuncT, WD1770::Status &>
+void WD1770::update_status(FuncT &&updater) {
 	const Status old_status = status_;
 
 	if(delegate_) {

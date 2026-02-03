@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <concepts>
 #include <optional>
 
 #include "BufferingScanTarget.hpp"
@@ -142,11 +143,13 @@ constexpr MTLResourceOptions SharedResourceOptionsStandard =
 constexpr MTLResourceOptions SharedResourceOptionsTexture =
 	MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeManaged;
 
+template <typename FuncT>
+requires std::invocable<FuncT, size_t, size_t>
 void range_perform(
 	const size_t start,
 	const size_t end,
 	const size_t size,
-	const std::function<void(size_t start, size_t length)> &func
+	const FuncT &&func
 ) {
 	if(start == end) return;
 	if(start < end) {
