@@ -6,7 +6,9 @@
 //  Copyright © 2026 Thomas Harte. All rights reserved.
 //
 
+#include "CommonAtrributes.hpp"
 #include "CompositionShader.hpp"
+
 #include "Outputs/ScanTargets/BufferingScanTarget.hpp"
 
 namespace {
@@ -382,7 +384,8 @@ OpenGL::Shader OpenGL::composition_shader(
 	auto shader = OpenGL::Shader(
 		api,
 		prefix + vertex_shader,
-		prefix + fragment_shader
+		prefix + fragment_shader,
+		scan_attributes()
 	);
 
 	//
