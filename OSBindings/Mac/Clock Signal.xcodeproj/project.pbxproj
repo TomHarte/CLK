@@ -1167,6 +1167,7 @@
 		4BD235C32F312C0C0094AFAE /* CopyShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD235C12F312C0C0094AFAE /* CopyShader.cpp */; };
 		4BD235C42F312C0C0094AFAE /* CompositionShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD235BF2F312C0C0094AFAE /* CompositionShader.cpp */; };
 		4BD235C72F312C3A0094AFAE /* Rectangle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD235C62F312C3A0094AFAE /* Rectangle.cpp */; };
+		4BD235CC2F32A4C80094AFAE /* SeparationShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD235CB2F32A4C80094AFAE /* SeparationShader.cpp */; };
 		4BD388882239E198002D14B5 /* 68000Tests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BD388872239E198002D14B5 /* 68000Tests.mm */; };
 		4BD424E02193B5340097291A /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD424DD2193B5340097291A /* TextureTarget.cpp */; };
 		4BD424E62193B5830097291A /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD424E12193B5820097291A /* Shader.cpp */; };
@@ -2476,6 +2477,8 @@
 		4BD235C62F312C3A0094AFAE /* Rectangle.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Rectangle.cpp; sourceTree = "<group>"; };
 		4BD235C82F326A280094AFAE /* DirtyZone.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DirtyZone.hpp; sourceTree = "<group>"; };
 		4BD235C92F32A2780094AFAE /* CommonAtrributes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CommonAtrributes.hpp; sourceTree = "<group>"; };
+		4BD235CA2F32A4C80094AFAE /* SeparationShader.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SeparationShader.hpp; sourceTree = "<group>"; };
+		4BD235CB2F32A4C80094AFAE /* SeparationShader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SeparationShader.cpp; sourceTree = "<group>"; };
 		4BD388411FE34E010042B588 /* 9918Base.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 9918Base.hpp; sourceTree = "<group>"; };
 		4BD388872239E198002D14B5 /* 68000Tests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000Tests.mm; sourceTree = "<group>"; };
 		4BD424DD2193B5340097291A /* TextureTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TextureTarget.cpp; sourceTree = "<group>"; };
@@ -5408,11 +5411,13 @@
 				4BD235BF2F312C0C0094AFAE /* CompositionShader.cpp */,
 				4BD235C12F312C0C0094AFAE /* CopyShader.cpp */,
 				4BD235C62F312C3A0094AFAE /* Rectangle.cpp */,
+				4BD235CB2F32A4C80094AFAE /* SeparationShader.cpp */,
 				4BD235C92F32A2780094AFAE /* CommonAtrributes.hpp */,
 				4BD235BE2F312C0C0094AFAE /* CompositionShader.hpp */,
 				4BD235C02F312C0C0094AFAE /* CopyShader.hpp */,
 				4BD235C82F326A280094AFAE /* DirtyZone.hpp */,
 				4BD235C52F312C3A0094AFAE /* Rectangle.hpp */,
+				4BD235CA2F32A4C80094AFAE /* SeparationShader.hpp */,
 			);
 			path = Shaders;
 			sourceTree = "<group>";
@@ -6503,6 +6508,7 @@
 				4B89452D201967B4007DE474 /* Tape.cpp in Sources */,
 				4B055AD61FAE9B130060FFFF /* MemoryFuzzer.cpp in Sources */,
 				4B69DEB82AB79E4F0055B217 /* Instruction.cpp in Sources */,
+				4BD235CC2F32A4C80094AFAE /* SeparationShader.cpp in Sources */,
 				4B055AC21FAE9AE30060FFFF /* KeyboardMachine.cpp in Sources */,
 				4B89453B201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B055AEB1FAE9BA20060FFFF /* PartialMachineCycle.cpp in Sources */,
