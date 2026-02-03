@@ -53,8 +53,11 @@ constexpr GLenum AccumulationTextureUnit = GL_TEXTURE3;
 // New pipeline.
 //
 
+/// Contains the initial composition of scans into lines.
+constexpr GLenum CompositionTextureUnit = GL_TEXTURE4;
+
 /// The texture unit that contains the current display.
-constexpr GLenum OutputTextureUnit = GL_TEXTURE4;
+constexpr GLenum OutputTextureUnit = GL_TEXTURE5;
 
 using Logger = Log::Logger<Log::Source::OpenGL>;
 
@@ -306,27 +309,7 @@ void ScanTarget::setup_pipeline() {
 	}
 
 	if(composition_buffer_.empty()) {
-		composition_buffer_ = TextureTarget(api_, buffer_width, 2048, GL_TEXTURE4, GL_NEAREST, false);
-		composition_buffer_.bind_texture();
-
-		// The below establishes that the composition buffer texture is ultimately being drawn.
-		std::vector<uint8_t> image(buffer_width * 2048 * 4);
-		for(auto &c : image) {
-			c = rand();
-		}
-		test_gl([&]{ 
-			glTexImage2D(
-				GL_TEXTURE_2D,
-				0,
-				GL_RGBA,
-				buffer_width,
-				2048,
-				0,
-				GL_RGBA,
-				GL_UNSIGNED_BYTE,
-				image.data()
-			);
-		});
+		composition_buffer_ = TextureTarget(api_, buffer_width, 2048, CompositionTextureUnit, GL_NEAREST, false);
 	}
 
 	existing_modals_ = modals;
@@ -707,16 +690,16 @@ void ScanTarget::update(const int output_width, const int output_height) {
 void ScanTarget::draw(int output_width, int output_height) {
 	while(is_drawing_to_accumulation_buffer_.test_and_set(std::memory_order_acquire));
 
-	if(accumulation_texture_) {
-		// Copy the accumulation texture to the target.
-		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
-		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
-
-		test_gl([&]{ glClearColor(0.0f, 0.0f, 0.0f, 0.0f); });
-		test_gl([&]{ glClear(GL_COLOR_BUFFER_BIT); });
-		accumulation_texture_->bind_texture();
-		accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
-	}
+//	if(accumulation_texture_) {
+//		// Copy the accumulation texture to the target.
+//		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
+//		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
+//
+//		test_gl([&]{ glClearColor(0.0f, 0.0f, 0.0f, 0.0f); });
+//		test_gl([&]{ glClear(GL_COLOR_BUFFER_BIT); });
+//		accumulation_texture_->bind_texture();
+//		accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
+//	}
 
 	if(!composition_buffer_.empty()) {
 //		copy_shader_.bind();
