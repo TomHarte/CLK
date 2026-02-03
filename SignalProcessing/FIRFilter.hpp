@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <concepts>
 #include <functional>
 #include <iterator>
 #include <numeric>
@@ -144,11 +145,12 @@ public:
 		return coefficients_.end();
 	}
 
-	template <typename IteratorT>
+	template <typename IteratorT, typename FuncT>
+	requires std::invocable<FuncT, IteratorT, CoefficientType>
 	void copy_to(
 		IteratorT begin,
 		IteratorT end,
-		const std::function<void(IteratorT, CoefficientType)> &applier
+		FuncT &&applier
 	) const {
 		auto dest = begin;
 		auto src = coefficients_.begin();

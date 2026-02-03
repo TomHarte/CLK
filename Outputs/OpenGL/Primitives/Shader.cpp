@@ -9,6 +9,7 @@
 #include "Shader.hpp"
 
 #include "Outputs/Log.hpp"
+
 #include <vector>
 
 using namespace Outputs::Display::OpenGL;
@@ -221,6 +222,7 @@ void Shader::enable_vertex_attribute_with_pointer(
 }
 
 template <typename FuncT>
+requires std::invocable<FuncT, GLint>
 void Shader::with_location(const std::string &name, FuncT &&function) {
 	const GLint location = glGetUniformLocation(shader_program_, name.c_str());
 	if(location == -1) {

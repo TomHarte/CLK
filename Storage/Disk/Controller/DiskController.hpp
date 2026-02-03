@@ -15,6 +15,8 @@
 #include "ClockReceiver/ClockReceiver.hpp"
 #include "ClockReceiver/ClockingHintSource.hpp"
 
+#include <concepts>
+
 namespace Storage::Disk {
 
 /*!
@@ -133,7 +135,9 @@ protected:
 		return *drives_[index];
 	}
 
-	void for_all_drives(const std::function<void(Drive &, size_t)> &func) {
+	template <typename FuncT>
+	requires std::invocable<FuncT, Drive &, size_t>
+	void for_all_drives(FuncT &&func) {
 		size_t index = 0;
 		for(auto &drive: drives_) {
 			func(*drive, index);

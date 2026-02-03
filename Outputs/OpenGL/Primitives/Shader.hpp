@@ -11,6 +11,7 @@
 #include "Outputs/OpenGL/API.hpp"
 #include "Outputs/OpenGL/OpenGL.hpp"
 
+#include <concepts>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -158,6 +159,7 @@ private:
 	);
 
 	template <typename FuncT>
+	requires std::invocable<FuncT, GLint>
 	void with_location(const std::string &, FuncT &&);
 
 	GLuint compile_shader(const std::string &source, GLenum type);

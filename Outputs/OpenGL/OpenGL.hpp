@@ -51,14 +51,16 @@ inline void test_gl_error() {}
 #endif
 
 #ifndef NDEBUG
-template <typename Func>
-inline void test_gl(const Func &&perform) {
+template <typename FuncT>
+requires std::invocable<FuncT>
+inline void test_gl(const FuncT &&perform) {
 	perform();
 	test_gl_error();
 }
 #else
-template <typename Func>
-inline void test_gl(const Func &&perform) {
+template <typename FuncT>
+requires std::invocable<FuncT>
+inline void test_gl(const FuncT &&perform) {
 	perform();
 }
 #endif
