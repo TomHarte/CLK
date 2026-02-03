@@ -14,10 +14,13 @@
 
 #include "API.hpp"
 #include "OpenGL.hpp"
-#include "Shaders/Rectangle.hpp"
+
 #include "Primitives/Texture.hpp"
 #include "Primitives/TextureTarget.hpp"
 #include "Primitives/VertexArray.hpp"
+
+#include "Shaders/Rectangle.hpp"
+#include "Shaders/DirtyZone.hpp"
 
 #include "SignalProcessing/FIRFilter.hpp"
 
@@ -157,12 +160,16 @@ private:
 	//
 	// NEW PIPELINE. Starts here.
 	//
+	// TODO: consider arrangement; eliminate old display pipeline above.
 	Texture source_texture_;
 	VertexArray scans_;
 	TextureTarget composition_buffer_;
 	TextureTarget output_buffer_;
 	Shader composition_shader_;
 	Shader copy_shader_;
+
+	std::array<DirtyZone, 2> dirty_zones_buffer_;
+	VertexArray dirty_zones_;
 };
 
 }

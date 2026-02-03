@@ -103,7 +103,8 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 	output_gamma_(output_gamma),
 	unprocessed_line_texture_(api, LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_NEAREST, false),
 	full_display_rectangle_(api, -1.0f, -1.0f, 2.0f, 2.0f),
-	scans_(scan_buffer_) {
+	scans_(scan_buffer_),
+	dirty_zones_(dirty_zones_buffer_) {
 
 	set_scan_buffer(scan_buffer_.data(), scan_buffer_.size());
 	set_line_buffer(line_buffer_.data(), line_metadata_buffer_.data(), line_buffer_.size());
