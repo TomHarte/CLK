@@ -285,9 +285,9 @@ void ScanTarget::setup_pipeline() {
 			modals.cycles_per_line
 		);
 
-//	if(copy_shader_.empty()) {
-//		copy_shader_ = CopyShader(api_, {}, {});
-//	}
+	if(copy_shader_.empty()) {
+		copy_shader_ = CopyShader(api_, {}, {});
+	}
 
 	if(
 		!existing_modals_ ||
@@ -706,9 +706,7 @@ void ScanTarget::draw(int output_width, int output_height) {
 		// Copy the accumulation texture to the target.
 		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
 		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
-
-//		copy_shader_.perform(CompositionTextureUnit);
-		composition_buffer_.draw(float(output_width) / float(output_height), 4.0f / 255.0f);
+		copy_shader_.perform(CompositionTextureUnit);
 	}
 
 	is_drawing_to_accumulation_buffer_.clear(std::memory_order_release);

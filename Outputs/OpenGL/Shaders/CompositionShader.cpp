@@ -389,7 +389,7 @@ OpenGL::Shader OpenGL::composition_shader(
 	// Enable vertex attributes.
 	//
 	BufferingScanTarget::Scan scan;
-	vertex_array.bind();
+	vertex_array.bind_all();
 	const auto enable = [&](const std::string &name, auto &element, const bool normalise) {
 		assert(sizeof(element) == 1 || sizeof(element) == 2);
 		shader.enable_vertex_attribute_with_pointer(

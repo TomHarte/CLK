@@ -16,10 +16,7 @@ in highp vec2 position;
 out mediump vec2 coordinate;
 
 void main(void) {
-	mediump float lateral = float(gl_VertexID & 1);
-	mediump float longitudinal = float((gl_VertexID & 2) >> 1);
-
-	coordinate = vec2(lateral, longitudinal); 
+	coordinate = (position + vec2(1.0)) / vec2(2.0);
 	gl_Position = vec4(
 		position,
 		0.0,
