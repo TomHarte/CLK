@@ -677,7 +677,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 
 			if(is_composite(existing_modals_->display_type)) {
 				separation_buffer_.bind_framebuffer();
-				composition_shader_.bind();
+				separation_shader_.bind();
 				test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
 			}
 
@@ -812,7 +812,7 @@ void ScanTarget::draw(int output_width, int output_height) {
 		// Copy the accumulation texture to the target.
 		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
 		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
-		copy_shader_.perform(SeparationTextureUnit);	// CompositionTextureUnit
+		copy_shader_.perform(SeparationTextureUnit);	// 
 	}
 
 	is_drawing_to_accumulation_buffer_.clear(std::memory_order_release);

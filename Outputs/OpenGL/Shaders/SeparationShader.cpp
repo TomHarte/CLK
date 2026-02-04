@@ -66,9 +66,7 @@ void main(void) {
 	coordinates[30] = vec2(centreX + 15.0, sampleY) / bufferSize;
 
 	gl_Position = vec4(
-//		(vec2(centreX, sampleY) / bufferSize - vec2(0.5)) * vec2(2.0),
-		lateral,
-		longitudinal,
+		(vec2(centreX, sampleY) / bufferSize - vec2(0.5)) * vec2(2.0),
 		0.0,
 		1.0
 	);
@@ -122,7 +120,7 @@ void main(void) {
 		filterCoefficients[30] * texture(source, coordinates[30]).x;
 
 	outputColour = vec4(
-		1.0, 1.0, 0.0, 1.0);
+		coordinates[15], 0.0, 1.0);
 //		channels.x,
 //		channels.y * centre.yz,
 //		1.0
@@ -174,7 +172,7 @@ OpenGL::Shader OpenGL::separation_shader(
 	//
 	// Set uniforms.
 	//
-	shader.set_uniform("samplesPerLine", samples_per_line);
+	shader.set_uniform("samplesPerLine", float(samples_per_line));
 	shader.set_uniform("bufferSize", float(buffer_width), float(buffer_height));
 	shader.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
 
