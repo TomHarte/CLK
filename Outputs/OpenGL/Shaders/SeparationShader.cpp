@@ -30,7 +30,7 @@ void main(void) {
 	float lateral = float(gl_VertexID & 1);
 	float longitudinal = float((gl_VertexID & 2) >> 1);
 
-	float sampleY = (mix(zoneBegin, zoneEnd, longitudinal) + 0.5) / bufferSize.y;
+	float sampleY = mix(zoneBegin, zoneEnd, longitudinal);
 	float centreX = lateral * samplesPerLine;
 
 	coordinates[0] = vec2(centreX - 15.0, sampleY) / bufferSize;
@@ -66,7 +66,9 @@ void main(void) {
 	coordinates[30] = vec2(centreX + 15.0, sampleY) / bufferSize;
 
 	gl_Position = vec4(
-		(vec2(centreX, sampleY) - vec2(0.5)) * vec2(2.0),
+//		(vec2(centreX, sampleY) / bufferSize - vec2(0.5)) * vec2(2.0),
+		lateral,
+		longitudinal,
 		0.0,
 		1.0
 	);
@@ -120,10 +122,11 @@ void main(void) {
 		filterCoefficients[30] * texture(source, coordinates[30]).x;
 
 	outputColour = vec4(
-		channels.x,
-		channels.y * centre.yz,
-		1.0
-	);
+		coordinates[15], 0.0, 1.0);
+//		channels.x,
+//		channels.y * centre.yz,
+//		1.0
+//	);
 }
 
 )glsl";

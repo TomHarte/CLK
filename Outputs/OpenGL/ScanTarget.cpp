@@ -102,6 +102,27 @@ template <typename T> void allocate_buffer(
 	test_gl([&]{ glBindVertexArray(vertex_array_name); });
 	test_gl([&]{ glBindBuffer(GL_ARRAY_BUFFER, buffer_name); });
 }
+
+void fill_random(TextureTarget &target) {
+	target.bind_texture();
+	std::vector<uint8_t> image(target.width() * target.height() * 4);
+	for(auto &c : image) {
+		c = rand();
+	}
+	test_gl([&]{
+		glTexImage2D(
+			GL_TEXTURE_2D,
+			0,
+			GL_RGBA,
+			target.width(),
+			target.height(),
+			0,
+			GL_RGBA,
+			GL_UNSIGNED_BYTE,
+			image.data()
+		);
+	});
+}
 }
 
 ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const float output_gamma) :
@@ -296,6 +317,17 @@ void ScanTarget::setup_pipeline() {
 		copy_shader_ = CopyShader(api_, {}, {});
 	}
 
+	if(composition_buffer_.empty()) {
+		composition_buffer_ = TextureTarget(
+			api_,
+			buffer_width,
+			LineBufferHeight,
+			CompositionTextureUnit,
+			GL_NEAREST,
+			false
+		);
+	}
+
 	if(
 		!existing_modals_ ||
 		existing_modals_->input_data_type != modals.input_data_type ||
@@ -331,16 +363,21 @@ void ScanTarget::setup_pipeline() {
 		);
 	}
 
-	if(composition_buffer_.empty()) {
-		composition_buffer_ = TextureTarget(api_, buffer_width, LineBufferHeight, CompositionTextureUnit, GL_NEAREST, false);
-	}
-
 	if(
 		!existing_modals_ ||
 		modals.display_type != existing_modals_->display_type
 	) {
 		if(is_composite(modals.display_type)) {
-			separation_buffer_ = TextureTarget(api_, buffer_width, LineBufferHeight, SeparationTextureUnit, GL_NEAREST, false);
+			separation_buffer_ = TextureTarget(
+				api_,
+				buffer_width,
+				LineBufferHeight,
+				SeparationTextureUnit,
+				GL_NEAREST,
+				false
+			);
+
+			fill_random(separation_buffer_);
 		} else {
 			separation_buffer_ = TextureTarget();
 		}
@@ -618,7 +655,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			//
 
 			// Populate dirty zones, and record quantity.
-			const auto num_dirty_zones = 1 + area.start.line >= area.end.line;
+			const int num_dirty_zones = 1 + (area.start.line >= area.end.line);
 			dirty_zones_buffer_[0].begin = area.start.line;
 			if(num_dirty_zones == 1) {
 				dirty_zones_buffer_[0].end = area.end.line;
@@ -628,7 +665,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				dirty_zones_buffer_[1].end = area.end.line;
 			}
 
-			dirty_zones_.bind_buffer();
+			dirty_zones_.bind_all();
 			test_gl([&]{
 				glBufferSubData(
 					GL_ARRAY_BUFFER,
