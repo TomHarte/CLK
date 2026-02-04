@@ -19,8 +19,14 @@ namespace Outputs::Display::OpenGL {
 inline std::vector<std::string> scan_attributes() {
 	return std::vector<std::string>{
 		"scanEndpoint0DataOffset",
+		"scanEndpoint0CyclesSinceRetrace",
+		"scanEndpoint0CompositeAngle",
 		"scanEndpoint1DataOffset",
-		"scanDataY"
+		"scanEndpoint1CyclesSinceRetrace",
+		"scanEndpoint1CompositeAngle",
+		"scanDataY",
+		"scanLine",
+		"scanCompositeAmplitude",
 	};
 };
 

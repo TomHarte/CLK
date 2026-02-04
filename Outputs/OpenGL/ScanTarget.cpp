@@ -13,7 +13,7 @@
 #include "Outputs/ScanTargets/FilterGenerator.hpp"
 #include "Outputs/OpenGL/Shaders/CompositionShader.hpp"
 #include "Outputs/OpenGL/Shaders/CopyShader.hpp"
-#include "Outputs/OpenGL/Shaders/SeparationShader.hpp"
+#include "Outputs/OpenGL/Shaders/KernelShaders.hpp"
 
 #include <algorithm>
 #include <cassert>

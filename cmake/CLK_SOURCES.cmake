@@ -163,10 +163,10 @@ set(CLK_SOURCES
 	Outputs/OpenGL/Primitives/Texture.cpp
 	Outputs/OpenGL/Primitives/TextureTarget.cpp
 	Outputs/OpenGL/Primitives/VertexArray.cpp
-	Outputs/OpenGL/Shaders/Rectangle.cpp
 	Outputs/OpenGL/Shaders/CompositionShader.cpp
 	Outputs/OpenGL/Shaders/CopyShader.cpp
-	Outputs/OpenGL/Shaders/SeparationShader.cpp
+	Outputs/OpenGL/Shaders/KernelShaders.cpp
+	Outputs/OpenGL/Shaders/Rectangle.cpp
 	Outputs/OpenGL/ScanTarget.cpp
 	Outputs/OpenGL/ScanTargetGLSLFragments.cpp
 	Outputs/ScanTarget.cpp

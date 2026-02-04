@@ -1,5 +1,5 @@
 //
-//  SeparationShader.hpp
+//  KernelShaders.hpp
 //  Clock Signal Kiosk
 //
 //  Created by Thomas Harte on 03/02/2026.
@@ -15,19 +15,16 @@
 namespace Outputs::Display::OpenGL {
 
 /*!
-	A separation shader takes input in composite form, i.e.
+	Takes input in composite form, i.e.
 
 		(luma, cos(phase), sin(phase), chroma amplitude)
 
-	It applies the relevant filter as currently provided by an instance of Outputs::Display::Filtergenerator
-	and hence produces an output in S-Video form, i.e.
+	Applies the relevant filter as provided by an instance of Outputs::Display::Filtergenerator to output in S-Video form, i.e.
 
 		(luma, chroma * cos(phase), luma * sin(phase), 1)
 
-	It works only in terms of whole lines and uses instances of `DirtyZone` as input to indicate
-	the regions that need to be translated.
-
-	Both source and destination buffers are taken to be the same size.
+	Works only in terms of whole lines and uses instances of `DirtyZone` as input to indicate the regions that
+	need to be translated. Both source and destination buffers are taken to be the same size.
 */
 Shader separation_shader(
 	API,
@@ -39,6 +36,17 @@ Shader separation_shader(
 	GLenum source_texture_unit
 );
 
+/*!
+	Takes input in S-Video form, i.e.
+
+		(luma, chroma * cos(phase), luma * sin(phase), 1)
+
+	Applies the relevant filter as provided by an instance of Outputs::Display::Filtergenerator to output in RGB form.
+
+	Works only in terms of whole lines and uses instances of `DirtyZone` as input to indicate the regions that
+	need to be translated. Both source and destination buffers are taken to be the same size.
+
+*/
 Shader demodulation_shader(
 	API,
 	ColourSpace,
