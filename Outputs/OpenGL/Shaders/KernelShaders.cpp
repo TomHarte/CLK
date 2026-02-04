@@ -78,7 +78,7 @@ constexpr char separation_fragment_shader[] = R"glsl(
 #define KernelCentre 15
 
 uniform lowp sampler2D source;
-uniform lowp vec2 filterCoefficients[31];
+uniform lowp vec2 filterCoefficients[16];
 
 in mediump vec2 coordinates[31];
 
@@ -119,7 +119,7 @@ constexpr char demodulation_fragment_shader[] = R"glsl(
 #define KernelCentre 15
 
 uniform lowp sampler2D source;
-uniform lowp vec3 filterCoefficients[31];
+uniform lowp vec3 filterCoefficients[16];
 uniform lowp mat3 toRGB;
 
 in mediump vec2 coordinates[31];
@@ -226,7 +226,7 @@ void set_common_uniforms(
 	float packaged_elements[31 * FilterSize];
 	static_assert(sizeof(packaged_elements) == sizeof(elements));
 	std::memcpy(packaged_elements, elements, sizeof(elements));
-	shader.set_uniform("filterCoefficients", FilterSize, 31, packaged_elements);
+	shader.set_uniform("filterCoefficients", FilterSize, 16, packaged_elements);
 }
 
 }
