@@ -35,6 +35,8 @@ inline std::vector<std::string> scan_attributes() {
 */
 inline std::vector<std::string> dirty_zone_attributes() {
 	return std::vector<std::string>{
+		"zoneBegin",
+		"zoneEnd",
 	};
 }
 
