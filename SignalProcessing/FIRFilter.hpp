@@ -20,7 +20,6 @@
 #include <cassert>
 #include <cmath>
 #include <concepts>
-#include <functional>
 #include <iterator>
 #include <numeric>
 #include <vector>

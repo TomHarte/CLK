@@ -12,8 +12,6 @@
 #include "Outputs/OpenGL/OpenGL.hpp"
 
 #include <concepts>
-#include <functional>
-#include <mutex>
 #include <string>
 #include <vector>
 
