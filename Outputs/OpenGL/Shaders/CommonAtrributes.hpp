@@ -40,4 +40,14 @@ inline std::vector<std::string> dirty_zone_attributes() {
 	};
 }
 
+inline std::vector<std::string> line_attributes() {
+	return std::vector<std::string>{
+		"lineEndpoint0Position",
+		"lineEndpoint0CyclesSinceRetrace",
+		"lineEndpoint1Position",
+		"lineEndpoint1CyclesSinceRetrace",
+		"lineLine",
+	};
+}
+
 }

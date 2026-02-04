@@ -1237,6 +1237,7 @@
 		4BF0BC722973318E00CCA2B5 /* RP5C01.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF0BC6F2973318E00CCA2B5 /* RP5C01.cpp */; };
 		4BF437EE209D0F7E008CBD6B /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */; };
 		4BF437EF209D0F7E008CBD6B /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */; };
+		4BF64D672F33D27B001EB900 /* LineOutputShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF64D662F33D27B001EB900 /* LineOutputShader.cpp */; };
 		4BF701A026FFD32300996424 /* AmigaBlitterTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BF7019F26FFD32300996424 /* AmigaBlitterTests.mm */; };
 		4BF8D4C82516E27A00BBE21B /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BB8617024E22F4900A00E03 /* Accelerate.framework */; };
 		4BF8D4D5251C11DD00BBE21B /* 65816Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF8D4D4251C11DD00BBE21B /* 65816Storage.cpp */; };
@@ -2577,6 +2578,8 @@
 		4BF437F0209D112F008CBD6B /* Sector.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sector.hpp; sourceTree = "<group>"; };
 		4BF4A2D91F534DB300B171F4 /* TargetPlatforms.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TargetPlatforms.hpp; sourceTree = "<group>"; };
 		4BF52672218E752E00313227 /* ScanTarget.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ScanTarget.hpp; sourceTree = "<group>"; };
+		4BF64D652F33D27B001EB900 /* LineOutputShader.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LineOutputShader.hpp; sourceTree = "<group>"; };
+		4BF64D662F33D27B001EB900 /* LineOutputShader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = LineOutputShader.cpp; sourceTree = "<group>"; };
 		4BF6606A1F281573002CB053 /* ClockReceiver.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ClockReceiver.hpp; sourceTree = "<group>"; };
 		4BF7019F26FFD32300996424 /* AmigaBlitterTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AmigaBlitterTests.mm; sourceTree = "<group>"; };
 		4BF8D4CD251C0C9C00BBE21B /* 65816.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 65816.hpp; sourceTree = "<group>"; };
@@ -5411,12 +5414,14 @@
 				4BD235BF2F312C0C0094AFAE /* CompositionShader.cpp */,
 				4BD235C12F312C0C0094AFAE /* CopyShader.cpp */,
 				4BD235CB2F32A4C80094AFAE /* KernelShaders.cpp */,
+				4BF64D662F33D27B001EB900 /* LineOutputShader.cpp */,
 				4BD235C62F312C3A0094AFAE /* Rectangle.cpp */,
 				4BD235C92F32A2780094AFAE /* CommonAtrributes.hpp */,
 				4BD235BE2F312C0C0094AFAE /* CompositionShader.hpp */,
 				4BD235C02F312C0C0094AFAE /* CopyShader.hpp */,
 				4BD235C82F326A280094AFAE /* DirtyZone.hpp */,
 				4BD235CA2F32A4C80094AFAE /* KernelShaders.hpp */,
+				4BF64D652F33D27B001EB900 /* LineOutputShader.hpp */,
 				4BD235C52F312C3A0094AFAE /* Rectangle.hpp */,
 			);
 			path = Shaders;
@@ -6502,6 +6507,7 @@
 				4B302185208A550100773308 /* DiskII.cpp in Sources */,
 				42EB81292B23AAC300429AF4 /* IMD.cpp in Sources */,
 				4B051CB1267C1CA200CA44E8 /* Keyboard.cpp in Sources */,
+				4BF64D672F33D27B001EB900 /* LineOutputShader.cpp in Sources */,
 				4B8855A72E84D51B00E251DD /* SAA5050.cpp in Sources */,
 				4B0F1BB32602645900B85C66 /* StaticAnalyser.cpp in Sources */,
 				4B055A931FAE85B50060FFFF /* BinaryDump.cpp in Sources */,

@@ -14,6 +14,7 @@
 #include "Outputs/OpenGL/Shaders/CompositionShader.hpp"
 #include "Outputs/OpenGL/Shaders/CopyShader.hpp"
 #include "Outputs/OpenGL/Shaders/KernelShaders.hpp"
+#include "Outputs/OpenGL/Shaders/LineOutputShader.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -127,6 +128,7 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 	unprocessed_line_texture_(api, LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_NEAREST, false),
 	full_display_rectangle_(api, -1.0f, -1.0f, 2.0f, 2.0f),
 	scans_(scan_buffer_),
+	lines_(line_buffer_),
 	dirty_zones_(dirty_zones_buffer_) {
 
 	set_scan_buffer(scan_buffer_.data(), scan_buffer_.size());
@@ -327,8 +329,18 @@ void ScanTarget::setup_pipeline() {
 				dirty_zones_,
 				is_svideo(modals.display_type) ? CompositionTextureUnit : SeparationTextureUnit
 			);
+
+			line_output_shader_ = OpenGL::line_output_shader(
+				api_,
+				buffer_width, 2048,
+				modals.expected_vertical_lines,
+				modals.output_scale.x, modals.output_scale.y,
+				lines_,
+				DemodulationTextureUnit
+			);
 		} else {
 			demodulation_shader_.reset();
+			line_output_shader_.reset();
 		}
 	}
 

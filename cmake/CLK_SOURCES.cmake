@@ -166,6 +166,7 @@ set(CLK_SOURCES
 	Outputs/OpenGL/Shaders/CompositionShader.cpp
 	Outputs/OpenGL/Shaders/CopyShader.cpp
 	Outputs/OpenGL/Shaders/KernelShaders.cpp
+	Outputs/OpenGL/Shaders/LineOutputShader.cpp
 	Outputs/OpenGL/Shaders/Rectangle.cpp
 	Outputs/OpenGL/ScanTarget.cpp
 	Outputs/OpenGL/ScanTargetGLSLFragments.cpp

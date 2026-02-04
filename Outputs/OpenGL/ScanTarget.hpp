@@ -164,6 +164,7 @@ private:
 	std::array<DirtyZone, 2> dirty_zones_buffer_{};
 
 	VertexArray scans_;
+	VertexArray lines_;
 	VertexArray dirty_zones_;
 
 	Texture source_texture_;
@@ -175,6 +176,7 @@ private:
 	Shader composition_shader_;
 	Shader separation_shader_;
 	Shader demodulation_shader_;
+	Shader line_output_shader_;
 	CopyShader copy_shader_;
 };
 

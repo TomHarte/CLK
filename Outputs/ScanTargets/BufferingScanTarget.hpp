@@ -74,6 +74,7 @@ public:
 		uint8_t composite_amplitude;
 		uint16_t line;
 	};
+	static_assert(sizeof(Line) == 20);
 
 	/// Provides additional metadata about lines; this is separate because it's unlikely to be of
 	/// interest to the GPU, unlike the fields in Line.
