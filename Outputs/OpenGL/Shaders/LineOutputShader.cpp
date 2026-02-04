@@ -50,15 +50,15 @@ void main(void) {
 	vec2 centre =
 		mix(
 			lineEndpoint0Position,
-			lineEndpoint1Position, 
+			lineEndpoint1Position,
 			lateral
 		) / positionScale;
 	gl_Position =
 		vec4(
-			centre + (longitudinal - 0.5) * normal * lineHeight,
+			(centre + (longitudinal - 0.5) * normal * lineHeight) * vec2(2.0) - vec2(1.0),
 			0.0,
 			1.0
-		);
+		) ;
 }
 
 )glsl";
@@ -117,7 +117,7 @@ OpenGL::Shader OpenGL::line_output_shader(
 	enable("lineEndpoint1CyclesSinceRetrace", line.end_points[1].cycles_since_end_of_horizontal_retrace, 1);
 	enable("lineLine", line.line, 1);
 
-	shader.set_uniform("lineHeight", 1.0f / float(expected_vertical_lines));
+	shader.set_uniform("lineHeight", 1.05f / float(expected_vertical_lines));
 	shader.set_uniform("positionScale", float(scale_x), float(scale_y));
 	shader.set_uniform("sourceSize", float(source_width) / cycle_multiplier, float(source_height));
 	shader.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
