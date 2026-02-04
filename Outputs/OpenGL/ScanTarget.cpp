@@ -332,7 +332,18 @@ void ScanTarget::setup_pipeline() {
 	}
 
 	if(composition_buffer_.empty()) {
-		composition_buffer_ = TextureTarget(api_, buffer_width, 2048, CompositionTextureUnit, GL_NEAREST, false);
+		composition_buffer_ = TextureTarget(api_, buffer_width, LineBufferHeight, CompositionTextureUnit, GL_NEAREST, false);
+	}
+
+	if(
+		!existing_modals_ ||
+		modals.display_type != existing_modals_->display_type
+	) {
+		if(is_composite(modals.display_type)) {
+			separation_buffer_ = TextureTarget(api_, buffer_width, LineBufferHeight, SeparationTextureUnit, GL_NEAREST, false);
+		} else {
+			separation_buffer_ = TextureTarget();
+		}
 	}
 
 	existing_modals_ = modals;
@@ -628,6 +639,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			});
 
 			if(is_composite(existing_modals_->display_type)) {
+				separation_buffer_.bind_framebuffer();
 				composition_shader_.bind();
 				test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
 			}

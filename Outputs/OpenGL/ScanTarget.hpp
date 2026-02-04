@@ -168,8 +168,8 @@ private:
 
 	Texture source_texture_;
 	TextureTarget composition_buffer_;
-	TextureTarget separated_buffer_;
-	TextureTarget demodulated_buffer_;
+	TextureTarget separation_buffer_;
+	TextureTarget demodulation_buffer_;
 	TextureTarget output_buffer_;
 
 	Shader composition_shader_;
