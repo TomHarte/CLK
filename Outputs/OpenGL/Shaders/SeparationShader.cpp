@@ -122,7 +122,7 @@ void main(void) {
 		filterCoefficients[30] * texture(source, coordinates[30]).x;
 
 	outputColour = vec4(
-		coordinates[15], 0.0, 1.0);
+		1.0, 1.0, 0.0, 1.0);
 //		channels.x,
 //		channels.y * centre.yz,
 //		1.0
@@ -157,12 +157,11 @@ OpenGL::Shader OpenGL::separation_shader(
 	//
 	DirtyZone zone;
 	vertex_array.bind_all();
-	const auto enable = [&](const std::string &name, auto &element) {
-		assert(sizeof(element) == 2);
+	const auto enable = [&](const std::string &name, uint16_t &element) {
 		shader.enable_vertex_attribute_with_pointer(
 			name,
 			1,
-			sizeof(element) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE,
+			GL_UNSIGNED_SHORT,
 			GL_FALSE,
 			sizeof(DirtyZone),
 			reinterpret_cast<void *>((reinterpret_cast<uint8_t *>(&element) - reinterpret_cast<uint8_t *>(&zone))),
