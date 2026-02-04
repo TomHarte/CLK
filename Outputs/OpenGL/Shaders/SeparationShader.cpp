@@ -120,11 +120,10 @@ void main(void) {
 		filterCoefficients[30] * texture(source, coordinates[30]).x;
 
 	outputColour = vec4(
-		coordinates[15], 0.0, 1.0);
-//		channels.x,
-//		channels.y * centre.yz,
-//		1.0
-//	);
+		channels.x,
+		channels.y * centre.yz,
+		1.0
+	);
 }
 
 )glsl";
