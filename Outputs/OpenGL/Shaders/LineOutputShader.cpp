@@ -37,8 +37,8 @@ void main(void) {
 
 	coordinate = vec2(
 		mix(
-			lineEndpoint0CyclesSinceRetrace,
-			lineEndpoint1CyclesSinceRetrace,
+			0.0, //lineEndpoint0CyclesSinceRetrace,
+			sourceSize.x, //lineEndpoint1CyclesSinceRetrace,
 			lateral
 		),
 		lineLine + 0.5
@@ -50,12 +50,12 @@ void main(void) {
 	vec2 centre =
 		mix(
 			lineEndpoint0Position,
-			lineEndpoint1Position,
+			lineEndpoint1Position, 
 			lateral
 		) / positionScale;
 	gl_Position =
 		vec4(
-			centre + (longitudinal - 0.5) * normal,
+			centre + (longitudinal - 0.5) * normal * lineHeight,
 			0.0,
 			1.0
 		);
@@ -111,8 +111,8 @@ OpenGL::Shader OpenGL::line_output_shader(
 		);
 	};
 	enable("lineEndpoint0Position", line.end_points[0].x, 2);
-	enable("lineEndpoint0CyclesSinceRetrace", line.end_points[0].cycles_since_end_of_horizontal_retrace, 1);
 	enable("lineEndpoint1Position", line.end_points[1].x, 2);
+	enable("lineEndpoint0CyclesSinceRetrace", line.end_points[0].cycles_since_end_of_horizontal_retrace, 1);
 	enable("lineEndpoin10CyclesSinceRetrace", line.end_points[1].cycles_since_end_of_horizontal_retrace, 1);
 	enable("lineLine", line.line, 1);
 

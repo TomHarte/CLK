@@ -418,6 +418,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			GL_NEAREST,
 			false	// TODO: should probably be true, if I'm going to use stencil (?)
 		);
+//		fill_random(output_buffer_);
 	}
 
 	// Grab the new output list.
@@ -681,14 +682,15 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			}
 
 			// Submit new lines.
-			lines_.bind_buffer();
+			lines_.bind_all();
 			size_t buffer_destination = 0;
 			const auto submit = [&](const size_t begin, const size_t end) {
+				const auto size = (end - begin) * sizeof(Line);
 				test_gl([&]{
 					glBufferSubData(
 						GL_ARRAY_BUFFER,
 						buffer_destination,
-						(end - begin) * sizeof(Line),
+						size,
 						&line_buffer_[begin]
 					);
 				});
