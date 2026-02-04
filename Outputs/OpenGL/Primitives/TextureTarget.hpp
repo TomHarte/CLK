@@ -41,6 +41,9 @@ public:
 	TextureTarget(TextureTarget &&);
 	TextureTarget &operator =(TextureTarget &&);
 
+	TextureTarget(const TextureTarget &) = delete;
+	TextureTarget &operator =(const TextureTarget &) = delete;
+
 	/*!
 		Binds this target as a framebuffer and sets the @c glViewport accordingly.
 	*/
@@ -67,6 +70,10 @@ public:
 
 	bool empty() const {
 		return framebuffer_ == 0;
+	}
+
+	void reset() {
+		*this = TextureTarget();
 	}
 
 	/*!

@@ -314,7 +314,7 @@ void ScanTarget::setup_pipeline() {
 				CompositionTextureUnit
 			);
 		} else {
-			separation_shader_ = OpenGL::Shader();
+			separation_shader_.reset();
 		}
 
 		if(is_composite(modals.display_type) || is_svideo(modals.display_type)) {
@@ -328,7 +328,7 @@ void ScanTarget::setup_pipeline() {
 				is_svideo(modals.display_type) ? CompositionTextureUnit : SeparationTextureUnit
 			);
 		} else {
-			demodulation_shader_ = OpenGL::Shader();
+			demodulation_shader_.reset();
 		}
 	}
 
@@ -346,7 +346,7 @@ void ScanTarget::setup_pipeline() {
 				false
 			);
 		} else {
-			separation_buffer_ = TextureTarget();
+			separation_buffer_.reset();
 		}
 
 		if(is_composite(modals.display_type) || is_svideo(modals.display_type)) {
@@ -359,7 +359,7 @@ void ScanTarget::setup_pipeline() {
 				false
 			);
 		} else {
-			demodulation_buffer_ = TextureTarget();
+			demodulation_buffer_.reset();
 		}
 	}
 

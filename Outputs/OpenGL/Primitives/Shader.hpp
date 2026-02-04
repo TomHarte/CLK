@@ -69,6 +69,9 @@ public:
 	Shader &operator =(Shader &&);
 	Shader() = default;
 
+	Shader(const Shader&) = delete;
+	Shader &operator =(const Shader &) = delete;
+
 	/*!
 		Performs an @c glUseProgram to make this the active shader unless:
 			(i) it was the previous shader bound; and
@@ -147,6 +150,10 @@ public:
 
 	bool empty() const {
 		return shader_program_ == 0;
+	}
+
+	void reset() {
+		*this = Shader();
 	}
 
 private:
