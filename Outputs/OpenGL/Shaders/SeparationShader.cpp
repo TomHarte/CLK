@@ -75,6 +75,7 @@ void main(void) {
 )glsl";
 
 constexpr char separation_fragment_shader[] = R"glsl(
+#define KernelCentre 15
 
 uniform lowp sampler2D source;
 uniform lowp vec2 filterCoefficients[31];
@@ -85,45 +86,26 @@ out lowp vec4 outputColour;
 
 void main(void) {
 	vec4 centre = texture(source, coordinates[15]);
-	
+#define Sample(x) \
+	texture(source, coordinates[x]).r * filterCoefficients[x > KernelCentre ? KernelCentre - (x - KernelCentre) : x]
+
+	vec2 channels =
+		Sample(0) +		Sample(1) +		Sample(2) +		Sample(3) +
+		Sample(4) +		Sample(5) +		Sample(6) +		Sample(7) +
+		Sample(8) +		Sample(9) +		Sample(10) +	Sample(11) +
+		Sample(12) +	Sample(13) +	Sample(14) +
+		filterCoefficients[15] * centre.x +
+		Sample(16) +	Sample(17) +	Sample(18) +
+		Sample(19) +	Sample(20) +	Sample(21) +	Sample(22) +
+		Sample(23) +	Sample(24) +	Sample(25) +	Sample(26) +
+		Sample(27) +	Sample(28) +	Sample(29) +	Sample(30);
+
+#undef Sample
+
 	lowp float colourAmplitude = centre.a;
 	lowp float isColour = step(0.01, colourAmplitude);
 	lowp float chromaScale = mix(1.0, colourAmplitude, isColour);
 	lowp float lumaScale = mix(1.0, 1.0 - colourAmplitude * 2.0, isColour);
-
-	vec2 channels =
-		filterCoefficients[0] * texture(source, coordinates[0]).x +
-		filterCoefficients[1] * texture(source, coordinates[1]).x +
-		filterCoefficients[2] * texture(source, coordinates[2]).x +
-		filterCoefficients[3] * texture(source, coordinates[3]).x +
-		filterCoefficients[4] * texture(source, coordinates[4]).x +
-		filterCoefficients[5] * texture(source, coordinates[5]).x +
-		filterCoefficients[6] * texture(source, coordinates[6]).x +
-		filterCoefficients[7] * texture(source, coordinates[7]).x +
-		filterCoefficients[8] * texture(source, coordinates[8]).x +
-		filterCoefficients[9] * texture(source, coordinates[9]).x +
-		filterCoefficients[10] * texture(source, coordinates[10]).x +
-		filterCoefficients[11] * texture(source, coordinates[11]).x +
-		filterCoefficients[12] * texture(source, coordinates[12]).x +
-		filterCoefficients[13] * texture(source, coordinates[13]).x +
-		filterCoefficients[14] * texture(source, coordinates[14]).x +
-		filterCoefficients[15] * centre.x +
-		filterCoefficients[16] * texture(source, coordinates[16]).x +
-		filterCoefficients[17] * texture(source, coordinates[17]).x +
-		filterCoefficients[18] * texture(source, coordinates[18]).x +
-		filterCoefficients[19] * texture(source, coordinates[19]).x +
-		filterCoefficients[20] * texture(source, coordinates[20]).x +
-		filterCoefficients[21] * texture(source, coordinates[21]).x +
-		filterCoefficients[22] * texture(source, coordinates[22]).x +
-		filterCoefficients[23] * texture(source, coordinates[23]).x +
-		filterCoefficients[24] * texture(source, coordinates[24]).x +
-		filterCoefficients[25] * texture(source, coordinates[25]).x +
-		filterCoefficients[26] * texture(source, coordinates[26]).x +
-		filterCoefficients[27] * texture(source, coordinates[27]).x +
-		filterCoefficients[28] * texture(source, coordinates[28]).x +
-		filterCoefficients[29] * texture(source, coordinates[29]).x +
-		filterCoefficients[30] * texture(source, coordinates[30]).x;
-
 	outputColour = vec4(
 		(channels.x - colourAmplitude) / lumaScale,
 		isColour * channels.y * centre.yz + vec2(0.5),
@@ -133,6 +115,44 @@ void main(void) {
 
 )glsl";
 
+constexpr char demodulation_fragment_shader[] = R"glsl(
+#define KernelCentre 15
+
+uniform lowp sampler2D source;
+uniform lowp vec3 filterCoefficients[31];
+uniform lowp mat3 toRGB;
+
+in mediump vec2 coordinates[31];
+
+out lowp vec4 outputColour;
+
+void main(void) {
+	vec4 centre = texture(source, coordinates[15]);
+	
+#define Sample(x) \
+	(texture(source, coordinates[x]).rgb - vec3(0.0, 0.5, 0.5) *	\
+	filterCoefficients[x > KernelCentre ? KernelCentre - (x - KernelCentre) : x]
+
+	vec3 channels =
+		Sample(0) +		Sample(1) +		Sample(2) +		Sample(3) +
+		Sample(4) +		Sample(5) +		Sample(6) +		Sample(7) +
+		Sample(8) +		Sample(9) +		Sample(10) +	Sample(11) +
+		Sample(12) +	Sample(13) +	Sample(14) +
+		filterCoefficients[15] * centre.x +
+		Sample(16) +	Sample(17) +	Sample(18) +
+		Sample(19) +	Sample(20) +	Sample(21) +	Sample(22) +
+		Sample(23) +	Sample(24) +	Sample(25) +	Sample(26) +
+		Sample(27) +	Sample(28) +	Sample(29) +	Sample(30);
+
+#undef Sample
+
+	outputColour = vec4(
+		toRGB * channels
+		1.0
+	);
+}
+
+)glsl";
 }
 
 
@@ -161,6 +181,19 @@ void enable_vertex_attributes(
 	enable("zoneEnd", zone.end);
 }
 
+template <size_t> struct FilterElement;
+template <> struct FilterElement<2> {
+	void set_luma(const float luma) { x = luma; }
+	void set_chroma(const float chroma) { y = chroma; }
+	float x, y;
+};
+template <> struct FilterElement<3> {
+	void set_luma(const float luma) { x = luma; }
+	void set_chroma(const float chroma) { y = z = chroma; }
+	float x, y, z;
+};
+
+template <size_t FilterSize>
 void set_common_uniforms(
 	OpenGL::Shader &shader,
 	const int samples_per_line,
@@ -177,27 +210,23 @@ void set_common_uniforms(
 	shader.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
 
 	// Zip and provide the filter coefficients.
-	struct FilterElement {
-		float x, y;
-	};
-
 	static_assert(FilterGenerator::MaxKernelSize <= 31);
-	FilterElement elements[31]{};
+	FilterElement<FilterSize> elements[31]{};
 	filter.luma.copy_to(std::begin(elements), std::end(elements),
 		[](const auto iterator, const float coefficient) {
-			iterator->x = coefficient;
+			iterator->set_luma(coefficient);
 		}
 	);
 	filter.chroma.copy_to(std::begin(elements), std::end(elements),
 		[](const auto iterator, const float coefficient) {
-			iterator->y = coefficient;
+			iterator->set_chroma(coefficient);
 		}
 	);
 
-	float packaged_elements[31 * 2];
+	float packaged_elements[31 * FilterSize];
 	static_assert(sizeof(packaged_elements) == sizeof(elements));
 	std::memcpy(packaged_elements, elements, sizeof(elements));
-	shader.set_uniform("filterCoefficients", 2, 31, packaged_elements);
+	shader.set_uniform("filterCoefficients", FilterSize, 31, packaged_elements);
 }
 
 }
@@ -219,7 +248,7 @@ OpenGL::Shader OpenGL::separation_shader(
 	);
 
 	enable_vertex_attributes(shader, vertex_array);
-	set_common_uniforms(
+	set_common_uniforms<2>(
 		shader,
 		samples_per_line,
 		buffer_width,
@@ -231,6 +260,40 @@ OpenGL::Shader OpenGL::separation_shader(
 			FilterGenerator::DecodingPath::Composite
 		).separation_filter()
 	);
+
+	return shader;
+}
+
+OpenGL::Shader OpenGL::demodulation_shader(
+	const OpenGL::API api,
+	const ColourSpace colour_space,
+	const float per_line_subcarrier_frequency,
+	const int samples_per_line,
+	const int buffer_width,
+	const int buffer_height,
+	const VertexArray &vertex_array,
+	const GLenum source_texture_unit
+) {
+	auto shader = OpenGL::Shader(
+		api,
+		vertex_shader,
+		demodulation_fragment_shader,
+		dirty_zone_attributes()
+	);
+	enable_vertex_attributes(shader, vertex_array);
+	set_common_uniforms<3>(
+		shader,
+		samples_per_line,
+		buffer_width,
+		buffer_height,
+		source_texture_unit,
+		FilterGenerator(
+			samples_per_line,
+			per_line_subcarrier_frequency,
+			FilterGenerator::DecodingPath::Composite
+		).demouldation_filter()
+	);
+	shader.set_uniform_matrix("toRGB", 3, false, to_rgb_matrix(colour_space).data());
 
 	return shader;
 }
