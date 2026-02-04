@@ -41,7 +41,7 @@ void main(void) {
 			lineEndpoint1CyclesSinceRetrace,
 			lateral
 		),
-		lineLine + 0.5
+		sourceSize.y - lineLine - 0.5
 	) / sourceSize;
 
 	vec2 tangent = normalize(lineEndpoint1Position - lineEndpoint0Position);
@@ -55,7 +55,7 @@ void main(void) {
 		) / positionScale;
 	gl_Position =
 		vec4(
-			(centre + (longitudinal - 0.5) * normal * lineHeight) * vec2(2.0) - vec2(1.0),
+			(centre + (longitudinal - 0.5) * normal * lineHeight) * vec2(2.0, -2.0) + vec2(-1.0, 1.0),
 			0.0,
 			1.0
 		) ;

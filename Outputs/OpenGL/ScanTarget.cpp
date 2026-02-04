@@ -368,7 +368,7 @@ void ScanTarget::setup_pipeline() {
 				buffer_width,
 				LineBufferHeight,
 				DemodulationTextureUnit,
-				GL_NEAREST,
+				GL_LINEAR,
 				false
 			);
 		} else {
