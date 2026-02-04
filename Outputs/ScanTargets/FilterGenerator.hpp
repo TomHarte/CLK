@@ -57,11 +57,11 @@ public:
 
 	/// A pair of filters to separate luminance and chrominance from an input of composite scalars.
 	/// Chrominance returned remains QAM encoded.
-	FilterPair separation_filter();
+	FilterPair separation_filter() const;
 
 	/// Pairs a post-demodulation filter to apply to the chrominance channels after the trigonmetric part of
 	/// QAM demodulation, to either a passthrough or a sharpen on luminance.
-	FilterPair demouldation_filter();
+	FilterPair demouldation_filter() const;
 
 private:
 	float samples_per_line_;

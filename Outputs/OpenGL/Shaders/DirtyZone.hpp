@@ -6,6 +6,8 @@
 //  Copyright © 2026 Thomas Harte. All rights reserved.
 //
 
+#include <cstdint>
+
 namespace Outputs::Display::OpenGL {
 
 /*!
@@ -13,8 +15,8 @@ namespace Outputs::Display::OpenGL {
 	its horizontal bounds are not dynamic.
 */
 struct DirtyZone {
-	int begin;
-	int end;
+	uint16_t begin;
+	uint16_t end;
 };
 
 }

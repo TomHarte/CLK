@@ -13,6 +13,7 @@
 #include "Outputs/ScanTargets/FilterGenerator.hpp"
 #include "Outputs/OpenGL/Shaders/CompositionShader.hpp"
 #include "Outputs/OpenGL/Shaders/CopyShader.hpp"
+#include "Outputs/OpenGL/Shaders/SeparationShader.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -56,8 +57,14 @@ constexpr GLenum AccumulationTextureUnit = GL_TEXTURE3;
 /// Contains the initial composition of scans into lines.
 constexpr GLenum CompositionTextureUnit = GL_TEXTURE4;
 
-/// The texture unit that contains the current display.
-constexpr GLenum OutputTextureUnit = GL_TEXTURE5;
+/// If the input data was composite, contains separated  luma/chroma.
+constexpr GLenum SeparationTextureUnit = GL_TEXTURE5;
+
+/// If the input data was S-Video or composite, contains a fully decoded RGB image.
+constexpr GLenum RGBTextureUnit = GL_TEXTURE6;
+
+/// Contains the current display.
+constexpr GLenum OutputTextureUnit = GL_TEXTURE7;
 
 using Logger = Log::Logger<Log::Source::OpenGL>;
 
@@ -306,6 +313,21 @@ void ScanTarget::setup_pipeline() {
 			buffer_width, 2048,
 			scans_,
 			GL_TEXTURE0
+		);
+	}
+
+	if(
+		!existing_modals_ ||
+		modals.cycles_per_line != existing_modals_->cycles_per_line ||
+		subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
+	) {
+		separation_shader_ = OpenGL::separation_shader(
+			api_,
+			subcarrier_frequency(modals),
+			sample_multiplier * modals.cycles_per_line,
+			buffer_width, 2048,
+			dirty_zones_,
+			CompositionTextureUnit
 		);
 	}
 

@@ -161,16 +161,20 @@ private:
 	//
 	// NEW PIPELINE. Starts here.
 	//
-	// TODO: consider arrangement; eliminate old display pipeline above.
-	Texture source_texture_;
-	VertexArray scans_;
-	TextureTarget composition_buffer_;
-	TextureTarget output_buffer_;
-	Shader composition_shader_;
-	CopyShader copy_shader_;
-
 	std::array<DirtyZone, 2> dirty_zones_buffer_;
+
+	VertexArray scans_;
 	VertexArray dirty_zones_;
+
+	Texture source_texture_;
+	TextureTarget composition_buffer_;
+	TextureTarget separated_buffer_;
+	TextureTarget demodulated_buffer_;
+	TextureTarget output_buffer_;
+
+	Shader composition_shader_;
+	Shader separation_shader_;
+	CopyShader copy_shader_;
 };
 
 }

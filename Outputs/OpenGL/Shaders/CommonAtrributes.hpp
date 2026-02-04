@@ -14,7 +14,7 @@
 namespace Outputs::Display::OpenGL {
 
 /*!
-	The named attributes shared by the union of all shaders that consume Scans.
+	The union of all named attributes used by shaders that consume Scans.
 */
 inline std::vector<std::string> scan_attributes() {
 	return std::vector<std::string>{
@@ -23,5 +23,13 @@ inline std::vector<std::string> scan_attributes() {
 		"scanDataY"
 	};
 };
+
+/*!
+	The union of all named attributes used by shaders that consume Dirtyones.
+*/
+inline std::vector<std::string> dirty_zone_attributes() {
+	return std::vector<std::string>{
+	};
+}
 
 }

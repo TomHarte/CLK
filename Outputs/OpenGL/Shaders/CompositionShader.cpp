@@ -6,9 +6,9 @@
 //  Copyright © 2026 Thomas Harte. All rights reserved.
 //
 
-#include "CommonAtrributes.hpp"
 #include "CompositionShader.hpp"
 
+#include "CommonAtrributes.hpp"
 #include "Outputs/ScanTargets/BufferingScanTarget.hpp"
 
 namespace {
@@ -118,7 +118,7 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_LUMINANCE1
 
-	uniform sampler2D source;
+	uniform lowp sampler2D source;
 
 	lowp vec4 sample_composite() {
 		return vec4(
@@ -134,7 +134,7 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_LUMINANCE8
 
-	uniform sampler2D source;
+	uniform lowp sampler2D source;
 
 	lowp vec4 sample_composite() {
 		return vec4(
@@ -150,7 +150,7 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_PHASE_LINKED_LUMINANCE8
 
-	uniform sampler2D source;
+	uniform lowp sampler2D source;
 
 	lowp vec4 sample_composite() {
 		vec4 source = texture(source, coordinate);
@@ -168,7 +168,7 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_LUMINANCE8_PHASE8
 
-	uniform sampler2D source;
+	uniform lowp sampler2D source;
 	#define SYNTHESISE_COMPOSITE
 
 	lowp vec4 sample_svideo() {
@@ -189,7 +189,7 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_RED1_GREEN1_BLUE1
 
-	uniform usampler2D source;
+	uniform lowp usampler2D source;
 	#define SYNTHESISE_SVIDEO
 	#define SYNTHESISE_COMPOSITE
 
@@ -204,7 +204,7 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_RED2_GREEN2_BLUE2
 
-	uniform usampler2D source;
+	uniform lowp usampler2D source;
 	#define SYNTHESISE_SVIDEO
 	#define SYNTHESISE_COMPOSITE
 
@@ -223,7 +223,7 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_RED4_GREEN4_BLUE4
 
-	uniform usampler2D source;
+	uniform lowp usampler2D source;
 	#define SYNTHESISE_SVIDEO
 	#define SYNTHESISE_COMPOSITE
 
@@ -242,7 +242,7 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_RED8_GREEN8_BLUE8
 
-	uniform sampler2D source;
+	uniform lowp sampler2D source;
 	#define SYNTHESISE_SVIDEO
 	#define SYNTHESISE_COMPOSITE
 

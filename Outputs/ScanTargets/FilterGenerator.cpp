@@ -26,7 +26,7 @@ float FilterGenerator::radians_per_sample() const {
 	return std::numbers::pi_v<float> * 2.0f * subcarrier_frequency_ / samples_per_line_;
 }
 
-FilterGenerator::FilterPair FilterGenerator::separation_filter() {
+FilterGenerator::FilterPair FilterGenerator::separation_filter() const {
 	FilterPair result{};
 
 	// Luminance.
@@ -65,7 +65,7 @@ FilterGenerator::FilterPair FilterGenerator::separation_filter() {
 	return result;
 }
 
-FilterGenerator::FilterPair FilterGenerator::demouldation_filter() {
+FilterGenerator::FilterPair FilterGenerator::demouldation_filter() const {
 	FilterPair result{};
 
 	// Don't filter luminance at all.

@@ -153,7 +153,7 @@ public:
 		FuncT &&applier
 	) const {
 		auto dest = begin;
-		auto src = coefficients_.begin();
+		auto src = coefficients_.cbegin();
 
 		const auto destination_size = size_t(std::distance(begin, end));
 		if(destination_size <= coefficients_.size()) {
