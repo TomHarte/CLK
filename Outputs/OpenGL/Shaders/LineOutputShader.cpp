@@ -37,8 +37,8 @@ void main(void) {
 
 	coordinate = vec2(
 		mix(
-			0.0, //lineEndpoint0CyclesSinceRetrace,
-			sourceSize.x, //lineEndpoint1CyclesSinceRetrace,
+			lineEndpoint0CyclesSinceRetrace,
+			lineEndpoint1CyclesSinceRetrace,
 			lateral
 		),
 		lineLine + 0.5
@@ -84,6 +84,7 @@ OpenGL::Shader OpenGL::line_output_shader(
 	const API api,
 	const int source_width,
 	const int source_height,
+	const float cycle_multiplier,
 	const int expected_vertical_lines,
 	const int scale_x,
 	const int scale_y,
@@ -113,12 +114,12 @@ OpenGL::Shader OpenGL::line_output_shader(
 	enable("lineEndpoint0Position", line.end_points[0].x, 2);
 	enable("lineEndpoint1Position", line.end_points[1].x, 2);
 	enable("lineEndpoint0CyclesSinceRetrace", line.end_points[0].cycles_since_end_of_horizontal_retrace, 1);
-	enable("lineEndpoin10CyclesSinceRetrace", line.end_points[1].cycles_since_end_of_horizontal_retrace, 1);
+	enable("lineEndpoint1CyclesSinceRetrace", line.end_points[1].cycles_since_end_of_horizontal_retrace, 1);
 	enable("lineLine", line.line, 1);
 
 	shader.set_uniform("lineHeight", 1.0f / float(expected_vertical_lines));
 	shader.set_uniform("positionScale", float(scale_x), float(scale_y));
-	shader.set_uniform("sourceSize", float(source_width), float(source_height));
+	shader.set_uniform("sourceSize", float(source_width) / cycle_multiplier, float(source_height));
 	shader.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
 
 	return shader;

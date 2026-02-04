@@ -333,6 +333,7 @@ void ScanTarget::setup_pipeline() {
 			line_output_shader_ = OpenGL::line_output_shader(
 				api_,
 				buffer_width, 2048,
+				sample_multiplier,
 				modals.expected_vertical_lines,
 				modals.output_scale.x, modals.output_scale.y,
 				lines_,

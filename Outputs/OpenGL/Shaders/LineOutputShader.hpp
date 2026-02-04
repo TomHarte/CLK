@@ -20,6 +20,7 @@ Shader line_output_shader(
 	API,
 	int source_width,
 	int source_height,
+	float cycle_multiplier,
 	int expected_vertical_lines,
 	int scale_x,
 	int scale_y,
