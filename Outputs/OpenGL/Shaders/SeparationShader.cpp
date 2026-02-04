@@ -85,6 +85,11 @@ out lowp vec4 outputColour;
 
 void main(void) {
 	vec4 centre = texture(source, coordinates[15]);
+	
+	lowp float colourAmplitude = centre.a;
+	lowp float isColour = step(0.01, colourAmplitude);
+	lowp float chromaScale = mix(1.0, colourAmplitude, isColour);
+	lowp float lumaScale = mix(1.0, 1.0 - colourAmplitude * 2.0, isColour);
 
 	vec2 channels =
 		filterCoefficients[0] * texture(source, coordinates[0]).x +
@@ -120,8 +125,8 @@ void main(void) {
 		filterCoefficients[30] * texture(source, coordinates[30]).x;
 
 	outputColour = vec4(
-		channels.x,
-		channels.y * centre.yz,
+		(channels.x - colourAmplitude) / lumaScale,
+		isColour * channels.y * centre.yz + vec2(0.5),
 		1.0
 	);
 }
