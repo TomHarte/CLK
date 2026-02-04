@@ -39,4 +39,15 @@ Shader separation_shader(
 	GLenum source_texture_unit
 );
 
+Shader demodulation_shader(
+	API,
+	ColourSpace,
+	float per_line_subcarrier_frequency,
+	int samples_per_line,
+	int buffer_width,
+	int buffer_height,
+	const VertexArray &,
+	GLenum source_texture_unit
+);
+
 }

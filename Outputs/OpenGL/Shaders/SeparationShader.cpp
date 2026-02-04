@@ -74,7 +74,7 @@ void main(void) {
 
 )glsl";
 
-constexpr char fragment_shader[] = R"glsl(
+constexpr char separation_fragment_shader[] = R"glsl(
 
 uniform lowp sampler2D source;
 uniform lowp vec2 filterCoefficients[31];
@@ -138,26 +138,13 @@ void main(void) {
 
 using namespace Outputs::Display;
 
-OpenGL::Shader OpenGL::separation_shader(
-	const OpenGL::API api,
-	const float per_line_subcarrier_frequency,
-	const int samples_per_line,
-	const int buffer_width,
-	const int buffer_height,
-	const VertexArray &vertex_array,
-	const GLenum source_texture_unit
-) {
-	auto shader = OpenGL::Shader(
-		api,
-		vertex_shader,
-		fragment_shader,
-		dirty_zone_attributes()
-	);
+namespace {
 
-	//
-	// Enable vertex attributes.
-	//
-	DirtyZone zone;
+void enable_vertex_attributes(
+	OpenGL::Shader &shader,
+	const OpenGL::VertexArray &vertex_array
+) {
+	OpenGL::DirtyZone zone;
 	vertex_array.bind_all();
 	const auto enable = [&](const std::string &name, uint16_t &element) {
 		shader.enable_vertex_attribute_with_pointer(
@@ -165,14 +152,23 @@ OpenGL::Shader OpenGL::separation_shader(
 			1,
 			GL_UNSIGNED_SHORT,
 			GL_FALSE,
-			sizeof(DirtyZone),
+			sizeof(zone),
 			reinterpret_cast<void *>((reinterpret_cast<uint8_t *>(&element) - reinterpret_cast<uint8_t *>(&zone))),
 			1
 		);
 	};
 	enable("zoneBegin", zone.begin);
 	enable("zoneEnd", zone.end);
+}
 
+void set_common_uniforms(
+	OpenGL::Shader &shader,
+	const int samples_per_line,
+	const int buffer_width,
+	const int buffer_height,
+	const GLenum source_texture_unit,
+	const FilterGenerator::FilterPair filter
+) {
 	//
 	// Set uniforms.
 	//
@@ -181,11 +177,6 @@ OpenGL::Shader OpenGL::separation_shader(
 	shader.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
 
 	// Zip and provide the filter coefficients.
-	const auto filter = FilterGenerator(
-		samples_per_line,
-		per_line_subcarrier_frequency,
-		FilterGenerator::DecodingPath::Composite
-	).separation_filter();
 	struct FilterElement {
 		float x, y;
 	};
@@ -207,6 +198,39 @@ OpenGL::Shader OpenGL::separation_shader(
 	static_assert(sizeof(packaged_elements) == sizeof(elements));
 	std::memcpy(packaged_elements, elements, sizeof(elements));
 	shader.set_uniform("filterCoefficients", 2, 31, packaged_elements);
+}
+
+}
+
+OpenGL::Shader OpenGL::separation_shader(
+	const OpenGL::API api,
+	const float per_line_subcarrier_frequency,
+	const int samples_per_line,
+	const int buffer_width,
+	const int buffer_height,
+	const VertexArray &vertex_array,
+	const GLenum source_texture_unit
+) {
+	auto shader = OpenGL::Shader(
+		api,
+		vertex_shader,
+		separation_fragment_shader,
+		dirty_zone_attributes()
+	);
+
+	enable_vertex_attributes(shader, vertex_array);
+	set_common_uniforms(
+		shader,
+		samples_per_line,
+		buffer_width,
+		buffer_height,
+		source_texture_unit,
+		FilterGenerator(
+			samples_per_line,
+			per_line_subcarrier_frequency,
+			FilterGenerator::DecodingPath::Composite
+		).separation_filter()
+	);
 
 	return shader;
 }
