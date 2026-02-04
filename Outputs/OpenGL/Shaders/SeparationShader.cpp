@@ -130,7 +130,7 @@ void main(void) {
 	vec4 centre = texture(source, coordinates[15]);
 	
 #define Sample(x) \
-	(texture(source, coordinates[x]).rgb - vec3(0.0, 0.5, 0.5) *	\
+	(texture(source, coordinates[x]).rgb - vec3(0.0, 0.5, 0.5)) *	\
 	filterCoefficients[x > KernelCentre ? KernelCentre - (x - KernelCentre) : x]
 
 	vec3 channels =
@@ -147,7 +147,7 @@ void main(void) {
 #undef Sample
 
 	outputColour = vec4(
-		toRGB * channels
+		toRGB * channels,
 		1.0
 	);
 }

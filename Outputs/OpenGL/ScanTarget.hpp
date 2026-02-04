@@ -174,6 +174,7 @@ private:
 
 	Shader composition_shader_;
 	Shader separation_shader_;
+	Shader demodulation_shader_;
 	CopyShader copy_shader_;
 };
 

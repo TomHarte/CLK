@@ -60,8 +60,8 @@ constexpr GLenum CompositionTextureUnit = GL_TEXTURE4;
 /// If the input data was composite, contains separated  luma/chroma.
 constexpr GLenum SeparationTextureUnit = GL_TEXTURE5;
 
-/// If the input data was S-Video or composite, contains a fully decoded RGB image.
-constexpr GLenum RGBTextureUnit = GL_TEXTURE6;
+/// If the input data was S-Video or composite, contains a fully demodulated image.
+constexpr GLenum DemodulationTextureUnit = GL_TEXTURE6;
 
 /// Contains the current display.
 constexpr GLenum OutputTextureUnit = GL_TEXTURE7;
@@ -353,14 +353,32 @@ void ScanTarget::setup_pipeline() {
 		modals.cycles_per_line != existing_modals_->cycles_per_line ||
 		subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
 	) {
-		separation_shader_ = OpenGL::separation_shader(
-			api_,
-			subcarrier_frequency(modals),
-			sample_multiplier * modals.cycles_per_line,
-			buffer_width, 2048,
-			dirty_zones_,
-			CompositionTextureUnit
-		);
+		if(is_composite(modals.display_type)) {
+			separation_shader_ = OpenGL::separation_shader(
+				api_,
+				subcarrier_frequency(modals),
+				sample_multiplier * modals.cycles_per_line,
+				buffer_width, 2048,
+				dirty_zones_,
+				CompositionTextureUnit
+			);
+		} else {
+			separation_shader_ = OpenGL::Shader();
+		}
+
+		if(is_composite(modals.display_type) || is_svideo(modals.display_type)) {
+			demodulation_shader_ = OpenGL::demodulation_shader(
+				api_,
+				modals.composite_colour_space,
+				subcarrier_frequency(modals),
+				sample_multiplier * modals.cycles_per_line,
+				buffer_width, 2048,
+				dirty_zones_,
+				DemodulationTextureUnit
+			);
+		} else {
+			demodulation_shader_ = OpenGL::Shader();
+		}
 	}
 
 	if(
@@ -380,6 +398,21 @@ void ScanTarget::setup_pipeline() {
 			fill_random(separation_buffer_);
 		} else {
 			separation_buffer_ = TextureTarget();
+		}
+
+		if(is_composite(modals.display_type) || is_svideo(modals.display_type)) {
+			demodulation_buffer_ = TextureTarget(
+				api_,
+				buffer_width,
+				LineBufferHeight,
+				SeparationTextureUnit,
+				GL_NEAREST,
+				false
+			);
+
+			fill_random(demodulation_buffer_);
+		} else {
+			demodulation_buffer_ = TextureTarget();
 		}
 	}
 

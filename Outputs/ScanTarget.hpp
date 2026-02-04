@@ -193,6 +193,12 @@ enum class DisplayType {
 constexpr bool is_composite(const DisplayType type) {
 	return type == DisplayType::CompositeColour || type == DisplayType::CompositeMonochrome;
 }
+constexpr bool is_svideo(const DisplayType type) {
+	return type == DisplayType::SVideo;
+}
+constexpr bool is_rgb(const DisplayType type) {
+	return type == DisplayType::RGB;
+}
 
 /*!
 	Enumerates the potential formats of input data.
