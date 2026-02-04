@@ -12,6 +12,8 @@
 #include "DirtyZone.hpp"
 #include "Outputs/ScanTargets/FilterGenerator.hpp"
 
+#include <cstring>
+
 namespace {
 
 constexpr char vertex_shader[] = R"glsl(

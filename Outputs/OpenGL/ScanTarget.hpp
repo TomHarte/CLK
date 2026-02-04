@@ -161,7 +161,7 @@ private:
 	//
 	// NEW PIPELINE. Starts here.
 	//
-	std::array<DirtyZone, 2> dirty_zones_buffer_;
+	std::array<DirtyZone, 2> dirty_zones_buffer_{};
 
 	VertexArray scans_;
 	VertexArray dirty_zones_;
