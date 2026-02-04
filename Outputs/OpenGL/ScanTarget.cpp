@@ -667,6 +667,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				);
 			});
 
+			// Perform [composite/svideo] -> RGB conversion.
 			if(is_composite(existing_modals_->display_type)) {
 				separation_buffer_.bind_framebuffer();
 				separation_shader_.bind();
@@ -678,6 +679,34 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				demodulation_shader_.bind();
 				test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
 			}
+
+			// Submit new lines.
+			lines_.bind_buffer();
+			size_t buffer_destination = 0;
+			const auto submit = [&](const size_t begin, const size_t end) {
+				test_gl([&]{
+					glBufferSubData(
+						GL_ARRAY_BUFFER,
+						buffer_destination,
+						(end - begin) * sizeof(Line),
+						&line_buffer_[begin]
+					);
+				});
+				buffer_destination += (end - begin) * sizeof(Line);
+			};
+			if(area.start.line < area.end.line) {
+				submit(area.start.line, area.end.line);
+			} else {
+				submit(area.start.line, line_buffer_.size());
+				submit(0, area.end.line);
+			}
+
+			// Output new lines.
+			line_output_shader_.bind();
+			output_buffer_.bind_framebuffer();
+			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_lines)); });
+
+			// TODO: end-of-frame blanking of untouched areas.
 
 			//
 			// Old pipeline.
@@ -810,7 +839,8 @@ void ScanTarget::draw(int output_width, int output_height) {
 		// Copy the accumulation texture to the target.
 		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
 		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
-		copy_shader_.perform(DemodulationTextureUnit);
+		copy_shader_.perform(OutputTextureUnit);
+		// DemodulationTextureUnit
 	}
 
 	is_drawing_to_accumulation_buffer_.clear(std::memory_order_release);
