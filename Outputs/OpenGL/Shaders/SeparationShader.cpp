@@ -185,7 +185,9 @@ OpenGL::Shader OpenGL::separation_shader(
 	struct FilterElement {
 		float x, y;
 	};
-	FilterElement elements[31];
+
+	static_assert(FilterGenerator::MaxKernelSize <= 31);
+	FilterElement elements[31]{};
 	filter.luma.copy_to(std::begin(elements), std::end(elements),
 		[](const auto iterator, const float coefficient) {
 			iterator->x = coefficient;
