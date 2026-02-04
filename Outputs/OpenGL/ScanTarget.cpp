@@ -374,7 +374,7 @@ void ScanTarget::setup_pipeline() {
 				sample_multiplier * modals.cycles_per_line,
 				buffer_width, 2048,
 				dirty_zones_,
-				DemodulationTextureUnit
+				is_svideo(modals.display_type) ? CompositionTextureUnit : SeparationTextureUnit
 			);
 		} else {
 			demodulation_shader_ = OpenGL::Shader();
@@ -405,7 +405,7 @@ void ScanTarget::setup_pipeline() {
 				api_,
 				buffer_width,
 				LineBufferHeight,
-				SeparationTextureUnit,
+				DemodulationTextureUnit,
 				GL_NEAREST,
 				false
 			);
@@ -714,6 +714,12 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
 			}
 
+			if(is_composite(existing_modals_->display_type) || is_svideo(existing_modals_->display_type)) {
+				demodulation_buffer_.bind_framebuffer();
+				demodulation_shader_.bind();
+				test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
+			}
+
 			//
 			// Old pipeline.
 			//
@@ -845,7 +851,7 @@ void ScanTarget::draw(int output_width, int output_height) {
 		// Copy the accumulation texture to the target.
 		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
 		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
-		copy_shader_.perform(SeparationTextureUnit);	// 
+		copy_shader_.perform(DemodulationTextureUnit);
 	}
 
 	is_drawing_to_accumulation_buffer_.clear(std::memory_order_release);
