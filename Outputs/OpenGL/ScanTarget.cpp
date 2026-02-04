@@ -659,6 +659,12 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				dirty_zones_buffer_[1].end = area.end.line;
 			}
 
+			// TODO: the following establishes that _something_ isn't working with the dirty zones.
+			// They're probably mapping to the wrong areas?
+//			const int num_dirty_zones = 1;
+//			dirty_zones_buffer_[0].begin = 0;
+//			dirty_zones_buffer_[0].end = LineBufferHeight;
+
 			dirty_zones_.bind_all();
 			test_gl([&]{
 				glBufferSubData(
@@ -842,8 +848,8 @@ void ScanTarget::draw(int output_width, int output_height) {
 		// Copy the accumulation texture to the target.
 		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
 		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
-		copy_shader_.perform(OutputTextureUnit);
-		// DemodulationTextureUnit
+		copy_shader_.perform(OutputTextureUnit);	// OutputTextureUnit
+		// DemodulationTextureUnit	// CompositionTextureUnit
 	}
 
 	is_drawing_to_accumulation_buffer_.clear(std::memory_order_release);
