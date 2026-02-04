@@ -22,11 +22,6 @@
 
 using namespace Outputs::Display::OpenGL;
 
-#ifndef NDEBUG
-//#define LOG_LINES
-//#define LOG_SCANS
-#endif
-
 namespace {
 
 /// The texture unit from which to source input data.
@@ -150,50 +145,6 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 
 	// Establish initial state for is_drawing_to_accumulation_buffer_.
 	is_drawing_to_accumulation_buffer_.clear();
-
-
-	// TEST CODE. NOCOMMIT.
-//	const auto buffer_width = FilterGenerator::SuggestedBufferWidth;
-//	const float sample_multiplier =
-//		FilterGenerator::suggested_sample_multiplier(227.5f, 1320);
-//
-//	VertexArray va(scan_buffer_);
-//	for(auto &pair: {
-//		std::make_pair(InputDataType::Luminance1, DisplayType::CompositeColour),
-//		std::make_pair(InputDataType::Luminance8, DisplayType::CompositeColour),
-//		std::make_pair(InputDataType::PhaseLinkedLuminance8, DisplayType::CompositeColour),
-//
-//		std::make_pair(InputDataType::Luminance8Phase8, DisplayType::SVideo),
-//		std::make_pair(InputDataType::Luminance8Phase8, DisplayType::CompositeColour),
-//
-//		std::make_pair(InputDataType::Red1Green1Blue1, DisplayType::RGB),
-//		std::make_pair(InputDataType::Red1Green1Blue1, DisplayType::SVideo),
-//		std::make_pair(InputDataType::Red1Green1Blue1, DisplayType::CompositeColour),
-//
-//		std::make_pair(InputDataType::Red2Green2Blue2, DisplayType::RGB),
-//		std::make_pair(InputDataType::Red2Green2Blue2, DisplayType::SVideo),
-//		std::make_pair(InputDataType::Red2Green2Blue2, DisplayType::CompositeColour),
-//
-//		std::make_pair(InputDataType::Red4Green4Blue4, DisplayType::RGB),
-//		std::make_pair(InputDataType::Red4Green4Blue4, DisplayType::SVideo),
-//		std::make_pair(InputDataType::Red4Green4Blue4, DisplayType::CompositeColour),
-//
-//		std::make_pair(InputDataType::Red8Green8Blue8, DisplayType::RGB),
-//		std::make_pair(InputDataType::Red8Green8Blue8, DisplayType::SVideo),
-//		std::make_pair(InputDataType::Red8Green8Blue8, DisplayType::CompositeColour),
-//	}) {
-//		OpenGL::composition_shader(
-//			api,
-//			pair.first,
-//			pair.second,
-//			ColourSpace::YIQ,
-//			sample_multiplier,
-//			BufferingScanTarget::WriteAreaWidth, BufferingScanTarget::WriteAreaHeight,
-//			buffer_width, 2048,	// TODO: substitute real composition buffer sizes.
-//			va,
-//			GL_TEXTURE0
-//		).bind();
-//	}
 }
 
 ScanTarget::~ScanTarget() {
@@ -394,8 +345,6 @@ void ScanTarget::setup_pipeline() {
 				GL_NEAREST,
 				false
 			);
-
-			fill_random(separation_buffer_);
 		} else {
 			separation_buffer_ = TextureTarget();
 		}
@@ -409,8 +358,6 @@ void ScanTarget::setup_pipeline() {
 				GL_NEAREST,
 				false
 			);
-
-			fill_random(demodulation_buffer_);
 		} else {
 			demodulation_buffer_ = TextureTarget();
 		}
