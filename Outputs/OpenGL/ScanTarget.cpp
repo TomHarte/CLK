@@ -376,7 +376,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			output_buffer_height,
 			OutputTextureUnit,
 			GL_NEAREST,
-			false	// TODO: should probably be true, if I'm going to use stencil.
+			false	// TODO: should probably be true, if I'm going to use stencil (?)
 		);
 	}
 
@@ -599,8 +599,43 @@ void ScanTarget::update(const int output_width, const int output_height) {
 		}
 
 		// Figure out how many new lines are ready.
-		auto new_lines = (area.end.line - area.start.line + LineBufferHeight) % LineBufferHeight;
-		if(new_lines) {
+		if(area.end.line != area.start.line) {
+			auto new_lines = (area.end.line - area.start.line + LineBufferHeight) % LineBufferHeight;
+
+			//
+			// New pipeline.
+			//
+
+			// Populate dirty zones, and record quantity.
+			const auto num_dirty_zones = 1 + area.start.line >= area.end.line;
+			dirty_zones_buffer_[0].begin = area.start.line;
+			if(num_dirty_zones == 1) {
+				dirty_zones_buffer_[0].end = area.end.line;
+			} else {
+				dirty_zones_buffer_[0].end = LineBufferHeight;
+				dirty_zones_buffer_[1].begin = 0;
+				dirty_zones_buffer_[1].end = area.end.line;
+			}
+
+			dirty_zones_.bind_buffer();
+			test_gl([&]{
+				glBufferSubData(
+					GL_ARRAY_BUFFER,
+					0,
+					num_dirty_zones * sizeof(DirtyZone),
+					dirty_zones_buffer_.data()
+				);
+			});
+
+			if(is_composite(existing_modals_->display_type)) {
+				composition_shader_.bind();
+				test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
+			}
+
+			//
+			// Old pipeline.
+			//
+
 			// Prepare to output lines.
 			test_gl([&]{ glBindVertexArray(line_vertex_array_); });
 
@@ -728,7 +763,7 @@ void ScanTarget::draw(int output_width, int output_height) {
 		// Copy the accumulation texture to the target.
 		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
 		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
-		copy_shader_.perform(CompositionTextureUnit);
+		copy_shader_.perform(SeparationTextureUnit);	// CompositionTextureUnit
 	}
 
 	is_drawing_to_accumulation_buffer_.clear(std::memory_order_release);
