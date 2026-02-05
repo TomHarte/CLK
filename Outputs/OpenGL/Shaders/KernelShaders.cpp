@@ -16,6 +16,9 @@
 
 namespace {
 
+// TODO: limit below to 8 vec4 varyings; per my interpretation of the alignment rules I think that allows
+// 16 vec2 varyings. Spacing out the coordinates to provide suitable caching hints should avoid a significant penalty
+// for the other 'dependent' reads.
 constexpr char vertex_shader[] = R"glsl(
 
 uniform mediump float samplesPerLine;
@@ -30,7 +33,7 @@ void main(void) {
 	float lateral = float(gl_VertexID & 1);
 	float longitudinal = float((gl_VertexID & 2) >> 1);
 
-	float sampleY = mix(zoneBegin, zoneEnd, longitudinal);
+	float sampleY = bufferSize.y - mix(zoneBegin, zoneEnd, longitudinal);
 	float centreX = lateral * samplesPerLine;
 
 	coordinates[0] = vec2(centreX - 15.0, sampleY) / bufferSize;
@@ -48,7 +51,7 @@ void main(void) {
 	coordinates[12] = vec2(centreX - 3.0, sampleY) / bufferSize;
 	coordinates[13] = vec2(centreX - 2.0, sampleY) / bufferSize;
 	coordinates[14] = vec2(centreX - 1.0, sampleY) / bufferSize;
-	coordinates[15] = vec2(centreX + 0.0, sampleY) / bufferSize;
+	coordinates[15] = vec2(centreX + 0.0, sampleY) / bufferSize;	// Centre.
 	coordinates[16] = vec2(centreX + 1.0, sampleY) / bufferSize;
 	coordinates[17] = vec2(centreX + 2.0, sampleY) / bufferSize;
 	coordinates[18] = vec2(centreX + 3.0, sampleY) / bufferSize;
