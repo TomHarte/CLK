@@ -138,7 +138,7 @@ void main(void) {
 		Sample(4) +		Sample(5) +		Sample(6) +		Sample(7) +
 		Sample(8) +		Sample(9) +		Sample(10) +	Sample(11) +
 		Sample(12) +	Sample(13) +	Sample(14) +
-		filterCoefficients[15] * centre.x +
+		filterCoefficients[15] * (centre.rgb - vec3(0.0, 0.5, 0.5)) +
 		Sample(16) +	Sample(17) +	Sample(18) +
 		Sample(19) +	Sample(20) +	Sample(21) +	Sample(22) +
 		Sample(23) +	Sample(24) +	Sample(25) +	Sample(26) +

@@ -649,21 +649,21 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			//
 
 			// Populate dirty zones, and record quantity.
-			const int num_dirty_zones = 1 + (area.start.line >= area.end.line);
-			dirty_zones_buffer_[0].begin = area.start.line;
-			if(num_dirty_zones == 1) {
-				dirty_zones_buffer_[0].end = area.end.line;
-			} else {
-				dirty_zones_buffer_[0].end = LineBufferHeight;
-				dirty_zones_buffer_[1].begin = 0;
-				dirty_zones_buffer_[1].end = area.end.line;
-			}
+//			const int num_dirty_zones = 1 + (area.start.line >= area.end.line);
+//			dirty_zones_buffer_[0].begin = area.start.line;
+//			if(num_dirty_zones == 1) {
+//				dirty_zones_buffer_[0].end = area.end.line;
+//			} else {
+//				dirty_zones_buffer_[0].end = LineBufferHeight;
+//				dirty_zones_buffer_[1].begin = 0;
+//				dirty_zones_buffer_[1].end = area.end.line;
+//			}
 
 			// TODO: the following establishes that _something_ isn't working with the dirty zones.
 			// They're probably mapping to the wrong areas?
-//			const int num_dirty_zones = 1;
-//			dirty_zones_buffer_[0].begin = 0;
-//			dirty_zones_buffer_[0].end = LineBufferHeight;
+			const int num_dirty_zones = 1;
+			dirty_zones_buffer_[0].begin = 0;
+			dirty_zones_buffer_[0].end = LineBufferHeight;
 
 			dirty_zones_.bind_all();
 			test_gl([&]{
