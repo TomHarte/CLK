@@ -66,12 +66,13 @@ void main(void) {
 constexpr char fragment_shader[] = R"glsl(
 
 uniform lowp sampler2D source;
+uniform lowp float alpha;
 in mediump vec2 coordinate;
 
 out lowp vec4 outputColour;
 
 void main(void) {
-	outputColour = texture(source, coordinate);
+	outputColour = texture(source, coordinate) * vec4(1.0, 1.0, 1.0, alpha);
 }
 
 )glsl";
@@ -88,6 +89,7 @@ OpenGL::Shader OpenGL::line_output_shader(
 	const int expected_vertical_lines,
 	const int scale_x,
 	const int scale_y,
+	const float alpha,
 	const VertexArray &vertex_array,
 	const GLenum source_texture_unit
 ) {
@@ -117,10 +119,11 @@ OpenGL::Shader OpenGL::line_output_shader(
 	enable("lineEndpoint1CyclesSinceRetrace", line.end_points[1].cycles_since_end_of_horizontal_retrace, 1);
 	enable("lineLine", line.line, 1);
 
-	shader.set_uniform("lineHeight", 1.05f / float(expected_vertical_lines));
-	shader.set_uniform("positionScale", float(scale_x), float(scale_y));
-	shader.set_uniform("sourceSize", float(source_width) / cycle_multiplier, float(source_height));
+	shader.set_uniform("lineHeight", 1.05f / GLfloat(expected_vertical_lines));
+	shader.set_uniform("positionScale", GLfloat(scale_x), GLfloat(scale_y));
+	shader.set_uniform("sourceSize", GLfloat(source_width) / cycle_multiplier, GLfloat(source_height));
 	shader.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
+	shader.set_uniform("alpha", GLfloat(alpha));
 
 	return shader;
 }

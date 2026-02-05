@@ -244,6 +244,7 @@ void ScanTarget::setup_pipeline() {
 				modals.expected_vertical_lines,
 				modals.output_scale.x,
 				modals.output_scale.y,
+				0.64f,
 				lines_,
 				DemodulationTextureUnit
 			);
@@ -415,7 +416,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				output_buffer_height,
 				OutputTextureUnit,
 				GL_NEAREST,
-				false	// TODO: should probably be true, if I'm going to use stencil (?)
+				true
 			);
 		}
 
@@ -493,7 +494,9 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			// Output new lines.
 			line_output_shader_.bind();
 			output_buffer_.bind_framebuffer();
+			test_gl([&]{ glEnable(GL_BLEND); });
 			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_lines)); });
+			test_gl([&]{ glDisable(GL_BLEND); });
 
 			// TODO: end-of-frame blanking of untouched areas.
 

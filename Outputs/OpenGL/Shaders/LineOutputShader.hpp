@@ -24,6 +24,7 @@ Shader line_output_shader(
 	int expected_vertical_lines,
 	int scale_x,
 	int scale_y,
+	float alpha,
 	const VertexArray &,
 	GLenum source_texture_unit
 );
