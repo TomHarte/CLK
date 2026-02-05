@@ -298,7 +298,7 @@ lowp vec2 quadrature() {
 
 		return vec4(
 			colour.r,
-			chroma * q,
+			chroma * q * vec2(0.5) + vec2(0.5),
 			1.0
 		);
 	}
