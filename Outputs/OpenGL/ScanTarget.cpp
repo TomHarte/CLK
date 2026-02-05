@@ -190,8 +190,8 @@ void ScanTarget::setup_pipeline() {
 			modals.display_type,
 			modals.composite_colour_space,
 			sample_multiplier,
-			2048, 2048,
-			buffer_width, 2048,
+			WriteAreaWidth, WriteAreaHeight,
+			buffer_width, LineBufferHeight,
 			scans_,
 			GL_TEXTURE0
 		);
@@ -207,7 +207,7 @@ void ScanTarget::setup_pipeline() {
 				api_,
 				subcarrier_frequency(modals),
 				sample_multiplier * modals.cycles_per_line,
-				buffer_width, 2048,
+				buffer_width, LineBufferHeight,
 				dirty_zones_,
 				CompositionTextureUnit
 			);
@@ -222,14 +222,14 @@ void ScanTarget::setup_pipeline() {
 				modals.display_type,
 				subcarrier_frequency(modals),
 				sample_multiplier * modals.cycles_per_line,
-				buffer_width, 2048,
+				buffer_width, LineBufferHeight,
 				dirty_zones_,
 				is_svideo(modals.display_type) ? CompositionTextureUnit : SeparationTextureUnit
 			);
 
 			line_output_shader_ = OpenGL::line_output_shader(
 				api_,
-				buffer_width, 2048,
+				buffer_width, LineBufferHeight,
 				sample_multiplier,
 				modals.expected_vertical_lines,
 				modals.output_scale.x, modals.output_scale.y,
