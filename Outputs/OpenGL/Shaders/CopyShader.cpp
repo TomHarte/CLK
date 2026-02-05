@@ -45,7 +45,12 @@ void main(void) {
 #endif
 
 #ifdef APPLY_GAMMA
-	outputColour = pow(outputColour, gamma);
+	outputColour = vec4(
+		pow(outputColour.r, gamma),
+		pow(outputColour.g, gamma),
+		pow(outputColour.b, gamma),
+		1.0
+	);
 #endif
 }
 

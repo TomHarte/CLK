@@ -160,8 +160,19 @@ void ScanTarget::setup_pipeline() {
 			modals.cycles_per_line
 		);
 
-	if(copy_shader_.empty()) {
-		copy_shader_ = CopyShader(api_, {}, {});
+	if(
+		copy_shader_.empty() ||
+		!existing_modals_ ||
+		existing_modals_->brightness != modals.brightness ||
+		existing_modals_->intended_gamma != modals.intended_gamma
+	) {
+		copy_shader_ = CopyShader(
+			api_,
+			modals.brightness != 1.0f ? std::optional<float>(modals.brightness) : std::optional<float>(),
+			modals.intended_gamma != output_gamma_ ?
+				std::optional<float>(output_gamma_ / modals.intended_gamma) :
+				std::optional<float>()
+		);
 	}
 
 	if(composition_buffer_.empty()) {
