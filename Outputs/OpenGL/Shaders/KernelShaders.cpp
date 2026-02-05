@@ -108,7 +108,7 @@ void main(void) {
 	lowp float lumaScale = mix(1.0, 1.0 - colourAmplitude * 2.0, isColour);
 	outputColour = vec4(
 		(channels.x - colourAmplitude) / lumaScale,
-		isColour * channels.y * centre.yz + vec2(0.5),
+		isColour * channels.y * (centre.yz / chromaScale) + vec2(0.5),
 		1.0
 	);
 }
@@ -290,7 +290,7 @@ OpenGL::Shader OpenGL::demodulation_shader(
 		FilterGenerator(
 			samples_per_line,
 			per_line_subcarrier_frequency,
-			FilterGenerator::DecodingPath::Composite
+			FilterGenerator::DecodingPath::Composite	// TODO: pick appropriately.
 		).demouldation_filter()
 	);
 	shader.set_uniform_matrix("toRGB", 3, false, to_rgb_matrix(colour_space).data());
