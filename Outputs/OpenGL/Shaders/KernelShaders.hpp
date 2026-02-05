@@ -59,4 +59,25 @@ Shader demodulation_shader(
 	GLenum source_texture_unit
 );
 
+/*!
+	Fills a set of dirty rects with a fixed colour, supplied each time the shader is bound.
+*/
+class FillShader {
+public:
+	FillShader(
+		API,
+		int samples_per_line,
+		int buffer_width,
+		int buffer_height,
+		const VertexArray &
+	);
+	FillShader() = default;
+
+	void bind(float r, float g, float b, float a);
+
+private:
+	Shader shader_;
+	float colour_[4]{};
+};
+
 }

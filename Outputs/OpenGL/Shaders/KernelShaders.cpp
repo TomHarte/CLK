@@ -27,7 +27,9 @@ uniform mediump vec2 bufferSize;
 in mediump float zoneBegin;
 in mediump float zoneEnd;
 
+#ifdef USES_COORDINATES
 out mediump vec2 coordinates[31];
+#endif
 
 void main(void) {
 	float lateral = float(gl_VertexID & 1);
@@ -36,6 +38,7 @@ void main(void) {
 	float sampleY = bufferSize.y - mix(zoneBegin, zoneEnd, longitudinal);
 	float centreX = lateral * samplesPerLine;
 
+#ifdef USES_COORDINATES
 	coordinates[0] = vec2(centreX - 15.0, sampleY) / bufferSize;
 	coordinates[1] = vec2(centreX - 14.0, sampleY) / bufferSize;
 	coordinates[2] = vec2(centreX - 13.0, sampleY) / bufferSize;
@@ -67,6 +70,7 @@ void main(void) {
 	coordinates[28] = vec2(centreX + 13.0, sampleY) / bufferSize;
 	coordinates[29] = vec2(centreX + 14.0, sampleY) / bufferSize;
 	coordinates[30] = vec2(centreX + 15.0, sampleY) / bufferSize;
+#endif
 
 	gl_Position = vec4(
 		(vec2(centreX, sampleY) / bufferSize - vec2(0.5)) * vec2(2.0),
@@ -156,6 +160,16 @@ void main(void) {
 }
 
 )glsl";
+
+constexpr char fill_fragment_shader[] = R"glsl(
+uniform vec4 colour;
+out lowp vec4 outputColour;
+
+void main(void) {
+	outputColour = colour;
+}
+
+)glsl";
 }
 
 
@@ -196,8 +210,18 @@ template <> struct FilterElement<3> {
 	float x, y, z;
 };
 
+void set_size_uniforms(
+	OpenGL::Shader &shader,
+	const int samples_per_line,
+	const int buffer_width,
+	const int buffer_height
+) {
+	shader.set_uniform("samplesPerLine", float(samples_per_line));
+	shader.set_uniform("bufferSize", float(buffer_width), float(buffer_height));
+}
+
 template <size_t FilterSize>
-void set_common_uniforms(
+void set_filter_uniforms(
 	OpenGL::Shader &shader,
 	const int samples_per_line,
 	const int buffer_width,
@@ -205,11 +229,7 @@ void set_common_uniforms(
 	const GLenum source_texture_unit,
 	const FilterGenerator::FilterPair filter
 ) {
-	//
-	// Set uniforms.
-	//
-	shader.set_uniform("samplesPerLine", float(samples_per_line));
-	shader.set_uniform("bufferSize", float(buffer_width), float(buffer_height));
+	set_size_uniforms(shader, samples_per_line, buffer_width, buffer_height);
 	shader.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
 
 	// Zip and provide the filter coefficients.
@@ -245,13 +265,13 @@ OpenGL::Shader OpenGL::separation_shader(
 ) {
 	auto shader = OpenGL::Shader(
 		api,
-		vertex_shader,
+		std::string("#define USES_COORDINATES\n") + vertex_shader,
 		separation_fragment_shader,
 		dirty_zone_attributes()
 	);
 
 	enable_vertex_attributes(shader, vertex_array);
-	set_common_uniforms<2>(
+	set_filter_uniforms<2>(
 		shader,
 		samples_per_line,
 		buffer_width,
@@ -280,12 +300,12 @@ OpenGL::Shader OpenGL::demodulation_shader(
 ) {
 	auto shader = OpenGL::Shader(
 		api,
-		vertex_shader,
+		std::string("#define USES_COORDINATES\n") + vertex_shader,
 		demodulation_fragment_shader,
 		dirty_zone_attributes()
 	);
 	enable_vertex_attributes(shader, vertex_array);
-	set_common_uniforms<3>(
+	set_filter_uniforms<3>(
 		shader,
 		samples_per_line,
 		buffer_width,
@@ -302,4 +322,32 @@ OpenGL::Shader OpenGL::demodulation_shader(
 	shader.set_uniform_matrix("toRGB", 3, false, to_rgb_matrix(colour_space).data());
 
 	return shader;
+}
+
+OpenGL::FillShader::FillShader(
+	const API api,
+	const int samples_per_line,
+	const int buffer_width,
+	const int buffer_height,
+	const VertexArray &vertex_array
+) {
+	shader_ = OpenGL::Shader(
+		api,
+		vertex_shader,
+		fill_fragment_shader,
+		dirty_zone_attributes()
+	);
+	enable_vertex_attributes(shader_, vertex_array);
+	set_size_uniforms(shader_, samples_per_line, buffer_width, buffer_height);
+}
+
+void OpenGL::FillShader::bind(const float r, const float g, const float b, const float a) {
+	shader_.bind();
+	if(colour_[0] != r || colour_[1] != g || colour_[2] != b || colour_[3] != a) {
+		colour_[0] = r;
+		colour_[1] = g;
+		colour_[2] = b;
+		colour_[3] = a;
+		shader_.set_uniform("colour", r, g, b, a);
+	}
 }

@@ -222,7 +222,8 @@ void ScanTarget::setup_pipeline() {
 				modals.display_type,
 				subcarrier_frequency(modals),
 				sample_multiplier * modals.cycles_per_line,
-				buffer_width, LineBufferHeight,
+				buffer_width,
+				LineBufferHeight,
 				dirty_zones_,
 				is_svideo(modals.display_type) ? CompositionTextureUnit : SeparationTextureUnit
 			);
@@ -232,9 +233,18 @@ void ScanTarget::setup_pipeline() {
 				buffer_width, LineBufferHeight,
 				sample_multiplier,
 				modals.expected_vertical_lines,
-				modals.output_scale.x, modals.output_scale.y,
+				modals.output_scale.x,
+				modals.output_scale.y,
 				lines_,
 				DemodulationTextureUnit
+			);
+
+			fill_shader_ = OpenGL::FillShader(
+				api_,
+				sample_multiplier * modals.cycles_per_line,
+				buffer_width,
+				LineBufferHeight,
+				dirty_zones_
 			);
 		} else {
 			demodulation_shader_.reset();

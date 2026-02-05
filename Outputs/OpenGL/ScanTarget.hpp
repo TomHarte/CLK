@@ -20,8 +20,9 @@
 #include "Primitives/VertexArray.hpp"
 
 #include "Shaders/CopyShader.hpp"
-#include "Shaders/Rectangle.hpp"
 #include "Shaders/DirtyZone.hpp"
+#include "Shaders/KernelShaders.hpp"
+#include "Shaders/Rectangle.hpp"
 
 #include "SignalProcessing/FIRFilter.hpp"
 
@@ -118,6 +119,7 @@ private:
 	Shader demodulation_shader_;
 	Shader line_output_shader_;
 	CopyShader copy_shader_;
+	FillShader fill_shader_;
 };
 
 }
