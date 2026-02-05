@@ -267,6 +267,7 @@ OpenGL::Shader OpenGL::separation_shader(
 OpenGL::Shader OpenGL::demodulation_shader(
 	const OpenGL::API api,
 	const ColourSpace colour_space,
+	const DisplayType display_type,
 	const float per_line_subcarrier_frequency,
 	const int samples_per_line,
 	const int buffer_width,
@@ -290,7 +291,9 @@ OpenGL::Shader OpenGL::demodulation_shader(
 		FilterGenerator(
 			samples_per_line,
 			per_line_subcarrier_frequency,
-			FilterGenerator::DecodingPath::Composite	// TODO: pick appropriately.
+			is_composite(display_type) ?
+				FilterGenerator::DecodingPath::Composite :
+				FilterGenerator::DecodingPath::SVideo
 		).demouldation_filter()
 	);
 	shader.set_uniform_matrix("toRGB", 3, false, to_rgb_matrix(colour_space).data());

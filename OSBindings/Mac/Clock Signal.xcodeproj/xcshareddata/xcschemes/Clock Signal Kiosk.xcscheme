@@ -65,11 +65,11 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--new=zxspectrum"
+            argument = "--new=msx"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--display=CompositeColour"
+            argument = "--display=SVideo"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

@@ -50,6 +50,7 @@ Shader separation_shader(
 Shader demodulation_shader(
 	API,
 	ColourSpace,
+	DisplayType,
 	float per_line_subcarrier_frequency,
 	int samples_per_line,
 	int buffer_width,

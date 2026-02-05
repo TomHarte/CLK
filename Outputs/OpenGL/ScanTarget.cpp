@@ -323,6 +323,7 @@ void ScanTarget::setup_pipeline() {
 			demodulation_shader_ = OpenGL::demodulation_shader(
 				api_,
 				modals.composite_colour_space,
+				modals.display_type,
 				subcarrier_frequency(modals),
 				sample_multiplier * modals.cycles_per_line,
 				buffer_width, 2048,
