@@ -448,6 +448,17 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
 			}
 
+			// Now retroactively clear the composition buffer; doing this post hoc avoids uncertainty about the
+			// exact timing of a new line being drawn to, as well as fitting more neatly into when dirty zones
+			// are bound.
+			composition_buffer_.bind_framebuffer();
+			if(is_composite(existing_modals_->display_type)) {
+				fill_shader_.bind(0.0, 0.0, 0.0, 0.0);
+			} else {
+				fill_shader_.bind(0.0, 0.5, 0.5, 1.0);
+			}
+			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
+
 			// Submit new lines.
 			lines_.bind_all();
 			size_t buffer_destination = 0;

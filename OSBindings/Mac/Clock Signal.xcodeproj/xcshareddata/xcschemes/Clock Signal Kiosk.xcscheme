@@ -69,7 +69,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--display=CompositeColour"
+            argument = "--display=SVideo"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
