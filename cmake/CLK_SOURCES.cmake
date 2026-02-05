@@ -169,7 +169,6 @@ set(CLK_SOURCES
 	Outputs/OpenGL/Shaders/LineOutputShader.cpp
 	Outputs/OpenGL/Shaders/Rectangle.cpp
 	Outputs/OpenGL/ScanTarget.cpp
-	Outputs/OpenGL/ScanTargetGLSLFragments.cpp
 	Outputs/ScanTarget.cpp
 	Outputs/ScanTargets/BufferingScanTarget.cpp
 	Outputs/ScanTargets/FilterGenerator.cpp
