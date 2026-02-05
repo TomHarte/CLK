@@ -865,7 +865,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
 
 	range_perform(
-		outputArea.start.scan,
+		outputArea.begin.scan,
 		outputArea.end.scan,
 		NumBufferedScans,
 		[&](const size_t start, const size_t size) {
@@ -968,11 +968,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		const auto outputArea = _scanTarget.get_output_area();
 
-		if(outputArea.end.line != outputArea.start.line) {
+		if(outputArea.end.line != outputArea.begin.line) {
 
 			// Ensure texture changes are noted.
 			const auto writeAreaModificationStart =
-				size_t(outputArea.start.write_area_x + outputArea.start.write_area_y * BufferWidth)
+				size_t(outputArea.begin.write_area_x + outputArea.begin.write_area_y * BufferWidth)
 					* _bytesPerInputPixel;
 			const auto writeAreaModificationEnd =
 				size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * BufferWidth)
@@ -1006,8 +1006,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			switch(_pipeline) {
 				case Pipeline::DirectToDisplay: {
 					// Output scans directly, broken up by frame.
-					size_t line = outputArea.start.line;
-					size_t scan = outputArea.start.scan;
+					size_t line = outputArea.begin.line;
+					size_t scan = outputArea.begin.scan;
 					while(line != outputArea.end.line) {
 						if(_lineMetadataBuffer[line].is_first_in_frame) {
 							[self outputFrom:scan to:_lineMetadataBuffer[line].first_scan commandBuffer:commandBuffer];
@@ -1035,21 +1035,21 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						[computeEncoder setTexture:_finalisedLineTexture atIndex:1];
 						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
-						if(outputArea.end.line > outputArea.start.line) {
+						if(outputArea.end.line > outputArea.begin.line) {
 							[self
 								dispatchComputeCommandEncoder:computeEncoder
 								pipelineState:_finalisedLineState
 								width:_lineBufferPixelsPerLine
-								height:outputArea.end.line - outputArea.start.line
-								offsetBuffer:[self bufferForOffset:outputArea.start.line]
+								height:outputArea.end.line - outputArea.begin.line
+								offsetBuffer:[self bufferForOffset:outputArea.begin.line]
 							];
 						} else {
 							[self
 								dispatchComputeCommandEncoder:computeEncoder
 								pipelineState:_finalisedLineState
 								width:_lineBufferPixelsPerLine
-								height:NumBufferedLines - outputArea.start.line
-								offsetBuffer:[self bufferForOffset:outputArea.start.line]
+								height:NumBufferedLines - outputArea.begin.line
+								offsetBuffer:[self bufferForOffset:outputArea.begin.line]
 							];
 
 							if(outputArea.end.line) {
@@ -1072,14 +1072,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 						__unsafe_unretained id<MTLBuffer> offsetBuffers[2] = {nil, nil};
-						offsetBuffers[0] = [self bufferForOffset:outputArea.start.line];
+						offsetBuffers[0] = [self bufferForOffset:outputArea.begin.line];
 
-						if(outputArea.end.line > outputArea.start.line) {
+						if(outputArea.end.line > outputArea.begin.line) {
 							[self
 								dispatchComputeCommandEncoder:computeEncoder
 								pipelineState:_separatedLumaState
 								width:_lineBufferPixelsPerLine
-								height:outputArea.end.line - outputArea.start.line
+								height:outputArea.end.line - outputArea.begin.line
 								offsetBuffer:offsetBuffers[0]
 							];
 						} else {
@@ -1087,7 +1087,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 								dispatchComputeCommandEncoder:computeEncoder
 								pipelineState:_separatedLumaState
 								width:_lineBufferPixelsPerLine
-								height:NumBufferedLines - outputArea.start.line
+								height:NumBufferedLines - outputArea.begin.line
 								offsetBuffer:offsetBuffers[0]
 							];
 							if(outputArea.end.line) {
@@ -1107,12 +1107,12 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						[computeEncoder setTexture:_finalisedLineTexture atIndex:1];
 						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
-						if(outputArea.end.line > outputArea.start.line) {
+						if(outputArea.end.line > outputArea.begin.line) {
 							[self
 								dispatchComputeCommandEncoder:computeEncoder
 								pipelineState:_finalisedLineState
 								width:_lineBufferPixelsPerLine
-								height:outputArea.end.line - outputArea.start.line
+								height:outputArea.end.line - outputArea.begin.line
 								offsetBuffer:offsetBuffers[0]
 							];
 						} else {
@@ -1120,7 +1120,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 								dispatchComputeCommandEncoder:computeEncoder
 								pipelineState:_finalisedLineState
 								width:_lineBufferPixelsPerLine
-								height:NumBufferedLines - outputArea.start.line
+								height:NumBufferedLines - outputArea.begin.line
 								offsetBuffer:offsetBuffers[0]
 							];
 							if(outputArea.end.line) {
@@ -1138,8 +1138,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 					}
 
 					// Output lines, broken up by frame.
-					size_t startLine = outputArea.start.line;
-					size_t line = outputArea.start.line;
+					size_t startLine = outputArea.begin.line;
+					size_t line = outputArea.begin.line;
 					while(line != outputArea.end.line) {
 						if(_lineMetadataBuffer[line].is_first_in_frame) {
 							[self outputFrom:startLine to:line commandBuffer:commandBuffer];
@@ -1172,11 +1172,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			[commandBuffer commit];
 
 			// TODO: reenable these and work out how on earth the Master System + Alex Kidd (US) is managing
-			// to provide write_area_y = 0, start_x = 0, end_x = 1.
-//			assert(outputArea.end.line == outputArea.start.line);
-//			assert(outputArea.end.scan == outputArea.start.scan);
-//			assert(outputArea.end.write_area_y == outputArea.start.write_area_y);
-//			assert(outputArea.end.write_area_x == outputArea.start.write_area_x);
+			// to provide write_area_y = 0, begin_x = 0, end_x = 1.
+//			assert(outputArea.end.line == outputArea.begin.line);
+//			assert(outputArea.end.scan == outputArea.begin.scan);
+//			assert(outputArea.end.write_area_y == outputArea.begin.write_area_y);
+//			assert(outputArea.end.write_area_x == outputArea.begin.write_area_x);
 		}
 	}
 }

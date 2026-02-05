@@ -338,14 +338,14 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 
 	OutputArea area;
 
-	area.start.line = read_ahead_pointers.line;
+	area.begin.line = read_ahead_pointers.line;
 	area.end.line = submit_pointers.line;
 
-	area.start.scan = read_ahead_pointers.scan;
+	area.begin.scan = read_ahead_pointers.scan;
 	area.end.scan = submit_pointers.scan;
 
-	area.start.write_area_x = texture_address_get_x(read_ahead_pointers.write_area);
-	area.start.write_area_y = texture_address_get_y(read_ahead_pointers.write_area);
+	area.begin.write_area_x = texture_address_get_x(read_ahead_pointers.write_area);
+	area.begin.write_area_y = texture_address_get_y(read_ahead_pointers.write_area);
 	area.end.write_area_x = texture_address_get_x(submit_pointers.write_area);
 	area.end.write_area_y = texture_address_get_y(submit_pointers.write_area);
 

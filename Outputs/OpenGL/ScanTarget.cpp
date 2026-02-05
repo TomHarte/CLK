@@ -17,9 +17,7 @@
 #include "Outputs/OpenGL/Shaders/LineOutputShader.hpp"
 
 #include <algorithm>
-#include <cassert>
 #include <cstring>
-#include <limits>
 
 using namespace Outputs::Display::OpenGL;
 
@@ -42,16 +40,16 @@ constexpr GLenum OutputTextureUnit = GL_TEXTURE4;
 
 using Logger = Log::Logger<Log::Source::OpenGL>;
 
-constexpr GLint internalFormatForDepth(const std::size_t depth) {
-	switch(depth) {
-		default: return GL_FALSE;
-		case 1: return GL_R8UI;
-		case 2: return GL_RG8UI;
-		case 3: return GL_RGB8UI;
-		case 4: return GL_RGBA8UI;
-	}
-}
-
+//constexpr GLint internalFormatForDepth(const std::size_t depth) {
+//	switch(depth) {
+//		default: return GL_FALSE;
+//		case 1: return GL_R8UI;
+//		case 2: return GL_RG8UI;
+//		case 3: return GL_RGB8UI;
+//		case 4: return GL_RGBA8UI;
+//	}
+//}
+//
 constexpr GLenum formatForDepth(const std::size_t depth) {
 	switch(depth) {
 		default: return GL_FALSE;
@@ -322,10 +320,10 @@ void ScanTarget::update(const int output_width, const int output_height) {
 
 		// Determine the start time of this submission group and the number of lines it will contain.
 		line_submission_begin_time_ = std::chrono::high_resolution_clock::now();
-		lines_submitted_ = (area.end.line - area.start.line + line_buffer_.size()) % line_buffer_.size();
+		lines_submitted_ = (area.end.line - area.begin.line + line_buffer_.size()) % line_buffer_.size();
 
 		// Submit texture.
-		if(area.start.write_area_x != area.end.write_area_x || area.start.write_area_y != area.end.write_area_y) {
+		if(area.begin.write_area_x != area.end.write_area_x || area.begin.write_area_y != area.end.write_area_y) {
 			source_texture_.bind();
 
 			const auto submit = [&](const GLint y_begin, const GLint y_end) {
@@ -344,20 +342,20 @@ void ScanTarget::update(const int output_width, const int output_height) {
 
 			// Both of the following upload to area.end.write_area_y + 1 to include whatever line the write area
 			// is currently on. It may have partial source areas along it, despite being incomplete.
-			if(area.end.write_area_y >= area.start.write_area_y) {
+			if(area.end.write_area_y >= area.begin.write_area_y) {
 				// Submit the direct region from the submit pointer to the read pointer.
-				submit(area.start.write_area_y, area.end.write_area_y + 1);
+				submit(area.begin.write_area_y, area.end.write_area_y + 1);
 			} else {
 				// The circular buffer wrapped around; submit the data from the read pointer to the end of
 				// the buffer and from the start of the buffer to the submit pointer.
-				submit(area.start.write_area_y, WriteAreaHeight);
+				submit(area.begin.write_area_y, WriteAreaHeight);
 				submit(0, area.end.write_area_y + 1);
 			}
 		}
 
 		// Submit scans; only the new ones need to be communicated.
-		if(area.end.scan != area.start.scan) {
-			const size_t new_scans = (area.end.scan - area.start.scan + scan_buffer_.size()) % scan_buffer_.size();
+		if(area.end.scan != area.begin.scan) {
+			const size_t new_scans = (area.end.scan - area.begin.scan + scan_buffer_.size()) % scan_buffer_.size();
 
 			// Submit new scans.
 			// First implementation: put all new scans at the start of the buffer, for a simple
@@ -375,10 +373,10 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				});
 				buffer_destination += (end - begin) * sizeof(Scan);
 			};
-			if(area.start.scan < area.end.scan) {
-				submit(area.start.scan, area.end.scan);
+			if(area.begin.scan < area.end.scan) {
+				submit(area.begin.scan, area.end.scan);
 			} else {
-				submit(area.start.scan, scan_buffer_.size());
+				submit(area.begin.scan, scan_buffer_.size());
 				submit(0, area.end.scan);
 			}
 
@@ -411,12 +409,12 @@ void ScanTarget::update(const int output_width, const int output_height) {
 		}
 
 		// Figure out how many new lines are ready.
-		if(area.end.line != area.start.line) {
-			const auto new_lines = (area.end.line - area.start.line + LineBufferHeight) % LineBufferHeight;
+		if(area.end.line != area.begin.line) {
+			const auto new_lines = (area.end.line - area.begin.line + LineBufferHeight) % LineBufferHeight;
 
 			// Populate dirty zones, and record quantity.
-			const int num_dirty_zones = 1 + (area.start.line >= area.end.line);
-			dirty_zones_buffer_[0].begin = area.start.line;
+			const int num_dirty_zones = 1 + (area.begin.line >= area.end.line);
+			dirty_zones_buffer_[0].begin = area.begin.line;
 			if(num_dirty_zones == 1) {
 				dirty_zones_buffer_[0].end = area.end.line;
 			} else {
@@ -474,10 +472,10 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				});
 				buffer_destination += (end - begin) * sizeof(Line);
 			};
-			if(area.start.line < area.end.line) {
-				submit(area.start.line, area.end.line);
+			if(area.begin.line < area.end.line) {
+				submit(area.begin.line, area.end.line);
 			} else {
-				submit(area.start.line, line_buffer_.size());
+				submit(area.begin.line, line_buffer_.size());
 				submit(0, area.end.line);
 			}
 

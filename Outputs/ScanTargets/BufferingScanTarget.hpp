@@ -104,7 +104,7 @@ public:
 	/// @returns The number of bytes per input sample, as per the latest modals.
 	size_t write_area_data_size() const;
 
-	/// Defines a segment of data now ready for output, consisting of start and endpoints for:
+	/// Defines a segment of data now ready for output, consisting of begin and end endpoints for:
 	///
 	///	(i) the region of the write area that has been modified; if the caller is using shared memory
 	/// for the write area then it can ignore this information;
@@ -114,10 +114,10 @@ public:
 	/// (iii) the number of lines that have been completed.
 	///
 	/// New write areas and scans are exposed only upon completion of the corresponding lines.
-	/// The values indicated by the start point are the first that should be drawn. Those indicated
+	/// The values indicated by the begin point are the first that should be drawn. Those indicated
 	/// by the end point are one after the final that should be drawn.
 	///
-	/// So e.g. start.scan = 23, end.scan = 24 means draw a single scan, index 23.
+	/// So e.g. begin.scan = 23, end.scan = 24 means draw a single scan, index 23.
 	struct OutputArea {
 		struct Endpoint {
 			int write_area_x, write_area_y;
@@ -125,7 +125,7 @@ public:
 			size_t line;
 		};
 
-		Endpoint start, end;
+		Endpoint begin, end;
 
 #ifndef NDEBUG
 		size_t counter;
