@@ -503,7 +503,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			while(begin != area.end.line) {
 				if(line_metadata_buffer_[begin].is_first_in_frame) {
 					if(line_metadata_buffer_[begin].previous_frame_was_complete) {
-						full_display_rectangle_.draw(1.0, 0.0, 0.0);
+						full_display_rectangle_.draw(1.0, 1.0, 1.0);
 					}
 					test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
 				}
@@ -519,11 +519,15 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				// Output new lines.
 				line_output_shader_.bind();
 				const auto new_lines = (end - begin + LineBufferHeight) % LineBufferHeight;
-				test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, first_line, 4, GLsizei(new_lines)); });
+				if(first_line) {
+					line_output_shader_.set_vertex_attribute_offset(first_line);
+				}
+				test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_lines)); });
 				first_line += new_lines;
 
 				begin = end;
 			}
+			line_output_shader_.set_vertex_attribute_offset(0);
 
 			test_gl([&]{ glDisable(GL_BLEND); });
 			test_gl([&]{ glDisable(GL_STENCIL_TEST); });
