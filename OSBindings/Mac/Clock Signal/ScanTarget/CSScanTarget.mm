@@ -529,46 +529,12 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (void)setAspectRatio {
-	const auto modals = _scanTarget.modals();
-	simd::float3x3 sourceToDisplay{1.0f};
-
-	// The starting coordinate space is [0, 1].
-
-	// Move the centre of the cropping rectangle to the centre of the display.
-	{
-		simd::float3x3 recentre{1.0f};
-		recentre.columns[2][0] = 0.5f - (modals.visible_area.origin.x + modals.visible_area.size.width * 0.5f);
-		recentre.columns[2][1] = 0.5f - (modals.visible_area.origin.y + modals.visible_area.size.height * 0.5f);
-		sourceToDisplay = recentre * sourceToDisplay;
-	}
-
-	// Convert from the internal [0, 1] to centred [-1, 1].
-	{
-		simd::float3x3 convertToEye;
-		convertToEye.columns[0][0] = 2.0f;
-		convertToEye.columns[1][1] = -2.0f;
-		convertToEye.columns[2][0] = -1.0f;
-		convertToEye.columns[2][1] = 1.0f;
-		convertToEye.columns[2][2] = 1.0f;
-		sourceToDisplay = convertToEye * sourceToDisplay;
-	}
-
-	// Determine correct zoom, combining (i) the necessary horizontal stretch for aspect ratio; and
-	// (ii) the necessary zoom to fit either the visible area width or height.
-	const float aspectRatioStretch = float(modals.aspect_ratio / _viewAspectRatio);
-	const float zoom = modals.visible_area.appropriate_zoom(aspectRatioStretch);
-
-	// Convert from there to the proper aspect ratio by stretching or compressing width.
-	// After this the output is exactly centred, filling the vertical space and being as wide or slender as it likes.
-	{
-		simd::float3x3 applyAspectRatio{1.0f};
-		applyAspectRatio.columns[0][0] = aspectRatioStretch * zoom;
-		applyAspectRatio.columns[1][1] = zoom;
-		sourceToDisplay = applyAspectRatio * sourceToDisplay;
-	}
-
-	// Store.
-	self.uniforms->sourcetoDisplay = sourceToDisplay;
+	const auto transformation = aspect_ratio_transformation(_scanTarget.modals(), float(_viewAspectRatio));
+	self.uniforms->sourcetoDisplay = simd_matrix_from_rows(
+		simd_float3{transformation[0], transformation[3], transformation[6]},
+		simd_float3{transformation[1], transformation[4], transformation[7]},
+		simd_float3{transformation[2], transformation[5], transformation[8]}
+	);
 }
 
 - (void)setModals:(const Outputs::Display::ScanTarget::Modals &)modals {

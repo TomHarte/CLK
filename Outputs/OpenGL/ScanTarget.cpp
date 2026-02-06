@@ -422,6 +422,13 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				GL_NEAREST,
 				true
 			);
+
+			const auto framing = aspect_ratio_transformation(
+				BufferingScanTarget::modals(),
+				float(output_buffer_width) / float(output_buffer_height)
+			);
+			(void)framing;
+			// TODO: apply framing to the line_output_shader_ and the scan_output_shader_.
 		}
 
 		// Do S-Video or composite line decoding.

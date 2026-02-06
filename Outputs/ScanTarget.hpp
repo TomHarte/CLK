@@ -631,4 +631,6 @@ struct NullScanTarget: public ScanTarget {
 	static NullScanTarget singleton;
 };
 
+std::array<float, 9> aspect_ratio_transformation(const ScanTarget::Modals &, const float view_aspect_ratio);
+
 }
