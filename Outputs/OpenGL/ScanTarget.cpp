@@ -471,36 +471,14 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			}
 			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
 
-			// Submit new lines.
-			lines_.bind_all();
-			size_t buffer_destination = 0;
-			const auto submit = [&](const size_t begin, const size_t end) {
-				const auto size = (end - begin) * sizeof(Line);
-				test_gl([&]{
-					glBufferSubData(
-						GL_ARRAY_BUFFER,
-						buffer_destination,
-						size,
-						&line_buffer_[begin]
-					);
-				});
-				buffer_destination += (end - begin) * sizeof(Line);
-			};
-			if(area.begin.line < area.end.line) {
-				submit(area.begin.line, area.end.line);
-			} else {
-				submit(area.begin.line, line_buffer_.size());
-				submit(0, area.end.line);
-			}
-
 			// Batch lines by frame.
 			test_gl([&]{ glEnable(GL_BLEND); });
 			test_gl([&]{ glEnable(GL_STENCIL_TEST); });
 
-			size_t begin = area.begin.line;
-			GLint first_line = 0;
 			output_buffer_.bind_framebuffer();
+			size_t begin = area.begin.line;
 			while(begin != area.end.line) {
+				// Apply end-of-frame cleaning if necessary.
 				if(line_metadata_buffer_[begin].is_first_in_frame) {
 					if(line_metadata_buffer_[begin].previous_frame_was_complete) {
 						full_display_rectangle_.draw(1.0, 0.0, 0.0);
@@ -516,11 +494,32 @@ void ScanTarget::update(const int output_width, const int output_height) {
 					if(end == line_metadata_buffer_.size()) end = 0;
 				} while(end != area.end.line && !line_metadata_buffer_[end].is_first_in_frame);
 
+				// Submit new lines.
+				lines_.bind_all();
+				size_t buffer_destination = 0;
+				const auto submit = [&](const size_t begin, const size_t end) {
+					const auto size = (end - begin) * sizeof(Line);
+					test_gl([&]{
+						glBufferSubData(
+							GL_ARRAY_BUFFER,
+							buffer_destination,
+							size,
+							&line_buffer_[begin]
+						);
+					});
+					buffer_destination += (end - begin) * sizeof(Line);
+				};
+				if(begin < end) {
+					submit(begin, end);
+				} else {
+					submit(begin, line_buffer_.size());
+					submit(0, end);
+				}
+
 				// Output new lines.
 				line_output_shader_.bind();
 				const auto new_lines = (end - begin + LineBufferHeight) % LineBufferHeight;
-				test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, first_line, 4, GLsizei(new_lines)); });
-				first_line += new_lines;
+				test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_lines)); });
 
 				begin = end;
 			}
