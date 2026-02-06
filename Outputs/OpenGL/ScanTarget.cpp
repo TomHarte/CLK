@@ -241,7 +241,7 @@ void ScanTarget::setup_pipeline() {
 				is_svideo(modals.display_type) ? CompositionTextureUnit : SeparationTextureUnit
 			);
 
-			line_output_shader_ = OpenGL::line_output_shader(
+			line_output_shader_ = LineOutputShader(
 				api_,
 				buffer_width, LineBufferHeight,
 				sample_multiplier,
@@ -427,8 +427,8 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				BufferingScanTarget::modals(),
 				float(output_buffer_width) / float(output_buffer_height)
 			);
-			(void)framing;
-			// TODO: apply framing to the line_output_shader_ and the scan_output_shader_.
+			line_output_shader_.set_aspect_ratio_transformation(framing);
+			// TODO: apply framing to scan_output_shader_, once it exists.
 		}
 
 		// Do S-Video or composite line decoding.

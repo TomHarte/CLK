@@ -81,7 +81,7 @@ void main(void) {
 
 using namespace Outputs::Display;
 
-OpenGL::Shader OpenGL::line_output_shader(
+OpenGL::LineOutputShader::LineOutputShader(
 	const API api,
 	const int source_width,
 	const int source_height,
@@ -93,7 +93,7 @@ OpenGL::Shader OpenGL::line_output_shader(
 	const VertexArray &vertex_array,
 	const GLenum source_texture_unit
 ) {
-	auto shader = OpenGL::Shader(
+	shader_ = OpenGL::Shader(
 		api,
 		vertex_shader,
 		fragment_shader,
@@ -103,7 +103,7 @@ OpenGL::Shader OpenGL::line_output_shader(
 	BufferingScanTarget::Line line;
 	vertex_array.bind_all();
 	const auto enable = [&](const std::string &name, uint16_t &element, const GLint size) {
-		shader.enable_vertex_attribute_with_pointer(
+		shader_.enable_vertex_attribute_with_pointer(
 			name,
 			size,
 			GL_UNSIGNED_SHORT,
@@ -119,11 +119,17 @@ OpenGL::Shader OpenGL::line_output_shader(
 	enable("lineEndpoint1CyclesSinceRetrace", line.end_points[1].cycles_since_end_of_horizontal_retrace, 1);
 	enable("lineLine", line.line, 1);
 
-	shader.set_uniform("lineHeight", 1.05f / GLfloat(expected_vertical_lines));
-	shader.set_uniform("positionScale", GLfloat(scale_x), GLfloat(scale_y));
-	shader.set_uniform("sourceSize", GLfloat(source_width) / cycle_multiplier, GLfloat(source_height));
-	shader.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
-	shader.set_uniform("alpha", GLfloat(alpha));
+	shader_.set_uniform("lineHeight", 1.05f / GLfloat(expected_vertical_lines));
+	shader_.set_uniform("positionScale", GLfloat(scale_x), GLfloat(scale_y));
+	shader_.set_uniform("sourceSize", GLfloat(source_width) / cycle_multiplier, GLfloat(source_height));
+	shader_.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
+	shader_.set_uniform("alpha", GLfloat(alpha));
+}
 
-	return shader;
+void OpenGL::LineOutputShader::set_aspect_ratio_transformation(const std::array<float, 9> &) {
+
+}
+
+void OpenGL::LineOutputShader::bind() {
+	shader_.bind();
 }

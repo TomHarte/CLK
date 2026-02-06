@@ -21,6 +21,7 @@
 
 #include "Shaders/CopyShader.hpp"
 #include "Shaders/DirtyZone.hpp"
+#include "Shaders/LineOutputShader.hpp"
 #include "Shaders/KernelShaders.hpp"
 #include "Shaders/Rectangle.hpp"
 
@@ -113,7 +114,7 @@ private:
 	Shader composition_shader_;
 	Shader separation_shader_;
 	Shader demodulation_shader_;
-	Shader line_output_shader_;
+	LineOutputShader line_output_shader_;
 	CopyShader copy_shader_;
 	FillShader fill_shader_;
 };
