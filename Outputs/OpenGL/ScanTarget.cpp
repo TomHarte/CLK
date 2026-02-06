@@ -116,6 +116,10 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 	test_gl([&]{ glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR); });
 	test_gl([&]{ glBlendColor(0.4f, 0.4f, 0.4f, 1.0f); });
 
+	// Set stencil function for underdraw.
+	test_gl([&]{ glStencilFunc(GL_EQUAL, 0, GLuint(~0)); });
+	test_gl([&]{ glStencilOp(GL_KEEP, GL_KEEP, GL_INCR); });
+
 	// Establish initial state for is_drawing_to_accumulation_buffer_.
 	is_drawing_to_output_.clear();
 }
@@ -421,18 +425,24 @@ void ScanTarget::update(const int output_width, const int output_height) {
 		}
 
 		// Figure out how many new lines are ready.
-		if(area.end.line != area.begin.line) {
-			const auto new_lines = (area.end.line - area.begin.line + LineBufferHeight) % LineBufferHeight;
+		size_t begin = area.begin.line;
+		while(begin != area.end.line) {
+			// Hunt for an end-of-frame. TODO: eliminate this linear search.
+			size_t end = begin;
+			do {
+				++end;
+				if(end == line_metadata_buffer_.size()) end = 0;
+			} while(end != area.end.line && !line_metadata_buffer_[end].is_first_in_frame);
 
 			// Populate dirty zones, and record quantity.
-			const int num_dirty_zones = 1 + (area.begin.line >= area.end.line);
-			dirty_zones_buffer_[0].begin = area.begin.line;
+			const int num_dirty_zones = 1 + (begin >= end);
+			dirty_zones_buffer_[0].begin = begin;
 			if(num_dirty_zones == 1) {
-				dirty_zones_buffer_[0].end = area.end.line;
+				dirty_zones_buffer_[0].end = end;
 			} else {
 				dirty_zones_buffer_[0].end = LineBufferHeight;
 				dirty_zones_buffer_[1].begin = 0;
-				dirty_zones_buffer_[1].end = area.end.line;
+				dirty_zones_buffer_[1].end = end;
 			}
 
 			dirty_zones_.bind_all();
@@ -484,22 +494,30 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				});
 				buffer_destination += (end - begin) * sizeof(Line);
 			};
-			if(area.begin.line < area.end.line) {
-				submit(area.begin.line, area.end.line);
+			if(begin < end) {
+				submit(begin, end);
 			} else {
-				submit(area.begin.line, line_buffer_.size());
-				submit(0, area.end.line);
+				submit(begin, line_buffer_.size());
+				submit(0, end);
 			}
 
 			// Output new lines.
 			line_output_shader_.bind();
 			output_buffer_.bind_framebuffer();
 			test_gl([&]{ glEnable(GL_BLEND); });
+			test_gl([&]{ glEnable(GL_STENCIL_TEST); });
+			const auto new_lines = (end - begin + LineBufferHeight) % LineBufferHeight;
 			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_lines)); });
 			test_gl([&]{ glDisable(GL_BLEND); });
 
-			// TODO: end-of-frame blanking of untouched areas.
-
+			begin = end;
+			if(line_metadata_buffer_[end].is_first_in_frame) {
+				if(line_metadata_buffer_[end].previous_frame_was_complete) {
+					full_display_rectangle_.draw(1.0, 0.0, 0.0);
+				}
+				test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
+			}
+			test_gl([&]{ glDisable(GL_STENCIL_TEST); });
 		}
 
 		// That's it for operations affecting the accumulation buffer.
