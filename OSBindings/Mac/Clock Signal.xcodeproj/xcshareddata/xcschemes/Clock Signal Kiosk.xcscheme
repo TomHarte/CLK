@@ -73,12 +73,12 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--new=zxspectrum"
+            argument = "--new=macintosh"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--display=CompositeColour"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/thomasharte/Downloads/Program/Program.prg"

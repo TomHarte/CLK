@@ -128,6 +128,10 @@ lowp vec2 quadrature() {
 		);
 	}
 
+	lowp vec3 sample_rgb() {
+		return clamp(texture(source, coordinate).rrr * 255.0, vec3(0.0), vec3(1.0));
+	}
+
 #endif
 
 
@@ -142,6 +146,10 @@ lowp vec2 quadrature() {
 			quadrature(),
 			compositeAmplitude
 		);
+	}
+
+	lowp vec3 sample_rgb() {
+		return texture(source, coordinate).rrr;
 	}
 
 #endif
