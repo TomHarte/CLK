@@ -137,7 +137,6 @@ void Shader::init(
 Shader &Shader::operator =(Shader &&rhs) {
 	api_ = rhs.api_;
 	std::swap(shader_program_, rhs.shader_program_);
-	std::swap(attributes_, rhs.attributes_);
 
 	if(bound_shader == &rhs) {
 		bound_shader = this;
@@ -215,34 +214,11 @@ void Shader::enable_vertex_attribute_with_pointer(
 	const auto location = get_attrib_location(name);
 	if(location >= 0) {
 		test_gl([&]{ glEnableVertexAttribArray(GLuint(location)); });
+		test_gl([&]{ glVertexAttribPointer(GLuint(location), size, type, normalised, stride, pointer); });
 		test_gl([&]{ glVertexAttribDivisor(GLuint(location), divisor); });
-
-		attributes_.emplace_back(VertexArrayAttribute{
-			location, size, type, normalised, stride, pointer, divisor
-		}).apply(0);
 	} else {
 		Logger::error().append("Couldn't enable vertex attribute %s", name.c_str());
 	}
-}
-
-void Shader::set_vertex_attribute_offset(const size_t offset) {
-	bind();
-	for(const auto &attribute: attributes_) {
-		attribute.apply(offset);
-	}
-}
-
-void Shader::VertexArrayAttribute::apply(const size_t offset) const {
-	test_gl([&]{
-		glVertexAttribPointer(
-			location,
-			size,
-			type,
-			normalised,
-			stride,
-			reinterpret_cast<const uint8_t *>(pointer) + offset * stride
-		);
-	});
 }
 
 template <typename FuncT>

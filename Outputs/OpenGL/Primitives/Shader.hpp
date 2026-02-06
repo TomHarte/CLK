@@ -125,13 +125,6 @@ public:
 	);
 
 	/*!
-		Moves the OpenGL's view of the `pointer` for all vertex array attributes from their initial `pointer` to `pointer + offset * stride`.
-
-		Be wary that this will also affect other shaders bound to the same vertex arrays.
-	*/
-	void set_vertex_attribute_offset(size_t);
-
-	/*!
 		All @c set_uniforms queue up the requested uniform changes. Changes are applied automatically the next time the shader is bound.
 	*/
 	void set_uniform(const std::string &name, GLint);
@@ -177,19 +170,6 @@ private:
 	GLuint compile_shader(const std::string &source, GLenum type);
 	API api_;
 	GLuint shader_program_ = 0;
-
-	struct VertexArrayAttribute {
-		GLint location;
-		GLint size;
-		GLenum type;
-		GLboolean normalised;
-		GLsizei stride;
-		const GLvoid *pointer;
-		GLuint divisor;
-
-		void apply(size_t) const;
-	};
-	std::vector<VertexArrayAttribute> attributes_;
 };
 
 }
