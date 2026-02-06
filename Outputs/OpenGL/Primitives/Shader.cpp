@@ -356,7 +356,7 @@ void Shader::set_uniform_matrix(
 	const GLfloat *const values
 ) {
 	with_location(name, [&](const GLint location) {
-	const GLboolean glTranspose = transpose ? GL_TRUE : GL_FALSE;
+		const GLboolean glTranspose = transpose ? GL_TRUE : GL_FALSE;
 		switch(size) {
 			case 2: glUniformMatrix2fv(location, count, glTranspose, values);	break;
 			case 3: glUniformMatrix3fv(location, count, glTranspose, values);	break;

@@ -130,6 +130,22 @@ void ScanTarget::set_target_framebuffer(GLuint target_framebuffer) {
 	});
 }
 
+void ScanTarget::update_aspect_ratio_transformation() {
+	if(output_buffer_.empty()) {
+		return;
+	}
+
+	const auto framing = aspect_ratio_transformation(
+		BufferingScanTarget::modals(),
+		float(output_buffer_.width()) / float(output_buffer_.height())
+	);
+
+	if(!line_output_shader_.empty()) {
+		line_output_shader_.set_aspect_ratio_transformation(framing);
+	}
+	// TODO: apply framing to scan_output_shader_, once it exists.
+}
+
 void ScanTarget::setup_pipeline() {
 	const auto modals = BufferingScanTarget::modals();
 	const auto data_type_size = Outputs::Display::size_for_data_type(modals.input_data_type);
@@ -297,6 +313,7 @@ void ScanTarget::setup_pipeline() {
 		}
 	}
 
+	update_aspect_ratio_transformation();
 	existing_modals_ = modals;
 }
 
@@ -422,13 +439,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				GL_NEAREST,
 				true
 			);
-
-			const auto framing = aspect_ratio_transformation(
-				BufferingScanTarget::modals(),
-				float(output_buffer_width) / float(output_buffer_height)
-			);
-			line_output_shader_.set_aspect_ratio_transformation(framing);
-			// TODO: apply framing to scan_output_shader_, once it exists.
+			update_aspect_ratio_transformation();
 		}
 
 		// Do S-Video or composite line decoding.

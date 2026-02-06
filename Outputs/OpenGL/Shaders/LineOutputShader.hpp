@@ -39,6 +39,9 @@ public:
 	void reset() {
 		shader_.reset();
 	}
+	bool empty() const {
+		return shader_.empty();
+	}
 private:
 	Shader shader_;
 };

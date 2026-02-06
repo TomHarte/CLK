@@ -117,6 +117,8 @@ private:
 	LineOutputShader line_output_shader_;
 	CopyShader copy_shader_;
 	FillShader fill_shader_;
+
+	void update_aspect_ratio_transformation();
 };
 
 }

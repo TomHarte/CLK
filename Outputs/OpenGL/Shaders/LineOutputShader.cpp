@@ -18,8 +18,7 @@ constexpr char vertex_shader[] = R"glsl(
 uniform mediump vec2 sourceSize;
 uniform highp vec2 positionScale;
 uniform mediump float lineHeight;
-
-// TODO: programmable crop should affect scaling via uniforms.
+uniform lowp mat3 scale;
 
 in highp vec2 lineEndpoint0Position;
 in highp float lineEndpoint0CyclesSinceRetrace;
@@ -55,7 +54,7 @@ void main(void) {
 		) / positionScale;
 	gl_Position =
 		vec4(
-			(centre + (longitudinal - 0.5) * normal * lineHeight) * vec2(2.0, -2.0) + vec2(-1.0, 1.0),
+			(scale * vec3(centre + (longitudinal - 0.5) * normal * lineHeight, 1.0)).xy,
 			0.0,
 			1.0
 		) ;
@@ -126,8 +125,8 @@ OpenGL::LineOutputShader::LineOutputShader(
 	shader_.set_uniform("alpha", GLfloat(alpha));
 }
 
-void OpenGL::LineOutputShader::set_aspect_ratio_transformation(const std::array<float, 9> &) {
-
+void OpenGL::LineOutputShader::set_aspect_ratio_transformation(const std::array<float, 9> &transform) {
+	shader_.set_uniform_matrix("scale", 3, false, transform.data());
 }
 
 void OpenGL::LineOutputShader::bind() {
