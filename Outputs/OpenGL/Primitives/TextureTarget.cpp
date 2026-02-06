@@ -88,7 +88,7 @@ TextureTarget::TextureTarget(
 	}
 
 	// Clear the framebuffer.
-	test_gl([&]{ glClear(GL_COLOR_BUFFER_BIT); });
+	test_gl([&]{ glClear(GL_COLOR_BUFFER_BIT | (has_stencil_buffer ? GL_STENCIL_BUFFER_BIT : 0)); });
 }
 
 TextureTarget::~TextureTarget() {
