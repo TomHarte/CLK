@@ -481,7 +481,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				// Apply end-of-frame cleaning if necessary.
 				if(line_metadata_buffer_[begin].is_first_in_frame) {
 					if(line_metadata_buffer_[begin].previous_frame_was_complete) {
-						full_display_rectangle_.draw(1.0, 0.0, 0.0);
+						full_display_rectangle_.draw(0.0, 0.0, 0.0);
 					}
 					test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
 				}
