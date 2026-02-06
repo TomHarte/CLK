@@ -57,6 +57,10 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "--display=svideo"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Soft/Master System/Alex Kidd in Miracle World.sms&quot;"
             isEnabled = "NO">
          </CommandLineArgument>
@@ -73,12 +77,12 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--new=macintosh"
-            isEnabled = "YES">
+            argument = "--new=plus4"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--display=CompositeColour"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/thomasharte/Downloads/Program/Program.prg"

@@ -186,7 +186,7 @@ lowp vec2 quadrature() {
 		
 		return vec4(
 			source.r,
-			chroma * q,
+			chroma * q * vec2(0.5) + vec2(0.5),
 			1.0
 		);
 	}
@@ -284,9 +284,10 @@ lowp vec2 quadrature() {
 		lowp vec4 sample_composite() {
 			lowp vec4 colour = sample_svideo();
 
+			// TODO: can the [potentially] duplicate call to quadrature() be avoided here?
 			return vec4(
 				colour.r * (1.0 - 2.0 * compositeAmplitude)  + colour.g * compositeAmplitude,
-				colour.ba,
+				quadrature(),
 				compositeAmplitude
 			);
 		}
