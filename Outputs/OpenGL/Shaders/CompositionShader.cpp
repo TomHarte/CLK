@@ -357,6 +357,7 @@ lowp vec2 quadrature() {
 
 
 out lowp vec4 outputColour;
+uniform lowp float alpha;
 
 void main(void) {
 
@@ -369,7 +370,7 @@ void main(void) {
 #endif
 
 #ifdef OUTPUT_RGB
-	outputColour = vec4(sample_rgb(), 1.0);
+	outputColour = vec4(sample_rgb(), alpha);
 #endif
 
 }
@@ -510,6 +511,7 @@ OpenGL::ScanOutputShader::ScanOutputShader(
 	const int scale_y,
 	const int source_width,
 	const int source_height,
+	const float alpha,
 	const VertexArray &vertex_array,
 	const GLenum source_texture_unit
 ) {
@@ -521,10 +523,11 @@ OpenGL::ScanOutputShader::ScanOutputShader(
 	);
 	enable_vertex_attributes<AttributesType::ToOutput>(shader_, vertex_array);
 
-	shader_.set_uniform("sourceSize", float(source_width), float(source_height));
+	shader_.set_uniform("sourceSize", GLfloat(source_width), GLfloat(source_height));
 	shader_.set_uniform("lineHeight", 1.05f / GLfloat(expected_vertical_lines));
 	shader_.set_uniform("positionScale", GLfloat(scale_x), GLfloat(scale_y));
 	shader_.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
+	shader_.set_uniform("alpha", GLfloat(alpha));
 }
 
 void OpenGL::ScanOutputShader::set_aspect_ratio_transformation(const std::array<float, 9> &transform) {

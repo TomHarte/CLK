@@ -128,6 +128,7 @@ void ScanTarget::update_aspect_ratio_transformation() {
 void ScanTarget::setup_pipeline() {
 	const auto modals = BufferingScanTarget::modals();
 	const auto data_type_size = Outputs::Display::size_for_data_type(modals.input_data_type);
+	static constexpr float OutputAlpha = 0.64f;
 
 	// Possibly create a new source texture.
 	if(source_texture_.empty() || source_texture_.channels() != data_type_size) {
@@ -206,6 +207,7 @@ void ScanTarget::setup_pipeline() {
 				modals.output_scale.y,
 				WriteAreaWidth,
 				WriteAreaHeight,
+				OutputAlpha,
 				scans_,
 				SourceDataTextureUnit);
 		}
@@ -270,7 +272,7 @@ void ScanTarget::setup_pipeline() {
 					modals.expected_vertical_lines,
 					modals.output_scale.x,
 					modals.output_scale.y,
-					0.64f,
+					OutputAlpha,
 					lines_,
 					DemodulationTextureUnit
 				);

@@ -65,6 +65,7 @@ public:
 		int scale_y,
 		int source_width,
 		int source_height,
+		float alpha,
 		const VertexArray &,
 		GLenum source_texture_unit
 	);
