@@ -95,6 +95,33 @@ void fill_random(TextureTarget &target) {
 		);
 	});
 }
+
+template <typename SourceT>
+void submit(VertexArray &target, const size_t begin, const size_t end, const SourceT &source) {
+	if(begin == end) {
+		return;
+	}
+
+	target.bind_buffer();
+	size_t buffer_destination = 0;
+	const auto submit = [&](const size_t begin, const size_t end) {
+		test_gl([&]{
+			glBufferSubData(
+				GL_ARRAY_BUFFER,
+				buffer_destination,
+				(end - begin) * sizeof(source[0]),
+				&source[begin]
+			);
+		});
+		buffer_destination += (end - begin) * sizeof(source[0]);
+	};
+	if(begin < end) {
+		submit(begin, end);
+	} else {
+		submit(begin, source.size());
+		submit(0, end);
+	}
+}
 }
 
 ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const float output_gamma) :
@@ -445,7 +472,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 
 		output_buffer_.bind_framebuffer();
 		test_gl([&]{ glEnable(GL_BLEND); });
-//		test_gl([&]{ glEnable(GL_STENCIL_TEST); });
+		test_gl([&]{ glEnable(GL_STENCIL_TEST); });
 
 		if(!is_rgb(existing_modals_->display_type)) {
 			output_lines(area);
@@ -454,7 +481,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 		}
 
 		test_gl([&]{ glDisable(GL_BLEND); });
-//		test_gl([&]{ glDisable(GL_STENCIL_TEST); });
+		test_gl([&]{ glDisable(GL_STENCIL_TEST); });
 
 		// That's it for operations affecting the accumulation buffer.
 		is_drawing_to_output_.clear();
@@ -469,30 +496,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 void ScanTarget::process_to_rgb(const OutputArea &area) {
 	if(area.end.scan != area.begin.scan) {
 		// Submit all scans.
-		if(area.end.scan != area.begin.scan) {
-			// Submit new scans.
-			// First implementation: put all new scans at the start of the buffer, for a simple
-			// glDrawArraysInstanced call below.
-			scans_.bind_buffer();
-			size_t buffer_destination = 0;
-			const auto submit = [&](const size_t begin, const size_t end) {
-				test_gl([&]{ 
-					glBufferSubData(
-						GL_ARRAY_BUFFER,
-						buffer_destination,
-						(end - begin) * sizeof(Scan),
-						&scan_buffer_[begin]
-					);
-				});
-				buffer_destination += (end - begin) * sizeof(Scan);
-			};
-			if(area.begin.scan < area.end.scan) {
-				submit(area.begin.scan, area.end.scan);
-			} else {
-				submit(area.begin.scan, scan_buffer_.size());
-				submit(0, area.end.scan);
-			}
-		}
+		::submit(scans_, area.begin.scan, area.end.scan, scan_buffer_);
 
 		// Populate composition buffer.
 		composition_buffer_.bind_framebuffer();
@@ -577,25 +581,7 @@ void ScanTarget::output_lines(const OutputArea &area) {
 
 		// Submit new lines.
 		lines_.bind_all();
-		size_t buffer_destination = 0;
-		const auto submit = [&](const size_t begin, const size_t end) {
-			const auto size = (end - begin) * sizeof(Line);
-			test_gl([&]{
-				glBufferSubData(
-					GL_ARRAY_BUFFER,
-					buffer_destination,
-					size,
-					&line_buffer_[begin]
-				);
-			});
-			buffer_destination += (end - begin) * sizeof(Line);
-		};
-		if(begin < end) {
-			submit(begin, end);
-		} else {
-			submit(begin, line_buffer_.size());
-			submit(0, end);
-		}
+		::submit(lines_, begin, end, line_buffer_);
 
 		// Output new lines.
 		line_output_shader_.bind();
@@ -643,27 +629,9 @@ void ScanTarget::output_scans(const OutputArea &area) {
 
 		// Submit and output new scans.
 		scans_.bind_all();
-		size_t buffer_destination = 0;
-		const auto submit = [&](const size_t begin, const size_t end) {
-			const auto size = (end - begin) * sizeof(Scan);
-			test_gl([&]{
-				glBufferSubData(
-					GL_ARRAY_BUFFER,
-					buffer_destination,
-					size,
-					&scan_buffer_[begin]
-				);
-			});
-			buffer_destination += (end - begin) * sizeof(Scan);
-		};
-		if(scan_begin < scan_end) {
-			submit(scan_begin, scan_end);
-		} else {
-			submit(scan_begin, scan_buffer_.size());
-			submit(0, scan_end);
-		}
+		::submit(scans_, scan_begin, scan_end, scan_buffer_);
 
-		// Output new lines.
+		// Output new scans.
 		scan_output_shader_.bind();
 		const auto new_scans = (scan_end - scan_begin + scan_buffer_.size()) % scan_buffer_.size();
 		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });

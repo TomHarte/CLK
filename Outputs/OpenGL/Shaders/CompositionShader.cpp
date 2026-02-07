@@ -65,12 +65,14 @@ void main(void) {
 	vec2 centre =
 		mix(
 			scanEndpoint0Position,
-			scanEndpoint0Position,
+			scanEndpoint1Position,
 			lateral
 		) / positionScale;
 	gl_Position =
 		vec4(
-			(scale * vec3(centre + (longitudinal - 0.5) * normal * lineHeight, 1.0)).xy,
+//			(scale * vec3(centre + (longitudinal - 0.5) * normal * lineHeight, 1.0)).xy,
+			longitudinal,
+			lateral,
 			0.0,
 			1.0
 		) ;
@@ -369,7 +371,7 @@ void main(void) {
 #endif
 
 #ifdef OUTPUT_RGB
-	outputColour = vec4(sample_rgb(), 1.0);
+	outputColour = vec4(1.0);//vec4(sample_rgb(), 1.0);
 #endif
 
 }
