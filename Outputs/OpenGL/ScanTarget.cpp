@@ -416,32 +416,6 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			}
 		}
 
-		// Submit scans; only the new ones need to be communicated.
-		if(area.end.scan != area.begin.scan) {
-			// Submit new scans.
-			// First implementation: put all new scans at the start of the buffer, for a simple
-			// glDrawArraysInstanced call below.
-			scans_.bind_buffer();
-			size_t buffer_destination = 0;
-			const auto submit = [&](const size_t begin, const size_t end) {
-				test_gl([&]{ 
-					glBufferSubData(
-						GL_ARRAY_BUFFER,
-						buffer_destination,
-						(end - begin) * sizeof(Scan),
-						&scan_buffer_[begin]
-					);
-				});
-				buffer_destination += (end - begin) * sizeof(Scan);
-			};
-			if(area.begin.scan < area.end.scan) {
-				submit(area.begin.scan, area.end.scan);
-			} else {
-				submit(area.begin.scan, scan_buffer_.size());
-				submit(0, area.end.scan);
-			}
-		}
-
 		if(!is_rgb(existing_modals_->display_type)) {
 			process_to_rgb(area);
 		}
@@ -494,12 +468,37 @@ void ScanTarget::update(const int output_width, const int output_height) {
 
 void ScanTarget::process_to_rgb(const OutputArea &area) {
 	if(area.end.scan != area.begin.scan) {
-		const size_t new_scans = (area.end.scan - area.begin.scan + scan_buffer_.size()) % scan_buffer_.size();
+		// Submit all scans.
+		if(area.end.scan != area.begin.scan) {
+			// Submit new scans.
+			// First implementation: put all new scans at the start of the buffer, for a simple
+			// glDrawArraysInstanced call below.
+			scans_.bind_buffer();
+			size_t buffer_destination = 0;
+			const auto submit = [&](const size_t begin, const size_t end) {
+				test_gl([&]{ 
+					glBufferSubData(
+						GL_ARRAY_BUFFER,
+						buffer_destination,
+						(end - begin) * sizeof(Scan),
+						&scan_buffer_[begin]
+					);
+				});
+				buffer_destination += (end - begin) * sizeof(Scan);
+			};
+			if(area.begin.scan < area.end.scan) {
+				submit(area.begin.scan, area.end.scan);
+			} else {
+				submit(area.begin.scan, scan_buffer_.size());
+				submit(0, area.end.scan);
+			}
+		}
 
 		// Populate composition buffer.
 		composition_buffer_.bind_framebuffer();
 		scans_.bind();
 		composition_shader_.bind();
+		const size_t new_scans = (area.end.scan - area.begin.scan + scan_buffer_.size()) % scan_buffer_.size();
 		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
 	}
 
@@ -611,14 +610,66 @@ void ScanTarget::output_scans(const OutputArea &area) {
 	if(area.end.scan == area.begin.scan) {
 		return;
 	}
-	if(area.end.line == area.begin.line) {
-		return;
-	}
 
 	// Break scans into frames. This is tortured. TODO: resolve LineMetadata issues, as above.
-//	size_t scan_begin = area.begin.scan;
-//	while(scan_begin != area.end.scan) {
-//	}
+	size_t scan_begin = area.begin.scan;
+	size_t line_begin = area.begin.line;
+	while(scan_begin != area.end.scan) {
+		if(
+			line_begin != area.end.line &&
+			scan_begin == line_metadata_buffer_[line_begin].first_scan &&
+			scan_begin == line_metadata_buffer_[line_begin].is_first_in_frame
+		) {
+			if(line_metadata_buffer_[line_begin].previous_frame_was_complete) {
+				full_display_rectangle_.draw(0.0, 0.0, 0.0);
+			}
+			test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
+		}
+
+		// Check for an end-of-frame in the current scan range by searching lines.
+		// This is really messy.
+		size_t line_end = line_begin;
+		size_t scan_end = area.end.scan;
+		while(true) {
+			++line_end;
+			if(line_end == line_metadata_buffer_.size()) line_end = 0;
+			if(line_end == area.end.line) break;
+			if(line_metadata_buffer_[line_end].is_first_in_frame) {
+				scan_end = line_metadata_buffer_[line_end].first_scan;
+				break;
+			}
+		}
+		line_begin = line_end;
+
+		// Submit and output new scans.
+		scans_.bind_all();
+		size_t buffer_destination = 0;
+		const auto submit = [&](const size_t begin, const size_t end) {
+			const auto size = (end - begin) * sizeof(Scan);
+			test_gl([&]{
+				glBufferSubData(
+					GL_ARRAY_BUFFER,
+					buffer_destination,
+					size,
+					&scan_buffer_[begin]
+				);
+			});
+			buffer_destination += (end - begin) * sizeof(Scan);
+		};
+		if(scan_begin < scan_end) {
+			submit(scan_begin, scan_end);
+		} else {
+			submit(scan_begin, scan_buffer_.size());
+			submit(0, scan_end);
+		}
+
+		// Output new lines.
+		scan_output_shader_.bind();
+		const auto new_scans = (scan_end - scan_begin + scan_buffer_.size()) % scan_buffer_.size();
+		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
+
+		scan_begin = scan_end;
+	}
 }
 
 void ScanTarget::draw(int output_width, int output_height) {
