@@ -414,62 +414,8 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			}
 		}
 
-		if(area.end.scan != area.begin.scan) {
-			const size_t new_scans = (area.end.scan - area.begin.scan + scan_buffer_.size()) % scan_buffer_.size();
-
-			// Populate composition buffer.
-			composition_buffer_.bind_framebuffer();
-			scans_.bind();
-			composition_shader_.bind();
-			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
-		}
-
-		// Do S-Video or composite line decoding.
-		if(area.end.line != area.begin.line) {
-			// Calculate and submit line dirty zones.
-			const int num_dirty_zones = 1 + (area.begin.line >= area.end.line);
-			dirty_zones_buffer_[0].begin = area.begin.line;
-			if(num_dirty_zones == 1) {
-				dirty_zones_buffer_[0].end = area.end.line;
-			} else {
-				dirty_zones_buffer_[0].end = LineBufferHeight;
-				dirty_zones_buffer_[1].begin = 0;
-				dirty_zones_buffer_[1].end = area.end.line;
-			}
-
-			dirty_zones_.bind_all();
-			test_gl([&]{
-				glBufferSubData(
-					GL_ARRAY_BUFFER,
-					0,
-					num_dirty_zones * sizeof(DirtyZone),
-					dirty_zones_buffer_.data()
-				);
-			});
-
-			// Perform [composite/svideo] -> RGB conversion.
-			if(is_composite(existing_modals_->display_type)) {
-				separation_buffer_.bind_framebuffer();
-				separation_shader_.bind();
-				test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
-			}
-
-			if(is_composite(existing_modals_->display_type) || is_svideo(existing_modals_->display_type)) {
-				demodulation_buffer_.bind_framebuffer();
-				demodulation_shader_.bind();
-				test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
-			}
-
-			// Retroactively clear the composition buffer; doing this post hoc avoids uncertainty about the
-			// exact timing of a new line being drawn to, as well as fitting more neatly into when dirty zones
-			// are bound.
-			composition_buffer_.bind_framebuffer();
-			if(is_composite(existing_modals_->display_type)) {
-				fill_shader_.bind(0.0, 0.0, 0.0, 0.0);
-			} else {
-				fill_shader_.bind(0.0, 0.5, 0.5, 1.0);
-			}
-			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
+		if(!is_rgb(existing_modals_->display_type)) {
+			process_to_rgb(area);
 		}
 
 		// Work with the accumulation_buffer_ potentially starts from here onwards; set its flag.
@@ -495,64 +441,17 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			update_aspect_ratio_transformation();
 		}
 
-		// Do S-Video or composite line decoding.
-		if(area.end.line != area.begin.line) {
-			// Batch lines by frame.
-			test_gl([&]{ glEnable(GL_BLEND); });
-			test_gl([&]{ glEnable(GL_STENCIL_TEST); });
+		test_gl([&]{ glEnable(GL_BLEND); });
+		test_gl([&]{ glEnable(GL_STENCIL_TEST); });
 
-			output_buffer_.bind_framebuffer();
-			size_t begin = area.begin.line;
-			while(begin != area.end.line) {
-				// Apply end-of-frame cleaning if necessary.
-				if(line_metadata_buffer_[begin].is_first_in_frame) {
-					if(line_metadata_buffer_[begin].previous_frame_was_complete) {
-						full_display_rectangle_.draw(0.0, 0.0, 0.0);
-					}
-					test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
-				}
-
-				// Hunt for an end-of-frame.
-				// TODO: eliminate this linear search by not loading frame data into LineMetadata.
-				size_t end = begin;
-				do {
-					++end;
-					if(end == line_metadata_buffer_.size()) end = 0;
-				} while(end != area.end.line && !line_metadata_buffer_[end].is_first_in_frame);
-
-				// Submit new lines.
-				lines_.bind_all();
-				size_t buffer_destination = 0;
-				const auto submit = [&](const size_t begin, const size_t end) {
-					const auto size = (end - begin) * sizeof(Line);
-					test_gl([&]{
-						glBufferSubData(
-							GL_ARRAY_BUFFER,
-							buffer_destination,
-							size,
-							&line_buffer_[begin]
-						);
-					});
-					buffer_destination += (end - begin) * sizeof(Line);
-				};
-				if(begin < end) {
-					submit(begin, end);
-				} else {
-					submit(begin, line_buffer_.size());
-					submit(0, end);
-				}
-
-				// Output new lines.
-				line_output_shader_.bind();
-				const auto new_lines = (end - begin + LineBufferHeight) % LineBufferHeight;
-				test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_lines)); });
-
-				begin = end;
-			}
-
-			test_gl([&]{ glDisable(GL_BLEND); });
-			test_gl([&]{ glDisable(GL_STENCIL_TEST); });
+		if(!is_rgb(existing_modals_->display_type)) {
+			output_lines(area);
+		} else {
+			output_scans(area);
 		}
+
+		test_gl([&]{ glDisable(GL_BLEND); });
+		test_gl([&]{ glDisable(GL_STENCIL_TEST); });
 
 		// That's it for operations affecting the accumulation buffer.
 		is_drawing_to_output_.clear();
@@ -563,6 +462,127 @@ void ScanTarget::update(const int output_width, const int output_height) {
 		complete_output_area(area);
 	});
 }
+
+void ScanTarget::process_to_rgb(const OutputArea &area) {
+	if(area.end.scan != area.begin.scan) {
+		const size_t new_scans = (area.end.scan - area.begin.scan + scan_buffer_.size()) % scan_buffer_.size();
+
+		// Populate composition buffer.
+		composition_buffer_.bind_framebuffer();
+		scans_.bind();
+		composition_shader_.bind();
+		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
+	}
+
+	// Do S-Video or composite line decoding.
+	if(area.end.line != area.begin.line) {
+		// Calculate and submit line dirty zones.
+		const int num_dirty_zones = 1 + (area.begin.line >= area.end.line);
+		dirty_zones_buffer_[0].begin = area.begin.line;
+		if(num_dirty_zones == 1) {
+			dirty_zones_buffer_[0].end = area.end.line;
+		} else {
+			dirty_zones_buffer_[0].end = LineBufferHeight;
+			dirty_zones_buffer_[1].begin = 0;
+			dirty_zones_buffer_[1].end = area.end.line;
+		}
+
+		dirty_zones_.bind_all();
+		test_gl([&]{
+			glBufferSubData(
+				GL_ARRAY_BUFFER,
+				0,
+				num_dirty_zones * sizeof(DirtyZone),
+				dirty_zones_buffer_.data()
+			);
+		});
+
+		// Perform [composite/svideo] -> RGB conversion.
+		if(is_composite(existing_modals_->display_type)) {
+			separation_buffer_.bind_framebuffer();
+			separation_shader_.bind();
+			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
+		}
+
+		if(is_composite(existing_modals_->display_type) || is_svideo(existing_modals_->display_type)) {
+			demodulation_buffer_.bind_framebuffer();
+			demodulation_shader_.bind();
+			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
+		}
+
+		// Retroactively clear the composition buffer; doing this post hoc avoids uncertainty about the
+		// exact timing of a new line being drawn to, as well as fitting more neatly into when dirty zones
+		// are bound.
+		composition_buffer_.bind_framebuffer();
+		if(is_composite(existing_modals_->display_type)) {
+			fill_shader_.bind(0.0, 0.0, 0.0, 0.0);
+		} else {
+			fill_shader_.bind(0.0, 0.5, 0.5, 1.0);
+		}
+		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
+	}
+}
+
+void ScanTarget::output_lines(const OutputArea &area) {
+	if(area.end.line == area.begin.line) {
+		return;
+	}
+
+	// Batch lines by frame.
+	output_buffer_.bind_framebuffer();
+	size_t begin = area.begin.line;
+	while(begin != area.end.line) {
+		// Apply end-of-frame cleaning if necessary.
+		if(line_metadata_buffer_[begin].is_first_in_frame) {
+			if(line_metadata_buffer_[begin].previous_frame_was_complete) {
+				full_display_rectangle_.draw(0.0, 0.0, 0.0);
+			}
+			test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
+		}
+
+		// Hunt for an end-of-frame.
+		// TODO: eliminate this linear search by not loading frame data into LineMetadata.
+		size_t end = begin;
+		do {
+			++end;
+			if(end == line_metadata_buffer_.size()) end = 0;
+		} while(end != area.end.line && !line_metadata_buffer_[end].is_first_in_frame);
+
+		// Submit new lines.
+		lines_.bind_all();
+		size_t buffer_destination = 0;
+		const auto submit = [&](const size_t begin, const size_t end) {
+			const auto size = (end - begin) * sizeof(Line);
+			test_gl([&]{
+				glBufferSubData(
+					GL_ARRAY_BUFFER,
+					buffer_destination,
+					size,
+					&line_buffer_[begin]
+				);
+			});
+			buffer_destination += (end - begin) * sizeof(Line);
+		};
+		if(begin < end) {
+			submit(begin, end);
+		} else {
+			submit(begin, line_buffer_.size());
+			submit(0, end);
+		}
+
+		// Output new lines.
+		line_output_shader_.bind();
+		const auto new_lines = (end - begin + LineBufferHeight) % LineBufferHeight;
+		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_lines)); });
+
+		begin = end;
+	}
+}
+
+void ScanTarget::output_scans(const OutputArea &area) {
+	(void)area;
+}
+
 
 void ScanTarget::draw(int output_width, int output_height) {
 	while(is_drawing_to_output_.test_and_set(std::memory_order_acquire));

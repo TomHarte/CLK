@@ -121,6 +121,9 @@ private:
 	FillShader fill_shader_;
 
 	void update_aspect_ratio_transformation();
+	void process_to_rgb(const OutputArea &);
+	void output_lines(const OutputArea &);
+	void output_scans(const OutputArea &);
 };
 
 }
