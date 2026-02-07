@@ -55,4 +55,29 @@ Shader composition_shader(
 	GLenum source_texture_unit
 );
 
+class ScanOutputShader {
+public:
+	ScanOutputShader(
+		API,
+		InputDataType,
+		int expected_vertical_lines,
+		int scale_x,
+		int scale_y,
+		int source_width,
+		int source_height,
+		const VertexArray &,
+		GLenum source_texture_unit
+	);
+	ScanOutputShader() = default;
+
+	void set_aspect_ratio_transformation(const std::array<float, 9> &);
+	void bind();
+
+	void reset() { shader_.reset(); }
+	bool empty() const { return shader_.empty(); }
+
+private:
+	Shader shader_;
+};
+
 }

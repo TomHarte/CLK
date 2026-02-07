@@ -36,12 +36,10 @@ public:
 
 	void set_aspect_ratio_transformation(const std::array<float, 9> &);
 	void bind();
-	void reset() {
-		shader_.reset();
-	}
-	bool empty() const {
-		return shader_.empty();
-	}
+
+	void reset() { shader_.reset(); }
+	bool empty() const { return shader_.empty(); }
+
 private:
 	Shader shader_;
 };

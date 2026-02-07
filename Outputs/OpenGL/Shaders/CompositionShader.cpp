@@ -28,16 +28,56 @@ namespace {
 //			INPUT_RED2_GREEN2_BLUE2
 //			INPUT_RED4_GREEN4_BLUE4
 //			INPUT_RED8_GREEN8_BLUE8
-//	(3)	#define NO_BITWISE to perform sampling with floating
-//		point operations only. Those versions are slower in principle,
-//		but obviously faster if the target hardware is using
-//		ES 2 or original WebGL and therefore isn't guaranteed to
-//		support integers or bitwise operations.
-//
 
-// TODO: implement NO_BITWISE.
+constexpr char scan_output_vertex_shader[] = R"glsl(
 
-constexpr char vertex_shader[] = R"glsl(
+uniform mediump vec2 sourceSize;
+uniform highp vec2 positionScale;
+uniform mediump float lineHeight;
+uniform lowp mat3 scale;
+
+in highp vec2 scanEndpoint0Position;
+in highp float scanEndpoint0DataOffset;
+
+in highp vec2 scanEndpoint1Position;
+in highp float scanEndpoint1DataOffset;
+
+in mediump float scanDataY;
+
+out mediump vec2 coordinate;
+
+void main(void) {
+	float lateral = float(gl_VertexID & 1);
+	float longitudinal = float((gl_VertexID & 2) >> 1);
+
+	coordinate = vec2(
+		mix(
+			scanEndpoint0DataOffset,
+			scanEndpoint1DataOffset,
+			lateral
+		),
+		scanDataY + 0.5
+	) / sourceSize;
+
+	vec2 tangent = normalize(scanEndpoint1Position - scanEndpoint0Position);
+	vec2 normal = vec2(tangent.y, -tangent.x);
+
+	vec2 centre =
+		mix(
+			scanEndpoint0Position,
+			scanEndpoint0Position,
+			lateral
+		) / positionScale;
+	gl_Position =
+		vec4(
+			(scale * vec3(centre + (longitudinal - 0.5) * normal * lineHeight, 1.0)).xy,
+			0.0,
+			1.0
+		) ;
+}
+)glsl";
+
+constexpr char composition_vertex_shader[] = R"glsl(
 
 uniform mediump float cyclesSinceRetraceMultiplier;
 uniform mediump vec2 sourceSize;
@@ -335,6 +375,73 @@ void main(void) {
 }
 
 )glsl";
+
+std::string prefix(const Outputs::Display::InputDataType input) {
+	std::string prefix = "#define INPUT_";
+	prefix += [&] {
+		switch(input) {
+			using enum Outputs::Display::InputDataType;
+
+			case Luminance1: return "LUMINANCE1";
+			case Luminance8: return "LUMINANCE8";
+			case PhaseLinkedLuminance8: return "PHASE_LINKED_LUMINANCE8";
+			case Luminance8Phase8: return "LUMINANCE8_PHASE8";
+			case Red1Green1Blue1: return "RED1_GREEN1_BLUE1";
+			case Red2Green2Blue2: return "RED2_GREEN2_BLUE2";
+			case Red4Green4Blue4: return "RED4_GREEN4_BLUE4";
+			case Red8Green8Blue8: return "RED8_GREEN8_BLUE8";
+		}
+		__builtin_unreachable();
+	} ();
+	prefix += "\n";
+	return prefix;
+}
+
+enum class AttributesType {
+	ToLines,
+	ToOutput
+};
+
+template <AttributesType type>
+void enable_vertex_attributes(
+	Outputs::Display::OpenGL::Shader &shader,
+	const Outputs::Display::OpenGL::VertexArray &vertex_array
+) {
+	Outputs::Display::BufferingScanTarget::Scan scan;
+	vertex_array.bind_all();
+	const auto enable = [&](const std::string &name, auto &element, const bool normalise, const GLint size) {
+		assert(sizeof(element) == 1 || sizeof(element) == 2);
+		shader.enable_vertex_attribute_with_pointer(
+			name,
+			size,
+			sizeof(element) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE,
+			normalise ? GL_TRUE : GL_FALSE,
+			sizeof(scan),
+			reinterpret_cast<void *>((reinterpret_cast<uint8_t *>(&element) - reinterpret_cast<uint8_t *>(&scan))),
+			1
+		);
+	};
+
+	for(int c = 0; c < 2; c++) {
+		const std::string endpoint = std::string("scanEndpoint") + std::to_string(c);
+
+		enable(endpoint + "DataOffset", scan.scan.end_points[c].data_offset, false, 1);
+		if(type == AttributesType::ToOutput) {
+			enable(endpoint + "Position", scan.scan.end_points[c].x, false, 2);
+		}
+		if(type == AttributesType::ToLines) {
+			enable(endpoint + "CyclesSinceRetrace", scan.scan.end_points[c].cycles_since_end_of_horizontal_retrace, false, 1);
+			enable(endpoint + "CompositeAngle", scan.scan.end_points[c].composite_angle, false, 1);
+		}
+	}
+
+	enable("scanDataY", scan.data_y, false, 1);
+	if(type == AttributesType::ToLines) {
+		enable("scanCompositeAmplitude", scan.scan.composite_amplitude, true, 1);
+		enable("scanLine", scan.line, false, 1);
+	}
+}
+
 }
 
 using namespace Outputs::Display;
@@ -355,23 +462,7 @@ OpenGL::Shader OpenGL::composition_shader(
 	//
 	// Compose and compiler shader.
 	//
-	std::string prefix;
-
-	prefix += "#define INPUT_";
-	prefix += [&] {
-		switch(input) {
-			case InputDataType::Luminance1: return "LUMINANCE1";
-			case InputDataType::Luminance8: return "LUMINANCE8";
-			case InputDataType::PhaseLinkedLuminance8: return "PHASE_LINKED_LUMINANCE8";
-			case InputDataType::Luminance8Phase8: return "LUMINANCE8_PHASE8";
-			case InputDataType::Red1Green1Blue1: return "RED1_GREEN1_BLUE1";
-			case InputDataType::Red2Green2Blue2: return "RED2_GREEN2_BLUE2";
-			case InputDataType::Red4Green4Blue4: return "RED4_GREEN4_BLUE4";
-			case InputDataType::Red8Green8Blue8: return "RED8_GREEN8_BLUE8";
-		}
-		__builtin_unreachable();
-	} ();
-	prefix += "\n";
+	std::string prefix = ::prefix(input);
 
 	prefix += "#define OUTPUT_";
 	prefix += [&] {
@@ -386,45 +477,13 @@ OpenGL::Shader OpenGL::composition_shader(
 	} ();
 	prefix += "\n";
 
-	if(!supports_bitwise_operations(api)) {
-		prefix += "#define NO_BITWISE\n";
-	}
-
 	auto shader = OpenGL::Shader(
 		api,
-		prefix + vertex_shader,
+		prefix + composition_vertex_shader,
 		prefix + fragment_shader,
 		scan_attributes()
 	);
-
-	//
-	// Enable vertex attributes.
-	//
-	BufferingScanTarget::Scan scan;
-	vertex_array.bind_all();
-	const auto enable = [&](const std::string &name, auto &element, const bool normalise) {
-		assert(sizeof(element) == 1 || sizeof(element) == 2);
-		shader.enable_vertex_attribute_with_pointer(
-			name,
-			1,
-			sizeof(element) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE,
-			normalise ? GL_TRUE : GL_FALSE,
-			sizeof(scan),
-			reinterpret_cast<void *>((reinterpret_cast<uint8_t *>(&element) - reinterpret_cast<uint8_t *>(&scan))),
-			1
-		);
-	};
-
-	for(int c = 0; c < 2; c++) {
-		const std::string endpoint = std::string("scanEndpoint") + std::to_string(c);
-		enable(endpoint + "DataOffset", scan.scan.end_points[c].data_offset, false);
-		enable(endpoint + "CyclesSinceRetrace", scan.scan.end_points[c].cycles_since_end_of_horizontal_retrace, false);
-		enable(endpoint + "CompositeAngle", scan.scan.end_points[c].composite_angle, false);
-	}
-
-	enable("scanDataY", scan.data_y, false);
-	enable("scanLine", scan.line, false);
-	enable("scanCompositeAmplitude", scan.scan.composite_amplitude, true);
+	enable_vertex_attributes<AttributesType::ToLines>(shader, vertex_array);
 
 	//
 	// Set uniforms.
@@ -436,4 +495,37 @@ OpenGL::Shader OpenGL::composition_shader(
 	shader.set_uniform_matrix("fromRGB", 3, false, from_rgb_matrix(colour_space).data());
 
 	return shader;
+}
+
+OpenGL::ScanOutputShader::ScanOutputShader(
+	const API api,
+	const InputDataType input,
+	const int expected_vertical_lines,
+	const int scale_x,
+	const int scale_y,
+	const int source_width,
+	const int source_height,
+	const VertexArray &vertex_array,
+	const GLenum source_texture_unit
+) {
+	shader_ = OpenGL::Shader(
+		api,
+		scan_output_vertex_shader,
+		prefix(input) + fragment_shader,
+		scan_attributes()
+	);
+	enable_vertex_attributes<AttributesType::ToOutput>(shader_, vertex_array);
+
+	shader_.set_uniform("sourceSize", float(source_width), float(source_height));
+	shader_.set_uniform("lineHeight", 1.05f / GLfloat(expected_vertical_lines));
+	shader_.set_uniform("positionScale", GLfloat(scale_x), GLfloat(scale_y));
+	shader_.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
+}
+
+void OpenGL::ScanOutputShader::set_aspect_ratio_transformation(const std::array<float, 9> &transform) {
+	shader_.set_uniform_matrix("scale", 3, false, transform.data());
+}
+
+void OpenGL::ScanOutputShader::bind() {
+	shader_.bind();
 }
