@@ -445,7 +445,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 
 		output_buffer_.bind_framebuffer();
 		test_gl([&]{ glEnable(GL_BLEND); });
-		test_gl([&]{ glEnable(GL_STENCIL_TEST); });
+//		test_gl([&]{ glEnable(GL_STENCIL_TEST); });
 
 		if(!is_rgb(existing_modals_->display_type)) {
 			output_lines(area);
@@ -454,7 +454,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 		}
 
 		test_gl([&]{ glDisable(GL_BLEND); });
-		test_gl([&]{ glDisable(GL_STENCIL_TEST); });
+//		test_gl([&]{ glDisable(GL_STENCIL_TEST); });
 
 		// That's it for operations affecting the accumulation buffer.
 		is_drawing_to_output_.clear();
@@ -618,7 +618,7 @@ void ScanTarget::output_scans(const OutputArea &area) {
 		if(
 			line_begin != area.end.line &&
 			scan_begin == line_metadata_buffer_[line_begin].first_scan &&
-			scan_begin == line_metadata_buffer_[line_begin].is_first_in_frame
+			line_metadata_buffer_[line_begin].is_first_in_frame
 		) {
 			if(line_metadata_buffer_[line_begin].previous_frame_was_complete) {
 				full_display_rectangle_.draw(0.0, 0.0, 0.0);
