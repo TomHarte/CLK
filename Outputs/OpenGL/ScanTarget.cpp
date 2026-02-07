@@ -208,110 +208,138 @@ void ScanTarget::setup_pipeline() {
 		);
 	}
 
-	if(
-		!existing_modals_ ||
-		existing_modals_->input_data_type != modals.input_data_type ||
-		existing_modals_->display_type != modals.display_type ||
-		existing_modals_->composite_colour_space != modals.composite_colour_space ||
-		subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
-	) {
-		composition_shader_ = OpenGL::composition_shader(
-			api_,
-			modals.input_data_type,
-			modals.display_type,
-			modals.composite_colour_space,
-			sample_multiplier,
-			WriteAreaWidth, WriteAreaHeight,
-			buffer_width, LineBufferHeight,
-			scans_,
-			GL_TEXTURE0
-		);
-	}
+	if(is_rgb(modals.display_type)) {
+		composition_shader_.reset();
+		separation_shader_.reset();
+		demodulation_shader_.reset();
+		line_output_shader_.reset();
 
-	if(
-		!existing_modals_ ||
-		modals.cycles_per_line != existing_modals_->cycles_per_line ||
-		subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
-	) {
-		if(is_composite(modals.display_type)) {
-			separation_shader_ = OpenGL::separation_shader(
+		if(
+			scan_output_shader_.empty() ||
+			existing_modals_->input_data_type != modals.input_data_type ||
+			existing_modals_->expected_vertical_lines != modals.expected_vertical_lines ||
+			existing_modals_->output_scale.x != modals.output_scale.x ||
+			existing_modals_->output_scale.y != modals.output_scale.y
+		) {
+			scan_output_shader_ = OpenGL::ScanOutputShader(
 				api_,
-				subcarrier_frequency(modals),
-				sample_multiplier * modals.cycles_per_line,
-				buffer_width, LineBufferHeight,
-				dirty_zones_,
-				CompositionTextureUnit
-			);
-		} else {
-			separation_shader_.reset();
-		}
-
-		if(is_composite(modals.display_type) || is_svideo(modals.display_type)) {
-			demodulation_shader_ = OpenGL::demodulation_shader(
-				api_,
-				modals.composite_colour_space,
-				modals.display_type,
-				subcarrier_frequency(modals),
-				sample_multiplier * modals.cycles_per_line,
-				buffer_width,
-				LineBufferHeight,
-				dirty_zones_,
-				is_svideo(modals.display_type) ? CompositionTextureUnit : SeparationTextureUnit
-			);
-
-			line_output_shader_ = LineOutputShader(
-				api_,
-				buffer_width, LineBufferHeight,
-				sample_multiplier,
+				modals.input_data_type,
 				modals.expected_vertical_lines,
 				modals.output_scale.x,
 				modals.output_scale.y,
-				0.64f,
-				lines_,
-				DemodulationTextureUnit
-			);
-
-			fill_shader_ = OpenGL::FillShader(
-				api_,
-				sample_multiplier * modals.cycles_per_line,
-				buffer_width,
-				LineBufferHeight,
-				dirty_zones_
-			);
-		} else {
-			demodulation_shader_.reset();
-			line_output_shader_.reset();
+				WriteAreaWidth,
+				WriteAreaHeight,
+				scans_,
+				SourceDataTextureUnit);
 		}
-	}
+	} else {
+		scan_output_shader_.reset();
 
-	if(
-		!existing_modals_ ||
-		modals.display_type != existing_modals_->display_type
-	) {
-		if(is_composite(modals.display_type)) {
-			separation_buffer_ = TextureTarget(
+		if(
+			!existing_modals_ ||
+			existing_modals_->input_data_type != modals.input_data_type ||
+			existing_modals_->display_type != modals.display_type ||
+			existing_modals_->composite_colour_space != modals.composite_colour_space ||
+			subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
+		) {
+			composition_shader_ = OpenGL::composition_shader(
 				api_,
-				buffer_width,
-				LineBufferHeight,
-				SeparationTextureUnit,
-				GL_NEAREST,
-				false
+				modals.input_data_type,
+				modals.display_type,
+				modals.composite_colour_space,
+				sample_multiplier,
+				WriteAreaWidth, WriteAreaHeight,
+				buffer_width, LineBufferHeight,
+				scans_,
+				GL_TEXTURE0
 			);
-		} else {
-			separation_buffer_.reset();
 		}
 
-		if(is_composite(modals.display_type) || is_svideo(modals.display_type)) {
-			demodulation_buffer_ = TextureTarget(
-				api_,
-				buffer_width,
-				LineBufferHeight,
-				DemodulationTextureUnit,
-				GL_LINEAR,
-				false
-			);
-		} else {
-			demodulation_buffer_.reset();
+		if(
+			!existing_modals_ ||
+			modals.cycles_per_line != existing_modals_->cycles_per_line ||
+			subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
+		) {
+			if(is_composite(modals.display_type)) {
+				separation_shader_ = OpenGL::separation_shader(
+					api_,
+					subcarrier_frequency(modals),
+					sample_multiplier * modals.cycles_per_line,
+					buffer_width, LineBufferHeight,
+					dirty_zones_,
+					CompositionTextureUnit
+				);
+			} else {
+				separation_shader_.reset();
+			}
+
+			if(is_composite(modals.display_type) || is_svideo(modals.display_type)) {
+				demodulation_shader_ = OpenGL::demodulation_shader(
+					api_,
+					modals.composite_colour_space,
+					modals.display_type,
+					subcarrier_frequency(modals),
+					sample_multiplier * modals.cycles_per_line,
+					buffer_width,
+					LineBufferHeight,
+					dirty_zones_,
+					is_svideo(modals.display_type) ? CompositionTextureUnit : SeparationTextureUnit
+				);
+
+				line_output_shader_ = LineOutputShader(
+					api_,
+					buffer_width, LineBufferHeight,
+					sample_multiplier,
+					modals.expected_vertical_lines,
+					modals.output_scale.x,
+					modals.output_scale.y,
+					0.64f,
+					lines_,
+					DemodulationTextureUnit
+				);
+
+				fill_shader_ = OpenGL::FillShader(
+					api_,
+					sample_multiplier * modals.cycles_per_line,
+					buffer_width,
+					LineBufferHeight,
+					dirty_zones_
+				);
+			} else {
+				demodulation_shader_.reset();
+				line_output_shader_.reset();
+			}
+		}
+
+		if(
+			!existing_modals_ ||
+			modals.display_type != existing_modals_->display_type
+		) {
+			if(is_composite(modals.display_type)) {
+				separation_buffer_ = TextureTarget(
+					api_,
+					buffer_width,
+					LineBufferHeight,
+					SeparationTextureUnit,
+					GL_NEAREST,
+					false
+				);
+			} else {
+				separation_buffer_.reset();
+			}
+
+			if(is_composite(modals.display_type) || is_svideo(modals.display_type)) {
+				demodulation_buffer_ = TextureTarget(
+					api_,
+					buffer_width,
+					LineBufferHeight,
+					DemodulationTextureUnit,
+					GL_LINEAR,
+					false
+				);
+			} else {
+				demodulation_buffer_.reset();
+			}
 		}
 	}
 
@@ -441,6 +469,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			update_aspect_ratio_transformation();
 		}
 
+		output_buffer_.bind_framebuffer();
 		test_gl([&]{ glEnable(GL_BLEND); });
 		test_gl([&]{ glEnable(GL_STENCIL_TEST); });
 
@@ -529,7 +558,6 @@ void ScanTarget::output_lines(const OutputArea &area) {
 	}
 
 	// Batch lines by frame.
-	output_buffer_.bind_framebuffer();
 	size_t begin = area.begin.line;
 	while(begin != area.end.line) {
 		// Apply end-of-frame cleaning if necessary.
@@ -580,9 +608,18 @@ void ScanTarget::output_lines(const OutputArea &area) {
 }
 
 void ScanTarget::output_scans(const OutputArea &area) {
-	(void)area;
-}
+	if(area.end.scan == area.begin.scan) {
+		return;
+	}
+	if(area.end.line == area.begin.line) {
+		return;
+	}
 
+	// Break scans into frames. This is tortured. TODO: resolve LineMetadata issues, as above.
+//	size_t scan_begin = area.begin.scan;
+//	while(scan_begin != area.end.scan) {
+//	}
+}
 
 void ScanTarget::draw(int output_width, int output_height) {
 	while(is_drawing_to_output_.test_and_set(std::memory_order_acquire));
