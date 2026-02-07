@@ -446,13 +446,12 @@ void ScanTarget::update(const int output_width, const int output_height) {
 void ScanTarget::process_to_rgb(const OutputArea &area) {
 	if(area.end.scan != area.begin.scan) {
 		// Submit all scans.
-		::submit(scans_, area.begin.scan, area.end.scan, scan_buffer_);
+		const auto new_scans = ::submit(scans_, area.begin.scan, area.end.scan, scan_buffer_);
 
 		// Populate composition buffer.
 		composition_buffer_.bind_framebuffer();
 		scans_.bind();
 		composition_shader_.bind();
-		const size_t new_scans = distance(area.begin.scan, area.end.scan, scan_buffer_.size());
 		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
 	}
 
@@ -531,11 +530,10 @@ void ScanTarget::output_lines(const OutputArea &area) {
 
 		// Submit new lines.
 		lines_.bind_all();
-		::submit(lines_, begin, end, line_buffer_);
+		const auto new_lines = ::submit(lines_, begin, end, line_buffer_);
 
 		// Output new lines.
 		line_output_shader_.bind();
-		const auto new_lines = distance(begin, end, LineBufferHeight);
 		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_lines)); });
 
 		begin = end;
@@ -579,11 +577,10 @@ void ScanTarget::output_scans(const OutputArea &area) {
 
 		// Submit and output new scans.
 		scans_.bind_all();
-		::submit(scans_, scan_begin, scan_end, scan_buffer_);
+		const auto new_scans = ::submit(scans_, scan_begin, scan_end, scan_buffer_);
 
 		// Output new scans.
 		scan_output_shader_.bind();
-		const auto new_scans = distance(scan_begin, scan_end, scan_buffer_.size());
 		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
 
 		scan_begin = scan_end;
