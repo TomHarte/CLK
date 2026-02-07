@@ -70,9 +70,7 @@ void main(void) {
 		) / positionScale;
 	gl_Position =
 		vec4(
-//			(scale * vec3(centre + (longitudinal - 0.5) * normal * lineHeight, 1.0)).xy,
-			longitudinal,
-			lateral,
+			(scale * vec3(centre + (longitudinal - 0.5) * normal * lineHeight, 1.0)).xy,
 			0.0,
 			1.0
 		) ;
@@ -371,7 +369,7 @@ void main(void) {
 #endif
 
 #ifdef OUTPUT_RGB
-	outputColour = vec4(1.0);//vec4(sample_rgb(), 1.0);
+	outputColour = vec4(sample_rgb(), 1.0);
 #endif
 
 }
@@ -392,6 +390,24 @@ std::string prefix(const Outputs::Display::InputDataType input) {
 			case Red2Green2Blue2: return "RED2_GREEN2_BLUE2";
 			case Red4Green4Blue4: return "RED4_GREEN4_BLUE4";
 			case Red8Green8Blue8: return "RED8_GREEN8_BLUE8";
+		}
+		__builtin_unreachable();
+	} ();
+	prefix += "\n";
+	return prefix;
+}
+
+std::string prefix(const Outputs::Display::DisplayType display) {
+	std::string prefix = "#define OUTPUT_";
+	prefix += [&] {
+		switch(display) {
+			using enum Outputs::Display::DisplayType;
+
+			case RGB: return "RGB";
+			case SVideo: return "SVIDEO";
+			case CompositeColour:
+			case CompositeMonochrome:
+				return "COMPOSITE";
 		}
 		__builtin_unreachable();
 	} ();
@@ -464,20 +480,7 @@ OpenGL::Shader OpenGL::composition_shader(
 	//
 	// Compose and compiler shader.
 	//
-	std::string prefix = ::prefix(input);
-
-	prefix += "#define OUTPUT_";
-	prefix += [&] {
-		switch(display) {
-			case DisplayType::RGB: return "RGB";
-			case DisplayType::SVideo: return "SVIDEO";
-			case DisplayType::CompositeColour:
-			case DisplayType::CompositeMonochrome:
-				return "COMPOSITE";
-		}
-		__builtin_unreachable();
-	} ();
-	prefix += "\n";
+	std::string prefix = ::prefix(input) + ::prefix(display);
 
 	auto shader = OpenGL::Shader(
 		api,
@@ -513,7 +516,7 @@ OpenGL::ScanOutputShader::ScanOutputShader(
 	shader_ = OpenGL::Shader(
 		api,
 		scan_output_vertex_shader,
-		prefix(input) + fragment_shader,
+		prefix(input) + prefix(DisplayType::RGB) + fragment_shader,
 		scan_attributes()
 	);
 	enable_vertex_attributes<AttributesType::ToOutput>(shader_, vertex_array);
