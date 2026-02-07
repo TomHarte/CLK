@@ -28,7 +28,7 @@ in mediump float zoneBegin;
 in mediump float zoneEnd;
 
 #ifdef USES_COORDINATES
-out mediump vec2 coordinates[31];
+out mediump vec2 coordinates[11];
 #endif
 
 void main(void) {
@@ -38,38 +38,27 @@ void main(void) {
 	float sampleY = bufferSize.y - mix(zoneBegin, zoneEnd, longitudinal);
 	float centreX = lateral * samplesPerLine;
 
+	// Factors here:
+	//
+	//	(1)	only 8 vec4 varyings are guaranteed to exist, which can be utilised as 16 vec2s.
+	//		So there aren't enough to guarantee one varying per sample location;
+	//	(2)	the cost of dependent reads is negligible nowadays unless and until it obviates
+	//		the cache.
+	//
+	// So the coordinates picked are a spread across the area being sampled to provide enough
+	// information that the GPU should be able to cache efficiently.
 #ifdef USES_COORDINATES
-	coordinates[0] = vec2(centreX - 15.0, sampleY) / bufferSize;
-	coordinates[1] = vec2(centreX - 14.0, sampleY) / bufferSize;
-	coordinates[2] = vec2(centreX - 13.0, sampleY) / bufferSize;
-	coordinates[3] = vec2(centreX - 12.0, sampleY) / bufferSize;
-	coordinates[4] = vec2(centreX - 11.0, sampleY) / bufferSize;
-	coordinates[5] = vec2(centreX - 10.0, sampleY) / bufferSize;
-	coordinates[6] = vec2(centreX - 9.0, sampleY) / bufferSize;
-	coordinates[7] = vec2(centreX - 8.0, sampleY) / bufferSize;
-	coordinates[8] = vec2(centreX - 7.0, sampleY) / bufferSize;
-	coordinates[9] = vec2(centreX - 6.0, sampleY) / bufferSize;
-	coordinates[10] = vec2(centreX - 5.0, sampleY) / bufferSize;
-	coordinates[11] = vec2(centreX - 4.0, sampleY) / bufferSize;
-	coordinates[12] = vec2(centreX - 3.0, sampleY) / bufferSize;
-	coordinates[13] = vec2(centreX - 2.0, sampleY) / bufferSize;
-	coordinates[14] = vec2(centreX - 1.0, sampleY) / bufferSize;
-	coordinates[15] = vec2(centreX + 0.0, sampleY) / bufferSize;	// Centre.
-	coordinates[16] = vec2(centreX + 1.0, sampleY) / bufferSize;
-	coordinates[17] = vec2(centreX + 2.0, sampleY) / bufferSize;
-	coordinates[18] = vec2(centreX + 3.0, sampleY) / bufferSize;
-	coordinates[19] = vec2(centreX + 4.0, sampleY) / bufferSize;
-	coordinates[20] = vec2(centreX + 5.0, sampleY) / bufferSize;
-	coordinates[21] = vec2(centreX + 6.0, sampleY) / bufferSize;
-	coordinates[22] = vec2(centreX + 7.0, sampleY) / bufferSize;
-	coordinates[23] = vec2(centreX + 8.0, sampleY) / bufferSize;
-	coordinates[24] = vec2(centreX + 9.0, sampleY) / bufferSize;
-	coordinates[25] = vec2(centreX + 10.0, sampleY) / bufferSize;
-	coordinates[26] = vec2(centreX + 11.0, sampleY) / bufferSize;
-	coordinates[27] = vec2(centreX + 12.0, sampleY) / bufferSize;
-	coordinates[28] = vec2(centreX + 13.0, sampleY) / bufferSize;
-	coordinates[29] = vec2(centreX + 14.0, sampleY) / bufferSize;
-	coordinates[30] = vec2(centreX + 15.0, sampleY) / bufferSize;
+	coordinates[0] = vec2(centreX - 14.0, sampleY) / bufferSize;		// for 15, 14, 13		[0, 1, 2]
+	coordinates[1] = vec2(centreX - 11.0, sampleY) / bufferSize;		// for 12, 11, 10		[3, 4, 5]
+	coordinates[2] = vec2(centreX - 8.0, sampleY) / bufferSize;			// for 9, 8, 7			[6, 7, 8]
+	coordinates[3] = vec2(centreX - 5.0, sampleY) / bufferSize;			// for 6, 5, 4			[9, 10, 11]
+	coordinates[4] = vec2(centreX - 2.0, sampleY) / bufferSize;			// for 3, 2, 1			[12, 13, 14]
+	coordinates[5] = vec2(centreX + 0.0, sampleY) / bufferSize;	// Centre.						[15]
+	coordinates[6] = vec2(centreX + 2.0, sampleY) / bufferSize;			// 1, 2, 3				[16, 17, 18]
+	coordinates[7] = vec2(centreX + 5.0, sampleY) / bufferSize;			// 4, 5, 6				[19, 20, 21]
+	coordinates[8] = vec2(centreX + 8.0, sampleY) / bufferSize;			// 7, 8, 9				[22, 23, 24]
+	coordinates[9] = vec2(centreX + 11.0, sampleY) / bufferSize;		// 10, 11, 12			[25, 26, 27]
+	coordinates[10] = vec2(centreX + 14.0, sampleY) / bufferSize;		// 13, 14, 15			[28, 29, 30]
 #endif
 
 	gl_Position = vec4(
@@ -81,20 +70,45 @@ void main(void) {
 
 )glsl";
 
-constexpr char separation_fragment_shader[] = R"glsl(
+constexpr char coordinate_indexer[] = R"glsl(
 #define KernelCentre 15
+
+in mediump vec2 coordinates[11];
+uniform mediump vec2 bufferSize;
+
+#define offset(i) ((float(i) - 15.0) / bufferSize.x)
+
+#define coordinate(i) (\
+	(i) == 1 ? coordinates[0] : \
+	(i) == 4 ? coordinates[1] : \
+	(i) == 7 ? coordinates[2] : \
+	(i) == 10 ? coordinates[3] : \
+	(i) == 13 ? coordinates[4] : \
+	(i) == 15 ? coordinates[5] : \
+	(i) == 17 ? coordinates[6] : \
+	(i) == 20 ? coordinates[7] : \
+	(i) == 23 ? coordinates[8] : \
+	(i) == 26 ? coordinates[9] : \
+	(i) == 29 ? coordinates[10] : \
+	coordinates[5] + vec2(offset(i), 0.0) \
+)
+
+#define coefficient(x) filterCoefficients[x > KernelCentre ? KernelCentre - (x - KernelCentre) : x]
+
+)glsl";
+
+
+constexpr char separation_fragment_shader[] = R"glsl(
 
 uniform lowp sampler2D source;
 uniform lowp vec2 filterCoefficients[16];
 
-in mediump vec2 coordinates[31];
-
 out lowp vec4 outputColour;
 
 void main(void) {
-	vec4 centre = texture(source, coordinates[15]);
-#define Sample(x) \
-	texture(source, coordinates[x]).r * filterCoefficients[x > KernelCentre ? KernelCentre - (x - KernelCentre) : x]
+	vec4 centre = texture(source, coordinate(15));
+
+#define Sample(x) texture(source, coordinate(x)).r * coefficient(x)
 
 	vec2 channels =
 		Sample(0) +		Sample(1) +		Sample(2) +		Sample(3) +
@@ -123,22 +137,16 @@ void main(void) {
 )glsl";
 
 constexpr char demodulation_fragment_shader[] = R"glsl(
-#define KernelCentre 15
-
 uniform lowp sampler2D source;
 uniform lowp vec3 filterCoefficients[16];
 uniform lowp mat3 toRGB;
 
-in mediump vec2 coordinates[31];
-
 out lowp vec4 outputColour;
 
 void main(void) {
-	vec4 centre = texture(source, coordinates[15]);
+	vec4 centre = texture(source, coordinate(15));
 	
-#define Sample(x) \
-	(texture(source, coordinates[x]).rgb - vec3(0.0, 0.5, 0.5)) *	\
-	filterCoefficients[x > KernelCentre ? KernelCentre - (x - KernelCentre) : x]
+#define Sample(x) (texture(source, coordinate(x)).rgb - vec3(0.0, 0.5, 0.5)) * coefficient(x)
 
 	vec3 channels =
 		Sample(0) +		Sample(1) +		Sample(2) +		Sample(3) +
@@ -266,7 +274,7 @@ OpenGL::Shader OpenGL::separation_shader(
 	auto shader = OpenGL::Shader(
 		api,
 		std::string("#define USES_COORDINATES\n") + vertex_shader,
-		separation_fragment_shader,
+		std::string(coordinate_indexer) + separation_fragment_shader,
 		dirty_zone_attributes()
 	);
 
@@ -301,7 +309,7 @@ OpenGL::Shader OpenGL::demodulation_shader(
 	auto shader = OpenGL::Shader(
 		api,
 		std::string("#define USES_COORDINATES\n") + vertex_shader,
-		demodulation_fragment_shader,
+		std::string(coordinate_indexer) + demodulation_fragment_shader,
 		dirty_zone_attributes()
 	);
 	enable_vertex_attributes(shader, vertex_array);
