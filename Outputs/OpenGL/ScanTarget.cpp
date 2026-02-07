@@ -41,9 +41,9 @@ constexpr GLenum OutputTextureUnit = GL_TEXTURE4;
 using Logger = Log::Logger<Log::Source::OpenGL>;
 
 template <typename SourceT>
-void submit(VertexArray &target, const size_t begin, const size_t end, const SourceT &source) {
+size_t submit(VertexArray &target, const size_t begin, const size_t end, const SourceT &source) {
 	if(begin == end) {
-		return;
+		return 0;
 	}
 
 	target.bind_buffer();
@@ -61,10 +61,16 @@ void submit(VertexArray &target, const size_t begin, const size_t end, const Sou
 	};
 	if(begin < end) {
 		submit(begin, end);
+		return end - begin;
 	} else {
 		submit(begin, source.size());
 		submit(0, end);
+		return source.size() - begin + end;
 	}
+}
+
+size_t distance(const size_t begin, const size_t end, const size_t buffer_length) {
+	return end >= begin ? end - begin : buffer_length + end - begin;
 }
 }
 
@@ -354,7 +360,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 
 		// Determine the start time of this submission group and the number of lines it will contain.
 		line_submission_begin_time_ = std::chrono::high_resolution_clock::now();
-		lines_submitted_ = (area.end.line - area.begin.line + line_buffer_.size()) % line_buffer_.size();
+		lines_submitted_ = distance(area.begin.line, area.end.line, line_buffer_.size());
 
 		// Submit texture.
 		if(area.begin.write_area_x != area.end.write_area_x || area.begin.write_area_y != area.end.write_area_y) {
@@ -446,7 +452,7 @@ void ScanTarget::process_to_rgb(const OutputArea &area) {
 		composition_buffer_.bind_framebuffer();
 		scans_.bind();
 		composition_shader_.bind();
-		const size_t new_scans = (area.end.scan - area.begin.scan + scan_buffer_.size()) % scan_buffer_.size();
+		const size_t new_scans = distance(area.begin.scan, area.end.scan, scan_buffer_.size());
 		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
 	}
 
@@ -529,7 +535,7 @@ void ScanTarget::output_lines(const OutputArea &area) {
 
 		// Output new lines.
 		line_output_shader_.bind();
-		const auto new_lines = (end - begin + LineBufferHeight) % LineBufferHeight;
+		const auto new_lines = distance(begin, end, LineBufferHeight);
 		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_lines)); });
 
 		begin = end;
@@ -577,7 +583,7 @@ void ScanTarget::output_scans(const OutputArea &area) {
 
 		// Output new scans.
 		scan_output_shader_.bind();
-		const auto new_scans = (scan_end - scan_begin + scan_buffer_.size()) % scan_buffer_.size();
+		const auto new_scans = distance(scan_begin, scan_end, scan_buffer_.size());
 		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
 
 		scan_begin = scan_end;
