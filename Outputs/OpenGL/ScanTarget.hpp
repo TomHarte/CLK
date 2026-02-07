@@ -20,6 +20,7 @@
 #include "Primitives/VertexArray.hpp"
 
 #include "Shaders/CopyShader.hpp"
+#include "Shaders/CompositionShader.hpp"
 #include "Shaders/DirtyZone.hpp"
 #include "Shaders/LineOutputShader.hpp"
 #include "Shaders/KernelShaders.hpp"
@@ -115,6 +116,7 @@ private:
 	Shader separation_shader_;
 	Shader demodulation_shader_;
 	LineOutputShader line_output_shader_;
+	ScanOutputShader scan_output_shader_;
 	CopyShader copy_shader_;
 	FillShader fill_shader_;
 

@@ -143,7 +143,9 @@ void ScanTarget::update_aspect_ratio_transformation() {
 	if(!line_output_shader_.empty()) {
 		line_output_shader_.set_aspect_ratio_transformation(framing);
 	}
-	// TODO: apply framing to scan_output_shader_, once it exists.
+	if(!scan_output_shader_.empty()) {
+		scan_output_shader_.set_aspect_ratio_transformation(framing);
+	}
 }
 
 void ScanTarget::setup_pipeline() {
@@ -388,8 +390,6 @@ void ScanTarget::update(const int output_width, const int output_height) {
 
 		// Submit scans; only the new ones need to be communicated.
 		if(area.end.scan != area.begin.scan) {
-			const size_t new_scans = (area.end.scan - area.begin.scan + scan_buffer_.size()) % scan_buffer_.size();
-
 			// Submit new scans.
 			// First implementation: put all new scans at the start of the buffer, for a simple
 			// glDrawArraysInstanced call below.
@@ -412,34 +412,16 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				submit(area.begin.scan, scan_buffer_.size());
 				submit(0, area.end.scan);
 			}
+		}
+
+		if(area.end.scan != area.begin.scan) {
+			const size_t new_scans = (area.end.scan - area.begin.scan + scan_buffer_.size()) % scan_buffer_.size();
 
 			// Populate composition buffer.
 			composition_buffer_.bind_framebuffer();
 			scans_.bind();
 			composition_shader_.bind();
 			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
-		}
-
-		// Work with the accumulation_buffer_ potentially starts from here onwards; set its flag.
-		while(is_drawing_to_output_.test_and_set());
-
-		// Make sure there's an appropriately-sized buffer.
-		const auto output_buffer_width = output_width * 2;
-		const auto output_buffer_height = output_height * 2;
-		if(
-			output_buffer_.empty() ||
-			output_buffer_.width() != output_buffer_width ||
-			output_buffer_.height() != output_buffer_height
-		) {
-			output_buffer_ = TextureTarget(
-				api_,
-				output_buffer_width,
-				output_buffer_height,
-				OutputTextureUnit,
-				GL_NEAREST,
-				true
-			);
-			update_aspect_ratio_transformation();
 		}
 
 		// Do S-Video or composite line decoding.
@@ -488,7 +470,33 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				fill_shader_.bind(0.0, 0.5, 0.5, 1.0);
 			}
 			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
+		}
 
+		// Work with the accumulation_buffer_ potentially starts from here onwards; set its flag.
+		while(is_drawing_to_output_.test_and_set());
+
+		// Make sure there's an appropriately-sized buffer.
+		const auto output_buffer_width = output_width * 2;
+		const auto output_buffer_height = output_height * 2;
+		if(
+			output_buffer_.empty() ||
+			output_buffer_.width() != output_buffer_width ||
+			output_buffer_.height() != output_buffer_height
+		) {
+			// TODO: resize old output buffer into new.
+			output_buffer_ = TextureTarget(
+				api_,
+				output_buffer_width,
+				output_buffer_height,
+				OutputTextureUnit,
+				GL_NEAREST,
+				true
+			);
+			update_aspect_ratio_transformation();
+		}
+
+		// Do S-Video or composite line decoding.
+		if(area.end.line != area.begin.line) {
 			// Batch lines by frame.
 			test_gl([&]{ glEnable(GL_BLEND); });
 			test_gl([&]{ glEnable(GL_STENCIL_TEST); });
