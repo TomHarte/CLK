@@ -38,6 +38,9 @@ public:
 	GLsizei height() const	{	return height_;		}
 	size_t channels() const	{	return channels_;	}
 
+	GLint internal_format() const;
+	GLint format() const;
+
 	/*!
 		Binds this texture; sets the active texture unit as a side effect.
 	*/

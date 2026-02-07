@@ -82,7 +82,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--display=CompositeColour"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/thomasharte/Downloads/Program/Program.prg"

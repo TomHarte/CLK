@@ -89,3 +89,11 @@ Texture &Texture::operator =(Texture &&rhs) {
 	std::swap(height_, rhs.height_);
 	return *this;
 }
+
+GLint Texture::internal_format() const {
+	return internal_format_for_depth(channels_);
+}
+
+GLint Texture::format() const {
+	return format_for_depth(channels_);
+}

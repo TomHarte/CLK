@@ -40,62 +40,6 @@ constexpr GLenum OutputTextureUnit = GL_TEXTURE4;
 
 using Logger = Log::Logger<Log::Source::OpenGL>;
 
-//constexpr GLint internalFormatForDepth(const std::size_t depth) {
-//	switch(depth) {
-//		default: return GL_FALSE;
-//		case 1: return GL_R8UI;
-//		case 2: return GL_RG8UI;
-//		case 3: return GL_RGB8UI;
-//		case 4: return GL_RGBA8UI;
-//	}
-//}
-//
-constexpr GLenum formatForDepth(const std::size_t depth) {
-	switch(depth) {
-		default: return GL_FALSE;
-		case 1: return GL_RED_INTEGER;
-		case 2: return GL_RG_INTEGER;
-		case 3: return GL_RGB_INTEGER;
-		case 4: return GL_RGBA_INTEGER;
-	}
-}
-
-template <typename T> void allocate_buffer(
-	const T &array,
-	GLuint &buffer_name,
-	GLuint &vertex_array_name
-) {
-	const auto buffer_size = array.size() * sizeof(array[0]);
-	test_gl([&]{ glGenBuffers(1, &buffer_name); });
-	test_gl([&]{ glBindBuffer(GL_ARRAY_BUFFER, buffer_name); });
-	test_gl([&]{ glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(buffer_size), NULL, GL_STREAM_DRAW); });
-
-	test_gl([&]{ glGenVertexArrays(1, &vertex_array_name); });
-	test_gl([&]{ glBindVertexArray(vertex_array_name); });
-	test_gl([&]{ glBindBuffer(GL_ARRAY_BUFFER, buffer_name); });
-}
-
-void fill_random(TextureTarget &target) {
-	target.bind_texture();
-	std::vector<uint8_t> image(target.width() * target.height() * 4);
-	for(auto &c : image) {
-		c = rand();
-	}
-	test_gl([&]{
-		glTexImage2D(
-			GL_TEXTURE_2D,
-			0,
-			GL_RGBA,
-			target.width(),
-			target.height(),
-			0,
-			GL_RGBA,
-			GL_UNSIGNED_BYTE,
-			image.data()
-		);
-	});
-}
-
 template <typename SourceT>
 void submit(VertexArray &target, const size_t begin, const size_t end, const SourceT &source) {
 	if(begin == end) {
@@ -151,7 +95,7 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 	is_drawing_to_output_.clear();
 }
 
-void ScanTarget::set_target_framebuffer(GLuint target_framebuffer) {
+void ScanTarget::set_target_framebuffer(const GLuint target_framebuffer) {
 	perform([&] {
 		target_framebuffer_ = target_framebuffer;
 	});
@@ -423,7 +367,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 						0, y_begin,
 						WriteAreaWidth,
 						y_end - y_begin,
-						formatForDepth(write_area_data_size()),
+						source_texture_.format(),
 						GL_UNSIGNED_BYTE,
 						&write_area_texture_[size_t(y_begin * WriteAreaWidth) * source_texture_.channels()]
 					);
@@ -640,7 +584,7 @@ void ScanTarget::output_scans(const OutputArea &area) {
 	}
 }
 
-void ScanTarget::draw(int output_width, int output_height) {
+void ScanTarget::draw(const int output_width, const int output_height) {
 	while(is_drawing_to_output_.test_and_set(std::memory_order_acquire));
 
 	if(!composition_buffer_.empty()) {
