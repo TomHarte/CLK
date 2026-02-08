@@ -410,8 +410,7 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			output_buffer_.width() != output_buffer_width ||
 			output_buffer_.height() != output_buffer_height
 		) {
-			// TODO: resize old output buffer into new.
-			output_buffer_ = TextureTarget(
+			TextureTarget new_output_buffer(
 				api_,
 				output_buffer_width,
 				output_buffer_height,
@@ -419,6 +418,15 @@ void ScanTarget::update(const int output_width, const int output_height) {
 				GL_NEAREST,
 				true
 			);
+
+			// Resize old buffer into new.
+			if(!output_buffer_.empty()) {
+				new_output_buffer.bind_framebuffer();
+				output_buffer_.bind_texture();
+				copy_shader_.perform(OutputTextureUnit);
+			}
+			std::swap(output_buffer_, new_output_buffer);
+
 			update_aspect_ratio_transformation();
 		}
 
@@ -596,6 +604,7 @@ void ScanTarget::draw(const int output_width, const int output_height) {
 		// Copy the accumulation texture to the target.
 		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
 		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
+		output_buffer_.bind_texture();
 		copy_shader_.perform(OutputTextureUnit);
 	}
 

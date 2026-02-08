@@ -95,8 +95,6 @@ TextureTarget::~TextureTarget() {
 	glDeleteFramebuffers(1, &framebuffer_);
 	glDeleteTextures(1, &texture_);
 	glDeleteRenderbuffers(1, &renderbuffer_);
-	glDeleteVertexArrays(1, &drawing_vertex_array_);
-	glDeleteBuffers(1, &drawing_array_buffer_);
 }
 
 TextureTarget::TextureTarget(TextureTarget &&rhs) {
@@ -126,110 +124,4 @@ void TextureTarget::bind_framebuffer() {
 void TextureTarget::bind_texture() const {
 	test_gl([&]{ glActiveTexture(texture_unit_); });
 	test_gl([&]{ glBindTexture(GL_TEXTURE_2D, texture_); });
-}
-
-// TODO: eliminate below, plus relevant local storage.
-void TextureTarget::draw(const float aspect_ratio, const float colour_threshold) const {
-	if(!pixel_shader_) {
-		const char *const vertex_shader =
-			R"glsl(
-				in vec2 texCoord;
-				in vec2 position;
-
-				out vec2 texCoordVarying;
-
-				void main(void) {
-					texCoordVarying = texCoord;
-					gl_Position = vec4(position, 0.0, 1.0);
-				}
-			)glsl";
-		const char *const fragment_shader =
-			R"glsl(
-				in vec2 texCoordVarying;
-
-				uniform sampler2D texID;
-				uniform float threshold;
-
-				out vec4 fragColour;
-
-				void main(void) {
-					fragColour = clamp(texture(texID, texCoordVarying), threshold, 1.0);
-				}
-			)glsl";
-		pixel_shader_ = std::make_unique<Shader>(api_, vertex_shader, fragment_shader);
-		pixel_shader_->bind();
-
-		test_gl([&]{ glGenVertexArrays(1, &drawing_vertex_array_); });
-		test_gl([&]{ glGenBuffers(1, &drawing_array_buffer_); });
-
-		test_gl([&]{ glBindVertexArray(drawing_vertex_array_); });
-		test_gl([&]{ glBindBuffer(GL_ARRAY_BUFFER, drawing_array_buffer_); });
-
-		const GLint position_attribute	= pixel_shader_->get_attrib_location("position");
-		const GLint tex_coord_attribute	= pixel_shader_->get_attrib_location("texCoord");
-
-		test_gl([&]{ glEnableVertexAttribArray(GLuint(position_attribute)); });
-		test_gl([&]{ glEnableVertexAttribArray(GLuint(tex_coord_attribute)); });
-
-		const GLsizei vertex_stride = 4 * sizeof(GLfloat);
-		test_gl([&]{ 
-			glVertexAttribPointer(
-				GLuint(position_attribute),
-				2,
-				GL_FLOAT,
-				GL_FALSE,
-				vertex_stride,
-				(void *)0
-			);
-		});
-		test_gl([&]{
-			glVertexAttribPointer(
-				GLuint(tex_coord_attribute),
-				2,
-				GL_FLOAT,
-				GL_FALSE,
-				vertex_stride,
-				(void *)(2 * sizeof(GLfloat))
-			);
-		});
-
-		const GLint texIDUniform = pixel_shader_->get_uniform_location("texID");
-		test_gl([&]{ glUniform1i(texIDUniform, GLint(texture_unit_ - GL_TEXTURE0));  });
-
-		threshold_uniform_ = pixel_shader_->get_uniform_location("threshold");
-	}
-
-	if(set_aspect_ratio_ != aspect_ratio) {
-		set_aspect_ratio_ = aspect_ratio;
-		float buffer[4*4];
-
-		// establish texture coordinates
-		buffer[2] = 0.0f;
-		buffer[3] = 0.0f;
-		buffer[6] = 0.0f;
-		buffer[7] = 1.0f;//float(height_) / float(expanded_height_);
-		buffer[10] = 1.0f;//float(width_) / float(expanded_width_);
-		buffer[11] = 0.0f;
-		buffer[14] = buffer[10];
-		buffer[15] = buffer[7];
-
-		// determine positions; rule is to keep the same height and centre
-		const float internal_aspect_ratio = float(width_) / float(height_);
-		const float aspect_ratio_ratio = internal_aspect_ratio / aspect_ratio;
-
-		buffer[0] = -aspect_ratio_ratio;	buffer[1] = -1.0f;
-		buffer[4] = -aspect_ratio_ratio;	buffer[5] = 1.0f;
-		buffer[8] = aspect_ratio_ratio;		buffer[9] = -1.0f;
-		buffer[12] = aspect_ratio_ratio;	buffer[13] = 1.0f;
-
-		// upload buffer
-		test_gl([&]{ glBindBuffer(GL_ARRAY_BUFFER, drawing_array_buffer_); });
-		test_gl([&]{ glBufferData(GL_ARRAY_BUFFER, sizeof(buffer), buffer, GL_STATIC_DRAW); });
-	}
-
-	pixel_shader_->bind();
-	test_gl([&]{ glUniform1f(threshold_uniform_, colour_threshold); });
-
-	test_gl([&]{ glBindVertexArray(drawing_vertex_array_); });
-	test_gl([&]{ glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); });
 }
