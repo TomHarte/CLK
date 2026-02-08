@@ -2770,6 +2770,7 @@
 		4B055A761FAE78210060FFFF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4BB96A162F2315C800689626 /* SDL2.framework */,
 				42E5C3922AC46A7700DA093D /* Carbon.framework */,
 				4BB8617024E22F4900A00E03 /* Accelerate.framework */,
 				4B50AF7F242817F40099BBD7 /* QuartzCore.framework */,
@@ -4840,7 +4841,6 @@
 		4BB73E951B587A5100552FC2 = {
 			isa = PBXGroup;
 			children = (
-				4BB96A162F2315C800689626 /* SDL2.framework */,
 				4B51F70820A521D700AFA2C1 /* Activity */,
 				4B8944E2201967B4007DE474 /* Analyser */,
 				4BB73EA01B587A5100552FC2 /* Clock Signal */,

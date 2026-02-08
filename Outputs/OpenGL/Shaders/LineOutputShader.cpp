@@ -15,20 +15,20 @@ namespace {
 
 constexpr char vertex_shader[] = R"glsl(
 
-uniform mediump vec2 sourceSize;
-uniform highp vec2 positionScale;
-uniform mediump float lineHeight;
-uniform lowp mat3 scale;
+uniform vec2 sourceSize;
+uniform vec2 positionScale;
+uniform float lineHeight;
+uniform mat3 scale;
 
-in highp vec2 lineEndpoint0Position;
-in highp float lineEndpoint0CyclesSinceRetrace;
+in vec2 lineEndpoint0Position;
+in float lineEndpoint0CyclesSinceRetrace;
 
-in highp vec2 lineEndpoint1Position;
-in highp float lineEndpoint1CyclesSinceRetrace;
+in vec2 lineEndpoint1Position;
+in float lineEndpoint1CyclesSinceRetrace;
 
-in highp float lineLine;
+in float lineLine;
 
-out mediump vec2 coordinate;
+out vec2 coordinate;
 
 void main(void) {
 	float lateral = float(gl_VertexID & 1);
@@ -64,11 +64,11 @@ void main(void) {
 
 constexpr char fragment_shader[] = R"glsl(
 
-uniform lowp sampler2D source;
-uniform lowp float alpha;
-in mediump vec2 coordinate;
+uniform sampler2D source;
+uniform float alpha;
+in vec2 coordinate;
 
-out lowp vec4 outputColour;
+out vec4 outputColour;
 
 void main(void) {
 	outputColour = texture(source, coordinate) * vec4(1.0, 1.0, 1.0, alpha);

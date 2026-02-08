@@ -12,8 +12,8 @@ namespace {
 
 constexpr char vertex_shader[] = R"glsl(
 
-in highp vec2 position;
-out mediump vec2 coordinate;
+in vec2 position;
+out vec2 coordinate;
 
 void main(void) {
 	coordinate = (position + vec2(1.0)) / vec2(2.0);
@@ -29,13 +29,13 @@ void main(void) {
 
 constexpr char fragment_shader[] = R"glsl(
 
-uniform lowp sampler2D source;
-uniform lowp float brightness;
-uniform lowp float gamma;
+uniform sampler2D source;
+uniform float brightness;
+uniform float gamma;
 
-in mediump vec2 coordinate;
+in vec2 coordinate;
 
-out lowp vec4 outputColour;
+out vec4 outputColour;
 
 void main(void) {
 	outputColour = texture(source, coordinate);

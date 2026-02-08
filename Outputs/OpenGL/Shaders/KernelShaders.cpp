@@ -21,14 +21,14 @@ namespace {
 // for the other 'dependent' reads.
 constexpr char vertex_shader[] = R"glsl(
 
-uniform mediump float samplesPerLine;
-uniform mediump vec2 bufferSize;
+uniform float samplesPerLine;
+uniform vec2 bufferSize;
 
-in mediump float zoneBegin;
-in mediump float zoneEnd;
+in float zoneBegin;
+in float zoneEnd;
 
 #ifdef USES_COORDINATES
-out mediump vec2 coordinates[11];
+out vec2 coordinates[11];
 #endif
 
 void main(void) {
@@ -73,8 +73,8 @@ void main(void) {
 constexpr char coordinate_indexer[] = R"glsl(
 #define KernelCentre 15
 
-in mediump vec2 coordinates[11];
-uniform mediump vec2 bufferSize;
+in vec2 coordinates[11];
+uniform vec2 bufferSize;
 
 #define offset(i) ((float(i) - 15.0) / bufferSize.x)
 
@@ -100,10 +100,10 @@ uniform mediump vec2 bufferSize;
 
 constexpr char separation_fragment_shader[] = R"glsl(
 
-uniform lowp sampler2D source;
-uniform lowp vec2 filterCoefficients[16];
+uniform sampler2D source;
+uniform vec2 filterCoefficients[16];
 
-out lowp vec4 outputColour;
+out vec4 outputColour;
 
 void main(void) {
 	vec4 centre = texture(source, coordinate(15));
@@ -123,10 +123,10 @@ void main(void) {
 
 #undef Sample
 
-	lowp float colourAmplitude = centre.a;
-	lowp float isColour = step(0.01, colourAmplitude);
-	lowp float chromaScale = mix(1.0, colourAmplitude, isColour);
-	lowp float lumaScale = mix(1.0, 1.0 - colourAmplitude * 2.0, isColour);
+	float colourAmplitude = centre.a;
+	float isColour = step(0.01, colourAmplitude);
+	float chromaScale = mix(1.0, colourAmplitude, isColour);
+	float lumaScale = mix(1.0, 1.0 - colourAmplitude * 2.0, isColour);
 	outputColour = vec4(
 		(channels.x - colourAmplitude) / lumaScale,
 		isColour * channels.y * (centre.yz / chromaScale) + vec2(0.5),
@@ -137,11 +137,11 @@ void main(void) {
 )glsl";
 
 constexpr char demodulation_fragment_shader[] = R"glsl(
-uniform lowp sampler2D source;
-uniform lowp vec3 filterCoefficients[16];
-uniform lowp mat3 toRGB;
+uniform sampler2D source;
+uniform vec3 filterCoefficients[16];
+uniform mat3 toRGB;
 
-out lowp vec4 outputColour;
+out vec4 outputColour;
 
 void main(void) {
 	vec4 centre = texture(source, coordinate(15));
@@ -171,7 +171,7 @@ void main(void) {
 
 constexpr char fill_fragment_shader[] = R"glsl(
 uniform vec4 colour;
-out lowp vec4 outputColour;
+out vec4 outputColour;
 
 void main(void) {
 	outputColour = colour;

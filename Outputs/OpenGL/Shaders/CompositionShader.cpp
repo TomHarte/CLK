@@ -31,20 +31,20 @@ namespace {
 
 constexpr char scan_output_vertex_shader[] = R"glsl(
 
-uniform mediump vec2 sourceSize;
-uniform highp vec2 positionScale;
-uniform mediump float lineHeight;
-uniform lowp mat3 scale;
+uniform vec2 positionScale;
+uniform vec2 sourceSize;
+uniform float lineHeight;
+uniform mat3 scale;
 
-in highp vec2 scanEndpoint0Position;
-in highp float scanEndpoint0DataOffset;
+in vec2 scanEndpoint0Position;
+in float scanEndpoint0DataOffset;
 
-in highp vec2 scanEndpoint1Position;
-in highp float scanEndpoint1DataOffset;
+in vec2 scanEndpoint1Position;
+in float scanEndpoint1DataOffset;
 
-in mediump float scanDataY;
+in float scanDataY;
 
-out mediump vec2 coordinate;
+out vec2 coordinate;
 
 void main(void) {
 	float lateral = float(gl_VertexID & 1);
@@ -73,32 +73,32 @@ void main(void) {
 			(scale * vec3(centre + (longitudinal - 0.5) * normal * lineHeight, 1.0)).xy,
 			0.0,
 			1.0
-		) ;
+		);
 }
 )glsl";
 
 constexpr char composition_vertex_shader[] = R"glsl(
 
-uniform mediump float cyclesSinceRetraceMultiplier;
-uniform mediump vec2 sourceSize;
-uniform mediump vec2 targetSize;
+uniform float cyclesSinceRetraceMultiplier;
+uniform vec2 sourceSize;
+uniform vec2 targetSize;
 
-in mediump float scanEndpoint0CyclesSinceRetrace;
-in mediump float scanEndpoint0DataOffset;
-in mediump float scanEndpoint0CompositeAngle;
+in float scanEndpoint0CyclesSinceRetrace;
+in float scanEndpoint0DataOffset;
+in float scanEndpoint0CompositeAngle;
 
-in mediump float scanEndpoint1CyclesSinceRetrace;
-in mediump float scanEndpoint1DataOffset;
-in mediump float scanEndpoint1CompositeAngle;
+in float scanEndpoint1CyclesSinceRetrace;
+in float scanEndpoint1DataOffset;
+in float scanEndpoint1CompositeAngle;
 
-in mediump float scanDataY;
-in mediump float scanLine;
-in mediump float scanCompositeAmplitude;
+in float scanDataY;
+in float scanLine;
+in float scanCompositeAmplitude;
 
-out mediump vec2 coordinate;
-out highp float phase;
-out highp float unitPhase;
-out lowp float compositeAmplitude;
+out vec2 coordinate;
+out float phase;
+out float unitPhase;
+out float compositeAmplitude;
 
 void main(void) {
 	float lateral = float(gl_VertexID & 1);
@@ -143,14 +143,14 @@ void main(void) {
 
 constexpr char fragment_shader[] = R"glsl(
 
-uniform lowp mat3 fromRGB;
+uniform mat3 fromRGB;
 
-in mediump vec2 coordinate;
-in highp float phase;
-in highp float unitPhase;
-in lowp float compositeAmplitude;
+in vec2 coordinate;
+in float phase;
+in float unitPhase;
+in float compositeAmplitude;
 
-lowp vec2 quadrature() {
+vec2 quadrature() {
 	return vec2(cos(phase), sin(phase));
 }
 
@@ -158,9 +158,9 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_LUMINANCE1
 
-	uniform lowp sampler2D source;
+	uniform sampler2D source;
 
-	lowp vec4 sample_composite() {
+	vec4 sample_composite() {
 		return vec4(
 			clamp(texture(source, coordinate).r * 255.0, 0.0, 1.0),
 			quadrature(),
@@ -168,7 +168,7 @@ lowp vec2 quadrature() {
 		);
 	}
 
-	lowp vec3 sample_rgb() {
+	vec3 sample_rgb() {
 		return clamp(texture(source, coordinate).rrr * 255.0, vec3(0.0), vec3(1.0));
 	}
 
@@ -178,9 +178,9 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_LUMINANCE8
 
-	uniform lowp sampler2D source;
+	uniform sampler2D source;
 
-	lowp vec4 sample_composite() {
+	vec4 sample_composite() {
 		return vec4(
 			texture(source, coordinate).r,
 			quadrature(),
@@ -188,7 +188,7 @@ lowp vec2 quadrature() {
 		);
 	}
 
-	lowp vec3 sample_rgb() {
+	vec3 sample_rgb() {
 		return texture(source, coordinate).rrr;
 	}
 
@@ -198,9 +198,9 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_PHASE_LINKED_LUMINANCE8
 
-	uniform lowp sampler2D source;
+	uniform sampler2D source;
 
-	lowp vec4 sample_composite() {
+	vec4 sample_composite() {
 		vec4 source = texture(source, coordinate);
 		int offset = int(floor(unitPhase * 4.0)) & 3;
 		return vec4(
@@ -216,13 +216,13 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_LUMINANCE8_PHASE8
 
-	uniform lowp sampler2D source;
+	uniform sampler2D source;
 	#define SYNTHESISE_COMPOSITE
 
-	lowp vec4 sample_svideo() {
-		lowp vec2 source = texture(source, coordinate).rg;
+	vec4 sample_svideo() {
+		vec2 source = texture(source, coordinate).rg;
 		float chroma = cos(phase + source.g); 
-		lowp vec2 q = quadrature();
+		vec2 q = quadrature();
 		
 		return vec4(
 			source.r,
@@ -237,11 +237,11 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_RED1_GREEN1_BLUE1
 
-	uniform lowp usampler2D source;
+	uniform usampler2D source;
 	#define SYNTHESISE_SVIDEO
 	#define SYNTHESISE_COMPOSITE
 
-	lowp vec3 sample_rgb() {
+	vec3 sample_rgb() {
 		uvec3 colour = texture(source, coordinate).rrr & uvec3(4u, 2u, 1u);
 		return clamp(vec3(colour), 0.0, 1.0);
 	}
@@ -252,11 +252,11 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_RED2_GREEN2_BLUE2
 
-	uniform lowp usampler2D source;
+	uniform usampler2D source;
 	#define SYNTHESISE_SVIDEO
 	#define SYNTHESISE_COMPOSITE
 
-	lowp vec3 sample_rgb() {
+	vec3 sample_rgb() {
 		uint colour = texture(source, coordinate).r;
 		return vec3(
 			float((colour >> 4) & 3u),
@@ -271,11 +271,11 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_RED4_GREEN4_BLUE4
 
-	uniform lowp usampler2D source;
+	uniform usampler2D source;
 	#define SYNTHESISE_SVIDEO
 	#define SYNTHESISE_COMPOSITE
 
-	lowp vec3 sample_rgb() {
+	vec3 sample_rgb() {
 		uvec2 colour = texture(source, coordinate).rg;
 		return vec3(
 			float(colour.r) / 15.0,
@@ -290,11 +290,11 @@ lowp vec2 quadrature() {
 
 #ifdef INPUT_RED8_GREEN8_BLUE8
 
-	uniform lowp sampler2D source;
+	uniform sampler2D source;
 	#define SYNTHESISE_SVIDEO
 	#define SYNTHESISE_COMPOSITE
 
-	lowp vec3 sample_rgb() {
+	vec3 sample_rgb() {
 		return texture(source, coordinate).rgb;
 	}
 
@@ -306,11 +306,11 @@ lowp vec2 quadrature() {
 
 	#ifdef SYNTHESISE_SVIDEO
 
-		lowp vec4 sample_composite() {
-			lowp vec3 colour = fromRGB * sample_rgb();
-			lowp vec2 q = quadrature();
+		vec4 sample_composite() {
+			vec3 colour = fromRGB * sample_rgb();
+			vec2 q = quadrature();
 
-			lowp float chroma = dot(q, colour.gb);
+			float chroma = dot(q, colour.gb);
 
 			return vec4(
 				colour.r * (1.0 - 2.0 * compositeAmplitude)  + chroma * compositeAmplitude,
@@ -321,8 +321,8 @@ lowp vec2 quadrature() {
 
 	#else
 
-		lowp vec4 sample_composite() {
-			lowp vec4 colour = sample_svideo();
+		vec4 sample_composite() {
+			vec4 colour = sample_svideo();
 
 			// TODO: can the [potentially] duplicate call to quadrature() be avoided here?
 			return vec4(
@@ -340,10 +340,10 @@ lowp vec2 quadrature() {
 
 #ifdef SYNTHESISE_SVIDEO
 
-	lowp vec4 sample_svideo() {
-		lowp vec3 colour = fromRGB * sample_rgb();
-		lowp vec2 q = quadrature();
-		lowp float chroma = dot(q, colour.gb);
+	vec4 sample_svideo() {
+		vec3 colour = fromRGB * sample_rgb();
+		vec2 q = quadrature();
+		float chroma = dot(q, colour.gb);
 
 		return vec4(
 			colour.r,
@@ -356,8 +356,8 @@ lowp vec2 quadrature() {
 
 
 
-out lowp vec4 outputColour;
-uniform lowp float alpha;
+out vec4 outputColour;
+uniform float alpha;
 
 void main(void) {
 
