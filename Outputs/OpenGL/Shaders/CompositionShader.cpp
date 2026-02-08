@@ -46,6 +46,12 @@ in float scanDataY;
 
 out vec2 coordinate;
 
+// It's technically a violation for the fragment shader to have ins that don't match vertex
+// shader outs. So declare these, even though they aren't populated.
+out float phase;
+out float unitPhase;
+out float compositeAmplitude;
+
 void main(void) {
 	float lateral = float(gl_VertexID & 1);
 	float longitudinal = float((gl_VertexID & 2) >> 1);

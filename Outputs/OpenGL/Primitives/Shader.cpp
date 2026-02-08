@@ -124,6 +124,8 @@ void Shader::init(
 			GLint log_length;
 			test_gl([&]{ glGetProgramiv(shader_program_, GL_INFO_LOG_LENGTH, &log_length); });
 			if(log_length > 0) {
+				Logger::error().append("Vertex shader: %s", vertex_shader.c_str());
+				Logger::error().append("Fragment shader: %s", fragment_shader.c_str());
 				std::vector<GLchar> log(log_length);
 				test_gl([&]{ glGetProgramInfoLog(shader_program_, log_length, &log_length, log.data()); });
 				Logger::error().append("Link log: %s", log.data());
