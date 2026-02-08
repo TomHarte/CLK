@@ -24,6 +24,7 @@ public:
 		Instantiates an instance of Rectange with the coordinates given.
 	*/
 	Rectangle(API, float x, float y, float width, float height);
+	~Rectangle();
 
 	/*!
 		Draws this rectangle in the colour supplied.

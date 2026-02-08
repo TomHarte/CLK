@@ -72,3 +72,8 @@ void Rectangle::draw(const float red, const float green, const float blue) {
 	test_gl([&]{ glBindVertexArray(drawing_vertex_array_); });
 	test_gl([&]{ glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); });
 }
+
+Rectangle::~Rectangle() {
+	test_gl([&]{ glDeleteBuffers(1, &drawing_array_buffer_); });
+	test_gl([&]{ glDeleteVertexArrays(1, &drawing_vertex_array_); });
+}
