@@ -471,17 +471,7 @@ private:
 					const int colour_burst_start = std::max(first_sync_column + sync_length + 1, column_);
 					const int colour_burst_end = std::min(first_sync_column + sync_length + 4, ending_column);
 					if(colour_burst_end > colour_burst_start) {
-						// UGLY HACK AHOY!
-						// The OpenGL scan target introduces a phase error of 1/8th of a wave. The Metal one does not.
-						// Supply the real phase value if this is an Apple build.
-						// TODO: eliminate UGLY HACK.
-#if defined(__APPLE__) && !defined(IGNORE_APPLE)
-						static constexpr uint8_t phase = 224;
-#else
-						static constexpr uint8_t phase = 192;
-#endif
-
-						crt_.output_colour_burst((colour_burst_end - colour_burst_start) * 14, phase);
+						crt_.output_colour_burst((colour_burst_end - colour_burst_start) * 14, 224);
 					}
 
 					second_blank_start = std::max(first_sync_column + sync_length + 3, column_);
