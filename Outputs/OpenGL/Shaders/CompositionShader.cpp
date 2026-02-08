@@ -218,16 +218,16 @@ vec2 quadrature() {
 
 	uniform sampler2D source;
 	#define SYNTHESISE_COMPOSITE
+	#define SYNTHESISE_FROM_RAW_SVIDEO
 
-	vec4 sample_svideo() {
+	vec2 sample_svideo_raw() {
 		vec2 source = texture(source, coordinate).rg;
-		float chroma = cos(phase + source.g); 
-		vec2 q = quadrature();
-		
-		return vec4(
+		float phaseOffset = source.g * 3.141592654 * 4.0;
+		float chroma = step(source.g, 0.75) * cos(phaseOffset + phase);
+
+		return vec2(
 			source.r,
-			chroma * q * vec2(0.5) + vec2(0.5),
-			1.0
+			chroma
 		);
 	}
 
@@ -322,11 +322,10 @@ vec2 quadrature() {
 	#else
 
 		vec4 sample_composite() {
-			vec4 colour = sample_svideo();
+			vec2 colour = sample_svideo_raw();
 
-			// TODO: can the [potentially] duplicate call to quadrature() be avoided here?
 			return vec4(
-				colour.r * (1.0 - 2.0 * compositeAmplitude)  + colour.g * compositeAmplitude,
+				colour.r * (1.0 - 2.0 * compositeAmplitude) + colour.g * compositeAmplitude,
 				quadrature(),
 				compositeAmplitude
 			);
@@ -348,6 +347,23 @@ vec2 quadrature() {
 		return vec4(
 			colour.r,
 			chroma * q * vec2(0.5) + vec2(0.5),
+			1.0
+		);
+	}
+
+#endif
+
+
+
+#ifdef SYNTHESISE_FROM_RAW_SVIDEO
+
+	vec4 sample_svideo() {
+		vec2 source = sample_svideo_raw();
+		vec2 q = quadrature();
+
+		return vec4(
+			source.r,
+			source.g * q * vec2(0.5) + vec2(0.5),
 			1.0
 		);
 	}

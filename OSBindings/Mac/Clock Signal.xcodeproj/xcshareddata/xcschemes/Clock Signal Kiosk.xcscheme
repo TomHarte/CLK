@@ -78,11 +78,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Soft/Atari 2600/Pitfall!.a26&quot;"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Soft/Atari 2600/Solaris.a26&quot;"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--rompath=/Users/thomasharte/Projects/CLK/ROMImages"
