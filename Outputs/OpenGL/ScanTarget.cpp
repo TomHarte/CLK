@@ -616,12 +616,12 @@ void ScanTarget::output_scans(const OutputArea &area) {
 void ScanTarget::draw(const int output_width, const int output_height) {
 	while(is_drawing_to_output_.test_and_set(std::memory_order_acquire));
 
-	if(!separation_buffer_.empty()) {
+	if(!output_buffer_.empty()) {
 		// Copy the accumulation texture to the target.
 		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
 		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
-		separation_buffer_.bind_texture();
-		copy_shader_.perform(SeparationTextureUnit);//OutputTextureUnit);
+		output_buffer_.bind_texture();
+		copy_shader_.perform(OutputTextureUnit);
 	}
 
 	is_drawing_to_output_.clear(std::memory_order_release);
