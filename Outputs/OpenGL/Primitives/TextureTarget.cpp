@@ -35,7 +35,17 @@ TextureTarget::TextureTarget(
 	bind_texture();
 
 	// Set dimensions and set the user-supplied magnification filter.
-	test_gl([&]{ 
+	// If this is a debug build, apply a random initial fill.
+#ifndef NDEBUG
+	std::vector<uint8_t> image(width_ * height_ * 4);
+	for(auto &c : image) {
+		c = rand();
+	}
+	const void *source = image.data();
+#else
+	constexpr void *source = nullptr;
+#endif
+	test_gl([&]{
 		glTexImage2D(
 			GL_TEXTURE_2D,
 			0,
@@ -45,7 +55,7 @@ TextureTarget::TextureTarget(
 			0,
 			GL_RGBA,
 			GL_UNSIGNED_BYTE,
-			nullptr
+			source
 		);
 	});
 	test_gl([&]{ glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter); });

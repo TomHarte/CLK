@@ -78,7 +78,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Soft/Atari 2600/Pitfall!.a26&quot;"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Soft/Atari 2600/Solaris.a26&quot;"
@@ -93,8 +93,8 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--new=vic20"
-            isEnabled = "NO">
+            argument = "--new=zxspectrum"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--display=svideo"
@@ -102,7 +102,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--display=CompositeColour"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--help"
