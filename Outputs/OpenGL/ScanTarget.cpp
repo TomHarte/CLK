@@ -477,6 +477,7 @@ void ScanTarget::process_to_rgb(const OutputArea &area) {
 		// Populate composition buffer.
 		composition_buffer_.bind_framebuffer();
 		scans_.bind();
+		source_texture_.bind();
 		composition_shader_.bind();
 		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
 	}
@@ -505,6 +506,7 @@ void ScanTarget::process_to_rgb(const OutputArea &area) {
 		});
 
 		// Perform [composite/svideo] -> RGB conversion.
+		composition_buffer_.bind_texture();
 		if(is_composite(existing_modals_->display_type)) {
 			separation_buffer_.bind_framebuffer();
 			separation_shader_.bind();
@@ -514,6 +516,9 @@ void ScanTarget::process_to_rgb(const OutputArea &area) {
 		if(is_composite(existing_modals_->display_type) || is_svideo(existing_modals_->display_type)) {
 			demodulation_buffer_.bind_framebuffer();
 			demodulation_shader_.bind();
+			if(!separation_buffer_.empty()) {
+				separation_buffer_.bind_texture();
+			}
 			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
 		}
 
@@ -559,6 +564,7 @@ void ScanTarget::output_lines(const OutputArea &area) {
 		const auto new_lines = ::submit(lines_, begin, end, line_buffer_);
 
 		// Output new lines.
+		demodulation_buffer_.bind_texture();
 		line_output_shader_.bind();
 		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_lines)); });
 
@@ -607,6 +613,7 @@ void ScanTarget::output_scans(const OutputArea &area) {
 
 		// Output new scans.
 		scan_output_shader_.bind();
+		composition_buffer_.bind_texture();
 		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
 
 		scan_begin = scan_end;
