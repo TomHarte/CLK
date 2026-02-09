@@ -75,6 +75,9 @@ public:
 
 	void bind(float r, float g, float b, float a);
 
+	bool empty() const { return shader_.empty(); }
+	void reset() { shader_.reset(); }
+
 private:
 	Shader shader_;
 	float colour_[4]{};

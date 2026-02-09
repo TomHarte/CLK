@@ -76,8 +76,8 @@ size_t distance(const size_t begin, const size_t end, const size_t buffer_length
 
 ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const float output_gamma) :
 	api_(api),
-	target_framebuffer_(target_framebuffer),
 	output_gamma_(output_gamma),
+	target_framebuffer_(target_framebuffer),
 	full_display_rectangle_(api, -1.0f, -1.0f, 2.0f, 2.0f),
 	scans_(scan_buffer_),
 	lines_(line_buffer_),
@@ -234,25 +234,34 @@ void ScanTarget::setup_pipeline() {
 			);
 		}
 
-		if(
-			!existing_modals_ ||
+		if(!is_composite(modals.display_type)) {
+			separation_shader_.reset();
+		} else if(
+			separation_shader_.empty() ||
 			modals.cycles_per_line != existing_modals_->cycles_per_line ||
 			subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
 		) {
-			if(is_composite(modals.display_type)) {
-				separation_shader_ = OpenGL::separation_shader(
-					api_,
-					subcarrier_frequency(modals),
-					sample_multiplier * modals.cycles_per_line,
-					buffer_width, LineBufferHeight,
-					dirty_zones_,
-					CompositionTextureUnit
-				);
-			} else {
-				separation_shader_.reset();
-			}
+			separation_shader_ = OpenGL::separation_shader(
+				api_,
+				subcarrier_frequency(modals),
+				sample_multiplier * modals.cycles_per_line,
+				buffer_width, LineBufferHeight,
+				dirty_zones_,
+				CompositionTextureUnit
+			);
+		}
 
-			if(is_composite(modals.display_type) || is_svideo(modals.display_type)) {
+		if(!is_composite(modals.display_type) && !is_svideo(modals.display_type)) {
+			demodulation_shader_.reset();
+			line_output_shader_.reset();
+			fill_shader_.reset();
+		} else {
+			if(
+				demodulation_shader_.empty() ||
+				!existing_modals_ ||
+				existing_modals_->display_type != modals.display_type ||
+				subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
+			) {
 				demodulation_shader_ = OpenGL::demodulation_shader(
 					api_,
 					modals.composite_colour_space,
@@ -264,7 +273,14 @@ void ScanTarget::setup_pipeline() {
 					dirty_zones_,
 					is_svideo(modals.display_type) ? CompositionTextureUnit : SeparationTextureUnit
 				);
+			}
 
+			if(
+				line_output_shader_.empty() ||
+				!existing_modals_ ||
+				existing_modals_->display_type != modals.display_type ||
+				subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
+			) {
 				line_output_shader_ = LineOutputShader(
 					api_,
 					buffer_width, LineBufferHeight,
@@ -276,7 +292,14 @@ void ScanTarget::setup_pipeline() {
 					lines_,
 					DemodulationTextureUnit
 				);
+			}
 
+			if(
+				fill_shader_.empty() ||
+				!existing_modals_ ||
+				existing_modals_->display_type != modals.display_type ||
+				subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
+			) {
 				fill_shader_ = OpenGL::FillShader(
 					api_,
 					sample_multiplier * modals.cycles_per_line,
@@ -284,42 +307,35 @@ void ScanTarget::setup_pipeline() {
 					LineBufferHeight,
 					dirty_zones_
 				);
-			} else {
-				demodulation_shader_.reset();
-				line_output_shader_.reset();
 			}
 		}
 
-		if(
-			!existing_modals_ ||
-			modals.display_type != existing_modals_->display_type
-		) {
-			if(is_composite(modals.display_type)) {
-				separation_buffer_ = TextureTarget(
-					api_,
-					buffer_width,
-					LineBufferHeight,
-					SeparationTextureUnit,
-					GL_NEAREST,
-					false
-				);
-			} else {
-				separation_buffer_.reset();
-			}
-
-			if(is_composite(modals.display_type) || is_svideo(modals.display_type)) {
-				demodulation_buffer_ = TextureTarget(
-					api_,
-					buffer_width,
-					LineBufferHeight,
-					DemodulationTextureUnit,
-					GL_LINEAR,
-					false
-				);
-			} else {
-				demodulation_buffer_.reset();
-			}
+		if(!is_composite(modals.display_type)) {
+			separation_buffer_.reset();
+		} else if(separation_buffer_.empty()) {
+			separation_buffer_ = TextureTarget(
+				api_,
+				buffer_width,
+				LineBufferHeight,
+				SeparationTextureUnit,
+				GL_NEAREST,
+				false
+			);
 		}
+
+		if(!is_composite(modals.display_type) && !is_svideo(modals.display_type)) {
+			demodulation_buffer_.reset();
+		} else if(demodulation_buffer_.empty()) {
+			demodulation_buffer_ = TextureTarget(
+				api_,
+				buffer_width,
+				LineBufferHeight,
+				DemodulationTextureUnit,
+				GL_LINEAR,
+				false
+			);
+		}
+
 	}
 
 	update_aspect_ratio_transformation();
@@ -600,12 +616,12 @@ void ScanTarget::output_scans(const OutputArea &area) {
 void ScanTarget::draw(const int output_width, const int output_height) {
 	while(is_drawing_to_output_.test_and_set(std::memory_order_acquire));
 
-	if(!composition_buffer_.empty()) {
+	if(!separation_buffer_.empty()) {
 		// Copy the accumulation texture to the target.
 		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
 		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
-		output_buffer_.bind_texture();
-		copy_shader_.perform(OutputTextureUnit);
+		separation_buffer_.bind_texture();
+		copy_shader_.perform(SeparationTextureUnit);//OutputTextureUnit);
 	}
 
 	is_drawing_to_output_.clear(std::memory_order_release);
