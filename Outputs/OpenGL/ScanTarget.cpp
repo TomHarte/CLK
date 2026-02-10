@@ -411,6 +411,9 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			}
 		}
 
+		test_gl([&]{ glDisable(GL_BLEND); });
+		test_gl([&]{ glDisable(GL_STENCIL_TEST); });
+
 		if(!is_rgb(existing_modals_->display_type)) {
 			process_to_rgb(area);
 		}
@@ -455,9 +458,6 @@ void ScanTarget::update(const int output_width, const int output_height) {
 		} else {
 			output_scans(area);
 		}
-
-		test_gl([&]{ glDisable(GL_BLEND); });
-		test_gl([&]{ glDisable(GL_STENCIL_TEST); });
 
 		// That's it for operations affecting the accumulation buffer.
 		is_drawing_to_output_.clear();
@@ -622,6 +622,9 @@ void ScanTarget::output_scans(const OutputArea &area) {
 
 void ScanTarget::draw(const int output_width, const int output_height) {
 	while(is_drawing_to_output_.test_and_set(std::memory_order_acquire));
+
+	test_gl([&]{ glDisable(GL_BLEND); });
+	test_gl([&]{ glDisable(GL_STENCIL_TEST); });
 
 	if(!output_buffer_.empty()) {
 		// Copy the accumulation texture to the target.
