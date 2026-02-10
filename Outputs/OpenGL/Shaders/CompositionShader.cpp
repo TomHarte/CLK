@@ -160,6 +160,10 @@ vec2 quadrature() {
 	return vec2(cos(phase), sin(phase));
 }
 
+vec2 boxed(vec2 val) {
+	return val * vec2(0.5) + vec2(0.5);
+}
+
 
 
 #ifdef INPUT_LUMINANCE1
@@ -169,7 +173,7 @@ vec2 quadrature() {
 	vec4 sample_composite() {
 		return vec4(
 			clamp(texture(source, coordinate).r * 255.0, 0.0, 1.0),
-			quadrature(),
+			boxed(quadrature()),
 			compositeAmplitude
 		);
 	}
@@ -189,7 +193,7 @@ vec2 quadrature() {
 	vec4 sample_composite() {
 		return vec4(
 			texture(source, coordinate).r,
-			quadrature(),
+			boxed(quadrature()),
 			compositeAmplitude
 		);
 	}
@@ -211,7 +215,7 @@ vec2 quadrature() {
 		int offset = int(floor(unitPhase * 4.0)) & 3;
 		return vec4(
 			source[offset],
-			quadrature(),
+			boxed(quadrature()),
 			compositeAmplitude
 		);
 	}
@@ -319,8 +323,8 @@ vec2 quadrature() {
 			float chroma = dot(q, colour.gb);
 
 			return vec4(
-				colour.r * (1.0 - 2.0 * compositeAmplitude)  + chroma * compositeAmplitude,
-				q,
+				colour.r * (1.0 - 2.0 * compositeAmplitude) + chroma * compositeAmplitude,
+				boxed(q),
 				compositeAmplitude
 			);
 		}
@@ -332,7 +336,7 @@ vec2 quadrature() {
 
 			return vec4(
 				colour.r * (1.0 - 2.0 * compositeAmplitude) + colour.g * compositeAmplitude,
-				quadrature(),
+				boxed(quadrature()),
 				compositeAmplitude
 			);
 		}
@@ -352,7 +356,7 @@ vec2 quadrature() {
 
 		return vec4(
 			colour.r,
-			chroma * q * vec2(0.5) + vec2(0.5),
+			boxed(chroma * q),
 			1.0
 		);
 	}
@@ -369,7 +373,7 @@ vec2 quadrature() {
 
 		return vec4(
 			source.r,
-			source.g * q * vec2(0.5) + vec2(0.5),
+			boxed(source.g * q),
 			1.0
 		);
 	}
