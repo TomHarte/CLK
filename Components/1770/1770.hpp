@@ -10,6 +10,8 @@
 
 #include "Storage/Disk/Controller/MFMDiskController.hpp"
 
+#include <concepts>
+
 namespace WD {
 
 /*!
@@ -112,7 +114,10 @@ private:
 	int distance_into_section_;
 
 	int step_direction_;
-	void update_status(std::function<void(Status &)> updater);
+
+	template <typename FuncT>
+	requires std::invocable<FuncT, Status &>
+	void update_status(FuncT &&);
 
 	// Events
 	enum Event1770: int {

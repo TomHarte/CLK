@@ -193,6 +193,12 @@ enum class DisplayType {
 constexpr bool is_composite(const DisplayType type) {
 	return type == DisplayType::CompositeColour || type == DisplayType::CompositeMonochrome;
 }
+constexpr bool is_svideo(const DisplayType type) {
+	return type == DisplayType::SVideo;
+}
+constexpr bool is_rgb(const DisplayType type) {
+	return type == DisplayType::RGB;
+}
 
 /*!
 	Enumerates the potential formats of input data.
@@ -233,6 +239,17 @@ enum class InputDataType {
 	Red4Green4Blue4,		// 2 bytes/pixel; low nibble in first byte is red, high nibble in second is green, low is blue.
 							// i.e. if it were a little endian word, 0xgb0r; or 0x0rgb big endian.
 	Red8Green8Blue8,		// 4 bytes/pixel; first is red, second is green, third is blue, fourth is vacant.
+
+	// TODO, probably:
+	//
+	//	TaggedRGBW8		—	top two bits select a channel, either red, green or blue (and something else for the fourth
+	//						option; white maybe?). Low six bits are an intensity. I'm imagining this is good for
+	//						handheld systems with known subpixel layouts; the scan target can be fed with the subpixels.
+	//						Correlated assumption: such systems are old enough that 6 bits of intensity is sufficient.
+	//						If I decide to switch from 'brightness' as a final modal output property to a full-on
+	//						matrix transform then the tag will stop meaning RGB literally and just pick a
+	//						single channel, in which case 'white' makes sense as 'all channels'.
+	//
 };
 
 constexpr const char *name(const InputDataType data_type) {
@@ -250,7 +267,7 @@ constexpr const char *name(const InputDataType data_type) {
 
 /// @returns the number of bytes per sample for data of type @c data_type.
 /// Guaranteed to be 1, 2 or 4 for valid data types.
-constexpr inline size_t size_for_data_type(InputDataType data_type) {
+constexpr inline size_t size_for_data_type(const InputDataType data_type) {
 	switch(data_type) {
 		case InputDataType::Luminance1:
 		case InputDataType::Luminance8:
@@ -273,7 +290,7 @@ constexpr inline size_t size_for_data_type(InputDataType data_type) {
 
 /// @returns @c true if this data type presents normalised data, i.e. each byte holds a
 /// value in the range [0, 255] representing a real number in the range [0.0, 1.0]; @c false otherwise.
-constexpr inline size_t data_type_is_normalised(InputDataType data_type) {
+constexpr inline size_t data_type_is_normalised(const InputDataType data_type) {
 	switch(data_type) {
 		case InputDataType::Luminance8:
 		case InputDataType::Luminance8Phase8:
@@ -292,7 +309,7 @@ constexpr inline size_t data_type_is_normalised(InputDataType data_type) {
 
 /// @returns The 'natural' display type for data of type @c data_type. The natural display is whichever would
 /// display it with the least number of conversions. Caveat: a colour display is assumed for pure-composite data types.
-constexpr inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
+constexpr inline DisplayType natural_display_type_for_data_type(const InputDataType data_type) {
 	switch(data_type) {
 		default:
 		case InputDataType::Luminance1:
@@ -312,31 +329,43 @@ constexpr inline DisplayType natural_display_type_for_data_type(InputDataType da
 }
 
 /// @returns A 3x3 matrix in row-major order to convert from @c colour_space to RGB.
-inline std::array<float, 9> to_rgb_matrix(ColourSpace colour_space) {
-	const std::array<float, 9> yiq_to_rgb = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
-	const std::array<float, 9> yuv_to_rgb = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
+inline std::array<float, 9> to_rgb_matrix(const ColourSpace colour_space) {
+	static constexpr std::array<float, 9> yiq_to_rgb = {
+		1.0f, 1.0f, 1.0f,
+		0.956f, -0.272f, -1.106f,
+		0.621f, -0.647f, 1.703f
+	};
+	static constexpr std::array<float, 9> yuv_to_rgb = {
+		1.0f, 1.0f, 1.0f,
+		0.0f, -0.39465f, 2.03211f,
+		1.13983f, -0.58060f, 0.0f
+	};
 
 	switch(colour_space) {
 		case ColourSpace::YIQ:	return yiq_to_rgb;
 		case ColourSpace::YUV:	return yuv_to_rgb;
 	}
-
-	// Should be unreachable.
-	return std::array<float, 9>{};
+	__builtin_unreachable();
 }
 
-/// @returns A 3x3 matrix in row-major order to convert to @c colour_space to RGB.
-inline std::array<float, 9> from_rgb_matrix(ColourSpace colour_space) {
-	const std::array<float, 9> rgb_to_yiq = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
-	const std::array<float, 9> rgb_to_yuv = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
+/// @returns A 3x3 matrix in row-major order to convert to @c colour_space from RGB.
+inline std::array<float, 9> from_rgb_matrix(const ColourSpace colour_space) {
+	static constexpr std::array<float, 9> rgb_to_yiq = {
+		0.299f, 0.596f, 0.211f,
+		0.587f, -0.274f, -0.523f,
+		0.114f, -0.322f, 0.312f
+	};
+	static constexpr std::array<float, 9> rgb_to_yuv = {
+		0.299f, -0.14713f, 0.615f,
+		0.587f, -0.28886f, -0.51499f,
+		0.114f, 0.436f, -0.10001f
+	};
 
 	switch(colour_space) {
 		case ColourSpace::YIQ:	return rgb_to_yiq;
 		case ColourSpace::YUV:	return rgb_to_yuv;
 	}
-
-	// Should be unreachable.
-	return std::array<float, 9>{};
+	__builtin_unreachable();
 }
 
 /*!
@@ -601,5 +630,7 @@ struct NullScanTarget: public ScanTarget {
 
 	static NullScanTarget singleton;
 };
+
+std::array<float, 9> aspect_ratio_transformation(const ScanTarget::Modals &, const float view_aspect_ratio);
 
 }

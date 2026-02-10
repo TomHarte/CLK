@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <functional>
 
 #include "Outputs/CRT/CRT.hpp"
 #include "ClockReceiver/ClockReceiver.hpp"

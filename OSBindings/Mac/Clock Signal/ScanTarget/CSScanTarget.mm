@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <concepts>
 #include <optional>
 
 #include "BufferingScanTarget.hpp"
@@ -93,9 +94,7 @@
 */
 
 namespace {
-
-constexpr float MinColourSubcarrierMultiplier = 8.0f;
-constexpr int BufferWidth = (MinColourSubcarrierMultiplier > 5.0f) ? 3072 : 1536;
+constexpr auto BufferWidth = Outputs::Display::FilterGenerator::SuggestedBufferWidth;
 
 /// Provides a container for __fp16 versions of tightly-packed single-precision plain old data with a copy assignment constructor.
 template <typename NaturalType> struct HalfConverter {
@@ -144,11 +143,13 @@ constexpr MTLResourceOptions SharedResourceOptionsStandard =
 constexpr MTLResourceOptions SharedResourceOptionsTexture =
 	MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeManaged;
 
+template <typename FuncT>
+requires std::invocable<FuncT, size_t, size_t>
 void range_perform(
 	const size_t start,
 	const size_t end,
 	const size_t size,
-	const std::function<void(size_t start, size_t length)> &func
+	const FuncT &&func
 ) {
 	if(start == end) return;
 	if(start < end) {
@@ -528,46 +529,12 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (void)setAspectRatio {
-	const auto modals = _scanTarget.modals();
-	simd::float3x3 sourceToDisplay{1.0f};
-
-	// The starting coordinate space is [0, 1].
-
-	// Move the centre of the cropping rectangle to the centre of the display.
-	{
-		simd::float3x3 recentre{1.0f};
-		recentre.columns[2][0] = 0.5f - (modals.visible_area.origin.x + modals.visible_area.size.width * 0.5f);
-		recentre.columns[2][1] = 0.5f - (modals.visible_area.origin.y + modals.visible_area.size.height * 0.5f);
-		sourceToDisplay = recentre * sourceToDisplay;
-	}
-
-	// Convert from the internal [0, 1] to centred [-1, 1].
-	{
-		simd::float3x3 convertToEye;
-		convertToEye.columns[0][0] = 2.0f;
-		convertToEye.columns[1][1] = -2.0f;
-		convertToEye.columns[2][0] = -1.0f;
-		convertToEye.columns[2][1] = 1.0f;
-		convertToEye.columns[2][2] = 1.0f;
-		sourceToDisplay = convertToEye * sourceToDisplay;
-	}
-
-	// Determine correct zoom, combining (i) the necessary horizontal stretch for aspect ratio; and
-	// (ii) the necessary zoom to fit either the visible area width or height.
-	const float aspectRatioStretch = float(modals.aspect_ratio / _viewAspectRatio);
-	const float zoom = modals.visible_area.appropriate_zoom(aspectRatioStretch);
-
-	// Convert from there to the proper aspect ratio by stretching or compressing width.
-	// After this the output is exactly centred, filling the vertical space and being as wide or slender as it likes.
-	{
-		simd::float3x3 applyAspectRatio{1.0f};
-		applyAspectRatio.columns[0][0] = aspectRatioStretch * zoom;
-		applyAspectRatio.columns[1][1] = zoom;
-		sourceToDisplay = applyAspectRatio * sourceToDisplay;
-	}
-
-	// Store.
-	self.uniforms->sourcetoDisplay = sourceToDisplay;
+	const auto transformation = aspect_ratio_transformation(_scanTarget.modals(), float(_viewAspectRatio));
+	self.uniforms->sourcetoDisplay = simd_matrix_from_rows(
+		simd_float3{transformation[0], transformation[3], transformation[6]},
+		simd_float3{transformation[1], transformation[4], transformation[7]},
+		simd_float3{transformation[2], transformation[5], transformation[8]}
+	);
 }
 
 - (void)setModals:(const Outputs::Display::ScanTarget::Modals &)modals {
@@ -668,22 +635,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		float &cyclesMultiplier = self.uniforms->cyclesMultiplier;
 		if(_pipeline != Pipeline::DirectToDisplay) {
-			const float minimumSize =
-				MinColourSubcarrierMultiplier *
-				float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
-
-			while(cyclesMultiplier * modals.cycles_per_line < minimumSize) {
-				cyclesMultiplier += 1.0f;
-
-				if(cyclesMultiplier * modals.cycles_per_line > BufferWidth) {
-					if(cyclesMultiplier > 1.0f) {
-						cyclesMultiplier -= 1.0f;
-					} else {
-						cyclesMultiplier = float(BufferWidth) / float(modals.cycles_per_line);
-					}
-					break;
-				}
-			}
+			cyclesMultiplier =
+				Outputs::Display::FilterGenerator::suggested_sample_multiplier(
+					float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator),
+					modals.cycles_per_line
+				);
 
 			// Create suitable filters.
 			_lineBufferPixelsPerLine = NSUInteger(modals.cycles_per_line * cyclesMultiplier);
@@ -875,7 +831,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	[encoder setFragmentTexture:_writeAreaTexture atIndex:0];
 
 	range_perform(
-		outputArea.start.scan,
+		outputArea.begin.scan,
 		outputArea.end.scan,
 		NumBufferedScans,
 		[&](const size_t start, const size_t size) {
@@ -978,11 +934,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		const auto outputArea = _scanTarget.get_output_area();
 
-		if(outputArea.end.line != outputArea.start.line) {
+		if(outputArea.end.line != outputArea.begin.line) {
 
 			// Ensure texture changes are noted.
 			const auto writeAreaModificationStart =
-				size_t(outputArea.start.write_area_x + outputArea.start.write_area_y * BufferWidth)
+				size_t(outputArea.begin.write_area_x + outputArea.begin.write_area_y * BufferWidth)
 					* _bytesPerInputPixel;
 			const auto writeAreaModificationEnd =
 				size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * BufferWidth)
@@ -1016,8 +972,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			switch(_pipeline) {
 				case Pipeline::DirectToDisplay: {
 					// Output scans directly, broken up by frame.
-					size_t line = outputArea.start.line;
-					size_t scan = outputArea.start.scan;
+					size_t line = outputArea.begin.line;
+					size_t scan = outputArea.begin.scan;
 					while(line != outputArea.end.line) {
 						if(_lineMetadataBuffer[line].is_first_in_frame) {
 							[self outputFrom:scan to:_lineMetadataBuffer[line].first_scan commandBuffer:commandBuffer];
@@ -1045,21 +1001,21 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						[computeEncoder setTexture:_finalisedLineTexture atIndex:1];
 						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
-						if(outputArea.end.line > outputArea.start.line) {
+						if(outputArea.end.line > outputArea.begin.line) {
 							[self
 								dispatchComputeCommandEncoder:computeEncoder
 								pipelineState:_finalisedLineState
 								width:_lineBufferPixelsPerLine
-								height:outputArea.end.line - outputArea.start.line
-								offsetBuffer:[self bufferForOffset:outputArea.start.line]
+								height:outputArea.end.line - outputArea.begin.line
+								offsetBuffer:[self bufferForOffset:outputArea.begin.line]
 							];
 						} else {
 							[self
 								dispatchComputeCommandEncoder:computeEncoder
 								pipelineState:_finalisedLineState
 								width:_lineBufferPixelsPerLine
-								height:NumBufferedLines - outputArea.start.line
-								offsetBuffer:[self bufferForOffset:outputArea.start.line]
+								height:NumBufferedLines - outputArea.begin.line
+								offsetBuffer:[self bufferForOffset:outputArea.begin.line]
 							];
 
 							if(outputArea.end.line) {
@@ -1082,14 +1038,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 						__unsafe_unretained id<MTLBuffer> offsetBuffers[2] = {nil, nil};
-						offsetBuffers[0] = [self bufferForOffset:outputArea.start.line];
+						offsetBuffers[0] = [self bufferForOffset:outputArea.begin.line];
 
-						if(outputArea.end.line > outputArea.start.line) {
+						if(outputArea.end.line > outputArea.begin.line) {
 							[self
 								dispatchComputeCommandEncoder:computeEncoder
 								pipelineState:_separatedLumaState
 								width:_lineBufferPixelsPerLine
-								height:outputArea.end.line - outputArea.start.line
+								height:outputArea.end.line - outputArea.begin.line
 								offsetBuffer:offsetBuffers[0]
 							];
 						} else {
@@ -1097,7 +1053,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 								dispatchComputeCommandEncoder:computeEncoder
 								pipelineState:_separatedLumaState
 								width:_lineBufferPixelsPerLine
-								height:NumBufferedLines - outputArea.start.line
+								height:NumBufferedLines - outputArea.begin.line
 								offsetBuffer:offsetBuffers[0]
 							];
 							if(outputArea.end.line) {
@@ -1117,12 +1073,12 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						[computeEncoder setTexture:_finalisedLineTexture atIndex:1];
 						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
-						if(outputArea.end.line > outputArea.start.line) {
+						if(outputArea.end.line > outputArea.begin.line) {
 							[self
 								dispatchComputeCommandEncoder:computeEncoder
 								pipelineState:_finalisedLineState
 								width:_lineBufferPixelsPerLine
-								height:outputArea.end.line - outputArea.start.line
+								height:outputArea.end.line - outputArea.begin.line
 								offsetBuffer:offsetBuffers[0]
 							];
 						} else {
@@ -1130,7 +1086,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 								dispatchComputeCommandEncoder:computeEncoder
 								pipelineState:_finalisedLineState
 								width:_lineBufferPixelsPerLine
-								height:NumBufferedLines - outputArea.start.line
+								height:NumBufferedLines - outputArea.begin.line
 								offsetBuffer:offsetBuffers[0]
 							];
 							if(outputArea.end.line) {
@@ -1148,8 +1104,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 					}
 
 					// Output lines, broken up by frame.
-					size_t startLine = outputArea.start.line;
-					size_t line = outputArea.start.line;
+					size_t startLine = outputArea.begin.line;
+					size_t line = outputArea.begin.line;
 					while(line != outputArea.end.line) {
 						if(_lineMetadataBuffer[line].is_first_in_frame) {
 							[self outputFrom:startLine to:line commandBuffer:commandBuffer];
@@ -1182,11 +1138,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			[commandBuffer commit];
 
 			// TODO: reenable these and work out how on earth the Master System + Alex Kidd (US) is managing
-			// to provide write_area_y = 0, start_x = 0, end_x = 1.
-//			assert(outputArea.end.line == outputArea.start.line);
-//			assert(outputArea.end.scan == outputArea.start.scan);
-//			assert(outputArea.end.write_area_y == outputArea.start.write_area_y);
-//			assert(outputArea.end.write_area_x == outputArea.start.write_area_x);
+			// to provide write_area_y = 0, begin_x = 0, end_x = 1.
+//			assert(outputArea.end.line == outputArea.begin.line);
+//			assert(outputArea.end.scan == outputArea.begin.scan);
+//			assert(outputArea.end.write_area_y == outputArea.begin.write_area_y);
+//			assert(outputArea.end.write_area_x == outputArea.begin.write_area_x);
 		}
 	}
 }

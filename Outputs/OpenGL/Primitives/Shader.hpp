@@ -11,8 +11,7 @@
 #include "Outputs/OpenGL/API.hpp"
 #include "Outputs/OpenGL/OpenGL.hpp"
 
-#include <functional>
-#include <mutex>
+#include <concepts>
 #include <string>
 #include <vector>
 
@@ -48,7 +47,7 @@ public:
 		API,
 		const std::string &vertex_shader,
 		const std::string &fragment_shader,
-		const std::vector<AttributeBinding> &attribute_bindings = {}
+		const std::vector<AttributeBinding> & = {}
 	);
 	/*!
 		Attempts to compile a shader, throwing @c VertexShaderCompilationError, @c FragmentShaderCompilationError
@@ -65,6 +64,14 @@ public:
 	);
 	~Shader();
 
+	// Allow moves, including move assignment, and default construction to create something vacant.
+	Shader(Shader&&);
+	Shader &operator =(Shader &&);
+	Shader() = default;
+
+	Shader(const Shader&) = delete;
+	Shader &operator =(const Shader &) = delete;
+
 	/*!
 		Performs an @c glUseProgram to make this the active shader unless:
 			(i) it was the previous shader bound; and
@@ -78,6 +85,13 @@ public:
 		Unbinds the current instance of Shader, if one is bound.
 	*/
 	static void unbind();
+
+	/*!
+		Performs a @c glBindAttribLocation call.
+		@param name The name of the attribute to bind.
+		@param index The index to bind to.
+	*/
+	void bind_attrib_location(const std::string &name, GLuint index);
 
 	/*!
 		Performs a @c glGetAttribLocation call.
@@ -113,26 +127,34 @@ public:
 	/*!
 		All @c set_uniforms queue up the requested uniform changes. Changes are applied automatically the next time the shader is bound.
 	*/
-	void set_uniform(const std::string &name, GLint value);
-	void set_uniform(const std::string &name, GLint value1, GLint value2);
-	void set_uniform(const std::string &name, GLint value1, GLint value2, GLint value3);
-	void set_uniform(const std::string &name, GLint value1, GLint value2, GLint value3, GLint value4);
-	void set_uniform(const std::string &name, GLint size, GLsizei count, const GLint *values);
+	void set_uniform(const std::string &name, GLint);
+	void set_uniform(const std::string &name, GLint, GLint);
+	void set_uniform(const std::string &name, GLint, GLint, GLint);
+	void set_uniform(const std::string &name, GLint, GLint, GLint, GLint);
+	void set_uniform(const std::string &name, GLint size, GLsizei count, const GLint *);
 
-	void set_uniform(const std::string &name, GLfloat value);
-	void set_uniform(const std::string &name, GLfloat value1, GLfloat value2);
-	void set_uniform(const std::string &name, GLfloat value1, GLfloat value2, GLfloat value3);
-	void set_uniform(const std::string &name, GLfloat value1, GLfloat value2, GLfloat value3, GLfloat value4);
-	void set_uniform(const std::string &name, GLint size, GLsizei count, const GLfloat *values);
+	void set_uniform(const std::string &name, GLfloat);
+	void set_uniform(const std::string &name, GLfloat, GLfloat value2);
+	void set_uniform(const std::string &name, GLfloat, GLfloat, GLfloat);
+	void set_uniform(const std::string &name, GLfloat, GLfloat, GLfloat, GLfloat);
+	void set_uniform(const std::string &name, GLint size, GLsizei count, const GLfloat *);
 
-	void set_uniform(const std::string &name, GLuint value);
-	void set_uniform(const std::string &name, GLuint value1, GLuint value2);
-	void set_uniform(const std::string &name, GLuint value1, GLuint value2, GLuint value3);
-	void set_uniform(const std::string &name, GLuint value1, GLuint value2, GLuint value3, GLuint value4);
-	void set_uniform(const std::string &name, GLint size, GLsizei count, const GLuint *values);
+	void set_uniform(const std::string &name, GLuint);
+	void set_uniform(const std::string &name, GLuint, GLuint);
+	void set_uniform(const std::string &name, GLuint, GLuint, GLuint);
+	void set_uniform(const std::string &name, GLuint, GLuint, GLuint, GLuint);
+	void set_uniform(const std::string &name, GLint size, GLsizei count, const GLuint *);
 
 	void set_uniform_matrix(const std::string &name, GLint size, bool transpose, const GLfloat *values);
 	void set_uniform_matrix(const std::string &name, GLint size, GLsizei count, bool transpose, const GLfloat *values);
+
+	bool empty() const {
+		return shader_program_ == 0;
+	}
+
+	void reset() {
+		*this = Shader();
+	}
 
 private:
 	void init(
@@ -141,16 +163,13 @@ private:
 		const std::vector<AttributeBinding> &
 	);
 
+	template <typename FuncT>
+	requires std::invocable<FuncT, GLint>
+	void with_location(const std::string &, FuncT &&);
+
 	GLuint compile_shader(const std::string &source, GLenum type);
 	API api_;
-	GLuint shader_program_;
-
-	void flush_functions() const;
-	mutable std::vector<std::function<void(void)>> enqueued_functions_;
-	mutable std::mutex function_mutex_;
-
-protected:
-	void enqueue_function(std::function<void(void)> function);
+	GLuint shader_program_ = 0;
 };
 
 }

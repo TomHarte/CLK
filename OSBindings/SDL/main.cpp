@@ -15,7 +15,7 @@
 #include "Machines/MachineTypes.hpp"
 
 #include "Activity/Observer.hpp"
-#include "Outputs/OpenGL/Primitives/Rectangle.hpp"
+#include "Outputs/OpenGL/Shaders/Rectangle.hpp"
 #include "Outputs/OpenGL/ScanTarget.hpp"
 #include "Outputs/OpenGL/Screenshot.hpp"
 
@@ -887,7 +887,6 @@ int main(int argc, char *argv[]) {
 
 	// Ask for no depth buffer but at least 1 bit of stencil.
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
-	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 1);
 	SDL_GL_SetSwapInterval(1);
 
 	SDL_Window *window = nullptr;

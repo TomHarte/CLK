@@ -9,193 +9,336 @@
 #include "ScanTarget.hpp"
 
 #include "OpenGL.hpp"
-#include "Primitives/Rectangle.hpp"
+
+#include "Outputs/ScanTargets/FilterGenerator.hpp"
+#include "Outputs/OpenGL/Shaders/CompositionShader.hpp"
+#include "Outputs/OpenGL/Shaders/CopyShader.hpp"
+#include "Outputs/OpenGL/Shaders/KernelShaders.hpp"
+#include "Outputs/OpenGL/Shaders/LineOutputShader.hpp"
 
 #include <algorithm>
-#include <cassert>
 #include <cstring>
-#include <limits>
 
 using namespace Outputs::Display::OpenGL;
-
-#ifndef NDEBUG
-//#define LOG_LINES
-//#define LOG_SCANS
-#endif
 
 namespace {
 
 /// The texture unit from which to source input data.
 constexpr GLenum SourceDataTextureUnit = GL_TEXTURE0;
 
-/// The texture unit which contains raw line-by-line composite, S-Video or RGB data.
-constexpr GLenum UnprocessedLineBufferTextureUnit = GL_TEXTURE1;
+/// Contains the initial composition of scans into lines.
+constexpr GLenum CompositionTextureUnit = GL_TEXTURE1;
 
-/// The texture unit that contains a pre-lowpass-filtered but fixed-resolution version of the chroma signal;
-/// this is used when processing composite video only, and for chroma information only. Luminance is calculated
-/// at the fidelity permitted by the output target, but my efforts to separate, demodulate and filter
-/// chrominance during output without either massively sampling or else incurring significant high-frequency
-/// noise that sampling reduces into a Moire, have proven to be unsuccessful for the time being.
-constexpr GLenum QAMChromaTextureUnit = GL_TEXTURE2;
+/// If the input data was composite, contains separated  luma/chroma.
+constexpr GLenum SeparationTextureUnit = GL_TEXTURE2;
 
-/// The texture unit that contains the current display.
-constexpr GLenum AccumulationTextureUnit = GL_TEXTURE3;
+/// If the input data was S-Video or composite, contains a fully demodulated image.
+constexpr GLenum DemodulationTextureUnit = GL_TEXTURE3;
 
-constexpr GLint internalFormatForDepth(std::size_t depth) {
-	switch(depth) {
-		default: return GL_FALSE;
-		case 1: return GL_R8UI;
-		case 2: return GL_RG8UI;
-		case 3: return GL_RGB8UI;
-		case 4: return GL_RGBA8UI;
-	}
-}
-
-constexpr GLenum formatForDepth(std::size_t depth) {
-	switch(depth) {
-		default: return GL_FALSE;
-		case 1: return GL_RED_INTEGER;
-		case 2: return GL_RG_INTEGER;
-		case 3: return GL_RGB_INTEGER;
-		case 4: return GL_RGBA_INTEGER;
-	}
-}
+/// Contains the current display.
+constexpr GLenum OutputTextureUnit = GL_TEXTURE4;
 
 using Logger = Log::Logger<Log::Source::OpenGL>;
 
+template <typename SourceT>
+size_t submit(VertexArray &target, const size_t begin, const size_t end, const SourceT &source) {
+	if(begin == end) {
+		return 0;
+	}
+
+	target.bind_buffer();
+	size_t buffer_destination = 0;
+	const auto submit = [&](const size_t begin, const size_t end) {
+		test_gl([&]{
+			glBufferSubData(
+				GL_ARRAY_BUFFER,
+				buffer_destination,
+				(end - begin) * sizeof(source[0]),
+				&source[begin]
+			);
+		});
+		buffer_destination += (end - begin) * sizeof(source[0]);
+	};
+	if(begin < end) {
+		submit(begin, end);
+		return end - begin;
+	} else {
+		submit(begin, source.size());
+		submit(0, end);
+		return source.size() - begin + end;
+	}
 }
 
-template <typename T> void ScanTarget::allocate_buffer(const T &array, GLuint &buffer_name, GLuint &vertex_array_name) {
-	const auto buffer_size = array.size() * sizeof(array[0]);
-	test_gl(glGenBuffers, 1, &buffer_name);
-	test_gl(glBindBuffer, GL_ARRAY_BUFFER, buffer_name);
-	test_gl(glBufferData, GL_ARRAY_BUFFER, GLsizeiptr(buffer_size), NULL, GL_STREAM_DRAW);
-
-	test_gl(glGenVertexArrays, 1, &vertex_array_name);
-	test_gl(glBindVertexArray, vertex_array_name);
-	test_gl(glBindBuffer, GL_ARRAY_BUFFER, buffer_name);
+size_t distance(const size_t begin, const size_t end, const size_t buffer_length) {
+	return end >= begin ? end - begin : buffer_length + end - begin;
+}
 }
 
 ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const float output_gamma) :
 	api_(api),
-	target_framebuffer_(target_framebuffer),
 	output_gamma_(output_gamma),
-	unprocessed_line_texture_(api, LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_NEAREST, false),
-	full_display_rectangle_(api, -1.0f, -1.0f, 2.0f, 2.0f) {
+	target_framebuffer_(target_framebuffer),
+	full_display_rectangle_(api, -1.0f, -1.0f, 2.0f, 2.0f),
+	scans_(scan_buffer_),
+	lines_(line_buffer_),
+	dirty_zones_(dirty_zones_buffer_) {
 
 	set_scan_buffer(scan_buffer_.data(), scan_buffer_.size());
 	set_line_buffer(line_buffer_.data(), line_metadata_buffer_.data(), line_buffer_.size());
-
-	// Allocate space for the scans and lines.
-	allocate_buffer(scan_buffer_, scan_buffer_name_, scan_vertex_array_);
-	allocate_buffer(line_buffer_, line_buffer_name_, line_vertex_array_);
 
 	// TODO: if this is OpenGL 4.4 or newer, use glBufferStorage rather than glBufferData
 	// and specify GL_MAP_PERSISTENT_BIT. Then map the buffer now, and let the client
 	// write straight into it.
 
-	test_gl(glGenTextures, 1, &write_area_texture_name_);
+	test_gl([&]{ glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR); });
+	test_gl([&]{ glBlendColor(0.4f, 0.4f, 0.4f, 1.0f); });
 
-	test_gl(glBlendFunc, GL_SRC_ALPHA, GL_CONSTANT_COLOR);
-	test_gl(glBlendColor, 0.4f, 0.4f, 0.4f, 1.0f);
+	// Set stencil function for underdraw.
+	test_gl([&]{ glStencilFunc(GL_EQUAL, 0, GLuint(~0)); });
+	test_gl([&]{ glStencilOp(GL_KEEP, GL_KEEP, GL_INCR); });
 
 	// Establish initial state for is_drawing_to_accumulation_buffer_.
-	is_drawing_to_accumulation_buffer_.clear();
+	is_drawing_to_output_.clear();
 }
 
-ScanTarget::~ScanTarget() {
-	perform([&] {
-		glDeleteBuffers(1, &scan_buffer_name_);
-		glDeleteTextures(1, &write_area_texture_name_);
-		glDeleteVertexArrays(1, &scan_vertex_array_);
-	});
-}
-
-void ScanTarget::set_target_framebuffer(GLuint target_framebuffer) {
+void ScanTarget::set_target_framebuffer(const GLuint target_framebuffer) {
 	perform([&] {
 		target_framebuffer_ = target_framebuffer;
 	});
 }
 
+void ScanTarget::update_aspect_ratio_transformation() {
+	if(output_buffer_.empty()) {
+		return;
+	}
+
+	const auto framing = aspect_ratio_transformation(
+		BufferingScanTarget::modals(),
+		float(output_buffer_.width()) / float(output_buffer_.height())
+	);
+
+	if(!line_output_shader_.empty()) {
+		line_output_shader_.set_aspect_ratio_transformation(framing);
+	}
+	if(!scan_output_shader_.empty()) {
+		scan_output_shader_.set_aspect_ratio_transformation(framing);
+	}
+}
+
 void ScanTarget::setup_pipeline() {
 	const auto modals = BufferingScanTarget::modals();
 	const auto data_type_size = Outputs::Display::size_for_data_type(modals.input_data_type);
+	static constexpr float OutputAlpha = 0.64f;
 
-	// Resize the texture only if required.
+	// Possibly create a new source texture.
+	if(source_texture_.empty() || source_texture_.channels() != data_type_size) {
+		source_texture_ = Texture(
+			data_type_size,
+			SourceDataTextureUnit,
+			GL_NEAREST,
+			GL_NEAREST,
+			WriteAreaWidth,
+			WriteAreaHeight
+		);
+	}
+
+	// Resize the texture if required.
 	const size_t required_size = WriteAreaWidth*WriteAreaHeight*data_type_size;
 	if(required_size != write_area_texture_.size()) {
 		write_area_texture_.resize(required_size);
 		set_write_area(write_area_texture_.data());
 	}
 
-	// Prepare to bind line shaders.
-	test_gl(glBindVertexArray, line_vertex_array_);
-	test_gl(glBindBuffer, GL_ARRAY_BUFFER, line_buffer_name_);
+	// Determine new sizing metrics.
+	const auto buffer_width = FilterGenerator::SuggestedBufferWidth;
+	const auto subcarrier_frequency = [](const Modals &modals) {
+		return float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
+	};
+	const float sample_multiplier =
+		FilterGenerator::suggested_sample_multiplier(
+			subcarrier_frequency(modals),
+			modals.cycles_per_line
+		);
 
-	// Destroy or create a QAM buffer and shader, if appropriate.
-	if(!existing_modals_ || existing_modals_->display_type != modals.display_type) {
-		const bool needs_qam_buffer =
-			modals.display_type == DisplayType::CompositeColour ||
-			modals.display_type == DisplayType::SVideo;
-		if(needs_qam_buffer) {
-			if(!qam_chroma_texture_) {
-				qam_chroma_texture_ = std::make_unique<TextureTarget>(
+	if(
+		copy_shader_.empty() ||
+		!existing_modals_ ||
+		existing_modals_->brightness != modals.brightness ||
+		existing_modals_->intended_gamma != modals.intended_gamma
+	) {
+		copy_shader_ = CopyShader(
+			api_,
+			modals.brightness != 1.0f ? std::optional<float>(modals.brightness) : std::optional<float>(),
+			modals.intended_gamma != output_gamma_ ?
+				std::optional<float>(output_gamma_ / modals.intended_gamma) :
+				std::optional<float>()
+		);
+	}
+
+	if(composition_buffer_.empty()) {
+		composition_buffer_ = TextureTarget(
+			api_,
+			buffer_width,
+			LineBufferHeight,
+			CompositionTextureUnit,
+			GL_NEAREST,
+			false
+		);
+	}
+
+	if(is_rgb(modals.display_type)) {
+		composition_shader_.reset();
+		separation_shader_.reset();
+		demodulation_shader_.reset();
+		line_output_shader_.reset();
+
+		if(
+			scan_output_shader_.empty() ||
+			existing_modals_->input_data_type != modals.input_data_type ||
+			existing_modals_->expected_vertical_lines != modals.expected_vertical_lines ||
+			existing_modals_->output_scale.x != modals.output_scale.x ||
+			existing_modals_->output_scale.y != modals.output_scale.y
+		) {
+			scan_output_shader_ = OpenGL::ScanOutputShader(
+				api_,
+				modals.input_data_type,
+				modals.expected_vertical_lines,
+				modals.output_scale.x,
+				modals.output_scale.y,
+				WriteAreaWidth,
+				WriteAreaHeight,
+				OutputAlpha,
+				scans_,
+				SourceDataTextureUnit);
+		}
+	} else {
+		scan_output_shader_.reset();
+
+		if(
+			!existing_modals_ ||
+			existing_modals_->input_data_type != modals.input_data_type ||
+			existing_modals_->display_type != modals.display_type ||
+			existing_modals_->composite_colour_space != modals.composite_colour_space ||
+			subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
+		) {
+			composition_shader_ = OpenGL::composition_shader(
+				api_,
+				modals.input_data_type,
+				modals.display_type,
+				modals.composite_colour_space,
+				sample_multiplier,
+				WriteAreaWidth, WriteAreaHeight,
+				buffer_width, LineBufferHeight,
+				scans_,
+				GL_TEXTURE0
+			);
+		}
+
+		if(!is_composite(modals.display_type)) {
+			separation_shader_.reset();
+		} else if(
+			separation_shader_.empty() ||
+			modals.cycles_per_line != existing_modals_->cycles_per_line ||
+			subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
+		) {
+			separation_shader_ = OpenGL::separation_shader(
+				api_,
+				subcarrier_frequency(modals),
+				sample_multiplier * modals.cycles_per_line,
+				buffer_width, LineBufferHeight,
+				dirty_zones_,
+				CompositionTextureUnit
+			);
+		}
+
+		if(!is_composite(modals.display_type) && !is_svideo(modals.display_type)) {
+			demodulation_shader_.reset();
+			line_output_shader_.reset();
+			fill_shader_.reset();
+		} else {
+			if(
+				demodulation_shader_.empty() ||
+				!existing_modals_ ||
+				existing_modals_->display_type != modals.display_type ||
+				subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
+			) {
+				demodulation_shader_ = OpenGL::demodulation_shader(
 					api_,
-					LineBufferWidth,
+					modals.composite_colour_space,
+					modals.display_type,
+					subcarrier_frequency(modals),
+					sample_multiplier * modals.cycles_per_line,
+					buffer_width,
 					LineBufferHeight,
-					QAMChromaTextureUnit,
-					GL_NEAREST,
-					false
+					dirty_zones_,
+					is_svideo(modals.display_type) ? CompositionTextureUnit : SeparationTextureUnit
 				);
 			}
 
-			qam_separation_shader_ = qam_separation_shader();
-			enable_vertex_attributes(ShaderType::QAMSeparation, *qam_separation_shader_);
-			qam_separation_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
-		} else {
-			qam_chroma_texture_.reset();
-			qam_separation_shader_.reset();
+			if(
+				line_output_shader_.empty() ||
+				!existing_modals_ ||
+				existing_modals_->display_type != modals.display_type ||
+				subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
+			) {
+				line_output_shader_ = LineOutputShader(
+					api_,
+					buffer_width, LineBufferHeight,
+					sample_multiplier,
+					modals.expected_vertical_lines,
+					modals.output_scale.x,
+					modals.output_scale.y,
+					OutputAlpha,
+					lines_,
+					DemodulationTextureUnit
+				);
+			}
+
+			if(
+				fill_shader_.empty() ||
+				!existing_modals_ ||
+				existing_modals_->display_type != modals.display_type ||
+				subcarrier_frequency(*existing_modals_) != subcarrier_frequency(modals)
+			) {
+				fill_shader_ = OpenGL::FillShader(
+					api_,
+					sample_multiplier * modals.cycles_per_line,
+					buffer_width,
+					LineBufferHeight,
+					dirty_zones_
+				);
+			}
 		}
 
-		// Establish an output shader.
-		output_shader_ = conversion_shader();
-		enable_vertex_attributes(ShaderType::Conversion, *output_shader_);
-		set_uniforms(ShaderType::Conversion, *output_shader_);
+		if(!is_composite(modals.display_type)) {
+			separation_buffer_.reset();
+		} else if(separation_buffer_.empty()) {
+			separation_buffer_ = TextureTarget(
+				api_,
+				buffer_width,
+				LineBufferHeight,
+				SeparationTextureUnit,
+				GL_NEAREST,
+				false
+			);
+		}
 
-		output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
-		output_shader_->set_uniform("qamTextureName", GLint(QAMChromaTextureUnit - GL_TEXTURE0));
+		if(!is_composite(modals.display_type) && !is_svideo(modals.display_type)) {
+			demodulation_buffer_.reset();
+		} else if(demodulation_buffer_.empty()) {
+			demodulation_buffer_ = TextureTarget(
+				api_,
+				buffer_width,
+				LineBufferHeight,
+				DemodulationTextureUnit,
+				GL_LINEAR,
+				false
+			);
+		}
+
 	}
 
-	if(qam_separation_shader_) {
-		set_uniforms(ShaderType::QAMSeparation, *qam_separation_shader_);
-	}
-
-	// Select whichever of a letterbox or pillarbox avoids cropping.
-	constexpr float output_ratio = 4.0f / 3.0f;
-	const float aspect_ratio_stretch = modals.aspect_ratio / output_ratio;
-
-	auto adjusted_rect = modals.visible_area;
-	const float letterbox_scale = adjusted_rect.size.height / (adjusted_rect.size.width * aspect_ratio_stretch);
-	if(letterbox_scale > 1.0f) {
-		adjusted_rect.scale(letterbox_scale, 1.0f);
-	} else {
-		adjusted_rect.scale(1.0f, 1.0f / letterbox_scale);
-	}
-
-	// Provide to shader.
-	output_shader_->set_uniform("origin", adjusted_rect.origin.x, adjusted_rect.origin.y);
-	output_shader_->set_uniform("size", 1.0f / adjusted_rect.size.width, 1.0f / adjusted_rect.size.height);
-
-	// Establish an input shader.
-	if(!existing_modals_ || existing_modals_->input_data_type != modals.input_data_type) {
-		input_shader_ = composition_shader();
-		test_gl(glBindVertexArray, scan_vertex_array_);
-		test_gl(glBindBuffer, GL_ARRAY_BUFFER, scan_buffer_name_);
-		enable_vertex_attributes(ShaderType::Composition, *input_shader_);
-		set_uniforms(ShaderType::Composition, *input_shader_);
-		input_shader_->set_uniform("textureName", GLint(SourceDataTextureUnit - GL_TEXTURE0));
-	}
-
+	update_aspect_ratio_transformation();
 	existing_modals_ = modals;
 }
 
@@ -204,7 +347,7 @@ bool ScanTarget::is_soft_display_type() {
 	return display_type == DisplayType::CompositeColour || display_type == DisplayType::CompositeMonochrome;
 }
 
-void ScanTarget::update(int, int output_height) {
+void ScanTarget::update(const int output_width, const int output_height) {
 	// If the GPU is still busy, don't wait; we'll catch it next time.
 	if(fence_ != nullptr) {
 		if(glClientWaitSync(fence_, GL_SYNC_FLUSH_COMMANDS_BIT, 0) == GL_TIMEOUT_EXPIRED) {
@@ -229,305 +372,95 @@ void ScanTarget::update(int, int output_height) {
 
 		// Establish the pipeline if necessary.
 		const auto new_modals = BufferingScanTarget::new_modals();
-		const bool did_setup_pipeline = bool(new_modals);
-		if(did_setup_pipeline) {
+		if(bool(new_modals)) {
 			setup_pipeline();
 		}
 
 		// Determine the start time of this submission group and the number of lines it will contain.
 		line_submission_begin_time_ = std::chrono::high_resolution_clock::now();
-		lines_submitted_ = (area.end.line - area.start.line + line_buffer_.size()) % line_buffer_.size();
-
-		// Submit scans; only the new ones need to be communicated.
-		const size_t new_scans = (area.end.scan - area.start.scan + scan_buffer_.size()) % scan_buffer_.size();
-		if(new_scans) {
-			test_gl(glBindBuffer, GL_ARRAY_BUFFER, scan_buffer_name_);
-
-			// Map only the required portion of the buffer.
-			const size_t new_scans_size = new_scans * sizeof(Scan);
-			const auto destination = static_cast<Scan *>(
-				glMapBufferRange(
-					GL_ARRAY_BUFFER,
-					0,
-					GLsizeiptr(new_scans_size),
-					GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT
-				)
-			);
-			test_gl_error();
-
-			// Copy as a single chunk if possible; otherwise copy in two parts.
-			if(area.start.scan < area.end.scan) {
-				std::copy_n(scan_buffer_.begin() + area.start.scan, new_scans, destination);
-			} else {
-				const size_t first_portion_count = scan_buffer_.size() - area.start.scan;
-				std::copy_n(scan_buffer_.begin() + area.start.scan, first_portion_count, destination);
-				std::copy_n(scan_buffer_.begin(), new_scans - first_portion_count, destination + first_portion_count);
-			}
-
-			// Flush and unmap the buffer.
-			test_gl(glFlushMappedBufferRange, GL_ARRAY_BUFFER, 0, GLsizeiptr(new_scans_size));
-			test_gl(glUnmapBuffer, GL_ARRAY_BUFFER);
-		}
+		lines_submitted_ = distance(area.begin.line, area.end.line, line_buffer_.size());
 
 		// Submit texture.
-		if(area.start.write_area_x != area.end.write_area_x || area.start.write_area_y != area.end.write_area_y) {
-			test_gl(glActiveTexture, SourceDataTextureUnit);
-			test_gl(glBindTexture, GL_TEXTURE_2D, write_area_texture_name_);
+		if(area.begin.write_area_x != area.end.write_area_x || area.begin.write_area_y != area.end.write_area_y) {
+			source_texture_.bind();
 
-			// Create storage for the texture if it doesn't yet exist; this was deferred until here
-			// because the pixel format wasn't initially known.
-			if(!texture_exists_) {
-				test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-				test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-				test_gl(glTexImage2D,
-					GL_TEXTURE_2D,
-					0,
-					internalFormatForDepth(write_area_data_size()),
-					WriteAreaWidth,
-					WriteAreaHeight,
-					0,
-					formatForDepth(write_area_data_size()),
-					GL_UNSIGNED_BYTE,
-					nullptr);
-				texture_exists_ = true;
-			}
+			const auto submit = [&](const GLint y_begin, const GLint y_end) {
+				test_gl([&]{
+					glTexSubImage2D(
+						GL_TEXTURE_2D, 0,
+						0, y_begin,
+						WriteAreaWidth,
+						y_end - y_begin,
+						source_texture_.format(),
+						GL_UNSIGNED_BYTE,
+						&write_area_texture_[size_t(y_begin * WriteAreaWidth) * source_texture_.channels()]
+					);
+				});
+			};
 
-			if(area.end.write_area_y >= area.start.write_area_y) {
+			// Both of the following upload to area.end.write_area_y + 1 to include whatever line the write area
+			// is currently on. It may have partial source areas along it, despite being incomplete.
+			if(area.end.write_area_y >= area.begin.write_area_y) {
 				// Submit the direct region from the submit pointer to the read pointer.
-				test_gl(glTexSubImage2D,
-					GL_TEXTURE_2D, 0,
-					0, area.start.write_area_y,
-					WriteAreaWidth,
-					1 + area.end.write_area_y - area.start.write_area_y,
-					formatForDepth(write_area_data_size()),
-					GL_UNSIGNED_BYTE,
-					&write_area_texture_[size_t(area.start.write_area_y * WriteAreaWidth) * write_area_data_size()]);
+				submit(area.begin.write_area_y, area.end.write_area_y + 1);
 			} else {
 				// The circular buffer wrapped around; submit the data from the read pointer to the end of
 				// the buffer and from the start of the buffer to the submit pointer.
-				test_gl(glTexSubImage2D,
-					GL_TEXTURE_2D, 0,
-					0, area.start.write_area_y,
-					WriteAreaWidth,
-					WriteAreaHeight - area.start.write_area_y,
-					formatForDepth(write_area_data_size()),
-					GL_UNSIGNED_BYTE,
-					&write_area_texture_[size_t(area.start.write_area_y * WriteAreaWidth) * write_area_data_size()]);
-				test_gl(glTexSubImage2D,
-					GL_TEXTURE_2D, 0,
-					0, 0,
-					WriteAreaWidth,
-					1 + area.end.write_area_y,
-					formatForDepth(write_area_data_size()),
-					GL_UNSIGNED_BYTE,
-					&write_area_texture_[0]);
+				submit(area.begin.write_area_y, WriteAreaHeight);
+				submit(0, area.end.write_area_y + 1);
 			}
 		}
 
-		// Push new input to the unprocessed line buffer.
-		if(new_scans) {
-			unprocessed_line_texture_.bind_framebuffer();
+		test_gl([&]{ glDisable(GL_BLEND); });
+		test_gl([&]{ glDisable(GL_STENCIL_TEST); });
 
-			// Clear newly-touched lines; that is everything from (read+1) to submit.
-			const auto first_line_to_clear = GLsizei((area.start.line+1)%line_buffer_.size());
-			const auto final_line_to_clear = GLsizei(area.end.line);
-			if(first_line_to_clear != final_line_to_clear) {
-				test_gl(glEnable, GL_SCISSOR_TEST);
-
-				// Determine the proper clear colour — this needs to be anything that describes black
-				// in the input colour encoding at use.
-				if(modals().input_data_type == InputDataType::Luminance8Phase8) {
-					// Supply both a zero luminance and a colour-subcarrier-disengaging phase.
-					test_gl(glClearColor, 0.0f, 1.0f, 0.0f, 0.0f);
-				} else {
-					test_gl(glClearColor, 0.0f, 0.0f, 0.0f, 0.0f);
-				}
-
-				if(first_line_to_clear < final_line_to_clear) {
-					test_gl(glScissor, GLint(0), GLint(first_line_to_clear), unprocessed_line_texture_.width(), final_line_to_clear - first_line_to_clear);
-					test_gl(glClear, GL_COLOR_BUFFER_BIT);
-				} else {
-					test_gl(glScissor, GLint(0), GLint(0), unprocessed_line_texture_.width(), final_line_to_clear);
-					test_gl(glClear, GL_COLOR_BUFFER_BIT);
-					test_gl(glScissor, GLint(0), GLint(first_line_to_clear), unprocessed_line_texture_.width(), unprocessed_line_texture_.height() - first_line_to_clear);
-					test_gl(glClear, GL_COLOR_BUFFER_BIT);
-				}
-
-				test_gl(glDisable, GL_SCISSOR_TEST);
-			}
-
-			// Apply new spans. They definitely always go to the first buffer.
-			test_gl(glBindVertexArray, scan_vertex_array_);
-			input_shader_->bind();
-			test_gl(glDrawArraysInstanced, GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans));
+		if(!is_rgb(existing_modals_->display_type)) {
+			process_to_rgb(area);
 		}
-
-		// Logic for reducing resolution: start doing so if the metrics object reports that
-		// it's a good idea. Go up to a quarter of the requested resolution, subject to
-		// clamping at each stage. If the output resolution changes, or anything else about
-		// the output pipeline, just start trying the highest size again.
-		if(display_metrics_.should_lower_resolution() && is_soft_display_type()) {
-			resolution_reduction_level_ = std::min(resolution_reduction_level_+1, 4);
-		}
-		if(output_height_ != output_height || did_setup_pipeline) {
-			resolution_reduction_level_ = 1;
-			output_height_ = output_height;
-		}
-
-		// Ensure the accumulation buffer is properly sized, allowing for the metrics object's
-		// feelings about whether too high a resolution is being used.
-		const int framebuffer_height = std::max(output_height / resolution_reduction_level_, std::min(540, output_height));
-		const int proportional_width = (framebuffer_height * 4) / 3;
-		const bool did_create_accumulation_texture =
-			!accumulation_texture_ ||
-			(
-				accumulation_texture_->width() != proportional_width ||
-				accumulation_texture_->height() != framebuffer_height
-			);
 
 		// Work with the accumulation_buffer_ potentially starts from here onwards; set its flag.
-		while(is_drawing_to_accumulation_buffer_.test_and_set());
-		if(did_create_accumulation_texture) {
-			Logger::info().append("Changed output resolution to %d by %d", proportional_width, framebuffer_height);
-			display_metrics_.announce_did_resize();
-			auto new_framebuffer = std::make_unique<TextureTarget>(
+		while(is_drawing_to_output_.test_and_set());
+
+		// Make sure there's an appropriately-sized buffer.
+		const auto output_buffer_width = output_width * 2;
+		const auto output_buffer_height = output_height * 2;
+		if(
+			output_buffer_.empty() ||
+			output_buffer_.width() != output_buffer_width ||
+			output_buffer_.height() != output_buffer_height
+		) {
+			TextureTarget new_output_buffer(
 				api_,
-				GLsizei(proportional_width),
-				GLsizei(framebuffer_height),
-				AccumulationTextureUnit,
+				output_buffer_width,
+				output_buffer_height,
+				OutputTextureUnit,
 				GL_NEAREST,
 				true
 			);
-			if(accumulation_texture_) {
-				new_framebuffer->bind_framebuffer();
-				test_gl(glClear, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-				test_gl(glActiveTexture, AccumulationTextureUnit);
-				accumulation_texture_->bind_texture();
-				accumulation_texture_->draw(4.0f / 3.0f);
-
-				test_gl(glClear, GL_STENCIL_BUFFER_BIT);
-
-				new_framebuffer->bind_texture();
+			// Resize old buffer into new.
+			if(!output_buffer_.empty()) {
+				new_output_buffer.bind_framebuffer();
+				output_buffer_.bind_texture();
+				copy_shader_.perform(OutputTextureUnit);
 			}
-			accumulation_texture_ = std::move(new_framebuffer);
+			std::swap(output_buffer_, new_output_buffer);
 
-			// In the absence of a way to resize a stencil buffer, just mark
-			// what's currently present as invalid to avoid an improper clear
-			// for this frame.
-			stencil_is_valid_ = false;
+			update_aspect_ratio_transformation();
 		}
 
-		if(did_setup_pipeline || did_create_accumulation_texture) {
-			set_sampling_window(proportional_width, framebuffer_height, *output_shader_);
-		}
+		output_buffer_.bind_framebuffer();
+		test_gl([&]{ glEnable(GL_BLEND); });
+		test_gl([&]{ glEnable(GL_STENCIL_TEST); });
 
-		// Figure out how many new lines are ready.
-		auto new_lines = (area.end.line - area.start.line + LineBufferHeight) % LineBufferHeight;
-		if(new_lines) {
-			// Prepare to output lines.
-			test_gl(glBindVertexArray, line_vertex_array_);
-
-			// Bind the accumulation framebuffer, unless there's going to be QAM work first.
-			if(!qam_separation_shader_ || line_metadata_buffer_[area.start.line].is_first_in_frame) {
-				accumulation_texture_->bind_framebuffer();
-				output_shader_->bind();
-
-				// Enable blending and stenciling.
-				test_gl(glEnable, GL_BLEND);
-				test_gl(glEnable, GL_STENCIL_TEST);
-			}
-
-			// Set the proper stencil function regardless.
-			test_gl(glStencilFunc, GL_EQUAL, 0, GLuint(~0));
-			test_gl(glStencilOp, GL_KEEP, GL_KEEP, GL_INCR);
-
-			// Prepare to upload data that will consitute lines.
-			test_gl(glBindBuffer, GL_ARRAY_BUFFER, line_buffer_name_);
-
-			// Divide spans by which frame they're in.
-			auto start_line = area.start.line;
-			while(new_lines) {
-				uint16_t end_line = (start_line + 1) % LineBufferHeight;
-
-				// Find the limit of spans to draw in this cycle.
-				size_t lines = 1;
-				while(end_line != area.end.line && !line_metadata_buffer_[end_line].is_first_in_frame) {
-					end_line = (end_line + 1) % LineBufferHeight;
-					++lines;
-				}
-
-				// If this is start-of-frame, clear any untouched pixels and flush the stencil buffer
-				if(line_metadata_buffer_[start_line].is_first_in_frame) {
-					if(stencil_is_valid_ && line_metadata_buffer_[start_line].previous_frame_was_complete) {
-						full_display_rectangle_.draw(0.0f, 0.0f, 0.0f);
-					}
-					stencil_is_valid_ = true;
-					test_gl(glClear, GL_STENCIL_BUFFER_BIT);
-
-					// Rebind the program for span output.
-					test_gl(glBindVertexArray, line_vertex_array_);
-					if(!qam_separation_shader_) {
-						output_shader_->bind();
-					}
-				}
-
-				// Upload.
-				const auto buffer_size = lines * sizeof(Line);
-				if(!end_line || end_line > start_line) {
-					test_gl(glBufferSubData, GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size), &line_buffer_[start_line]);
-				} else {
-					auto destination = static_cast<Line *>(
-						glMapBufferRange(
-							GL_ARRAY_BUFFER,
-							0,
-							GLsizeiptr(buffer_size),
-							GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT
-						)
-					);
-					assert(destination);
-					test_gl_error();
-
-					std::copy_n(line_buffer_.begin(), end_line, destination + line_buffer_.size() - start_line);
-					std::copy_n(line_buffer_.begin() + start_line, line_buffer_.size() - start_line, destination);
-
-					test_gl(glFlushMappedBufferRange, GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size));
-					test_gl(glUnmapBuffer, GL_ARRAY_BUFFER);
-				}
-
-				// Produce colour information, if required.
-				if(qam_separation_shader_) {
-					qam_separation_shader_->bind();
-					qam_chroma_texture_->bind_framebuffer();
-					test_gl(glClear, GL_COLOR_BUFFER_BIT);	// TODO: this is here as a hint that the old framebuffer doesn't need reloading;
-															// test whether that's a valid optimisation on desktop OpenGL.
-
-					test_gl(glDisable, GL_BLEND);
-					test_gl(glDisable, GL_STENCIL_TEST);
-					test_gl(glDrawArraysInstanced, GL_TRIANGLE_STRIP, 0, 4, GLsizei(lines));
-
-					accumulation_texture_->bind_framebuffer();
-					output_shader_->bind();
-					test_gl(glEnable, GL_BLEND);
-					test_gl(glEnable, GL_STENCIL_TEST);
-				}
-
-				// Render to the output.
-				test_gl(glDrawArraysInstanced, GL_TRIANGLE_STRIP, 0, 4, GLsizei(lines));
-
-				start_line = end_line;
-				new_lines -= lines;
-			}
-
-			// Disable blending and the stencil test again.
-			test_gl(glDisable, GL_STENCIL_TEST);
-			test_gl(glDisable, GL_BLEND);
+		if(!is_rgb(existing_modals_->display_type)) {
+			output_lines(area);
+		} else {
+			output_scans(area);
 		}
 
 		// That's it for operations affecting the accumulation buffer.
-		is_drawing_to_accumulation_buffer_.clear();
+		is_drawing_to_output_.clear();
 
 		// Grab a fence sync object to avoid busy waiting upon the next extry into this
 		// function, and reset the is_updating_ flag.
@@ -536,19 +469,170 @@ void ScanTarget::update(int, int output_height) {
 	});
 }
 
-void ScanTarget::draw(int output_width, int output_height) {
-	while(is_drawing_to_accumulation_buffer_.test_and_set(std::memory_order_acquire));
+void ScanTarget::process_to_rgb(const OutputArea &area) {
+	if(area.end.scan != area.begin.scan) {
+		// Submit all scans.
+		const auto new_scans = ::submit(scans_, area.begin.scan, area.end.scan, scan_buffer_);
 
-	if(accumulation_texture_) {
-		// Copy the accumulation texture to the target.
-		test_gl(glBindFramebuffer, GL_FRAMEBUFFER, target_framebuffer_);
-		test_gl(glViewport, 0, 0, (GLsizei)output_width, (GLsizei)output_height);
-
-		test_gl(glClearColor, 0.0f, 0.0f, 0.0f, 0.0f);
-		test_gl(glClear, GL_COLOR_BUFFER_BIT);
-		accumulation_texture_->bind_texture();
-		accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
+		// Populate composition buffer.
+		composition_buffer_.bind_framebuffer();
+		scans_.bind();
+		source_texture_.bind();
+		composition_shader_.bind();
+		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
 	}
 
-	is_drawing_to_accumulation_buffer_.clear(std::memory_order_release);
+	// Do S-Video or composite line decoding.
+	if(area.end.line != area.begin.line) {
+		// Calculate and submit line dirty zones.
+		const int num_dirty_zones = 1 + (area.begin.line >= area.end.line);
+		dirty_zones_buffer_[0].begin = area.begin.line;
+		if(num_dirty_zones == 1) {
+			dirty_zones_buffer_[0].end = area.end.line;
+		} else {
+			dirty_zones_buffer_[0].end = LineBufferHeight;
+			dirty_zones_buffer_[1].begin = 0;
+			dirty_zones_buffer_[1].end = area.end.line;
+		}
+
+		dirty_zones_.bind_all();
+		test_gl([&]{
+			glBufferSubData(
+				GL_ARRAY_BUFFER,
+				0,
+				num_dirty_zones * sizeof(DirtyZone),
+				dirty_zones_buffer_.data()
+			);
+		});
+
+		// Perform [composite/svideo] -> RGB conversion.
+		composition_buffer_.bind_texture();
+		if(is_composite(existing_modals_->display_type)) {
+			separation_buffer_.bind_framebuffer();
+			separation_shader_.bind();
+			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
+		}
+
+		if(is_composite(existing_modals_->display_type) || is_svideo(existing_modals_->display_type)) {
+			demodulation_buffer_.bind_framebuffer();
+			demodulation_shader_.bind();
+			if(!separation_buffer_.empty()) {
+				separation_buffer_.bind_texture();
+			}
+			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
+		}
+
+		// Retroactively clear the composition buffer; doing this post hoc avoids uncertainty about the
+		// exact timing of a new line being drawn to, as well as fitting more neatly into when dirty zones
+		// are bound.
+		composition_buffer_.bind_framebuffer();
+		if(is_composite(existing_modals_->display_type)) {
+			fill_shader_.bind(0.0, 0.0, 0.0, 0.0);
+		} else {
+			fill_shader_.bind(0.0, 0.5, 0.5, 1.0);
+		}
+		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(num_dirty_zones)); });
+	}
+}
+
+void ScanTarget::output_lines(const OutputArea &area) {
+	if(area.end.line == area.begin.line) {
+		return;
+	}
+
+	// Batch lines by frame.
+	size_t begin = area.begin.line;
+	while(begin != area.end.line) {
+		// Apply end-of-frame cleaning if necessary.
+		if(line_metadata_buffer_[begin].is_first_in_frame) {
+			if(line_metadata_buffer_[begin].previous_frame_was_complete) {
+				full_display_rectangle_.draw(0.0, 0.0, 0.0);
+			}
+			test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
+		}
+
+		// Hunt for an end-of-frame.
+		// TODO: eliminate this linear search by not loading frame data into LineMetadata.
+		size_t end = begin;
+		do {
+			++end;
+			if(end == line_metadata_buffer_.size()) end = 0;
+		} while(end != area.end.line && !line_metadata_buffer_[end].is_first_in_frame);
+
+		// Submit new lines.
+		lines_.bind_all();
+		const auto new_lines = ::submit(lines_, begin, end, line_buffer_);
+
+		// Output new lines.
+		demodulation_buffer_.bind_texture();
+		line_output_shader_.bind();
+		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_lines)); });
+
+		begin = end;
+	}
+}
+
+void ScanTarget::output_scans(const OutputArea &area) {
+	if(area.end.scan == area.begin.scan) {
+		return;
+	}
+
+	// Break scans into frames. This is tortured. TODO: resolve LineMetadata issues, as above.
+	size_t scan_begin = area.begin.scan;
+	size_t line_begin = area.begin.line;
+	while(scan_begin != area.end.scan) {
+		if(
+			line_begin != area.end.line &&
+			scan_begin == line_metadata_buffer_[line_begin].first_scan &&
+			line_metadata_buffer_[line_begin].is_first_in_frame
+		) {
+			if(line_metadata_buffer_[line_begin].previous_frame_was_complete) {
+				full_display_rectangle_.draw(0.0, 0.0, 0.0);
+			}
+			test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
+		}
+
+		// Check for an end-of-frame in the current scan range by searching lines.
+		// This is really messy.
+		size_t line_end = line_begin;
+		size_t scan_end = area.end.scan;
+		while(true) {
+			++line_end;
+			if(line_end == line_metadata_buffer_.size()) line_end = 0;
+			if(line_end == area.end.line) break;
+			if(line_metadata_buffer_[line_end].is_first_in_frame) {
+				scan_end = line_metadata_buffer_[line_end].first_scan;
+				break;
+			}
+		}
+		line_begin = line_end;
+
+		// Submit and output new scans.
+		scans_.bind_all();
+		const auto new_scans = ::submit(scans_, scan_begin, scan_end, scan_buffer_);
+
+		// Output new scans.
+		scan_output_shader_.bind();
+		composition_buffer_.bind_texture();
+		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
+
+		scan_begin = scan_end;
+	}
+}
+
+void ScanTarget::draw(const int output_width, const int output_height) {
+	while(is_drawing_to_output_.test_and_set(std::memory_order_acquire));
+
+	test_gl([&]{ glDisable(GL_BLEND); });
+	test_gl([&]{ glDisable(GL_STENCIL_TEST); });
+
+	if(!output_buffer_.empty()) {
+		// Copy the accumulation texture to the target.
+		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
+		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
+		output_buffer_.bind_texture();
+		copy_shader_.perform(OutputTextureUnit);
+	}
+
+	is_drawing_to_output_.clear(std::memory_order_release);
 }

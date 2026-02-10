@@ -159,11 +159,16 @@ set(CLK_SOURCES
 
 	Outputs/CRT/CRT.cpp
 	Outputs/DisplayMetrics.cpp
-	Outputs/OpenGL/Primitives/Rectangle.cpp
 	Outputs/OpenGL/Primitives/Shader.cpp
+	Outputs/OpenGL/Primitives/Texture.cpp
 	Outputs/OpenGL/Primitives/TextureTarget.cpp
+	Outputs/OpenGL/Primitives/VertexArray.cpp
+	Outputs/OpenGL/Shaders/CompositionShader.cpp
+	Outputs/OpenGL/Shaders/CopyShader.cpp
+	Outputs/OpenGL/Shaders/KernelShaders.cpp
+	Outputs/OpenGL/Shaders/LineOutputShader.cpp
+	Outputs/OpenGL/Shaders/Rectangle.cpp
 	Outputs/OpenGL/ScanTarget.cpp
-	Outputs/OpenGL/ScanTargetGLSLFragments.cpp
 	Outputs/ScanTarget.cpp
 	Outputs/ScanTargets/BufferingScanTarget.cpp
 	Outputs/ScanTargets/FilterGenerator.cpp

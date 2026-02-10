@@ -107,6 +107,7 @@ SOURCES += glob.glob('../../Outputs/CRT/*.cpp')
 SOURCES += glob.glob('../../Outputs/ScanTargets/*.cpp')
 SOURCES += glob.glob('../../Outputs/OpenGL/*.cpp')
 SOURCES += glob.glob('../../Outputs/OpenGL/Primitives/*.cpp')
+SOURCES += glob.glob('../../Outputs/OpenGL/Shaders/*.cpp')
 
 SOURCES += glob.glob('../../Processors/6502/Implementation/*.cpp')
 SOURCES += glob.glob('../../Processors/6502/State/*.cpp')

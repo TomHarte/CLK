@@ -9,6 +9,7 @@
 #include "Shader.hpp"
 
 #include "Outputs/Log.hpp"
+
 #include <vector>
 
 using namespace Outputs::Display::OpenGL;
@@ -18,8 +19,8 @@ thread_local const Shader *bound_shader = nullptr;
 using Logger = Log::Logger<Log::Source::OpenGL>;
 }
 
-GLuint Shader::compile_shader(const std::string &source, GLenum type) {
-	GLuint shader = glCreateShader(type);
+GLuint Shader::compile_shader(const std::string &source, const GLenum type) {
+	const GLuint shader = glCreateShader(type);
 
 	switch(api_) {
 		case API::OpenGL32Core: {
@@ -34,7 +35,7 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 				)glsl",
 				source.c_str()
 			};
-			test_gl(glShaderSource, shader, 2, sources, NULL);
+			test_gl([&]{ glShaderSource(shader, 2, sources, NULL); });
 		} break;
 		case API::OpenGLES3:
 			// OpenGL ES: supply default precisions for where they might have
@@ -48,28 +49,27 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 				)glsl",
 				source.c_str()
 			};
-			test_gl(glShaderSource, shader, 2, sources, NULL);
+			test_gl([&]{ glShaderSource(shader, 2, sources, NULL); });
 		break;
 	}
-	test_gl(glCompileShader, shader);
+	test_gl([&]{ glCompileShader(shader); });
 
-	if constexpr (Logger::ErrorsEnabled) {
-		GLint isCompiled = 0;
-		test_gl(glGetShaderiv, shader, GL_COMPILE_STATUS, &isCompiled);
-		if(isCompiled == GL_FALSE) {
-			GLint logLength;
-			test_gl(glGetShaderiv, shader, GL_INFO_LOG_LENGTH, &logLength);
-			if(logLength > 0) {
-				const auto length = std::vector<GLchar>::size_type(logLength);
+	GLint is_compiled = 0;
+	test_gl([&]{ glGetShaderiv(shader, GL_COMPILE_STATUS, &is_compiled); });
+	if(is_compiled == GL_FALSE) {
+		if constexpr (Logger::ErrorsEnabled) {
+			Logger::error().append("Failed to compile: %s", source.c_str());
+			GLint log_length;
+			test_gl([&]{ glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_length); });
+			if(log_length > 0) {
+				const auto length = std::vector<GLchar>::size_type(log_length);
 				std::vector<GLchar> log(length);
-				test_gl(glGetShaderInfoLog, shader, logLength, &logLength, log.data());
-				Logger::error().append("Sought to compile: %s", source.c_str());
+				test_gl([&]{ glGetShaderInfoLog(shader, log_length, &log_length, log.data()); });
 				Logger::error().append("Compile log: %s", log.data());
-				Logger::error().append("");
 			}
-
-			throw (type == GL_VERTEX_SHADER) ? VertexShaderCompilationError : FragmentShaderCompilationError;
 		}
+
+		throw (type == GL_VERTEX_SHADER) ? VertexShaderCompilationError : FragmentShaderCompilationError;
 	}
 
 	return shader;
@@ -99,51 +99,55 @@ Shader::Shader(
 	init(vertex_shader, fragment_shader, bindings);
 }
 
-void Shader::init(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<AttributeBinding> &attribute_bindings) {
+void Shader::init(
+	const std::string &vertex_shader,
+	const std::string &fragment_shader,
+	const std::vector<AttributeBinding> &attribute_bindings
+) {
 	shader_program_ = glCreateProgram();
 	const GLuint vertex = compile_shader(vertex_shader, GL_VERTEX_SHADER);
 	const GLuint fragment = compile_shader(fragment_shader, GL_FRAGMENT_SHADER);
 
-	test_gl(glAttachShader, shader_program_, vertex);
-	test_gl(glAttachShader, shader_program_, fragment);
+	test_gl([&]{ glAttachShader(shader_program_, vertex); });
+	test_gl([&]{ glAttachShader(shader_program_, fragment); });
 
 	for(const auto &binding : attribute_bindings) {
-		test_gl(glBindAttribLocation, shader_program_, binding.index, binding.name.c_str());
+		bind_attrib_location(binding.name, binding.index);
+	}
 
+	test_gl([&]{ glLinkProgram(shader_program_); });
+
+	GLint did_link = 0;
+	test_gl([&]{ glGetProgramiv(shader_program_, GL_LINK_STATUS, &did_link); });
+	if(did_link == GL_FALSE) {
 		if constexpr (Logger::ErrorsEnabled) {
-			const auto error = glGetError();
-			switch(error) {
-				case 0: break;
-				case GL_INVALID_VALUE:
-					Logger::error().append("GL_INVALID_VALUE when attempting to bind %s to index %d (i.e. index is greater than or equal to GL_MAX_VERTEX_ATTRIBS)", binding.name.c_str(), binding.index);
-				break;
-				case GL_INVALID_OPERATION:
-					Logger::error().append("GL_INVALID_OPERATION when attempting to bind %s to index %d (i.e. name begins with gl_)", binding.name.c_str(), binding.index);
-				break;
-				default:
-					Logger::error().append("Error %d when attempting to bind %s to index %d", error, binding.name.c_str(), binding.index);
-				break;
+			GLint log_length;
+			test_gl([&]{ glGetProgramiv(shader_program_, GL_INFO_LOG_LENGTH, &log_length); });
+			if(log_length > 0) {
+				Logger::error().append("Vertex shader: %s", vertex_shader.c_str());
+				Logger::error().append("Fragment shader: %s", fragment_shader.c_str());
+				std::vector<GLchar> log(log_length);
+				test_gl([&]{ glGetProgramInfoLog(shader_program_, log_length, &log_length, log.data()); });
+				Logger::error().append("Link log: %s", log.data());
 			}
 		}
+
+		throw ProgramLinkageError;
 	}
+}
 
-	test_gl(glLinkProgram, shader_program_);
+Shader &Shader::operator =(Shader &&rhs) {
+	api_ = rhs.api_;
+	std::swap(shader_program_, rhs.shader_program_);
 
-	if constexpr (Logger::ErrorsEnabled) {
-		GLint logLength;
-		test_gl(glGetProgramiv, shader_program_, GL_INFO_LOG_LENGTH, &logLength);
-		if(logLength > 0) {
-			std::vector<GLchar> log(logLength);
-			test_gl(glGetProgramInfoLog, shader_program_, logLength, &logLength, log.data());
-			Logger::error().append("Link log: %s", log.data());
-		}
-
-		GLint didLink = 0;
-		test_gl(glGetProgramiv, shader_program_, GL_LINK_STATUS, &didLink);
-		if(didLink == GL_FALSE) {
-			throw ProgramLinkageError;
-		}
+	if(bound_shader == &rhs) {
+		bound_shader = this;
 	}
+	return *this;
+}
+
+Shader::Shader(Shader &&rhs) {
+	*this = std::move(rhs);
 }
 
 Shader::~Shader() {
@@ -153,15 +157,41 @@ Shader::~Shader() {
 
 void Shader::bind() const {
 	if(bound_shader != this) {
-		test_gl(glUseProgram, shader_program_);
+		test_gl([&]{ glUseProgram(shader_program_); });
 		bound_shader = this;
 	}
-	flush_functions();
 }
 
 void Shader::unbind() {
 	bound_shader = nullptr;
-	test_gl(glUseProgram, 0);
+	test_gl([&]{ glUseProgram(0); });
+}
+
+void Shader::bind_attrib_location(const std::string &name, const GLuint index) {
+	test_gl([&]{ glBindAttribLocation(shader_program_, index, name.c_str()); });
+
+	if constexpr (Logger::ErrorsEnabled) {
+		const auto error = glGetError();
+		switch(error) {
+			case 0: break;
+			case GL_INVALID_VALUE:
+				Logger::error().append(
+					"GL_INVALID_VALUE when attempting to bind %s to index %d "
+					"(i.e. index is greater than or equal to GL_MAX_VERTEX_ATTRIBS)",
+						name.c_str(), index);
+			break;
+			case GL_INVALID_OPERATION:
+				Logger::error().append(
+					"GL_INVALID_OPERATION when attempting to bind %s to index %d "
+					"(i.e. name begins with gl_)",
+						name.c_str(), index);
+			break;
+			default:
+				Logger::error().append(
+					"Error %d when attempting to bind %s to index %d", error, name.c_str(), index);
+			break;
+		}
+	}
 }
 
 GLint Shader::get_attrib_location(const std::string &name) const {
@@ -174,171 +204,165 @@ GLint Shader::get_uniform_location(const std::string &name) const {
 	return location;
 }
 
-void Shader::enable_vertex_attribute_with_pointer(const std::string &name, GLint size, GLenum type, GLboolean normalised, GLsizei stride, const GLvoid *pointer, GLuint divisor) {
-	GLint location = get_attrib_location(name);
+void Shader::enable_vertex_attribute_with_pointer(
+	const std::string &name,
+	const GLint size,
+	const GLenum type,
+	const GLboolean normalised,
+	const GLsizei stride,
+	const GLvoid *const pointer,
+	const GLuint divisor
+) {
+	const auto location = get_attrib_location(name);
 	if(location >= 0) {
-		test_gl(glEnableVertexAttribArray, GLuint(location));
-		test_gl(glVertexAttribPointer, GLuint(location), size, type, normalised, stride, pointer);
-		test_gl(glVertexAttribDivisor, GLuint(location), divisor);
+		test_gl([&]{ glEnableVertexAttribArray(GLuint(location)); });
+		test_gl([&]{ glVertexAttribPointer(GLuint(location), size, type, normalised, stride, pointer); });
+		test_gl([&]{ glVertexAttribDivisor(GLuint(location), divisor); });
 	} else {
 		Logger::error().append("Couldn't enable vertex attribute %s", name.c_str());
 	}
 }
 
-// The various set_uniforms...
-#define with_location(func, ...) {\
-		const GLint location = glGetUniformLocation(shader_program_, name.c_str());	\
-		if(location == -1) { \
-			Logger::error().append("Couldn't get location for uniform %s", name.c_str());	\
-		} else { \
-			func(location, __VA_ARGS__);	\
-			if(glGetError()) Logger::error().append("Error setting uniform %s via %s", name.c_str(), #func);	\
-		} \
+template <typename FuncT>
+requires std::invocable<FuncT, GLint>
+void Shader::with_location(const std::string &name, FuncT &&function) {
+	const GLint location = glGetUniformLocation(shader_program_, name.c_str());
+	if(location == -1) {
+		Logger::error().append("Couldn't get location for uniform %s", name.c_str());
+	} else {
+		bind();
+		function(location);
+		if(glGetError()) Logger::error().append("Error setting uniform %s", name.c_str());
 	}
-
-void Shader::set_uniform(const std::string &name, GLint value) {
-	enqueue_function([name, value, this] {
-		with_location(glUniform1i, value);
-	});
 }
 
-void Shader::set_uniform(const std::string &name, GLuint value) {
-	enqueue_function([name, value, this] {
-		with_location(glUniform1ui, value);
-	});
+void Shader::set_uniform(const std::string &name, const GLint value) {
+	with_location(name, [&](const GLint location) { glUniform1i(location, value); });
 }
 
-void Shader::set_uniform(const std::string &name, GLfloat value) {
-	enqueue_function([name, value, this] {
-		with_location(glUniform1f, value);
-	});
+void Shader::set_uniform(const std::string &name, const GLuint value) {
+	with_location(name, [&](const GLint location) { glUniform1ui(location, value); });
+}
+
+void Shader::set_uniform(const std::string &name, const GLfloat value) {
+	with_location(name, [&](const GLint location) { glUniform1f(location, value); });
 }
 
 
-void Shader::set_uniform(const std::string &name, GLint value1, GLint value2) {
-	enqueue_function([name, value1, value2, this] {
-		with_location(glUniform2i, value1, value2);
-	});
+void Shader::set_uniform(const std::string &name, const GLint value1, const GLint value2) {
+	with_location(name, [&](const GLint location) { glUniform2i(location, value1, value2); });
 }
 
-void Shader::set_uniform(const std::string &name, GLfloat value1, GLfloat value2) {
-	enqueue_function([name, value1, value2, this] {
-		with_location(glUniform2f, value1, value2);
-	});
+void Shader::set_uniform(const std::string &name, const GLfloat value1, const GLfloat value2) {
+	with_location(name, [&](const GLint location) { glUniform2f(location, value1, value2); });
 }
 
-void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2) {
-	enqueue_function([name, value1, value2, this] {
-		with_location(glUniform2ui, value1, value2);
-	});
+void Shader::set_uniform(const std::string &name, const GLuint value1, const GLuint value2) {
+	with_location(name, [&](const GLint location) { glUniform2ui(location, value1, value2); });
 }
 
-void Shader::set_uniform(const std::string &name, GLint value1, GLint value2, GLint value3) {
-	enqueue_function([name, value1, value2, value3, this] {
-		with_location(glUniform3i, value1, value2, value3);
-	});
+void Shader::set_uniform(const std::string &name, const GLint value1, const GLint value2, const GLint value3) {
+	with_location(name, [&](const GLint location) { glUniform3i(location, value1, value2, value3); });
 }
 
-void Shader::set_uniform(const std::string &name, GLfloat value1, GLfloat value2, GLfloat value3) {
-	enqueue_function([name, value1, value2, value3, this] {
-		with_location(glUniform3f, value1, value2, value3);
-	});
+void Shader::set_uniform(const std::string &name, const GLfloat value1, const GLfloat value2, const GLfloat value3) {
+	with_location(name, [&](const GLint location) { glUniform3f(location, value1, value2, value3); });
 }
 
-void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2, GLuint value3) {
-	enqueue_function([name, value1, value2, value3, this] {
-		with_location(glUniform3ui, value1, value2, value3);
-	});
+void Shader::set_uniform(const std::string &name, const GLuint value1, const GLuint value2, const GLuint value3) {
+	with_location(name, [&](const GLint location) { glUniform3ui(location, value1, value2, value3); });
 }
 
-void Shader::set_uniform(const std::string &name, GLint value1, GLint value2, GLint value3, GLint value4) {
-	enqueue_function([name, value1, value2, value3, value4, this] {
-		with_location(glUniform4i, value1, value2, value3, value4);
-	});
+void Shader::set_uniform(
+	const std::string &name,
+	const GLint value1,
+	const GLint value2,
+	const GLint value3,
+	const GLint value4
+) {
+	with_location(name, [&](const GLint location) { glUniform4i(location, value1, value2, value3, value4); });
 }
 
-void Shader::set_uniform(const std::string &name, GLfloat value1, GLfloat value2, GLfloat value3, GLfloat value4) {
-	enqueue_function([name, value1, value2, value3, value4, this] {
-		with_location(glUniform4f, value1, value2, value3, value4);
-	});
+void Shader::set_uniform(
+	const std::string &name,
+	const GLfloat value1,
+	const GLfloat value2,
+	const GLfloat value3,
+	const GLfloat value4
+) {
+	with_location(name, [&](const GLint location) { glUniform4f(location, value1, value2, value3, value4); });
 }
 
-void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2, GLuint value3, GLuint value4) {
-	enqueue_function([name, value1, value2, value3, value4, this] {
-		with_location(glUniform4ui, value1, value2, value3, value4);
-	});
+void Shader::set_uniform(
+	const std::string &name,
+	const GLuint value1,
+	const GLuint value2,
+	const GLuint value3,
+	const GLuint value4
+) {
+	with_location(name, [&](const GLint location) { glUniform4ui(location, value1, value2, value3, value4); });
 }
 
-void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLint *values) {
-	std::size_t number_of_values = std::size_t(count) * std::size_t(size);
-	std::vector<GLint> values_copy(values, values + number_of_values);
-
-	enqueue_function([name, size, count, values_copy, this] {
+void Shader::set_uniform(
+	const std::string &name,
+	const GLint size,
+	const GLsizei count,
+	const GLint *const values
+) {
+	with_location(name, [&](const GLint location) {
 		switch(size) {
-			case 1: with_location(glUniform1iv, count, values_copy.data());	break;
-			case 2: with_location(glUniform2iv, count, values_copy.data());	break;
-			case 3: with_location(glUniform3iv, count, values_copy.data());	break;
-			case 4: with_location(glUniform4iv, count, values_copy.data());	break;
+			case 1: glUniform1iv(location, count, values);	break;
+			case 2: glUniform2iv(location, count, values);	break;
+			case 3: glUniform3iv(location, count, values);	break;
+			case 4: glUniform4iv(location, count, values);	break;
 		}
 	});
 }
 
-void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLfloat *values) {
-	std::size_t number_of_values = std::size_t(count) * std::size_t(size);
-	std::vector<GLfloat> values_copy(values, values + number_of_values);
-
-	enqueue_function([name, size, count, values_copy, this] {
+void Shader::set_uniform(const std::string &name, const GLint size, const GLsizei count, const GLfloat *const values) {
+	with_location(name, [&](const GLint location) {
 		switch(size) {
-			case 1: with_location(glUniform1fv, count, values_copy.data());	break;
-			case 2: with_location(glUniform2fv, count, values_copy.data());	break;
-			case 3: with_location(glUniform3fv, count, values_copy.data());	break;
-			case 4: with_location(glUniform4fv, count, values_copy.data());	break;
+			case 1: glUniform1fv(location, count, values);	break;
+			case 2: glUniform2fv(location, count, values);	break;
+			case 3: glUniform3fv(location, count, values);	break;
+			case 4: glUniform4fv(location, count, values);	break;
 		}
 	});
 }
 
-void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLuint *values) {
-	std::size_t number_of_values = std::size_t(count) * std::size_t(size);
-	std::vector<GLuint> values_copy(values, values + number_of_values);
-
-	enqueue_function([name, size, count, values_copy, this] {
+void Shader::set_uniform(const std::string &name, const GLint size, const GLsizei count, const GLuint *const values) {
+	with_location(name, [&](const GLint location) {
 		switch(size) {
-			case 1: with_location(glUniform1uiv, count, values_copy.data());	break;
-			case 2: with_location(glUniform2uiv, count, values_copy.data());	break;
-			case 3: with_location(glUniform3uiv, count, values_copy.data());	break;
-			case 4: with_location(glUniform4uiv, count, values_copy.data());	break;
+			case 1: glUniform1uiv(location, count, values);	break;
+			case 2: glUniform2uiv(location, count, values);	break;
+			case 3: glUniform3uiv(location, count, values);	break;
+			case 4: glUniform4uiv(location, count, values);	break;
 		}
 	});
 }
 
-void Shader::set_uniform_matrix(const std::string &name, GLint size, bool transpose, const GLfloat *values) {
+void Shader::set_uniform_matrix(
+	const std::string &name,
+	const GLint size,
+	const bool transpose,
+	const GLfloat *const values
+) {
 	set_uniform_matrix(name, size, 1, transpose, values);
 }
 
-void Shader::set_uniform_matrix(const std::string &name, GLint size, GLsizei count, bool transpose, const GLfloat *values) {
-	std::size_t number_of_values = std::size_t(count) * std::size_t(size) * std::size_t(size);
-	std::vector<GLfloat> values_copy(values, values + number_of_values);
-
-	enqueue_function([name, size, count, transpose, values_copy, this] {
-		GLboolean glTranspose = transpose ? GL_TRUE : GL_FALSE;
+void Shader::set_uniform_matrix(
+	const std::string &name,
+	const GLint size,
+	const GLsizei count,
+	const bool transpose,
+	const GLfloat *const values
+) {
+	with_location(name, [&](const GLint location) {
+		const GLboolean glTranspose = transpose ? GL_TRUE : GL_FALSE;
 		switch(size) {
-			case 2: with_location(glUniformMatrix2fv, count, glTranspose, values_copy.data());	break;
-			case 3: with_location(glUniformMatrix3fv, count, glTranspose, values_copy.data());	break;
-			case 4: with_location(glUniformMatrix4fv, count, glTranspose, values_copy.data());	break;
+			case 2: glUniformMatrix2fv(location, count, glTranspose, values);	break;
+			case 3: glUniformMatrix3fv(location, count, glTranspose, values);	break;
+			case 4: glUniformMatrix4fv(location, count, glTranspose, values);	break;
 		}
 	});
-}
-
-void Shader::enqueue_function(std::function<void(void)> function) {
-	std::lock_guard function_guard(function_mutex_);
-	enqueued_functions_.push_back(function);
-}
-
-void Shader::flush_functions() const {
-	std::lock_guard function_guard(function_mutex_);
-	for(std::function<void(void)> &function : enqueued_functions_) {
-		function();
-		test_gl_error();
-	}
-	enqueued_functions_.clear();
 }

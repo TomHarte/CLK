@@ -338,14 +338,14 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 
 	OutputArea area;
 
-	area.start.line = read_ahead_pointers.line;
+	area.begin.line = read_ahead_pointers.line;
 	area.end.line = submit_pointers.line;
 
-	area.start.scan = read_ahead_pointers.scan;
+	area.begin.scan = read_ahead_pointers.scan;
 	area.end.scan = submit_pointers.scan;
 
-	area.start.write_area_x = texture_address_get_x(read_ahead_pointers.write_area);
-	area.start.write_area_y = texture_address_get_y(read_ahead_pointers.write_area);
+	area.begin.write_area_x = texture_address_get_x(read_ahead_pointers.write_area);
+	area.begin.write_area_y = texture_address_get_y(read_ahead_pointers.write_area);
 	area.end.write_area_x = texture_address_get_x(submit_pointers.write_area);
 	area.end.write_area_y = texture_address_get_y(submit_pointers.write_area);
 
@@ -374,12 +374,6 @@ void BufferingScanTarget::complete_output_area(const OutputArea &area) {
 	assert(area.counter == output_area_next_returned_);
 	++output_area_next_returned_;
 #endif
-}
-
-void BufferingScanTarget::perform(const std::function<void(void)> &function) {
-	while(is_updating_.test_and_set(std::memory_order_acquire));
-	function();
-	is_updating_.clear(std::memory_order_release);
 }
 
 void BufferingScanTarget::set_scan_buffer(Scan *const buffer, const size_t size) {

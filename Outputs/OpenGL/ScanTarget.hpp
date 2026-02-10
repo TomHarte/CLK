@@ -14,8 +14,17 @@
 
 #include "API.hpp"
 #include "OpenGL.hpp"
+
+#include "Primitives/Texture.hpp"
 #include "Primitives/TextureTarget.hpp"
-#include "Primitives/Rectangle.hpp"
+#include "Primitives/VertexArray.hpp"
+
+#include "Shaders/CopyShader.hpp"
+#include "Shaders/CompositionShader.hpp"
+#include "Shaders/DirtyZone.hpp"
+#include "Shaders/LineOutputShader.hpp"
+#include "Shaders/KernelShaders.hpp"
+#include "Shaders/Rectangle.hpp"
 
 #include "SignalProcessing/FIRFilter.hpp"
 
@@ -39,7 +48,6 @@ namespace Outputs::Display::OpenGL {
 class ScanTarget: public Outputs::Display::BufferingScanTarget {	// TODO: use private inheritance and expose only display_metrics() and a custom cast?
 public:
 	ScanTarget(API, GLuint target_framebuffer = 0, float output_gamma = 2.2f);
-	~ScanTarget();
 
 	void set_target_framebuffer(GLuint);
 
@@ -50,8 +58,9 @@ public:
 
 private:
 	API api_;
-	static constexpr int LineBufferWidth = 2048;
 	static constexpr int LineBufferHeight = 2048;
+	float output_gamma_;
+	size_t lines_submitted_ = 0;
 
 #ifndef NDEBUG
 	struct OpenGLVersionDumper {
@@ -66,85 +75,19 @@ private:
 #endif
 
 	GLuint target_framebuffer_;
-	const float output_gamma_;
-
-	int resolution_reduction_level_ = 1;
-	int output_height_ = 0;
-
-	size_t lines_submitted_ = 0;
 	std::chrono::high_resolution_clock::time_point line_submission_begin_time_;
-
-	// Contains the first composition of scans into lines;
-	// they're accumulated prior to output to allow for continuous
-	// application of any necessary conversions — e.g. composite processing.
-	TextureTarget unprocessed_line_texture_;
-
-	// Contains pre-lowpass-filtered chrominance information that is
-	// part-QAM-demoduled, if dealing with a QAM data source.
-	std::unique_ptr<TextureTarget> qam_chroma_texture_;
 
 	// Scans are accumulated to the accumulation texture; the full-display
 	// rectangle is used to ensure untouched pixels properly decay.
-	std::unique_ptr<TextureTarget> accumulation_texture_;
 	Rectangle full_display_rectangle_;
 	bool stencil_is_valid_ = false;
-
-	// OpenGL storage handles for buffer data.
-	GLuint scan_buffer_name_ = 0, scan_vertex_array_ = 0;
-	GLuint line_buffer_name_ = 0, line_vertex_array_ = 0;
-
-	template <typename T> void allocate_buffer(const T &array, GLuint &buffer_name, GLuint &vertex_array_name);
-	template <typename T> void patch_buffer(const T &array, GLuint target, uint16_t submit_pointer, uint16_t read_pointer);
-
-	GLuint write_area_texture_name_ = 0;
-	bool texture_exists_ = false;
 
 	// Receives scan target modals.
 	std::optional<ScanTarget::Modals> existing_modals_;
 	void setup_pipeline();
 
-	enum class ShaderType {
-		Composition,
-		Conversion,
-		QAMSeparation
-	};
-
-	/*!
-		Calls @c taret.enable_vertex_attribute_with_pointer to attach all
-		globals for shaders of @c type to @c target.
-	*/
-	static void enable_vertex_attributes(ShaderType type, Shader &target);
-	void set_uniforms(ShaderType type, Shader &target) const;
-	std::vector<std::string> bindings(ShaderType type) const;
-
 	GLsync fence_ = nullptr;
-	std::atomic_flag is_drawing_to_accumulation_buffer_;
-
-	std::unique_ptr<Shader> input_shader_;
-	std::unique_ptr<Shader> output_shader_;
-	std::unique_ptr<Shader> qam_separation_shader_;
-
-	/*!
-		Produces a shader that composes fragment of the input stream to a single buffer,
-		normalising the data into one of four forms: RGB, 8-bit luminance,
-		phase-linked luminance or luminance+phase offset.
-	*/
-	std::unique_ptr<Shader> composition_shader() const;
-	/*!
-		Produces a shader that reads from a composition buffer and converts to host
-		output RGB, decoding composite or S-Video as necessary.
-	*/
-	std::unique_ptr<Shader> conversion_shader() const;
-	/*!
-		Produces a shader that writes separated but not-yet filtered QAM components
-		from the unprocessed line texture to the QAM chroma texture, at a fixed
-		size of four samples per colour clock, point sampled.
-	*/
-	std::unique_ptr<Shader> qam_separation_shader() const;
-
-	void set_sampling_window(int output_Width, int output_height, Shader &target);
-
-	std::string sampling_function() const;
+	std::atomic_flag is_drawing_to_output_;
 
 	/*!
 		@returns true if the current display type is a 'soft' one, i.e. one in which
@@ -154,9 +97,33 @@ private:
 
 	// Storage for the various buffers.
 	std::vector<uint8_t> write_area_texture_;
-	std::array<Scan, LineBufferHeight*5> scan_buffer_;
-	std::array<Line, LineBufferHeight> line_buffer_;
-	std::array<LineMetadata, LineBufferHeight> line_metadata_buffer_;
+	std::array<Scan, LineBufferHeight*5> scan_buffer_{};
+	std::array<Line, LineBufferHeight> line_buffer_{};
+	std::array<LineMetadata, LineBufferHeight> line_metadata_buffer_{};
+	std::array<DirtyZone, 2> dirty_zones_buffer_{};
+
+	VertexArray scans_;
+	VertexArray lines_;
+	VertexArray dirty_zones_;
+
+	Texture source_texture_;
+	TextureTarget composition_buffer_;
+	TextureTarget separation_buffer_;
+	TextureTarget demodulation_buffer_;
+	TextureTarget output_buffer_;
+
+	Shader composition_shader_;
+	Shader separation_shader_;
+	Shader demodulation_shader_;
+	LineOutputShader line_output_shader_;
+	ScanOutputShader scan_output_shader_;
+	CopyShader copy_shader_;
+	FillShader fill_shader_;
+
+	void update_aspect_ratio_transformation();
+	void process_to_rgb(const OutputArea &);
+	void output_lines(const OutputArea &);
+	void output_scans(const OutputArea &);
 };
 
 }

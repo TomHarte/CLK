@@ -13,7 +13,6 @@
 
 #include <array>
 #include <atomic>
-#include <functional>
 #include <mutex>
 #include <vector>
 
@@ -52,12 +51,12 @@ public:
 		Outputs::Display::ScanTarget::Scan scan;
 
 		/// Stores the y coordinate for this scan's data within the write area texture.
-		/// Use this plus the scan's endpoints' data_offsets to locate this data in 2d.
-		/// Note that the data_offsets will have been adjusted to be relative to the line
+		/// Use this plus the scan's endpoints' `data_offsets` to locate this data in 2d.
+		/// Note that the `data_offsets` will have been adjusted to be relative to the line
 		/// they fall within, not the data allocation.
 		uint16_t data_y;
 		/// Stores the y coordinate assigned to this scan within the intermediate buffers.
-		/// Use this plus this scan's endpoints' x locations to determine where to composite
+		/// Use this plus this scan's endpoint x locations to determine where to compose
 		/// this data for intermediate processing.
 		uint16_t line;
 	};
@@ -75,6 +74,7 @@ public:
 		uint8_t composite_amplitude;
 		uint16_t line;
 	};
+	static_assert(sizeof(Line) == 20);
 
 	/// Provides additional metadata about lines; this is separate because it's unlikely to be of
 	/// interest to the GPU, unlike the fields in Line.
@@ -104,7 +104,7 @@ public:
 	/// @returns The number of bytes per input sample, as per the latest modals.
 	size_t write_area_data_size() const;
 
-	/// Defines a segment of data now ready for output, consisting of start and endpoints for:
+	/// Defines a segment of data now ready for output, consisting of begin and end endpoints for:
 	///
 	///	(i) the region of the write area that has been modified; if the caller is using shared memory
 	/// for the write area then it can ignore this information;
@@ -114,10 +114,10 @@ public:
 	/// (iii) the number of lines that have been completed.
 	///
 	/// New write areas and scans are exposed only upon completion of the corresponding lines.
-	/// The values indicated by the start point are the first that should be drawn. Those indicated
+	/// The values indicated by the begin point are the first that should be drawn. Those indicated
 	/// by the end point are one after the final that should be drawn.
 	///
-	/// So e.g. start.scan = 23, end.scan = 24 means draw a single scan, index 23.
+	/// So e.g. begin.scan = 23, end.scan = 24 means draw a single scan, index 23.
 	struct OutputArea {
 		struct Endpoint {
 			int write_area_x, write_area_y;
@@ -125,7 +125,7 @@ public:
 			size_t line;
 		};
 
-		Endpoint start, end;
+		Endpoint begin, end;
 
 #ifndef NDEBUG
 		size_t counter;
@@ -150,7 +150,12 @@ public:
 
 	/// Performs @c action ensuring that no other @c perform actions, or any
 	/// change to modals, occurs simultaneously.
-	void perform(const std::function<void(void)> &action);
+	template <typename FuncT>
+	void perform(FuncT &&function) {
+		while(is_updating_.test_and_set(std::memory_order_acquire));
+		function();
+		is_updating_.clear(std::memory_order_release);
+	}
 
 	/// @returns new Modals if any have been set since the last call to get_new_modals().
 	///		The caller must be within a @c perform block.

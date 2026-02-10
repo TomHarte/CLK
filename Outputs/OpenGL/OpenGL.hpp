@@ -41,7 +41,7 @@ inline void test_gl_error() {
 			case GL_INVALID_FRAMEBUFFER_OPERATION:	std::cerr << "GL_INVALID_FRAMEBUFFER_OPERATION";	break;
 			case GL_OUT_OF_MEMORY:					std::cerr << "GL_OUT_OF_MEMORY";					break;
 		};
-		std::cerr << " at line " << __LINE__ << " in " << __FILE__ << std::endl;	\
+		std::cerr << " at line " << __LINE__ << " in " << __FILE__ << std::endl;
 		assert(false);
 	}
 }
@@ -51,7 +51,16 @@ inline void test_gl_error() {}
 #endif
 
 #ifndef NDEBUG
-#define test_gl(command, ...) do { command(__VA_ARGS__); test_gl_error(); } while(false);
+template <typename FuncT>
+requires std::invocable<FuncT>
+inline void test_gl(const FuncT &&perform) {
+	perform();
+	test_gl_error();
+}
 #else
-#define test_gl(command, ...) command(__VA_ARGS__)
+template <typename FuncT>
+requires std::invocable<FuncT>
+inline void test_gl(const FuncT &&perform) {
+	perform();
+}
 #endif

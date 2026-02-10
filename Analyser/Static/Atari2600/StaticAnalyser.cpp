@@ -23,7 +23,7 @@ static void DeterminePagingFor2kCartridge(Target &target, const Storage::Cartrid
 	// A CommaVid start address needs to be outside of its RAM.
 	if(entry_address < 0x1800 || break_address < 0x1800) return;
 
-	std::function<std::size_t(uint16_t address)> high_location_mapper = [](uint16_t address) {
+	auto high_location_mapper = [](uint16_t address) {
 		address &= 0x1fff;
 		return size_t(address - 0x1800);
 	};

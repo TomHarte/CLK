@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
-#include <functional>
+#include <concepts>
 #include <iterator>
 #include <numeric>
 #include <vector>
@@ -144,14 +144,15 @@ public:
 		return coefficients_.end();
 	}
 
-	template <typename IteratorT>
+	template <typename IteratorT, typename FuncT>
+	requires std::invocable<FuncT, IteratorT, CoefficientType>
 	void copy_to(
 		IteratorT begin,
 		IteratorT end,
-		const std::function<void(IteratorT, CoefficientType)> &applier
+		FuncT &&applier
 	) const {
 		auto dest = begin;
-		auto src = coefficients_.begin();
+		auto src = coefficients_.cbegin();
 
 		const auto destination_size = size_t(std::distance(begin, end));
 		if(destination_size <= coefficients_.size()) {
