@@ -414,7 +414,6 @@ void MainWindow::launchMachine() {
 				return std::find(allDisplayValues.begin(), allDisplayValues.end(), name) != allDisplayValues.end();
 			};
 
-
 			const bool hasCompositeColour = contains(Configurable::Display::CompositeColour);
 			const bool hasCompositeMonochrome = contains(Configurable::Display::CompositeMonochrome);
 			const bool hasSVideo = contains(Configurable::Display::SVideo);
@@ -554,7 +553,7 @@ void MainWindow::addDisplayMenu(
 		action->setChecked(displaySelection == defaultDisplay);
 		connect(action, &QAction::triggered, this, [=, this] {
 			for(auto otherAction: {compositeColourAction, compositeMonochromeAction, sVideoAction, rgbAction}) {
-				if(otherAction && otherAction != action) otherAction->setChecked(false);
+				if(otherAction) otherAction->setChecked(otherAction == action);
 			}
 
 			Settings settings;
