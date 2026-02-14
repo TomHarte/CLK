@@ -32,9 +32,6 @@ BufferingScanTarget::BufferingScanTarget() {
 	// Ensure proper initialisation of the two atomic pointer sets.
 	read_pointers_.store(write_pointers_, std::memory_order_relaxed);
 	submit_pointers_.store(write_pointers_, std::memory_order_relaxed);
-
-	// Establish initial state for is_updating_.
-	is_updating_.clear(std::memory_order_relaxed);
 }
 
 // MARK: - Producer; pixel data.
@@ -223,6 +220,8 @@ void BufferingScanTarget::announce(
 		is_first_in_frame_ = true;
 		previous_frame_was_complete_ = frame_is_complete_;
 		frame_is_complete_ = true;
+
+//		frames_[frame_pointer_]
 	}
 
 	// Proceed from here only if a change in visibility has occurred.

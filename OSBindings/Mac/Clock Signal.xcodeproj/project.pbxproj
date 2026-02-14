@@ -1671,6 +1671,7 @@
 		4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachineDocument.swift; sourceTree = "<group>"; };
 		4B55DD8020DF06680043F2E5 /* MachinePicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachinePicker.swift; sourceTree = "<group>"; };
 		4B55DD8220DF06680043F2E5 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MachinePicker.xib; sourceTree = "<group>"; };
+		4B56172C2F40D446003CB7FE /* SpinLock.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SpinLock.hpp; sourceTree = "<group>"; };
 		4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MFMSectorDump.cpp; sourceTree = "<group>"; };
 		4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MFMSectorDump.hpp; sourceTree = "<group>"; };
 		4B59199A1DAC6C46005BB85C /* OricTAP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OricTAP.cpp; sourceTree = "<group>"; };
@@ -3245,6 +3246,7 @@
 			isa = PBXGroup;
 			children = (
 				4B3940E61DA83C8300427841 /* AsyncTaskQueue.hpp */,
+				4B56172C2F40D446003CB7FE /* SpinLock.hpp */,
 			);
 			name = Concurrency;
 			path = ../../Concurrency;

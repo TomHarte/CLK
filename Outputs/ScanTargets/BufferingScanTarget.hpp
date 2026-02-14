@@ -10,6 +10,7 @@
 
 #include "Outputs/ScanTarget.hpp"
 #include "Outputs/DisplayMetrics.hpp"
+#include "Concurrency/SpinLock.hpp"
 
 #include <array>
 #include <atomic>
@@ -88,12 +89,6 @@ public:
 		size_t first_scan;
 	};
 
-	struct Frame {
-		size_t first_scan;
-		size_t first_line;
-		bool previous_frame_was_complete;
-	};
-
 	/// Sets the area of memory to use as a scan buffer.
 	void set_scan_buffer(Scan *buffer, size_t size);
 
@@ -157,9 +152,8 @@ public:
 	/// change to modals, occurs simultaneously.
 	template <typename FuncT>
 	void perform(FuncT &&function) {
-		while(is_updating_.test_and_set(std::memory_order_acquire));
+		std::lock_guard guard(is_updating_);
 		function();
-		is_updating_.clear(std::memory_order_release);
 	}
 
 	/// @returns new Modals if any have been set since the last call to get_new_modals().
@@ -289,8 +283,8 @@ private:
 		// an ambiguity in the C++ standard; cf. https://stackoverflow.com/questions/17430377
 		PointerSet() noexcept = default;
 
-		// Squeezing this struct into 64 bits makes the std::atomics more likely
-		// to be lock free; they are under LLVM x86-64.
+		// Squeezing this struct into 128 bits makes the std::atomics more likely
+		// to be lock free; cf. `lock cmpxchg16b`.
 
 		// Points to the vended area in the write area texture.
 		// The vended area is always preceded by a guard pixel, so a
@@ -302,20 +296,23 @@ private:
 
 		// Points into the line buffer.
 		uint16_t line = 0;
+
+		// Points into the frame list.
+		uint8_t frame = 0;
 	};
+	static_assert(std::atomic<PointerSet>::is_always_lock_free);
 
 	/// A pointer to the final thing currently cleared for submission.
-	std::atomic<PointerSet> submit_pointers_;
+	alignas(64) std::atomic<PointerSet> submit_pointers_;
 
 	/// A pointer to the first thing not yet submitted for display; this is
 	/// atomic since it also acts as the buffer into which the write_pointers_
 	/// may run and is therefore used by both producer and consumer.
-	std::atomic<PointerSet> read_pointers_;
+	alignas(64) std::atomic<PointerSet> read_pointers_;
 
-	std::atomic<PointerSet> read_ahead_pointers_;
+	alignas(64) std::atomic<PointerSet> read_ahead_pointers_;
 
-	/// This is used as a spinlock to guard `perform` calls.
-	std::atomic_flag is_updating_;
+	Concurrency::SpinLock<Concurrency::Barrier::AcquireRelease> is_updating_;
 
 	/// A mutex for gettng access to anything the producer modifies — i.e. the write_pointers_,
 	/// data_type_size_ and write_area_texture_, and all other state to do with capturing
@@ -353,6 +350,14 @@ private:
 	size_t output_area_counter_ = 0;
 	size_t output_area_next_returned_ = 0;
 #endif
+
+	struct Frame {
+		size_t first_scan;
+		size_t first_line;
+		bool previous_frame_was_complete;
+	};
+	std::array<Frame, 5> frames_;
+	size_t frame_pointer_ = 0;
 };
 
 }
