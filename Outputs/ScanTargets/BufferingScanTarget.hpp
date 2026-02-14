@@ -14,7 +14,6 @@
 
 #include <array>
 #include <atomic>
-#include <mutex>
 #include <vector>
 
 namespace Outputs::Display {
@@ -314,13 +313,13 @@ private:
 
 	Concurrency::SpinLock<Concurrency::Barrier::AcquireRelease> is_updating_;
 
-	/// A mutex for gettng access to anything the producer modifies — i.e. the write_pointers_,
+	/// A lock for gettng access to anything the producer modifies — i.e. the write_pointers_,
 	/// data_type_size_ and write_area_texture_, and all other state to do with capturing
 	/// data, scans and lines.
 	///
 	/// This is almost never contended. The main collision is a user-prompted change of modals while the
 	/// emulation thread is running.
-	std::mutex producer_mutex_;
+	Concurrency::SpinLock<Concurrency::Barrier::Relaxed> producer_lock_;
 
 	/// A pointer to the next thing that should be provided to the caller for data.
 	PointerSet write_pointers_;

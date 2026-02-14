@@ -40,7 +40,7 @@ uint8_t *BufferingScanTarget::begin_data(const size_t required_length, const siz
 	assert(required_alignment);
 
 	// Acquire the standard producer lock, nominally over write_pointers_.
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
 
 	// If allocation has already failed on this line, continue the trend.
 	if(allocation_has_failed_) return nullptr;
@@ -108,7 +108,7 @@ template <typename DataUnit> void BufferingScanTarget::end_data(const size_t act
 
 void BufferingScanTarget::end_data(const size_t actual_length) {
 	// Acquire the producer lock.
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
 
 	// Do nothing if no data write is actually ongoing.
 	if(!data_is_allocated_) return;
@@ -145,7 +145,7 @@ void BufferingScanTarget::end_data(const size_t actual_length) {
 // MARK: - Producer; scans.
 
 Outputs::Display::ScanTarget::Scan *BufferingScanTarget::begin_scan() {
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
 
 	// If there's already an allocation failure on this line, do no work.
 	if(allocation_has_failed_) {
@@ -182,7 +182,7 @@ Outputs::Display::ScanTarget::Scan *BufferingScanTarget::begin_scan() {
 }
 
 void BufferingScanTarget::end_scan() {
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
 
 #ifndef NDEBUG
 	assert(scan_is_ongoing_);
@@ -207,7 +207,7 @@ void BufferingScanTarget::announce(
 	const Outputs::Display::ScanTarget::Scan::EndPoint &location,
 	uint8_t
 ) {
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
 
 	// Forward the event to the display metrics tracker.
 	display_metrics_.announce_event(event);
@@ -289,7 +289,7 @@ void BufferingScanTarget::announce(
 // MARK: - Producer; other state.
 
 void BufferingScanTarget::will_change_owner() {
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
 	allocation_has_failed_ = true;
 	vended_scan_ = nullptr;
 #ifndef NDEBUG
@@ -302,7 +302,7 @@ const Outputs::Display::Metrics &BufferingScanTarget::display_metrics() {
 }
 
 void BufferingScanTarget::set_write_area(uint8_t *const base) {
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
 	write_area_ = base;
 	write_pointers_ = submit_pointers_ = read_pointers_ = PointerSet();
 	allocation_has_failed_ = true;
@@ -397,7 +397,8 @@ const Outputs::Display::ScanTarget::Modals *BufferingScanTarget::new_modals() {
 
 	// MAJOR SHARP EDGE HERE: assume that because the new_modals have been fetched then the caller will
 	// now ensure their texture buffer is appropriate and set the data size implied by the data type.
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
+	std::atomic_thread_fence(std::memory_order_acquire);
 	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
 	assert((data_type_size_ == 1) || (data_type_size_ == 2) || (data_type_size_ == 4));
 
