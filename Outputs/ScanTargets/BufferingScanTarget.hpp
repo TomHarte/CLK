@@ -67,14 +67,12 @@ public:
 	struct Line {
 		struct EndPoint {
 			uint16_t x, y;
-			int16_t composite_angle;
 			uint16_t cycles_since_end_of_horizontal_retrace;
 		} end_points[2];
 
-		uint8_t composite_amplitude;
 		uint16_t line;
 	};
-	static_assert(sizeof(Line) == 20);
+	static_assert(sizeof(Line) == 14);
 
 	/// Provides additional metadata about lines; this is separate because it's unlikely to be of
 	/// interest to the GPU, unlike the fields in Line.
@@ -88,6 +86,12 @@ public:
 		bool previous_frame_was_complete;
 		/// The index of the first scan that will appear on this line.
 		size_t first_scan;
+	};
+
+	struct Frame {
+		size_t first_scan;
+		size_t first_line;
+		bool previous_frame_was_complete;
 	};
 
 	/// Sets the area of memory to use as a scan buffer.

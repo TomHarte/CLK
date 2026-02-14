@@ -208,7 +208,7 @@ void BufferingScanTarget::announce(
 	const Event event,
 	const bool is_visible,
 	const Outputs::Display::ScanTarget::Scan::EndPoint &location,
-	const uint8_t composite_amplitude
+	uint8_t
 ) {
 	std::lock_guard lock_guard(producer_mutex_);
 
@@ -246,9 +246,7 @@ void BufferingScanTarget::announce(
 			active_line.end_points[0].y = location.y;
 			active_line.end_points[0].cycles_since_end_of_horizontal_retrace
 				= location.cycles_since_end_of_horizontal_retrace;
-			active_line.end_points[0].composite_angle = location.composite_angle;
 			active_line.line = write_pointers_.line;
-			active_line.composite_amplitude = composite_amplitude;
 
 			provided_scans_ = 0;
 		}
@@ -273,7 +271,6 @@ void BufferingScanTarget::announce(
 			active_line.end_points[1].y = location.y;
 			active_line.end_points[1].cycles_since_end_of_horizontal_retrace
 				= location.cycles_since_end_of_horizontal_retrace;
-			active_line.end_points[1].composite_angle = location.composite_angle;
 
 			// Advance the line pointer.
 			write_pointers_.line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
