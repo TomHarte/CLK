@@ -220,8 +220,9 @@ void BufferingScanTarget::announce(
 		is_first_in_frame_ = true;
 		previous_frame_was_complete_ = frame_is_complete_;
 		frame_is_complete_ = true;
-
-//		frames_[frame_pointer_]
+//
+//		const auto write = frame_write_.load(std::memory_order_relaxed);
+//		frames_[write].first_line = 
 	}
 
 	// Proceed from here only if a change in visibility has occurred.

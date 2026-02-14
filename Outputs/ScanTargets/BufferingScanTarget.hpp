@@ -299,16 +299,6 @@ private:
 	};
 	static_assert(std::atomic<PointerSet>::is_always_lock_free);
 
-	/// A pointer to the final thing currently cleared for submission.
-	alignas(64) std::atomic<PointerSet> submit_pointers_;
-
-	/// A pointer to the first thing not yet submitted for display; this is
-	/// atomic since it also acts as the buffer into which the write_pointers_
-	/// may run and is therefore used by both producer and consumer.
-	alignas(64) std::atomic<PointerSet> read_pointers_;
-
-	alignas(64) std::atomic<PointerSet> read_ahead_pointers_;
-
 	Concurrency::SpinLock<Concurrency::Barrier::AcquireRelease> is_updating_;
 
 	/// A lock for gettng access to anything the producer modifies — i.e. the write_pointers_,
@@ -353,8 +343,19 @@ private:
 		size_t first_line;
 		bool previous_frame_was_complete;
 	};
-	std::array<Frame, 5> frames_;
-	size_t frame_pointer_ = 0;
+	std::array<Frame, 15> frames_;
+	std::atomic<size_t> frame_read_ = 0;
+	std::atomic<size_t> frame_write_ = 0;
+
+	/// A pointer to the final thing currently cleared for submission.
+	alignas(64) std::atomic<PointerSet> submit_pointers_;
+
+	/// A pointer to the first thing not yet submitted for display; this is
+	/// atomic since it also acts as the buffer into which the write_pointers_
+	/// may run and is therefore used by both producer and consumer.
+	alignas(64) std::atomic<PointerSet> read_pointers_;
+
+	alignas(64) std::atomic<PointerSet> read_ahead_pointers_;
 };
 
 }
