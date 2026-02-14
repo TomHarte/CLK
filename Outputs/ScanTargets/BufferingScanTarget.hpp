@@ -296,9 +296,6 @@ private:
 
 		// Points into the line buffer.
 		uint16_t line = 0;
-
-		// Points into the frame list.
-		uint8_t frame = 0;
 	};
 	static_assert(std::atomic<PointerSet>::is_always_lock_free);
 
