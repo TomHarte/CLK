@@ -127,6 +127,7 @@ public:
 			int write_area_x, write_area_y;
 			size_t scan;
 			size_t line;
+			size_t frame;
 		};
 
 		Endpoint begin, end;
@@ -172,6 +173,80 @@ public:
 	///
 	/// Safe to call from any thread.
 	bool has_new_modals() const;
+
+	template <typename ScanFuncT, typename FrameFuncT>
+	void output_scans(
+		const OutputArea &area,
+		const ScanFuncT &&output_scans,
+		const FrameFuncT &&end_frame
+	) const {
+		if(area.end.scan == area.begin.scan) {
+			return;
+		}
+
+		// TODO: transition away from trying to get this back from line metadata.
+		size_t scan_begin = area.begin.scan;
+		size_t line_begin = area.begin.line;
+		while(scan_begin != area.end.scan) {
+			if(
+				line_begin != area.end.line &&
+				scan_begin == line_metadata_buffer_[line_begin].first_scan &&
+				line_metadata_buffer_[line_begin].is_first_in_frame
+			) {
+				end_frame(line_metadata_buffer_[line_begin].previous_frame_was_complete);
+			}
+
+			// Check for an end-of-frame in the current scan range by searching lines.
+			// This is really messy.
+			size_t line_end = line_begin;
+			size_t scan_end = area.end.scan;
+			while(true) {
+				++line_end;
+				if(line_end == line_buffer_size_) line_end = 0;
+				if(line_end == area.end.line) break;
+				if(line_metadata_buffer_[line_end].is_first_in_frame) {
+					scan_end = line_metadata_buffer_[line_end].first_scan;
+					break;
+				}
+			}
+			line_begin = line_end;
+
+			// Output new scans.
+			output_scans(scan_begin, scan_end);
+			scan_begin = scan_end;
+		}
+	}
+
+	template <typename LineFuncT, typename FrameFuncT>
+	void output_lines(
+		const OutputArea &area,
+		const LineFuncT &&output_lines,
+		const FrameFuncT &&end_frame
+	) const {
+		if(area.end.line == area.begin.line) {
+			return;
+		}
+
+		size_t begin = area.begin.line;
+		while(begin != area.end.line) {
+			// Apply end-of-frame cleaning if necessary.
+			if(line_metadata_buffer_[begin].is_first_in_frame) {
+				end_frame(line_metadata_buffer_[begin].previous_frame_was_complete);
+			}
+
+			// Hunt for an end-of-frame.
+			// TODO: eliminate this linear search by not loading frame data into LineMetadata.
+			size_t end = begin;
+			do {
+				++end;
+				if(end == line_buffer_size_) end = 0;
+			} while(end != area.end.line && !line_metadata_buffer_[end].is_first_in_frame);
+
+			// Submit new lines.
+			output_lines(begin, end);
+			begin = end;
+		}
+	}
 
 private:
 	// ScanTarget overrides.

@@ -536,88 +536,45 @@ void ScanTarget::process_to_rgb(const OutputArea &area) {
 }
 
 void ScanTarget::output_lines(const OutputArea &area) {
-	if(area.end.line == area.begin.line) {
-		return;
-	}
+	BufferingScanTarget::output_lines(
+		area,
+		[&](const size_t begin, const size_t end) {
+			lines_.bind_all();
+			const auto new_lines = ::submit(lines_, begin, end, line_buffer_);
 
-	// Batch lines by frame.
-	size_t begin = area.begin.line;
-	while(begin != area.end.line) {
-		// Apply end-of-frame cleaning if necessary.
-		if(line_metadata_buffer_[begin].is_first_in_frame) {
-			if(line_metadata_buffer_[begin].previous_frame_was_complete) {
+			// Output new lines.
+			demodulation_buffer_.bind_texture();
+			line_output_shader_.bind();
+			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_lines)); });
+		},
+		[&](const bool was_complete) {
+			if(was_complete) {
 				full_display_rectangle_.draw(0.0, 0.0, 0.0);
 			}
 			test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
 		}
-
-		// Hunt for an end-of-frame.
-		// TODO: eliminate this linear search by not loading frame data into LineMetadata.
-		size_t end = begin;
-		do {
-			++end;
-			if(end == line_metadata_buffer_.size()) end = 0;
-		} while(end != area.end.line && !line_metadata_buffer_[end].is_first_in_frame);
-
-		// Submit new lines.
-		lines_.bind_all();
-		const auto new_lines = ::submit(lines_, begin, end, line_buffer_);
-
-		// Output new lines.
-		demodulation_buffer_.bind_texture();
-		line_output_shader_.bind();
-		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_lines)); });
-
-		begin = end;
-	}
+	);
 }
 
 void ScanTarget::output_scans(const OutputArea &area) {
-	if(area.end.scan == area.begin.scan) {
-		return;
-	}
+	BufferingScanTarget::output_scans(
+		area,
+		[&](const size_t begin, const size_t end) {
+			scans_.bind_all();
+			const auto new_scans = ::submit(scans_, begin, end, scan_buffer_);
 
-	// Break scans into frames. This is tortured. TODO: resolve LineMetadata issues, as above.
-	size_t scan_begin = area.begin.scan;
-	size_t line_begin = area.begin.line;
-	while(scan_begin != area.end.scan) {
-		if(
-			line_begin != area.end.line &&
-			scan_begin == line_metadata_buffer_[line_begin].first_scan &&
-			line_metadata_buffer_[line_begin].is_first_in_frame
-		) {
-			if(line_metadata_buffer_[line_begin].previous_frame_was_complete) {
+			// Output new scans.
+			scan_output_shader_.bind();
+			composition_buffer_.bind_texture();
+			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
+		},
+		[&](const bool was_complete) {
+			if(was_complete) {
 				full_display_rectangle_.draw(0.0, 0.0, 0.0);
 			}
 			test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
 		}
-
-		// Check for an end-of-frame in the current scan range by searching lines.
-		// This is really messy.
-		size_t line_end = line_begin;
-		size_t scan_end = area.end.scan;
-		while(true) {
-			++line_end;
-			if(line_end == line_metadata_buffer_.size()) line_end = 0;
-			if(line_end == area.end.line) break;
-			if(line_metadata_buffer_[line_end].is_first_in_frame) {
-				scan_end = line_metadata_buffer_[line_end].first_scan;
-				break;
-			}
-		}
-		line_begin = line_end;
-
-		// Submit and output new scans.
-		scans_.bind_all();
-		const auto new_scans = ::submit(scans_, scan_begin, scan_end, scan_buffer_);
-
-		// Output new scans.
-		scan_output_shader_.bind();
-		composition_buffer_.bind_texture();
-		test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
-
-		scan_begin = scan_end;
-	}
+	);
 }
 
 void ScanTarget::draw(const int output_width, const int output_height) {

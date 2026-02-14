@@ -971,22 +971,18 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 			switch(_pipeline) {
 				case Pipeline::DirectToDisplay: {
-					// Output scans directly, broken up by frame.
-					size_t line = outputArea.begin.line;
-					size_t scan = outputArea.begin.scan;
-					while(line != outputArea.end.line) {
-						if(_lineMetadataBuffer[line].is_first_in_frame) {
-							[self outputFrom:scan to:_lineMetadataBuffer[line].first_scan commandBuffer:commandBuffer];
-							scan = _lineMetadataBuffer[line].first_scan;
-
-							if(_lineMetadataBuffer[line].previous_frame_was_complete && !_dontClearFrameBuffer) {
+					_scanTarget.output_scans(
+						outputArea,
+						[&](const size_t begin, const size_t end) {
+							[self outputFrom:begin to:end commandBuffer:commandBuffer];
+						},
+						[&](const bool was_complete) {
+							if(was_complete && !_dontClearFrameBuffer) {
 								[self outputFrameCleanerToCommandBuffer:commandBuffer];
 							}
 							_dontClearFrameBuffer = NO;
 						}
-						line = (line + 1) % NumBufferedLines;
-					}
-					[self outputFrom:scan to:outputArea.end.scan commandBuffer:commandBuffer];
+					);
 				} break;
 
 				case Pipeline::CompositeColour:
@@ -1103,22 +1099,18 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 						[computeEncoder endEncoding];
 					}
 
-					// Output lines, broken up by frame.
-					size_t startLine = outputArea.begin.line;
-					size_t line = outputArea.begin.line;
-					while(line != outputArea.end.line) {
-						if(_lineMetadataBuffer[line].is_first_in_frame) {
-							[self outputFrom:startLine to:line commandBuffer:commandBuffer];
-							startLine = line;
-
-							if(_lineMetadataBuffer[line].previous_frame_was_complete && !_dontClearFrameBuffer) {
+					_scanTarget.output_lines(
+						outputArea,
+						[&](const size_t begin, const size_t end) {
+							[self outputFrom:begin to:end commandBuffer:commandBuffer];
+						},
+						[&](const bool was_complete) {
+							if(was_complete && !_dontClearFrameBuffer) {
 								[self outputFrameCleanerToCommandBuffer:commandBuffer];
 							}
 							_dontClearFrameBuffer = NO;
 						}
-						line = (line + 1) % NumBufferedLines;
-					}
-					[self outputFrom:startLine to:outputArea.end.line commandBuffer:commandBuffer];
+					);
 				} break;
 			}
 
