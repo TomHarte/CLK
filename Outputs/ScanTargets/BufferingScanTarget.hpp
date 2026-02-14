@@ -14,6 +14,7 @@
 
 #include <array>
 #include <atomic>
+#include <mutex>
 #include <vector>
 
 namespace Outputs::Display {
