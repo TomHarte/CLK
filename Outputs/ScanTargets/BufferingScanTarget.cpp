@@ -220,9 +220,19 @@ void BufferingScanTarget::announce(
 		is_first_in_frame_ = true;
 		previous_frame_was_complete_ = frame_is_complete_;
 		frame_is_complete_ = true;
-//
-//		const auto write = frame_write_.load(std::memory_order_relaxed);
-//		frames_[write].first_line = 
+
+		auto write = frame_write_.load(std::memory_order_relaxed);
+		const auto submit_pointers = submit_pointers_.load(std::memory_order_relaxed);
+		frames_[write].first_line = submit_pointers.line;
+		frames_[write].first_scan = submit_pointers.scan;
+		write = (write + 1) % frames_.size();
+		frame_write_.store(write, std::memory_order_release);
+
+		auto read = frame_read_.load(std::memory_order_relaxed);
+		if(read == write) {
+			read = (read + 1) % frames_.size();
+			frame_read_.store(read, std::memory_order_relaxed);
+		}
 	}
 
 	// Proceed from here only if a change in visibility has occurred.
@@ -331,6 +341,8 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 	// cleared for submission.
 	const auto submit_pointers = submit_pointers_.load(std::memory_order_acquire);
 	const auto read_ahead_pointers = read_ahead_pointers_.load(std::memory_order_relaxed);
+	const auto frame_read = frame_read_.load(std::memory_order_relaxed);
+	const auto frame_write = frame_write_.load(std::memory_order_relaxed);
 	std::atomic_thread_fence(std::memory_order_acquire);
 
 	OutputArea area;
@@ -341,6 +353,9 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 	area.begin.scan = read_ahead_pointers.scan;
 	area.end.scan = submit_pointers.scan;
 
+	area.begin.frame = frame_read;
+	area.end.frame = frame_write;
+
 	area.begin.write_area_x = texture_address_get_x(read_ahead_pointers.write_area);
 	area.begin.write_area_y = texture_address_get_y(read_ahead_pointers.write_area);
 	area.end.write_area_x = texture_address_get_x(submit_pointers.write_area);
@@ -348,6 +363,7 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 
 	// Update the read-ahead pointers.
 	read_ahead_pointers_.store(submit_pointers, std::memory_order_relaxed);
+	frame_read_.store(frame_write, std::memory_order_relaxed);
 
 #ifndef NDEBUG
 	area.counter = output_area_counter_;
