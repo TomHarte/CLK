@@ -225,6 +225,7 @@ void BufferingScanTarget::announce(
 		const auto submit_pointers = submit_pointers_.load(std::memory_order_relaxed);
 		frames_[write].first_line = submit_pointers.line;
 		frames_[write].first_scan = submit_pointers.scan;
+		frames_[write].was_complete = previous_frame_was_complete_;
 		++write;
 		frame_write_.store(write, std::memory_order_release);
 

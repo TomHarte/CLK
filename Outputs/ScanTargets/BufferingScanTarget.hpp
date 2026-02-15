@@ -319,7 +319,7 @@ private:
 	struct Frame {
 		size_t first_scan;
 		size_t first_line;
-		bool previous_frame_was_complete;
+		bool was_complete;
 	};
 	static constexpr uint16_t NumFrames = 60;
 	std::array<Frame, NumFrames> frames_;
