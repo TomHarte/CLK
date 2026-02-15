@@ -62,6 +62,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Soft/Master System/Alex Kidd in Miracle World (US).sms&quot;"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Soft/BBC Micro/Repton 2.ssd&quot;"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

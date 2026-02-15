@@ -188,17 +188,16 @@ public:
 
 		size_t output_begin = count(area.begin);
 		size_t frame_begin = area.begin.frame;
-		while(true) {
-			++frame_begin;
-			if(frame_begin == frames_.size()) frame_begin = 0;
-			if(frame_begin == area.end.frame) break;
-
+		do {
 			if(output_begin != limit(frames_[frame_begin])) {
 				output(output_begin, limit(frames_[frame_begin]));
 				output_begin = limit(frames_[frame_begin]);
 			}
 			end_frame(frames_[frame_begin].was_complete);
-		}
+
+			++frame_begin;
+			if(frame_begin == frames_.size()) frame_begin = 0;
+		} while(frame_begin != area.end.frame);
 
 		if(output_begin != count(area.end)) {
 			output(output_begin, count(area.end));

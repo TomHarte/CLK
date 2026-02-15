@@ -934,208 +934,189 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		const auto outputArea = _scanTarget.get_output_area();
 
-		if(outputArea.end.line != outputArea.begin.line) {
+		// Ensure texture changes are noted.
+		const auto writeAreaModificationStart =
+			size_t(outputArea.begin.write_area_x + outputArea.begin.write_area_y * BufferWidth)
+				* _bytesPerInputPixel;
+		const auto writeAreaModificationEnd =
+			size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * BufferWidth)
+				* _bytesPerInputPixel;
+		range_perform(
+			writeAreaModificationStart,
+			writeAreaModificationEnd,
+			_totalTextureBytes,
+			[&](const size_t start, const size_t size) {
+				[_writeAreaBuffer didModifyRange:NSMakeRange(start, size)];
+			}
+		);
 
-			// Ensure texture changes are noted.
-			const auto writeAreaModificationStart =
-				size_t(outputArea.begin.write_area_x + outputArea.begin.write_area_y * BufferWidth)
-					* _bytesPerInputPixel;
-			const auto writeAreaModificationEnd =
-				size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * BufferWidth)
-					* _bytesPerInputPixel;
-			range_perform(
-				writeAreaModificationStart,
-				writeAreaModificationEnd,
-				_totalTextureBytes,
-				[&](const size_t start, const size_t size) {
-					[_writeAreaBuffer didModifyRange:NSMakeRange(start, size)];
-				}
-			);
+		// Obtain a source for render command encoders.
+		id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
 
-			// Obtain a source for render command encoders.
-			id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+		//
+		// Drawing algorithm used below, in broad terms:
+		//
+		// Maintain a persistent buffer of current CRT state.
+		//
+		// During each frame, paint to the persistent buffer anything new. Update a stencil buffer to track
+		// every pixel so-far touched.
+		//
+		// At the end of the frame, draw a 'frame cleaner', which is a whole-screen rect that paints over
+		// only those areas that the stencil buffer indicates weren't painted this frame.
+		//
+		// Hence every pixel is touched every frame, regardless of the machine's output.
+		//
 
-			//
-			// Drawing algorithm used below, in broad terms:
-			//
-			// Maintain a persistent buffer of current CRT state.
-			//
-			// During each frame, paint to the persistent buffer anything new. Update a stencil buffer to track
-			// every pixel so-far touched.
-			//
-			// At the end of the frame, draw a 'frame cleaner', which is a whole-screen rect that paints over
-			// only those areas that the stencil buffer indicates weren't painted this frame.
-			//
-			// Hence every pixel is touched every frame, regardless of the machine's output.
-			//
-
-			switch(_pipeline) {
-				case Pipeline::DirectToDisplay: {
-					_scanTarget.output_scans(
-						outputArea,
-						[&](const size_t begin, const size_t end) {
-							[self outputFrom:begin to:end commandBuffer:commandBuffer];
-						},
-						[&](const bool was_complete) {
-							if(was_complete && !_dontClearFrameBuffer) {
-								[self outputFrameCleanerToCommandBuffer:commandBuffer];
-							}
-							_dontClearFrameBuffer = NO;
+		switch(_pipeline) {
+			case Pipeline::DirectToDisplay:
+				_scanTarget.output_scans(
+					outputArea,
+					[&](const size_t begin, const size_t end) {
+						[self outputFrom:begin to:end commandBuffer:commandBuffer];
+					},
+					[&](const bool was_complete) {
+						if(was_complete && !_dontClearFrameBuffer) {
+							[self outputFrameCleanerToCommandBuffer:commandBuffer];
 						}
-					);
-				} break;
+						_dontClearFrameBuffer = NO;
+					}
+				);
+			break;
 
-				case Pipeline::CompositeColour:
-				case Pipeline::SVideo: {
-					// Build the composition buffer.
-					[self composeOutputArea:outputArea commandBuffer:commandBuffer];
+			case Pipeline::CompositeColour:
+			case Pipeline::SVideo:
+				// Build the composition buffer.
+				[self composeOutputArea:outputArea commandBuffer:commandBuffer];
 
-					if(_pipeline == Pipeline::SVideo) {
-						// Filter from composition to the finalised line texture.
-						id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
-						[computeEncoder setTexture:_compositionTexture atIndex:0];
-						[computeEncoder setTexture:_finalisedLineTexture atIndex:1];
-						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
+				if(_pipeline == Pipeline::SVideo) {
+					// Filter from composition to the finalised line texture.
+					id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
+					[computeEncoder setTexture:_compositionTexture atIndex:0];
+					[computeEncoder setTexture:_finalisedLineTexture atIndex:1];
+					[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
-						if(outputArea.end.line > outputArea.begin.line) {
-							[self
-								dispatchComputeCommandEncoder:computeEncoder
-								pipelineState:_finalisedLineState
-								width:_lineBufferPixelsPerLine
-								height:outputArea.end.line - outputArea.begin.line
-								offsetBuffer:[self bufferForOffset:outputArea.begin.line]
-							];
-						} else {
-							[self
-								dispatchComputeCommandEncoder:computeEncoder
-								pipelineState:_finalisedLineState
-								width:_lineBufferPixelsPerLine
-								height:NumBufferedLines - outputArea.begin.line
-								offsetBuffer:[self bufferForOffset:outputArea.begin.line]
-							];
-
-							if(outputArea.end.line) {
-								[self
-									dispatchComputeCommandEncoder:computeEncoder
-									pipelineState:_finalisedLineState
-									width:_lineBufferPixelsPerLine
-									height:outputArea.end.line
-									offsetBuffer:[self bufferForOffset:0]
-								];
-							}
-						}
-
-						[computeEncoder endEncoding];
+					if(outputArea.end.line > outputArea.begin.line) {
+						[self
+							dispatchComputeCommandEncoder:computeEncoder
+							pipelineState:_finalisedLineState
+							width:_lineBufferPixelsPerLine
+							height:outputArea.end.line - outputArea.begin.line
+							offsetBuffer:[self bufferForOffset:outputArea.begin.line]
+						];
 					} else {
-						// Separate luminance.
-						id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
-						[computeEncoder setTexture:_compositionTexture atIndex:0];
-						[computeEncoder setTexture:_separatedLumaTexture atIndex:1];
-						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
+						[self
+							dispatchComputeCommandEncoder:computeEncoder
+							pipelineState:_finalisedLineState
+							width:_lineBufferPixelsPerLine
+							height:NumBufferedLines - outputArea.begin.line
+							offsetBuffer:[self bufferForOffset:outputArea.begin.line]
+						];
 
-						__unsafe_unretained id<MTLBuffer> offsetBuffers[2] = {nil, nil};
-						offsetBuffers[0] = [self bufferForOffset:outputArea.begin.line];
-
-						if(outputArea.end.line > outputArea.begin.line) {
-							[self
-								dispatchComputeCommandEncoder:computeEncoder
-								pipelineState:_separatedLumaState
-								width:_lineBufferPixelsPerLine
-								height:outputArea.end.line - outputArea.begin.line
-								offsetBuffer:offsetBuffers[0]
-							];
-						} else {
-							[self
-								dispatchComputeCommandEncoder:computeEncoder
-								pipelineState:_separatedLumaState
-								width:_lineBufferPixelsPerLine
-								height:NumBufferedLines - outputArea.begin.line
-								offsetBuffer:offsetBuffers[0]
-							];
-							if(outputArea.end.line) {
-								offsetBuffers[1] = [self bufferForOffset:0];
-								[self
-									dispatchComputeCommandEncoder:computeEncoder
-									pipelineState:_separatedLumaState
-									width:_lineBufferPixelsPerLine
-									height:outputArea.end.line
-									offsetBuffer:offsetBuffers[1]
-								];
-							}
-						}
-
-						// Filter resulting chrominance.
-						[computeEncoder setTexture:_separatedLumaTexture atIndex:0];
-						[computeEncoder setTexture:_finalisedLineTexture atIndex:1];
-						[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
-
-						if(outputArea.end.line > outputArea.begin.line) {
+						if(outputArea.end.line) {
 							[self
 								dispatchComputeCommandEncoder:computeEncoder
 								pipelineState:_finalisedLineState
 								width:_lineBufferPixelsPerLine
-								height:outputArea.end.line - outputArea.begin.line
-								offsetBuffer:offsetBuffers[0]
+								height:outputArea.end.line
+								offsetBuffer:[self bufferForOffset:0]
 							];
-						} else {
-							[self
-								dispatchComputeCommandEncoder:computeEncoder
-								pipelineState:_finalisedLineState
-								width:_lineBufferPixelsPerLine
-								height:NumBufferedLines - outputArea.begin.line
-								offsetBuffer:offsetBuffers[0]
-							];
-							if(outputArea.end.line) {
-								[self
-									dispatchComputeCommandEncoder:computeEncoder
-									pipelineState:_finalisedLineState
-									width:_lineBufferPixelsPerLine
-									height:outputArea.end.line
-									offsetBuffer:offsetBuffers[1]
-								];
-							}
 						}
-
-						[computeEncoder endEncoding];
 					}
 
-					_scanTarget.output_lines(
-						outputArea,
-						[&](const size_t begin, const size_t end) {
-							[self outputFrom:begin to:end commandBuffer:commandBuffer];
-						},
-						[&](const bool was_complete) {
-							if(was_complete && !_dontClearFrameBuffer) {
-								[self outputFrameCleanerToCommandBuffer:commandBuffer];
-							}
-							_dontClearFrameBuffer = NO;
+					[computeEncoder endEncoding];
+				} else {
+					// Separate luminance.
+					id<MTLComputeCommandEncoder> computeEncoder = [commandBuffer computeCommandEncoder];
+					[computeEncoder setTexture:_compositionTexture atIndex:0];
+					[computeEncoder setTexture:_separatedLumaTexture atIndex:1];
+					[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
+
+					__unsafe_unretained id<MTLBuffer> offsetBuffers[2] = {nil, nil};
+					offsetBuffers[0] = [self bufferForOffset:outputArea.begin.line];
+
+					if(outputArea.end.line > outputArea.begin.line) {
+						[self
+							dispatchComputeCommandEncoder:computeEncoder
+							pipelineState:_separatedLumaState
+							width:_lineBufferPixelsPerLine
+							height:outputArea.end.line - outputArea.begin.line
+							offsetBuffer:offsetBuffers[0]
+						];
+					} else {
+						[self
+							dispatchComputeCommandEncoder:computeEncoder
+							pipelineState:_separatedLumaState
+							width:_lineBufferPixelsPerLine
+							height:NumBufferedLines - outputArea.begin.line
+							offsetBuffer:offsetBuffers[0]
+						];
+						if(outputArea.end.line) {
+							offsetBuffers[1] = [self bufferForOffset:0];
+							[self
+								dispatchComputeCommandEncoder:computeEncoder
+								pipelineState:_separatedLumaState
+								width:_lineBufferPixelsPerLine
+								height:outputArea.end.line
+								offsetBuffer:offsetBuffers[1]
+							];
 						}
-					);
-				} break;
-			}
+					}
 
-			// Add a callback to update the scan target buffer and commit the drawing.
-			[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
-				self->_scanTarget.complete_output_area(outputArea);
-			}];
-			[commandBuffer commit];
-		} else {
-			// There was no work, but to be contractually correct, remember to announce completion,
-			// and do it after finishing an empty command queue, as a cheap way to ensure this doen't
-			// front run any actual processing. TODO: can I do a better job of that?
-			id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-			[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
-				self->_scanTarget.complete_output_area(outputArea);
-			}];
-			[commandBuffer commit];
+					// Filter resulting chrominance.
+					[computeEncoder setTexture:_separatedLumaTexture atIndex:0];
+					[computeEncoder setTexture:_finalisedLineTexture atIndex:1];
+					[computeEncoder setBuffer:_uniformsBuffer offset:0 atIndex:0];
 
-			// TODO: reenable these and work out how on earth the Master System + Alex Kidd (US) is managing
-			// to provide write_area_y = 0, begin_x = 0, end_x = 1.
-//			assert(outputArea.end.line == outputArea.begin.line);
-//			assert(outputArea.end.scan == outputArea.begin.scan);
-//			assert(outputArea.end.write_area_y == outputArea.begin.write_area_y);
-//			assert(outputArea.end.write_area_x == outputArea.begin.write_area_x);
+					if(outputArea.end.line > outputArea.begin.line) {
+						[self
+							dispatchComputeCommandEncoder:computeEncoder
+							pipelineState:_finalisedLineState
+							width:_lineBufferPixelsPerLine
+							height:outputArea.end.line - outputArea.begin.line
+							offsetBuffer:offsetBuffers[0]
+						];
+					} else {
+						[self
+							dispatchComputeCommandEncoder:computeEncoder
+							pipelineState:_finalisedLineState
+							width:_lineBufferPixelsPerLine
+							height:NumBufferedLines - outputArea.begin.line
+							offsetBuffer:offsetBuffers[0]
+						];
+						if(outputArea.end.line) {
+							[self
+								dispatchComputeCommandEncoder:computeEncoder
+								pipelineState:_finalisedLineState
+								width:_lineBufferPixelsPerLine
+								height:outputArea.end.line
+								offsetBuffer:offsetBuffers[1]
+							];
+						}
+					}
+
+					[computeEncoder endEncoding];
+				}
+
+				_scanTarget.output_lines(
+					outputArea,
+					[&](const size_t begin, const size_t end) {
+						[self outputFrom:begin to:end commandBuffer:commandBuffer];
+					},
+					[&](const bool was_complete) {
+						if(was_complete && !_dontClearFrameBuffer) {
+							[self outputFrameCleanerToCommandBuffer:commandBuffer];
+						}
+						_dontClearFrameBuffer = NO;
+					}
+				);
+			break;
 		}
+
+		// Add a callback to update the scan target buffer and commit the drawing.
+		[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
+			self->_scanTarget.complete_output_area(outputArea);
+		}];
+		[commandBuffer commit];
 	}
 }
 
