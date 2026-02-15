@@ -35,11 +35,9 @@ struct Scan {
 struct Line {
 	struct EndPoint {
 		uint16_t position[2];
-		int16_t compositeAngle;
 		uint16_t cyclesSinceRetrace;
 	} endPoints[2];
 
-	uint8_t compositeAmplitude;
 	uint16_t line;
 };
 
@@ -66,6 +64,27 @@ float2 textureLocation(
 	return float2(
 		metal::mix(scan.endPoints[0].dataOffset, scan.endPoints[1].dataOffset, offset),
 		scan.dataY + 0.5f);
+}
+
+template <typename InputT> float unitColourPhase(const constant InputT &, float);
+template <typename InputT> half colourAmplitude(const constant InputT &);
+
+template <> float unitColourPhase<Scan>(const constant Scan &scan, const float lateral) {
+	return metal::mix(
+		float(scan.endPoints[0].compositeAngle),
+		float(scan.endPoints[1].compositeAngle),
+		lateral
+	) / 64.0f;
+}
+template <> float unitColourPhase<Line>(const constant Line &, const float) {
+	return 0.0f;
+}
+
+template <> half colourAmplitude<Scan>(const constant Scan &scan) {
+	return half(scan.compositeAmplitude) / half(255.0f);
+}
+template <> half colourAmplitude<Line>(const constant Line &scan) {
+	return 0.0f;
 }
 
 template <typename Input> SourceInterpolator toDisplay(
@@ -96,11 +115,7 @@ template <typename Input> SourceInterpolator toDisplay(
 	const float2 position2d = (uniforms.sourceToDisplay * float3(sourcePosition, 1.0f)).xy;
 	// position2d is now in the range [0, 1].
 
-	const float unitColourPhase = metal::mix(
-		float(inputs[instanceID].endPoints[0].compositeAngle),
-		float(inputs[instanceID].endPoints[1].compositeAngle),
-		float((vertexID&2) >> 1)
-	) / 64.0f;
+	const float phase = unitColourPhase<Input>(inputs[instanceID], float((vertexID&2) >> 1));
 
 	return SourceInterpolator{
 		.position = float4(
@@ -109,9 +124,9 @@ template <typename Input> SourceInterpolator toDisplay(
 			1.0f
 		),
 		.textureCoordinates = textureLocation(inputs[instanceID], float((vertexID&2) >> 1), uniforms),
-		.unitColourPhase = unitColourPhase,
-		.colourPhase = 2.0f * 3.141592654f * unitColourPhase,
-		.colourAmplitude = half(inputs[instanceID].compositeAmplitude) / half(255.0f),
+		.unitColourPhase = phase,
+		.colourPhase = 2.0f * 3.141592654f * phase,
+		.colourAmplitude = colourAmplitude(inputs[instanceID]),
 	};
 }
 

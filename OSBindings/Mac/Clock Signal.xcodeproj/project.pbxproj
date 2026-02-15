@@ -1505,6 +1505,7 @@
 		4B228CD724DA12C50077EF25 /* CSScanTargetView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSScanTargetView.h; sourceTree = "<group>"; };
 		4B228CD824DA12C60077EF25 /* CSScanTargetView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSScanTargetView.m; sourceTree = "<group>"; };
 		4B24095A1C45DF85004DA684 /* Stepper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Stepper.hpp; sourceTree = "<group>"; };
+		4B249EDE2F4241DA00FD485B /* CircularCounter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CircularCounter.hpp; sourceTree = "<group>"; };
 		4B2530F3244E6773007980BF /* fm.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = fm.json; sourceTree = "<group>"; };
 		4B25BC1E2DDD64AA002044CA /* TaskStateSegment.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TaskStateSegment.hpp; sourceTree = "<group>"; };
 		4B262BFF29691F55002EC0F7 /* PersonalityTraits.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PersonalityTraits.hpp; sourceTree = "<group>"; };
@@ -1671,6 +1672,7 @@
 		4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachineDocument.swift; sourceTree = "<group>"; };
 		4B55DD8020DF06680043F2E5 /* MachinePicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachinePicker.swift; sourceTree = "<group>"; };
 		4B55DD8220DF06680043F2E5 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MachinePicker.xib; sourceTree = "<group>"; };
+		4B56172C2F40D446003CB7FE /* SpinLock.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SpinLock.hpp; sourceTree = "<group>"; };
 		4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MFMSectorDump.cpp; sourceTree = "<group>"; };
 		4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MFMSectorDump.hpp; sourceTree = "<group>"; };
 		4B59199A1DAC6C46005BB85C /* OricTAP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OricTAP.cpp; sourceTree = "<group>"; };
@@ -3245,6 +3247,7 @@
 			isa = PBXGroup;
 			children = (
 				4B3940E61DA83C8300427841 /* AsyncTaskQueue.hpp */,
+				4B56172C2F40D446003CB7FE /* SpinLock.hpp */,
 			);
 			name = Concurrency;
 			path = ../../Concurrency;
@@ -3842,6 +3845,7 @@
 				4BD155312716362A00410C6E /* BitSpread.hpp */,
 				4B0B239F2D658C9400153879 /* BitStream.hpp */,
 				4281572E2AA0334300E16AA1 /* Carry.hpp */,
+				4B249EDE2F4241DA00FD485B /* CircularCounter.hpp */,
 				4B7BA03E23D55E7900B98D9E /* CRC.hpp */,
 				4BC3A9A52F15EF2D00ACC885 /* CubicCurve.hpp */,
 				4B7BA03F23D55E7900B98D9E /* LFSR.hpp */,

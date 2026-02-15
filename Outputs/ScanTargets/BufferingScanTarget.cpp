@@ -32,9 +32,6 @@ BufferingScanTarget::BufferingScanTarget() {
 	// Ensure proper initialisation of the two atomic pointer sets.
 	read_pointers_.store(write_pointers_, std::memory_order_relaxed);
 	submit_pointers_.store(write_pointers_, std::memory_order_relaxed);
-
-	// Establish initial state for is_updating_.
-	is_updating_.clear(std::memory_order_relaxed);
 }
 
 // MARK: - Producer; pixel data.
@@ -43,7 +40,7 @@ uint8_t *BufferingScanTarget::begin_data(const size_t required_length, const siz
 	assert(required_alignment);
 
 	// Acquire the standard producer lock, nominally over write_pointers_.
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
 
 	// If allocation has already failed on this line, continue the trend.
 	if(allocation_has_failed_) return nullptr;
@@ -111,7 +108,7 @@ template <typename DataUnit> void BufferingScanTarget::end_data(const size_t act
 
 void BufferingScanTarget::end_data(const size_t actual_length) {
 	// Acquire the producer lock.
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
 
 	// Do nothing if no data write is actually ongoing.
 	if(!data_is_allocated_) return;
@@ -148,7 +145,7 @@ void BufferingScanTarget::end_data(const size_t actual_length) {
 // MARK: - Producer; scans.
 
 Outputs::Display::ScanTarget::Scan *BufferingScanTarget::begin_scan() {
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
 
 	// If there's already an allocation failure on this line, do no work.
 	if(allocation_has_failed_) {
@@ -185,7 +182,7 @@ Outputs::Display::ScanTarget::Scan *BufferingScanTarget::begin_scan() {
 }
 
 void BufferingScanTarget::end_scan() {
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
 
 #ifndef NDEBUG
 	assert(scan_is_ongoing_);
@@ -208,9 +205,9 @@ void BufferingScanTarget::announce(
 	const Event event,
 	const bool is_visible,
 	const Outputs::Display::ScanTarget::Scan::EndPoint &location,
-	const uint8_t composite_amplitude
+	uint8_t
 ) {
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
 
 	// Forward the event to the display metrics tracker.
 	display_metrics_.announce_event(event);
@@ -223,6 +220,20 @@ void BufferingScanTarget::announce(
 		is_first_in_frame_ = true;
 		previous_frame_was_complete_ = frame_is_complete_;
 		frame_is_complete_ = true;
+
+		auto write = frame_write_.load(std::memory_order_relaxed);
+		const auto submit_pointers = submit_pointers_.load(std::memory_order_relaxed);
+		frames_[write].first_line = submit_pointers.line;
+		frames_[write].first_scan = submit_pointers.scan;
+		frames_[write].was_complete = previous_frame_was_complete_;
+		++write;
+		frame_write_.store(write, std::memory_order_release);
+
+		auto read = frame_read_.load(std::memory_order_relaxed);
+		if(read == write) {
+			++read;
+			frame_read_.store(read, std::memory_order_relaxed);
+		}
 	}
 
 	// Proceed from here only if a change in visibility has occurred.
@@ -246,40 +257,24 @@ void BufferingScanTarget::announce(
 			active_line.end_points[0].y = location.y;
 			active_line.end_points[0].cycles_since_end_of_horizontal_retrace
 				= location.cycles_since_end_of_horizontal_retrace;
-			active_line.end_points[0].composite_angle = location.composite_angle;
 			active_line.line = write_pointers_.line;
-			active_line.composite_amplitude = composite_amplitude;
 
 			provided_scans_ = 0;
 		}
 	} else {
 		// Commit the most recent line only if any scans fell on it and all allocation was successful.
 		if(!allocation_has_failed_ && provided_scans_) {
-			const auto submit_pointers = submit_pointers_.load(std::memory_order_relaxed);
-
-			// Store metadata.
-			LineMetadata &metadata = line_metadata_buffer_[size_t(write_pointers_.line)];
-			metadata.is_first_in_frame = is_first_in_frame_;
-			metadata.previous_frame_was_complete = previous_frame_was_complete_;
-			metadata.first_scan = submit_pointers.scan;
-			is_first_in_frame_ = false;
-
-			// Sanity check.
-			assert(((metadata.first_scan + size_t(provided_scans_)) % scan_buffer_size_) == write_pointers_.scan);
-
-			// Store actual line data.
+			// Store line data.
 			Line &active_line = line_buffer_[size_t(write_pointers_.line)];
 			active_line.end_points[1].x = location.x;
 			active_line.end_points[1].y = location.y;
 			active_line.end_points[1].cycles_since_end_of_horizontal_retrace
 				= location.cycles_since_end_of_horizontal_retrace;
-			active_line.end_points[1].composite_angle = location.composite_angle;
 
 			// Advance the line pointer.
 			write_pointers_.line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
 
 			// Update the submit pointers with all lines, scans and data written during this line.
-			std::atomic_thread_fence(std::memory_order_release);
 			submit_pointers_.store(write_pointers_, std::memory_order_release);
 		} else {
 			// Something failed, or there was nothing on the line anyway, so reset all pointers to where they
@@ -293,7 +288,7 @@ void BufferingScanTarget::announce(
 // MARK: - Producer; other state.
 
 void BufferingScanTarget::will_change_owner() {
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
 	allocation_has_failed_ = true;
 	vended_scan_ = nullptr;
 #ifndef NDEBUG
@@ -306,7 +301,7 @@ const Outputs::Display::Metrics &BufferingScanTarget::display_metrics() {
 }
 
 void BufferingScanTarget::set_write_area(uint8_t *const base) {
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
 	write_area_ = base;
 	write_pointers_ = submit_pointers_ = read_pointers_ = PointerSet();
 	allocation_has_failed_ = true;
@@ -334,7 +329,8 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 	// cleared for submission.
 	const auto submit_pointers = submit_pointers_.load(std::memory_order_acquire);
 	const auto read_ahead_pointers = read_ahead_pointers_.load(std::memory_order_relaxed);
-	std::atomic_thread_fence(std::memory_order_acquire);
+	const auto frame_read = frame_read_.load(std::memory_order_relaxed);
+	const auto frame_write = frame_write_.load(std::memory_order_relaxed);
 
 	OutputArea area;
 
@@ -344,6 +340,9 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 	area.begin.scan = read_ahead_pointers.scan;
 	area.end.scan = submit_pointers.scan;
 
+	area.begin.frame = frame_read;
+	area.end.frame = frame_write;
+
 	area.begin.write_area_x = texture_address_get_x(read_ahead_pointers.write_area);
 	area.begin.write_area_y = texture_address_get_y(read_ahead_pointers.write_area);
 	area.end.write_area_x = texture_address_get_x(submit_pointers.write_area);
@@ -351,6 +350,7 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 
 	// Update the read-ahead pointers.
 	read_ahead_pointers_.store(submit_pointers, std::memory_order_relaxed);
+	frame_read_.store(frame_write, std::memory_order_relaxed);
 
 #ifndef NDEBUG
 	area.counter = output_area_counter_;
@@ -383,11 +383,9 @@ void BufferingScanTarget::set_scan_buffer(Scan *const buffer, const size_t size)
 
 void BufferingScanTarget::set_line_buffer(
 	Line *const line_buffer,
-	LineMetadata *const metadata_buffer,
 	const size_t size
 ) {
 	line_buffer_ = line_buffer;
-	line_metadata_buffer_ = metadata_buffer;
 	line_buffer_size_ = size;
 }
 
@@ -401,7 +399,8 @@ const Outputs::Display::ScanTarget::Modals *BufferingScanTarget::new_modals() {
 
 	// MAJOR SHARP EDGE HERE: assume that because the new_modals have been fetched then the caller will
 	// now ensure their texture buffer is appropriate and set the data size implied by the data type.
-	std::lock_guard lock_guard(producer_mutex_);
+	std::lock_guard lock_guard(producer_lock_);
+	std::atomic_thread_fence(std::memory_order_acquire);
 	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
 	assert((data_type_size_ == 1) || (data_type_size_ == 2) || (data_type_size_ == 4));
 
