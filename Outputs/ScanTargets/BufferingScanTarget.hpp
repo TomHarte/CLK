@@ -11,6 +11,7 @@
 #include "Outputs/ScanTarget.hpp"
 #include "Outputs/DisplayMetrics.hpp"
 #include "Concurrency/SpinLock.hpp"
+#include "Numeric/CircularCounter.hpp"
 
 #include <array>
 #include <atomic>
@@ -320,9 +321,10 @@ private:
 		size_t first_line;
 		bool previous_frame_was_complete;
 	};
-	std::array<Frame, 15> frames_;
-	std::atomic<size_t> frame_read_ = 0;
-	std::atomic<size_t> frame_write_ = 0;
+	static constexpr uint16_t NumFrames = 60;
+	std::array<Frame, NumFrames> frames_;
+	std::atomic<Numeric::CircularCounter<uint16_t, NumFrames>> frame_read_;
+	std::atomic<Numeric::CircularCounter<uint16_t, NumFrames>> frame_write_;
 
 
 	// By convention everything in the PointerSet points to the next instance

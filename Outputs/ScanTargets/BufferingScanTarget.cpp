@@ -225,12 +225,12 @@ void BufferingScanTarget::announce(
 		const auto submit_pointers = submit_pointers_.load(std::memory_order_relaxed);
 		frames_[write].first_line = submit_pointers.line;
 		frames_[write].first_scan = submit_pointers.scan;
-		write = (write + 1) % frames_.size();
+		++write;
 		frame_write_.store(write, std::memory_order_release);
 
 		auto read = frame_read_.load(std::memory_order_relaxed);
 		if(read == write) {
-			read = (read + 1) % frames_.size();
+			++read;
 			frame_read_.store(read, std::memory_order_relaxed);
 		}
 	}
