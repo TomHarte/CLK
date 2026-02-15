@@ -134,9 +134,9 @@ public:
 	// bool operator () is not supported because it offers an implicit cast to int,
 	// which is prone silently to permit misuse.
 
-	/// @returns The underlying int, converted to an integral type of your choosing, clamped to that int's range.
-	template<typename Type = IntType> forceinline constexpr Type as() const {
-		if constexpr (sizeof(Type) == sizeof(IntType)) {
+	/// @returns The underlying int, converted to a numeric type of your choosing, clamped to that type's range.
+	template<typename Type = IntType> constexpr Type as() const {
+		if constexpr (sizeof(Type) == sizeof(IntType) && std::is_integral_v<Type>) {
 			if constexpr (std::is_same_v<Type, IntType>) {
 				return length_;
 			} else if constexpr (std::is_signed_v<Type>) {
@@ -150,12 +150,7 @@ public:
 			}
 		}
 
-		const auto clamped = std::clamp(
-			length_,
-			IntType(std::numeric_limits<Type>::min()),
-			IntType(std::numeric_limits<Type>::max())
-		);
-		return Type(clamped);
+		return Type(std::clamp(length_, low<Type>, high<Type>));
 	}
 
 	/// @returns The underlying int, in its native form.
@@ -188,6 +183,22 @@ public:
 
 protected:
 	IntType length_;
+
+private:
+	template <typename Type>
+	static consteval bool can_represent(const Type x) {
+		return std::numeric_limits<IntType>::min() <= x && std::numeric_limits<IntType>::max() >= x;
+	}
+
+	template<typename Type>
+	static constexpr IntType low =
+		can_represent(std::numeric_limits<Type>::min()) ?
+			IntType(std::numeric_limits<Type>::min()) : std::numeric_limits<IntType>::min();
+
+	template<typename Type>
+	static constexpr IntType high =
+		can_represent(std::numeric_limits<Type>::max()) ?
+			IntType(std::numeric_limits<Type>::max()) : std::numeric_limits<IntType>::max();
 };
 
 /// Describes an integer number of whole cycles: pairs of clock signal transitions.
