@@ -274,31 +274,6 @@ private:
 	bool frame_is_complete_ = true;
 	bool previous_frame_was_complete_ = true;
 
-	// By convention everything in the PointerSet points to the next instance
-	// of whatever it is that will be used. So a client should start with whatever
-	// is pointed to by the read pointers and carry until it gets to a value that
-	// is equal to whatever is in the submit pointers.
-	struct PointerSet {
-		// This constructor is here to appease GCC's interpretation of
-		// an ambiguity in the C++ standard; cf. https://stackoverflow.com/questions/17430377
-		PointerSet() noexcept = default;
-
-		// Squeezing this struct into 64 bits ensures the std::atomics are lock free
-		// on the platforms and compilers I target.
-
-		// Points to the vended area in the write area texture.
-		// The vended area is always preceded by a guard pixel, so a
-		// sensible default construction is write_area = 1.
-		int32_t write_area = 1;
-
-		// Points into the scan buffer.
-		uint16_t scan = 0;
-
-		// Points into the line buffer.
-		uint16_t line = 0;
-	};
-	static_assert(std::atomic<PointerSet>::is_always_lock_free);
-
 	Concurrency::SpinLock<Concurrency::Barrier::AcquireRelease> is_updating_;
 
 	/// A lock for gettng access to anything the producer modifies — i.e. the write_pointers_,
@@ -351,6 +326,32 @@ private:
 	std::array<Frame, 15> frames_;
 	std::atomic<size_t> frame_read_ = 0;
 	std::atomic<size_t> frame_write_ = 0;
+
+
+	// By convention everything in the PointerSet points to the next instance
+	// of whatever it is that will be used. So a client should start with whatever
+	// is pointed to by the read pointers and carry until it gets to a value that
+	// is equal to whatever is in the submit pointers.
+	struct PointerSet {
+		// This constructor is here to appease GCC's interpretation of
+		// an ambiguity in the C++ standard; cf. https://stackoverflow.com/questions/17430377
+		PointerSet() noexcept = default;
+
+		// Squeezing this struct into 64 bits ensures the std::atomics are lock free
+		// on the platforms and compilers I target.
+
+		// Points to the vended area in the write area texture.
+		// The vended area is always preceded by a guard pixel, so a
+		// sensible default construction is write_area = 1.
+		int32_t write_area = 1;
+
+		// Points into the scan buffer.
+		uint16_t scan = 0;
+
+		// Points into the line buffer.
+		uint16_t line = 0;
+	};
+	static_assert(std::atomic<PointerSet>::is_always_lock_free);
 
 	/// A pointer to the final thing currently cleared for submission.
 	alignas(64) std::atomic<PointerSet> submit_pointers_;
