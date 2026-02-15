@@ -8,6 +8,8 @@
 
 #include <cassert>
 
+#pragma once
+
 namespace Numeric {
 
 template <typename IntT, IntT limit>

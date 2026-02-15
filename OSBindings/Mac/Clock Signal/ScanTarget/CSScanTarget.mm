@@ -18,6 +18,7 @@
 
 #include "BufferingScanTarget.hpp"
 #include "FilterGenerator.hpp"
+#include "Numeric/CircularCounter.hpp"
 
 /*
 
@@ -95,6 +96,8 @@
 
 namespace {
 constexpr auto BufferWidth = Outputs::Display::FilterGenerator::SuggestedBufferWidth;
+constexpr size_t NumBufferedLines = 500;
+constexpr size_t NumBufferedScans = NumBufferedLines * 4;
 
 /// Provides a container for __fp16 versions of tightly-packed single-precision plain old data with a copy assignment constructor.
 template <typename NaturalType> struct HalfConverter {
@@ -131,9 +134,6 @@ struct Uniforms {
 
 // Kernel sizes above and in the shaders themselves assume a maximum filter kernel size.
 static_assert(Outputs::Display::FilterGenerator::MaxKernelSize <= 31);
-
-constexpr size_t NumBufferedLines = 500;
-constexpr size_t NumBufferedScans = NumBufferedLines * 4;
 
 /// The shared resource options this app would most favour; applied as widely as possible.
 constexpr MTLResourceOptions SharedResourceOptionsStandard =
@@ -244,7 +244,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLComputePipelineState> _separatedLumaState;
 	NSUInteger _lineBufferPixelsPerLine;
 
-	size_t _lineOffsetBuffer;
+	Numeric::CircularCounter<size_t, NumBufferedLines> _lineOffsetBuffer;
 	id<MTLBuffer> _lineOffsetBuffers[NumBufferedLines];	// Allocating NumBufferedLines buffers ensures these can't
 														// possibly be exhausted; for this list to be exhausted there'd
 														// have to be more draw calls in flight than there are lines for
@@ -850,7 +850,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// Store and apply the offset.
 	const auto buffer = _lineOffsetBuffers[_lineOffsetBuffer];
 	*(reinterpret_cast<int *>(_lineOffsetBuffers[_lineOffsetBuffer].contents)) = int(offset);
-	_lineOffsetBuffer = (_lineOffsetBuffer + 1) % NumBufferedLines;
+	++_lineOffsetBuffer;
 	return buffer;
 }
 
