@@ -252,7 +252,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// The scan target in C++-world terms and the non-GPU storage for it.
 	BufferingScanTarget _scanTarget;
-	BufferingScanTarget::LineMetadata _lineMetadataBuffer[NumBufferedLines];
 	std::atomic_flag _isDrawing;
 
 	// Additional pipeline information.
@@ -296,7 +295,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		_scanTarget.set_write_area(reinterpret_cast<uint8_t *>(_writeAreaBuffer.contents));
 		_scanTarget.set_line_buffer(
 			reinterpret_cast<BufferingScanTarget::Line *>(_linesBuffer.contents),
-			_lineMetadataBuffer,
 			NumBufferedLines
 		);
 		_scanTarget.set_scan_buffer(
