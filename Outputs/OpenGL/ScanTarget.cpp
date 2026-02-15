@@ -84,7 +84,7 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 	dirty_zones_(dirty_zones_buffer_) {
 
 	set_scan_buffer(scan_buffer_.data(), scan_buffer_.size());
-	set_line_buffer(line_buffer_.data(), line_metadata_buffer_.data(), line_buffer_.size());
+	set_line_buffer(line_buffer_.data(), line_buffer_.size());
 
 	// TODO: if this is OpenGL 4.4 or newer, use glBufferStorage rather than glBufferData
 	// and specify GL_MAP_PERSISTENT_BIT. Then map the buffer now, and let the client

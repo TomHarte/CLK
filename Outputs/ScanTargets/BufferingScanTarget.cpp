@@ -264,19 +264,7 @@ void BufferingScanTarget::announce(
 	} else {
 		// Commit the most recent line only if any scans fell on it and all allocation was successful.
 		if(!allocation_has_failed_ && provided_scans_) {
-			const auto submit_pointers = submit_pointers_.load(std::memory_order_relaxed);
-
-			// Store metadata.
-			LineMetadata &metadata = line_metadata_buffer_[size_t(write_pointers_.line)];
-			metadata.is_first_in_frame = is_first_in_frame_;
-			metadata.previous_frame_was_complete = previous_frame_was_complete_;
-			metadata.first_scan = submit_pointers.scan;
-			is_first_in_frame_ = false;
-
-			// Sanity check.
-			assert(((metadata.first_scan + size_t(provided_scans_)) % scan_buffer_size_) == write_pointers_.scan);
-
-			// Store actual line data.
+			// Store line data.
 			Line &active_line = line_buffer_[size_t(write_pointers_.line)];
 			active_line.end_points[1].x = location.x;
 			active_line.end_points[1].y = location.y;
@@ -287,7 +275,6 @@ void BufferingScanTarget::announce(
 			write_pointers_.line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
 
 			// Update the submit pointers with all lines, scans and data written during this line.
-			std::atomic_thread_fence(std::memory_order_release);
 			submit_pointers_.store(write_pointers_, std::memory_order_release);
 		} else {
 			// Something failed, or there was nothing on the line anyway, so reset all pointers to where they
@@ -344,7 +331,6 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 	const auto read_ahead_pointers = read_ahead_pointers_.load(std::memory_order_relaxed);
 	const auto frame_read = frame_read_.load(std::memory_order_relaxed);
 	const auto frame_write = frame_write_.load(std::memory_order_relaxed);
-	std::atomic_thread_fence(std::memory_order_acquire);
 
 	OutputArea area;
 
@@ -397,11 +383,9 @@ void BufferingScanTarget::set_scan_buffer(Scan *const buffer, const size_t size)
 
 void BufferingScanTarget::set_line_buffer(
 	Line *const line_buffer,
-	LineMetadata *const metadata_buffer,
 	const size_t size
 ) {
 	line_buffer_ = line_buffer;
-	line_metadata_buffer_ = metadata_buffer;
 	line_buffer_size_ = size;
 }
 

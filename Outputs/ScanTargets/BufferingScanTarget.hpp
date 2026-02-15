@@ -94,7 +94,7 @@ public:
 	void set_scan_buffer(Scan *buffer, size_t size);
 
 	/// Sets the area of memory to use as line and line metadata buffers.
-	void set_line_buffer(Line *line_buffer, LineMetadata *metadata_buffer, size_t size);
+	void set_line_buffer(Line *line_buffer, size_t size);
 
 	/// Sets a new base address for the texture.
 	/// When called this will flush all existing data and load up the
@@ -282,7 +282,6 @@ private:
 
 	// The owner-supplied line buffer and size.
 	Line *line_buffer_ = nullptr;
-	LineMetadata *line_metadata_buffer_ = nullptr;
 	size_t line_buffer_size_ = 0;
 
 	// Current modals and whether they've yet been returned
