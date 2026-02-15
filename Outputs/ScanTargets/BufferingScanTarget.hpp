@@ -283,8 +283,8 @@ private:
 		// an ambiguity in the C++ standard; cf. https://stackoverflow.com/questions/17430377
 		PointerSet() noexcept = default;
 
-		// Squeezing this struct into 128 bits makes the std::atomics more likely
-		// to be lock free; cf. `lock cmpxchg16b`.
+		// Squeezing this struct into 64 bits ensures the std::atomics are lock free
+		// on the platforms and compilers I target.
 
 		// Points to the vended area in the write area texture.
 		// The vended area is always preceded by a guard pixel, so a
@@ -338,6 +338,11 @@ private:
 	size_t output_area_next_returned_ = 0;
 #endif
 
+	// Frames parts kept separately from the PointerSet as that is subject
+	// to back pressure, meaning that data may be dropped.
+	//
+	// Frames always advance as a simple function of time and have a very
+	// large buffer in terms of clock time.
 	struct Frame {
 		size_t first_scan;
 		size_t first_line;
