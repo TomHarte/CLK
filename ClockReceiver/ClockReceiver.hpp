@@ -11,6 +11,7 @@
 #include "ForceInline.hpp"
 
 #include <algorithm>
+#include <concepts>
 #include <cstdint>
 #include <limits>
 
@@ -135,7 +136,9 @@ public:
 	// which is prone silently to permit misuse.
 
 	/// @returns The underlying int, converted to a numeric type of your choosing, clamped to that type's range.
-	template<typename Type = IntType> constexpr Type as() const {
+	template<typename Type = IntType>
+	requires std::integral<Type> || std::floating_point<Type>
+	constexpr Type as() const {
 		if constexpr (sizeof(Type) == sizeof(IntType) && std::is_integral_v<Type>) {
 			if constexpr (std::is_same_v<Type, IntType>) {
 				return length_;
