@@ -284,9 +284,6 @@ private:
 	/// emulation thread is running.
 	Concurrency::SpinLock<Concurrency::Barrier::Relaxed> producer_lock_;
 
-	/// A pointer to the next thing that should be provided to the caller for data.
-	PointerSet write_pointers_;
-
 	// The owner-supplied scan buffer and size.
 	Scan *scan_buffer_ = nullptr;
 	size_t scan_buffer_size_ = 0;
@@ -352,6 +349,9 @@ private:
 		uint16_t line = 0;
 	};
 	static_assert(std::atomic<PointerSet>::is_always_lock_free);
+
+	/// A pointer to the next thing that should be provided to the caller for data.
+	PointerSet write_pointers_;
 
 	/// A pointer to the final thing currently cleared for submission.
 	alignas(64) std::atomic<PointerSet> submit_pointers_;
