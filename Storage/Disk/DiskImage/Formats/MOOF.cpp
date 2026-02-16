@@ -170,6 +170,11 @@ MOOF::MOOF(const std::string &file_name) :
 	}
 }
 
+bool MOOF::is_read_only() const {
+	// Writing not-yet implemented.
+	return true; //info_.is_write_protected;
+}
+
 HeadPosition MOOF::maximum_head_position() const {
 	return HeadPosition(80);
 }
@@ -216,4 +221,16 @@ std::unique_ptr<Track> MOOF::track(const TrackLocation location) const {
 
 bool MOOF::represents(const std::string &name) const {
 	return name == file_.name();
+}
+
+void MOOF::set_tracks([[maybe_unused]] const std::map<Track::Address, std::unique_ptr<Track>> &tracks) {
+//	for(const auto &[address, track]: tracks) {
+		// TODO:
+		//
+		//	(1) can this be a PCM track, or does it need to be a flux track?
+		//	(2) manipulate the many indirections of a MOOF file.
+		//
+		// To consider: would it be better to do MOOFs and WOZs with a higher-level
+		// data structure?
+//	}
 }
