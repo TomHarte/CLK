@@ -8,6 +8,8 @@
 
 #include "MOOF.hpp"
 
+#include "Numeric/CRC.hpp"
+
 using namespace Storage::Disk;
 
 MOOF::MOOF(const std::string &file_name) :
@@ -18,6 +20,14 @@ MOOF::MOOF(const std::string &file_name) :
 		char(0xff), 0x0a, 0x0d, 0x0a
 	};
 	if(!file_.check_signature<SignatureType::Binary>(signature)) {
+		throw Error::InvalidFormat;
+	}
+
+	// Test the file's CRC32.
+	const auto crc = file_.get_le<uint32_t>();
+	post_crc_contents_ = file_.read(size_t(file_.stats().st_size - 12));
+	const uint32_t computed_crc = CRC::CRC32::crc_of(post_crc_contents_);
+	if(crc != computed_crc) {
 		throw Error::InvalidFormat;
 	}
 }

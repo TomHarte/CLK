@@ -598,7 +598,7 @@
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
-				<string>mood</string>
+				<string>moof</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>floppy35</string>

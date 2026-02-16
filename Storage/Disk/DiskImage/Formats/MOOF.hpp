@@ -23,6 +23,7 @@ public:
 
 private:
 	mutable Storage::FileHolder file_;
+	std::vector<uint8_t> post_crc_contents_;
 };
 
 }
