@@ -11,6 +11,7 @@
 #include "Sizes.hpp"
 
 #include <array>
+#include <concepts>
 #include <cstdint>
 
 namespace Numeric {
