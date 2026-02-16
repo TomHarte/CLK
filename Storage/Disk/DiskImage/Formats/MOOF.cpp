@@ -12,6 +12,12 @@
 
 using namespace Storage::Disk;
 
+namespace {
+constexpr uint32_t chunk(const char *str) {
+	return uint32_t(str[0] | (str[1] << 8) | (str[2] << 16) | (str[3] << 24));
+}
+}
+
 MOOF::MOOF(const std::string &file_name) :
 	file_(file_name) {
 
