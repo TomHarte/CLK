@@ -55,6 +55,7 @@
 #include "Storage/Disk/DiskImage/Formats/IMD.hpp"
 #include "Storage/Disk/DiskImage/Formats/JFD.hpp"
 #include "Storage/Disk/DiskImage/Formats/MacintoshIMG.hpp"
+#include "Storage/Disk/DiskImage/Formats/MOOF.hpp"
 #include "Storage/Disk/DiskImage/Formats/MSA.hpp"
 #include "Storage/Disk/DiskImage/Formats/NIB.hpp"
 #include "Storage/Disk/DiskImage/Formats/OricMFMDSK.hpp"
@@ -264,6 +265,8 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 		"ipf");
 
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::JFD>>(TargetPlatform::Archimedes, "jfd");
+
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::MOOF>>(TargetPlatform::Macintosh, "moof");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::MSA>>(TargetPlatform::AtariST, "msa");
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::MSX, "mx2");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::NIB>>(TargetPlatform::DiskII, "nib");

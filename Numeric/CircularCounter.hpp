@@ -6,9 +6,9 @@
 //  Copyright © 2026 Thomas Harte. All rights reserved.
 //
 
-#include <cassert>
-
 #pragma once
+
+#include <cassert>
 
 namespace Numeric {
 

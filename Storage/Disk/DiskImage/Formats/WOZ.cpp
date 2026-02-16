@@ -10,6 +10,7 @@
 
 #include "Storage/Disk/Track/PCMTrack.hpp"
 #include "Storage/Disk/Track/TrackSerialiser.hpp"
+#include "Numeric/CRC.hpp"
 
 #include <algorithm>
 
