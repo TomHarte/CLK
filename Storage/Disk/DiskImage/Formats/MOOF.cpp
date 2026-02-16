@@ -17,6 +17,78 @@ namespace {
 constexpr uint32_t chunk(const char *str) {
 	return uint32_t(str[0] | (str[1] << 8) | (str[2] << 16) | (str[3] << 24));
 }
+
+class MOOFFluxTrack: public Track {
+public:
+	MOOFFluxTrack(std::vector<uint8_t> &&data, const uint32_t bit_count) :
+		data_(std::move(data)), bit_count_(bit_count) {
+		seek_to(0.0f);
+	}
+
+	Event get_next_event() final {
+		Event event;
+		if(data_iterator_ == data_.end() || bits_passed_ == bit_count_) {
+			data_iterator_ = data_.begin();
+			bits_passed_ = 0;
+			return Event{
+				.type = Storage::Disk::Track::Event::IndexHole,
+				.length = Storage::Time()
+			};
+		}
+
+		Event result;
+		result.type = Storage::Disk::Track::Event::FluxTransition;
+		result.length.clock_rate = 8'000'000;  // i.e. 125ns
+
+		result.length.length = 0;
+		while(true) {
+			const auto delta = *data_iterator_;
+			result.length.length += delta;
+			++data_iterator_;
+
+			if(delta != 0xff || data_iterator_ == data_.end()) {
+				break;
+			}
+		}
+
+		++bits_passed_;
+		return result;
+	}
+
+	float seek_to(const float time_since_index_hole) final {
+		bits_passed_ = 0;
+		data_iterator_ = data_.begin();
+
+		float time_observed = 0.0f;
+		while(time_observed < time_since_index_hole) {
+			auto prior = data_iterator_;
+			const auto next_time = get_next_event().length.get<float>();
+
+			if(time_observed + next_time > time_since_index_hole) {
+				--bits_passed_;
+				data_iterator_ = prior;
+				break;
+			}
+
+			time_observed += next_time;
+		}
+
+		return time_observed;
+	}
+
+	Track *clone() const final {
+		// TODO.
+		// Luckily: won't be used until MOOFs stop being read-only.
+		return nullptr;
+	}
+
+private:
+	std::vector<uint8_t> data_;
+	uint32_t bit_count_ = 0;
+
+	std::vector<uint8_t>::iterator data_iterator_;
+	uint32_t bits_passed_ = 0;
+};
 }
 
 MOOF::MOOF(const std::string &file_name) :
@@ -127,9 +199,10 @@ std::unique_ptr<Track> MOOF::track_at_position(const Track::Address address) con
 	return nullptr;
 }
 
-std::unique_ptr<Track> MOOF::flux(const TrackLocation) const {
-	// TODO.
-	return nullptr;
+std::unique_ptr<Track> MOOF::flux(const TrackLocation location) const {
+	file_.seek(location.starting_block * 512, Whence::SET);
+	auto track_contents = file_.read((location.bit_count + 7) / 8);
+	return std::make_unique<MOOFFluxTrack>(std::move(track_contents), location.bit_count);
 }
 
 std::unique_ptr<Track> MOOF::track(const TrackLocation location) const {
