@@ -77,12 +77,15 @@ public:
 	}
 
 	Track *clone() const final {
-		// TODO.
-		// Luckily: won't be used until MOOFs stop being read-only.
-		return nullptr;
+		return new MOOFFluxTrack(data_, bit_count_);
 	}
 
 private:
+	MOOFFluxTrack(const std::vector<uint8_t> &data, const uint32_t bit_count) :
+		data_(data), bit_count_(bit_count) {
+		seek_to(0.0f);
+	}
+
 	std::vector<uint8_t> data_;
 	uint32_t bit_count_ = 0;
 
