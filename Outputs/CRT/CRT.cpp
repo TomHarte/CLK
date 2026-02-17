@@ -396,6 +396,8 @@ void CRT::advance_cycles(
 			if(horizontal_event.first == Flywheel::SyncEvent::StartRetrace) {
 				should_be_alternate_line_ ^= phase_alternates_;
 				colour_burst_amplitude_ = 0;
+			} else if(horizontal_event.first == Flywheel::SyncEvent::EndRetrace) {
+				start_of_line_y_ = current_vertical_flywheel();
 			}
 		}
 
@@ -445,9 +447,7 @@ Outputs::Display::ScanTarget::Scan::EndPoint CRT::end_point(const uint16_t data_
 		// Clamp the available range on endpoints. These will almost always be within range, but may go
 		// out during times of resync.
 		.x = uint16_t(std::min(horizontal_flywheel_.current_output_position(), 65535)),
-		.y = uint16_t(
-			std::min(vertical_flywheel_.current_output_position() / vertical_flywheel_output_divider_, 65535)
-		),
+		.y = preferences_.force_horizontal_scans ? start_of_line_y_ : current_vertical_flywheel(),
 		.data_offset = data_offset,
 
 		.composite_angle = int16_t(composite_angle),
@@ -754,6 +754,7 @@ void CRT::set_scan_target(Outputs::Display::ScanTarget *const scan_target) {
 	scan_target_ = scan_target;
 	if(!scan_target_) scan_target_ = &Outputs::Display::NullScanTarget::singleton;
 	scan_target_->set_modals(scan_target_modals_);
+	scan_target_->set_delegate(preferences_);
 }
 
 void CRT::set_new_data_type(const Outputs::Display::InputDataType data_type) {
