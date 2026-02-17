@@ -1,0 +1,26 @@
+//
+//  NSString+StringView.m
+//  Clock Signal
+//
+//  Created by Thomas Harte on 17/02/2026.
+//  Copyright © 2026 Thomas Harte. All rights reserved.
+//
+
+#import "NSString+StringView.h"
+
+@implementation NSString (StringView)
+
+- (nonnull instancetype)initWithStringView:(std::string_view)view {
+	return [self initWithBytes:view.data() length:view.size() encoding:NSUTF8StringEncoding];
+}
+
+- (nonnull instancetype)initNoCopyWithStringView:(std::string_view)view {
+	return [self
+		initWithBytesNoCopy:const_cast<char *>(view.data())
+		length:view.size()
+		encoding:NSUTF8StringEncoding
+		freeWhenDone:NO
+	];
+}
+
+@end

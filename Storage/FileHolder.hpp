@@ -58,7 +58,7 @@ public:
 
 		@throws Error::CantOpen if the file cannot be opened.
 	*/
-	FileHolder(const std::string &file_name, FileMode ideal_mode = FileMode::ReadWrite);
+	FileHolder(std::string_view file_name, FileMode ideal_mode = FileMode::ReadWrite);
 	FileHolder(FileHolder &&);
 
 	/*!

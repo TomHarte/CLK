@@ -14,7 +14,7 @@
 
 #include <cstdint>
 #include <optional>
-#include <string>
+#include <string_view>
 #include <zlib.h>
 
 namespace Storage::Tape {
@@ -29,7 +29,7 @@ public:
 
 		@throws ErrorNotUEF if this file could not be opened and recognised as a valid UEF.
 	*/
-	UEF(const std::string &file_name);
+	UEF(std::string_view file_name);
 
 	enum {
 		ErrorNotUEF
@@ -40,7 +40,7 @@ private:
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
 	struct Parser {
-		Parser(const std::string &file_name);
+		Parser(std::string_view file_name);
 		~Parser();
 
 		struct Chunk {
@@ -58,7 +58,7 @@ private:
 	};
 
 	struct Serialiser: public PulseQueuedSerialiser {
-		Serialiser(const std::string &file_name);
+		Serialiser(std::string_view file_name);
 		~Serialiser();
 
 		TargetPlatform::Type target_platforms();

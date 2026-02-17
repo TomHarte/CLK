@@ -18,7 +18,7 @@ using namespace Storage::Tape;
 	https://sinclair.wiki.zxnet.co.uk/wiki/TAP_format
 */
 
-ZXSpectrumTAP::ZXSpectrumTAP(const std::string &file_name) : file_name_(file_name) {
+ZXSpectrumTAP::ZXSpectrumTAP(const std::string_view file_name) : file_name_(file_name) {
 	Storage::FileHolder file(file_name);
 
 	// Check for a continuous series of blocks through to
@@ -40,7 +40,7 @@ std::unique_ptr<FormatSerialiser> ZXSpectrumTAP::format_serialiser() const {
 	return std::make_unique<Serialiser>(file_name_);
 }
 
-ZXSpectrumTAP::Serialiser::Serialiser(const std::string &file_name) : file_(file_name, FileMode::Read) {
+ZXSpectrumTAP::Serialiser::Serialiser(const std::string_view file_name) : file_(file_name, FileMode::Read) {
 	read_next_block();
 }
 

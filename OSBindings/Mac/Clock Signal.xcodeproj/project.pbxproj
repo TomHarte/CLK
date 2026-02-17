@@ -393,6 +393,7 @@
 		4B56173E2F44B384003CB7FE /* ROMLibrary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B56173C2F44B384003CB7FE /* ROMLibrary.cpp */; };
 		4B5617402F44D533003CB7FE /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
 		4B5617412F44D533003CB7FE /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
+		4B5617432F45095A003CB7FE /* NSString+StringView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B5617422F45095A003CB7FE /* NSString+StringView.mm */; };
 		4B58601E1F806AB200AEE2E3 /* MFMSectorDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */; };
 		4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B59199A1DAC6C46005BB85C /* OricTAP.cpp */; };
 		4B595FAD2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */; };
@@ -1681,6 +1682,8 @@
 		4B5617322F42ADB8003CB7FE /* MOOF.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MOOF.cpp; sourceTree = "<group>"; };
 		4B56173B2F44B384003CB7FE /* ROMLibrary.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ROMLibrary.hpp; sourceTree = "<group>"; };
 		4B56173C2F44B384003CB7FE /* ROMLibrary.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ROMLibrary.cpp; sourceTree = "<group>"; };
+		4B5617422F45095A003CB7FE /* NSString+StringView.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = "NSString+StringView.mm"; sourceTree = "<group>"; };
+		4B5617442F4509FA003CB7FE /* NSString+StringView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NSString+StringView.h"; sourceTree = "<group>"; };
 		4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MFMSectorDump.cpp; sourceTree = "<group>"; };
 		4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MFMSectorDump.hpp; sourceTree = "<group>"; };
 		4B59199A1DAC6C46005BB85C /* OricTAP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OricTAP.cpp; sourceTree = "<group>"; };
@@ -3122,9 +3125,11 @@
 				4B8FE2251DA1DE2D0090D3CE /* NSBundle+DataResource.h */,
 				4BDA00E322E663B900AC3CD0 /* NSData+CRC32.h */,
 				4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */,
+				4B5617442F4509FA003CB7FE /* NSString+StringView.h */,
 				4B98A05C1FFAD3F600ADF63B /* CSROMFetcher.hpp */,
 				4B8FE2261DA1DE2D0090D3CE /* NSBundle+DataResource.m */,
 				4BDA00E222E663B900AC3CD0 /* NSData+CRC32.m */,
+				4B5617422F45095A003CB7FE /* NSString+StringView.mm */,
 				4B2A53961D117D36003C6002 /* CSMachine.mm */,
 				4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */,
 				4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */,
@@ -6673,6 +6678,7 @@
 				4B45189F1F75FD1C00926311 /* AcornADF.cpp in Sources */,
 				4B7BA03023C2B19C00B98D9E /* Jasmin.cpp in Sources */,
 				4B7136911F789C93008B8ED9 /* SegmentParser.cpp in Sources */,
+				4B5617432F45095A003CB7FE /* NSString+StringView.mm in Sources */,
 				4BEDA3BA25B25563000C2DBD /* Decoder.cpp in Sources */,
 				4BFEA2EF2682A7B900EBF94C /* Dave.cpp in Sources */,
 				4B4518A21F75FD1C00926311 /* G64.cpp in Sources */,

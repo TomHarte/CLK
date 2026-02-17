@@ -12,7 +12,7 @@
 
 using namespace Storage::MassStorage;
 
-HDV::HDV(const std::string &file_name, const long start, const long size):
+HDV::HDV(const std::string_view file_name, const long start, const long size):
 	file_(file_name),
 	file_start_(start),
 	image_size_(std::min(size, long(file_.stats().st_size)))

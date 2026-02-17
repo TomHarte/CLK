@@ -11,6 +11,7 @@
 #include "Storage/FileHolder.hpp"
 #include <optional>
 #include <string>
+#include <string_view>
 
 namespace Storage::FileBundle {
 
@@ -26,16 +27,16 @@ struct FileBundle {
 	virtual ~FileBundle() {}
 
 	struct PermissionDelegate {
-		virtual void validate_open(FileBundle &, const std::string &, FileMode) = 0;
-		virtual void validate_erase(FileBundle &, const std::string &) = 0;
+		virtual void validate_open(FileBundle &, std::string_view, FileMode) = 0;
+		virtual void validate_erase(FileBundle &, std::string_view) = 0;
 	};
 
 	virtual std::optional<std::string> key_file() const = 0;
-	virtual FileHolder open(const std::string &, FileMode) = 0;
-	virtual bool erase(const std::string &) = 0;
+	virtual FileHolder open(std::string_view, FileMode) = 0;
+	virtual bool erase(std::string_view) = 0;
 
 	virtual std::optional<std::string> base_path() const { return std::nullopt; }
-	virtual void set_base_path(const std::string &) {}
+	virtual void set_base_path(std::string_view) {}
 	virtual void set_permission_delegate(PermissionDelegate *) {}
 
 	virtual void set_case_insensitive(bool) {}
@@ -43,14 +44,14 @@ struct FileBundle {
 
 
 struct LocalFSFileBundle: public FileBundle {
-	LocalFSFileBundle(const std::string &to_contain);
+	LocalFSFileBundle(std::string_view to_contain);
 
 	std::optional<std::string> key_file() const override;
-	FileHolder open(const std::string &, FileMode) override;
-	bool erase(const std::string &) override;
+	FileHolder open(std::string_view, FileMode) override;
+	bool erase(std::string_view) override;
 
 	std::optional<std::string> base_path() const override;
-	void set_base_path(const std::string &) override;
+	void set_base_path(std::string_view) override;
 	void set_permission_delegate(PermissionDelegate *) override;
 
 	// TODO: implement case insensitive matching.

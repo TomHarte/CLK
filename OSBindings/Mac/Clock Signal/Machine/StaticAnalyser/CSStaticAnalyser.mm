@@ -11,6 +11,8 @@
 #import "CSMachine.h"
 #import "CSMachine+Target.h"
 
+#import "NSString+StringView.h"
+
 #include "StaticAnalyser.hpp"
 
 #include "Analyser/Static/Acorn/Target.hpp"
@@ -35,9 +37,13 @@
 namespace {
 
 struct PermissionDelegate: public Storage::FileBundle::FileBundle::PermissionDelegate {
-	void validate_open(Storage::FileBundle::FileBundle &bundle, const std::string &path, const Storage::FileMode mode) {
+	void validate_open(
+		Storage::FileBundle::FileBundle &bundle,
+		const std::string_view path,
+		const Storage::FileMode mode
+	) {
 		NSData *bookmarkData;
-		NSString *stringPath = [NSString stringWithUTF8String:path.c_str()];
+		NSString *stringPath = [[NSString alloc] initNoCopyWithStringView:path];
 		NSURL *url = [NSURL fileURLWithPath:stringPath isDirectory:NO];
 		NSError *error;
 
@@ -141,7 +147,7 @@ struct PermissionDelegate: public Storage::FileBundle::FileBundle::PermissionDel
 			forKey:bookmarkKey];
 	}
 
-	void validate_erase(Storage::FileBundle::FileBundle &, const std::string &) {
+	void validate_erase(Storage::FileBundle::FileBundle &, std::string_view) {
 		// Currently a no-op, as it so happens that the only machine that currently
 		// uses a file bundle is the Enterprise, and its semantics involve opening
 		// a file before it can be erased.

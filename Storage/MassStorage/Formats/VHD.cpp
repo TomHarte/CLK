@@ -16,7 +16,7 @@ namespace {
 constexpr size_t SectorSize = 512;
 }
 
-VHD::VHD(const std::string &file_name) : file_(file_name) {
+VHD::VHD(const std::string_view file_name) : file_(file_name) {
 	// Find footer; this may be the final 511 or final 512 bytes of the file.
 	// Find what might be the start of the 'conectix' [sic] signature.
 	file_.seek(-511, Whence::END);

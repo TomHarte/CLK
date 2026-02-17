@@ -10,7 +10,7 @@
 
 using namespace Storage::MassStorage;
 
-HFV::HFV(const std::string &file_name) : file_(file_name) {
+HFV::HFV(const std::string_view file_name) : file_(file_name) {
 	// Is the file a multiple of 512 bytes in size and larger than a floppy disk?
 	const auto file_size = file_.stats().st_size;
 	if(file_size & 511 || file_size <= 800*1024) throw std::exception();
