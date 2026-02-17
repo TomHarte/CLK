@@ -375,13 +375,13 @@ void CRT::advance_cycles(
 			// Reset the cycles-since-sync counter if this is the end of retrace.
 			if(horizontal_event.first == Flywheel::SyncEvent::EndRetrace) {
 				cycles_since_horizontal_sync_ = 0;
+				start_of_line_y_ = current_vertical_flywheel();
 
 				// This is unnecessary, strictly speaking, but seeks to help ScanTargets fit as
 				// much as possible into a fixed range.
 				phase_numerator_ %= phase_denominator_;
 				if(!phase_numerator_) phase_numerator_ += phase_denominator_;
 			}
-
 			// Announce event.
 			const auto event =
 				horizontal_event.first == Flywheel::SyncEvent::StartRetrace
@@ -396,8 +396,6 @@ void CRT::advance_cycles(
 			if(horizontal_event.first == Flywheel::SyncEvent::StartRetrace) {
 				should_be_alternate_line_ ^= phase_alternates_;
 				colour_burst_amplitude_ = 0;
-			} else if(horizontal_event.first == Flywheel::SyncEvent::EndRetrace) {
-				start_of_line_y_ = current_vertical_flywheel();
 			}
 		}
 

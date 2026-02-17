@@ -243,6 +243,7 @@ private:
 	void end_data(size_t actual_length) final;
 	void announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t colour_burst_amplitude) final;
 	void will_change_owner() final;
+	void set_delegate(Delegate &) final;
 
 	// Uses a texture to vend write areas.
 	uint8_t *write_area_ = nullptr;
