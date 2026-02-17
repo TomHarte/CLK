@@ -14,13 +14,4 @@
 	return [self initWithBytes:view.data() length:view.size() encoding:NSUTF8StringEncoding];
 }
 
-- (nonnull instancetype)initNoCopyWithStringView:(std::string_view)view {
-	return [self
-		initWithBytesNoCopy:const_cast<char *>(view.data())
-		length:view.size()
-		encoding:NSUTF8StringEncoding
-		freeWhenDone:NO
-	];
-}
-
 @end

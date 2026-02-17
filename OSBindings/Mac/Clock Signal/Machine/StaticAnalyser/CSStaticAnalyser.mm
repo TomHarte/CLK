@@ -43,7 +43,7 @@ struct PermissionDelegate: public Storage::FileBundle::FileBundle::PermissionDel
 		const Storage::FileMode mode
 	) {
 		NSData *bookmarkData;
-		NSString *stringPath = [[NSString alloc] initNoCopyWithStringView:path];
+		NSString *stringPath = [[NSString alloc] initWithStringView:path];
 		NSURL *url = [NSURL fileURLWithPath:stringPath isDirectory:NO];
 		NSError *error;
 
