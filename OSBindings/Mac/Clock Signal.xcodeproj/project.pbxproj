@@ -49,7 +49,6 @@
 		4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B049CDC1DA3C82F00322067 /* BCDTest.swift */; };
 		4B04C899285E3DC800AA8FD6 /* 65816ComparativeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B04C898285E3DC800AA8FD6 /* 65816ComparativeTests.mm */; };
 		4B051C912669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
-		4B051C922669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
 		4B051C93266D9D6900CA44E8 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
 		4B051C95266EF50200CA44E8 /* AppleIIController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C94266EF50200CA44E8 /* AppleIIController.swift */; };
 		4B051C97266EF5F600CA44E8 /* CSAppleII.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C96266EF5F600CA44E8 /* CSAppleII.mm */; };
@@ -454,7 +453,6 @@
 		4B7752A728217E060073E2C5 /* Blitter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9EC0E126AA27BA0060A31F /* Blitter.cpp */; };
 		4B7752A828217E110073E2C5 /* Nick.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051CAA26783E2000CA44E8 /* Nick.cpp */; };
 		4B7752A928217E200073E2C5 /* 65816Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF8D4D4251C11DD00BBE21B /* 65816Storage.cpp */; };
-		4B7752AA28217E370073E2C5 /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
 		4B7752AB28217E560073E2C5 /* SZX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2B946326377C0200E7097C /* SZX.cpp */; };
 		4B7752AC28217E6E0073E2C5 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F1BB02602645900B85C66 /* StaticAnalyser.cpp */; };
 		4B7752AD28217E770073E2C5 /* AmigaADF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC080C826A238CC00D03FD8 /* AmigaADF.cpp */; };
@@ -6791,7 +6789,6 @@
 				4B051CAC26783E2000CA44E8 /* Nick.cpp in Sources */,
 				4B5FADC01DE3BF2B00AEC565 /* Microdisc.cpp in Sources */,
 				4B0F1BDA2602FF9800B85C66 /* Video.cpp in Sources */,
-				4B051C922669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */,
 				4B79A5011FC913C900EEDAD5 /* MSX.cpp in Sources */,
 				4BEE0A701D72496600532C7B /* PRG.cpp in Sources */,
 				4BB307BB235001C300457D33 /* 6850.cpp in Sources */,
@@ -6984,7 +6981,6 @@
 				4B778F6023A5F3460000D260 /* Disk.cpp in Sources */,
 				4B06AB142C64619E0034D014 /* MultiJoystickMachine.cpp in Sources */,
 				4B778F5C23A5F3070000D260 /* MSX.cpp in Sources */,
-				4B7752AA28217E370073E2C5 /* ROMCatalogue.cpp in Sources */,
 				4B778F0323A5EBB00000D260 /* FAT12.cpp in Sources */,
 				4B778F4023A5F1910000D260 /* z8530.cpp in Sources */,
 				4B778EFD23A5EB8E0000D260 /* AppleDSK.cpp in Sources */,
