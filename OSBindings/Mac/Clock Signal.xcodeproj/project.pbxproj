@@ -388,6 +388,9 @@
 		4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */; };
 		4B55DD8320DF06680043F2E5 /* MachinePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B55DD8020DF06680043F2E5 /* MachinePicker.swift */; };
 		4B55DD8420DF06680043F2E5 /* MachinePicker.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B55DD8120DF06680043F2E5 /* MachinePicker.xib */; };
+		4B5617332F42ADB8003CB7FE /* MOOF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5617322F42ADB8003CB7FE /* MOOF.cpp */; };
+		4B5617342F42ADB8003CB7FE /* MOOF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5617322F42ADB8003CB7FE /* MOOF.cpp */; };
+		4B5617352F42ADB8003CB7FE /* MOOF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5617322F42ADB8003CB7FE /* MOOF.cpp */; };
 		4B58601E1F806AB200AEE2E3 /* MFMSectorDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */; };
 		4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B59199A1DAC6C46005BB85C /* OricTAP.cpp */; };
 		4B595FAD2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */; };
@@ -1673,6 +1676,8 @@
 		4B55DD8020DF06680043F2E5 /* MachinePicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachinePicker.swift; sourceTree = "<group>"; };
 		4B55DD8220DF06680043F2E5 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MachinePicker.xib; sourceTree = "<group>"; };
 		4B56172C2F40D446003CB7FE /* SpinLock.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SpinLock.hpp; sourceTree = "<group>"; };
+		4B5617312F42ADB8003CB7FE /* MOOF.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MOOF.hpp; sourceTree = "<group>"; };
+		4B5617322F42ADB8003CB7FE /* MOOF.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MOOF.cpp; sourceTree = "<group>"; };
 		4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MFMSectorDump.cpp; sourceTree = "<group>"; };
 		4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MFMSectorDump.hpp; sourceTree = "<group>"; };
 		4B59199A1DAC6C46005BB85C /* OricTAP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OricTAP.cpp; sourceTree = "<group>"; };
@@ -3379,6 +3384,7 @@
 				423820422B1A90BE00964EFE /* PCBooter.cpp */,
 				4B4518991F75FD1B00926311 /* SSD.cpp */,
 				4B7BA03323C58B1E00B98D9E /* STX.cpp */,
+				4B5617322F42ADB8003CB7FE /* MOOF.cpp */,
 				4B6ED2EE208E2F8A0047B343 /* WOZ.cpp */,
 				4B80CD75256CA15E00176FCC /* 2MG.hpp */,
 				4B45188E1F75FD1B00926311 /* AcornADF.hpp */,
@@ -3401,6 +3407,7 @@
 				423820432B1A90BE00964EFE /* PCBooter.hpp */,
 				4B45189A1F75FD1B00926311 /* SSD.hpp */,
 				4B7BA03223C58B1E00B98D9E /* STX.hpp */,
+				4B5617312F42ADB8003CB7FE /* MOOF.hpp */,
 				4B6ED2EF208E2F8A0047B343 /* WOZ.hpp */,
 				4BFDD7891F7F2DB4008579B9 /* Utility */,
 			);
@@ -6443,6 +6450,7 @@
 				4BBB70A5202011C2002FE009 /* MultiMediaTarget.cpp in Sources */,
 				4B8318BC22D3E588006DB630 /* DisplayMetrics.cpp in Sources */,
 				4BEDA40E25B2844B000C2DBD /* Decoder.cpp in Sources */,
+				4B5617342F42ADB8003CB7FE /* MOOF.cpp in Sources */,
 				4B1B88BD202E3D3D00B67DFF /* MultiMachine.cpp in Sources */,
 				4B055A971FAE85BB0060FFFF /* ZX8081.cpp in Sources */,
 				4BB505872B9634F30031C43C /* Archimedes.cpp in Sources */,
@@ -6561,6 +6569,7 @@
 				4B1B88BB202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */,
 				4B5D5C9725F56FC7001B4623 /* Spectrum.cpp in Sources */,
 				4B4518A11F75FD1C00926311 /* D64.cpp in Sources */,
+				4B5617332F42ADB8003CB7FE /* MOOF.cpp in Sources */,
 				4BC3A9A42F147F8900ACC885 /* FilterGenerator.cpp in Sources */,
 				4BCE0052227CE8CA000CA200 /* DiskIICard.cpp in Sources */,
 				4BF0BC68297108D600CCA2B5 /* MemorySlotHandler.cpp in Sources */,
@@ -7048,6 +7057,7 @@
 				4B06AAD52C645F290034D014 /* AppleII.cpp in Sources */,
 				4B06AAFC2C6460970034D014 /* Keyboard.cpp in Sources */,
 				4B778F0D23A5EC150000D260 /* ZX80O81P.cpp in Sources */,
+				4B5617352F42ADB8003CB7FE /* MOOF.cpp in Sources */,
 				4B1414621B58888700E04248 /* KlausDormannTests.swift in Sources */,
 				4B778EFE23A5EB910000D260 /* CPCDSK.cpp in Sources */,
 				4B778F5823A5F2C60000D260 /* Tape.cpp in Sources */,

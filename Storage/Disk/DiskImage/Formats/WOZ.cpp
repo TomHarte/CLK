@@ -10,6 +10,7 @@
 
 #include "Storage/Disk/Track/PCMTrack.hpp"
 #include "Storage/Disk/Track/TrackSerialiser.hpp"
+#include "Numeric/CRC.hpp"
 
 #include <algorithm>
 
@@ -60,9 +61,8 @@ WOZ::WOZ(const std::string &file_name) :
 	while(true) {
 		const auto chunk_id = file_.get_le<uint32_t>();
 		const auto chunk_size = file_.get_le<uint32_t>();
+		const auto end_of_chunk = file_.tell() + long(chunk_size);
 		if(file_.eof()) break;
-
-		long end_of_chunk = file_.tell() + long(chunk_size);
 
 		switch(chunk_id) {
 			case chunk("INFO"): {
@@ -115,7 +115,7 @@ int WOZ::head_count() const {
 	return is_3_5_disk_ ? 2 : 1;
 }
 
-long WOZ::file_offset(Track::Address address) const {
+long WOZ::file_offset(const Track::Address address) const {
 	// Calculate table position.
 	int table_position;
 	if(!is_3_5_disk_) {
@@ -129,7 +129,7 @@ long WOZ::file_offset(Track::Address address) const {
 	}
 
 	// Check that this track actually exists.
-	if(track_map_[table_position] == 0xff) {
+	if(table_position > 255 || track_map_[table_position] == 0xff) {
 		return NoSuchTrack;
 	}
 
@@ -141,13 +141,13 @@ long WOZ::file_offset(Track::Address address) const {
 	}
 }
 
-bool WOZ::tracks_differ(Track::Address lhs, Track::Address rhs) const {
+bool WOZ::tracks_differ(const Track::Address lhs, const Track::Address rhs) const {
 	const long offset1 = file_offset(lhs);
 	const long offset2 = file_offset(rhs);
 	return offset1 != offset2;
 }
 
-std::unique_ptr<Track> WOZ::track_at_position(Track::Address address) const {
+std::unique_ptr<Track> WOZ::track_at_position(const Track::Address address) const {
 	const long offset = file_offset(address);
 	if(offset == NoSuchTrack) {
 		return nullptr;

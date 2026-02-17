@@ -21,8 +21,8 @@ namespace Storage::Disk {
 class HeadPosition {
 public:
 	/// Creates an instance decribing position @c value at a resolution of @c scale ticks per track.
-	constexpr HeadPosition(int value, int scale) : position_(value * (4/scale)) {}
-	constexpr explicit HeadPosition(int value) : HeadPosition(value, 1) {}
+	constexpr HeadPosition(const int value, const int scale) : position_(value * (4/scale)) {}
+	constexpr explicit HeadPosition(const int value) : HeadPosition(value, 1) {}
 	constexpr HeadPosition() : HeadPosition(0) {}
 
 	/// @returns the whole number part of the position.

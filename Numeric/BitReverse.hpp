@@ -10,7 +10,7 @@
 
 #include "Sizes.hpp"
 
-#include <array>
+#include <concepts>
 #include <cstdint>
 
 namespace Numeric {
@@ -19,7 +19,7 @@ namespace Numeric {
 /// the reverse of bit pattern abcd efgh is hgfd dcba.
 template <typename IntT> constexpr IntT bit_reverse(IntT source);
 
-// The single-byte specialisation uses a lookup table.
+// Single-byte specialisation.
 template<> constexpr uint8_t bit_reverse<uint8_t>(uint8_t source) {
 	source = uint8_t(((source & 0b1111'0000) >> 4) | ((source & 0b0000'1111) << 4));
 	source = uint8_t(((source & 0b1100'1100) >> 2) | ((source & 0b0011'0011) << 2));
@@ -29,9 +29,8 @@ template<> constexpr uint8_t bit_reverse<uint8_t>(uint8_t source) {
 
 // All other versions recursively subdivide.
 template <typename IntT>
+requires std::same_as<IntT, uint16_t> || std::same_as<IntT, uint32_t> || std::same_as<IntT, uint64_t>
 constexpr IntT bit_reverse(const IntT source) {
-	static_assert(std::is_same_v<IntT, uint16_t> || std::is_same_v<IntT, uint32_t> || std::is_same_v<IntT, uint64_t>);
-
 	constexpr auto HalfSize = sizeof(IntT) * 4;
 	using HalfIntT = uint_t<HalfSize>;
 
