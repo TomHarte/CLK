@@ -283,26 +283,26 @@ public:
 private:
 	Outputs::Display::OpenGL::API api_;
 	std::vector<std::string> leds_;
-	void register_led(const std::string &name, uint8_t) final {
+	void register_led(const std::string_view name, uint8_t) final {
 		std::lock_guard lock_guard(mutex);
-		leds_.push_back(name);
+		leds_.emplace_back(name);
 	}
 
 	std::vector<std::string> drives_;
-	void register_drive(const std::string &name) final {
+	void register_drive(const std::string_view name) final {
 		std::lock_guard lock_guard(mutex);
-		drives_.push_back(name);
+		drives_.emplace_back(name);
 	}
 
-	void set_led_status(const std::string &name, bool lit) final {
+	void set_led_status(const std::string_view name, bool lit) final {
 		std::lock_guard lock_guard(mutex);
-		if(lit) lit_leds_.insert(name);
-		else lit_leds_.erase(name);
+		if(lit) lit_leds_.emplace(name);
+		else lit_leds_.erase(std::string(name));
 	}
 
-	void announce_drive_event(const std::string &name, DriveEvent) final {
+	void announce_drive_event(const std::string_view name, DriveEvent) final {
 		std::lock_guard lock_guard(mutex);
-		blinking_leds_.insert(name);
+		blinking_leds_.emplace(name);
 	}
 
 	std::map<std::string, std::unique_ptr<Outputs::Display::OpenGL::Rectangle>> lights_;
