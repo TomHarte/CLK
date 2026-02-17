@@ -27,14 +27,14 @@ public:
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain an Apple DSK format image.
 	*/
-	AppleDSK(const std::string &file_name);
+	AppleDSK(std::string_view file_name);
 
 	// Implemented to satisfy @c DiskImage.
 	HeadPosition maximum_head_position() const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &);
 	bool is_read_only() const;
-	bool represents(const std::string &) const;
+	bool represents(std::string_view) const;
 
 private:
 	mutable Storage::FileHolder file_;

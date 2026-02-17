@@ -26,7 +26,7 @@
 using namespace Storage::Disk;
 
 MacintoshIMG::MacintoshIMG(
-	const std::string &file_name,
+	const std::string_view file_name,
 	const FixedType type,
 	const size_t offset,
 	const size_t length
@@ -180,7 +180,7 @@ bool MacintoshIMG::is_read_only() const {
 	return file_.is_known_read_only();
 }
 
-bool MacintoshIMG::represents(const std::string &name) const {
+bool MacintoshIMG::represents(const std::string_view name) const {
 	return name == file_.name();
 }
 

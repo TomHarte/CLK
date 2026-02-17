@@ -15,7 +15,7 @@ namespace {
 
 using namespace Storage::Disk;
 
-SSD::SSD(const std::string &file_name) : MFMSectorDump(file_name) {
+SSD::SSD(const std::string_view file_name) : MFMSectorDump(file_name) {
 	// Very loose validation: the file needs to be a multiple of 256 bytes
 	// and not ungainly large.
 

@@ -21,10 +21,10 @@ namespace Storage::Disk {
 */
 class MFMSectorDump: public DiskImage {
 public:
-	MFMSectorDump(const std::string &file_name);
+	MFMSectorDump(std::string_view file_name);
 
 	bool is_read_only() const;
-	bool represents(const std::string &) const;
+	bool represents(std::string_view) const;
 	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 

@@ -12,7 +12,7 @@
 
 using namespace Storage::Disk;
 
-PCBooter::PCBooter(const std::string &file_name) :
+PCBooter::PCBooter(const std::string_view file_name) :
 	MFMSectorDump(file_name) {
 	// The only sanity check here is whether a sensible
 	// geometry is encoded in the first sector, or can be guessed.

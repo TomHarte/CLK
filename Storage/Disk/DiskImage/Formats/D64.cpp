@@ -20,7 +20,7 @@
 
 using namespace Storage::Disk;
 
-D64::D64(const std::string &file_name) :
+D64::D64(const std::string_view file_name) :
 		file_(file_name) {
 	// In D64, this is it for validation without imposing potential false-negative tests:
 	// check that the file size appears to be correct. Stone-age stuff.
@@ -45,7 +45,7 @@ bool D64::is_read_only() const {
 	return file_.is_known_read_only();
 }
 
-bool D64::represents(const std::string &name) const {
+bool D64::represents(const std::string_view name) const {
 	return name == file_.name();
 }
 

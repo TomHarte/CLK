@@ -11,6 +11,10 @@
 #include "Storage/Disk/DiskImage/DiskImage.hpp"
 #include "Storage/FileHolder.hpp"
 
+#include <cstdint>
+#include <string_view>
+#include <vector>
+
 namespace Storage::Disk {
 
 /*!
@@ -40,13 +44,13 @@ public:
 		If @c offset and @c length are specified and non-zero, only that portion of the file
 		will be modified.
 	*/
-	MacintoshIMG(const std::string &file_name, FixedType type, size_t offset = 0, size_t length = 0);
+	MacintoshIMG(std::string_view file_name, FixedType type, size_t offset = 0, size_t length = 0);
 
 	// implemented to satisfy @c Disk
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
 	bool is_read_only() const;
-	bool represents(const std::string &) const;
+	bool represents(std::string_view) const;
 
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
