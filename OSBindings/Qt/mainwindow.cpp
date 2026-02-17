@@ -14,6 +14,7 @@
 #include <cstdio>
 #include <memory>
 
+#include "../../Machines/Utility/ROMLibrary.hpp"
 #include "../../Numeric/CRC.hpp"
 #include "../../Configurable/StandardOptions.hpp"
 
@@ -278,6 +279,14 @@ void MainWindow::launchMachine() {
 						results[description.name] = *data;
 						continue;
 					}
+				}
+			}
+
+			// Fallback: check the ROM catalogue.
+			if(results.find(description.name) == results.end()) {
+				auto data = ROM::included_rom_image(description.name);
+				if(data.has_value()) {
+					results[description.name] = std::move(*data);
 				}
 			}
 		}

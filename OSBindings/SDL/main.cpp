@@ -13,6 +13,7 @@
 #include "ClockReceiver/ScanSynchroniser.hpp"
 
 #include "Machines/MachineTypes.hpp"
+#include "Machines/Utility/ROMLibrary.hpp"
 
 #include "Activity/Observer.hpp"
 #include "Outputs/OpenGL/Shaders/Rectangle.hpp"
@@ -768,6 +769,14 @@ int main(int argc, char *argv[]) {
 						results[description.name] = std::move(data);
 					} else {
 						std::ranges::copy(rom_checked_paths, std::back_inserter(checked_paths));
+					}
+				}
+
+				// Fallback: check the ROM catalogue.
+				if(results.find(description.name) == results.end()) {
+					auto data = ROM::included_rom_image(description.name);
+					if(data.has_value()) {
+						results[description.name] = std::move(*data);
 					}
 				}
 			}
