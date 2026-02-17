@@ -390,9 +390,9 @@
 		4B5617332F42ADB8003CB7FE /* MOOF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5617322F42ADB8003CB7FE /* MOOF.cpp */; };
 		4B5617342F42ADB8003CB7FE /* MOOF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5617322F42ADB8003CB7FE /* MOOF.cpp */; };
 		4B5617352F42ADB8003CB7FE /* MOOF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5617322F42ADB8003CB7FE /* MOOF.cpp */; };
-		4B56173D2F44B384003CB7FE /* ROMLibrary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B56173C2F44B384003CB7FE /* ROMLibrary.cpp */; };
 		4B56173E2F44B384003CB7FE /* ROMLibrary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B56173C2F44B384003CB7FE /* ROMLibrary.cpp */; };
-		4B56173F2F44B384003CB7FE /* ROMLibrary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B56173C2F44B384003CB7FE /* ROMLibrary.cpp */; };
+		4B5617402F44D533003CB7FE /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
+		4B5617412F44D533003CB7FE /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
 		4B58601E1F806AB200AEE2E3 /* MFMSectorDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */; };
 		4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B59199A1DAC6C46005BB85C /* OricTAP.cpp */; };
 		4B595FAD2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */; };
@@ -6542,7 +6542,6 @@
 				4B7A90E52041097C008514A2 /* ColecoVision.cpp in Sources */,
 				4B2BFC5F1D613E0200BA3AA9 /* TapePRG.cpp in Sources */,
 				4B710C8F2E77A3B20056BDF4 /* BBCMicro.cpp in Sources */,
-				4B56173F2F44B384003CB7FE /* ROMLibrary.cpp in Sources */,
 				4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */,
 				4B6AAEAB230E40250078E864 /* SCSI.cpp in Sources */,
 				4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */,
@@ -6740,6 +6739,7 @@
 				4BBB70A4202011C2002FE009 /* MultiMediaTarget.cpp in Sources */,
 				4B7C681627517A59001671EC /* Sprites.cpp in Sources */,
 				4B0ACC02237756ED008902D0 /* Line.cpp in Sources */,
+				4B5617402F44D533003CB7FE /* ROMCatalogue.cpp in Sources */,
 				4B89453A201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */,
 				4BDACBEC22FFA5D20045EF7E /* ncr5380.cpp in Sources */,
@@ -6822,6 +6822,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4B5617412F44D533003CB7FE /* ROMCatalogue.cpp in Sources */,
 				4B06AAEA2C645FDD0034D014 /* Bus.cpp in Sources */,
 				4B778EF623A5EB600000D260 /* WOZ.cpp in Sources */,
 				4B596EB42D04B8C700FBF4B1 /* Plus4.cpp in Sources */,
@@ -6989,7 +6990,6 @@
 				4B06AAF72C64606E0034D014 /* DiskII.cpp in Sources */,
 				4B778EFB23A5EB7E0000D260 /* HFE.cpp in Sources */,
 				4BCF1AD52ECF884100109999 /* HostFSHandler.cpp in Sources */,
-				4B56173D2F44B384003CB7FE /* ROMLibrary.cpp in Sources */,
 				4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */,
 				4B0DA67D282DCDF300C12F17 /* Instruction.cpp in Sources */,
 				4B06AAE12C645F8B0034D014 /* Video.cpp in Sources */,
