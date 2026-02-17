@@ -227,7 +227,7 @@ public:
 		@param required_length The number of samples to allocate.
 		@returns A pointer to the allocated area if room is available; @c nullptr otherwise.
 	*/
-	inline uint8_t *begin_data(std::size_t required_length, std::size_t required_alignment = 1) {
+	inline uint8_t *begin_data(const std::size_t required_length, const std::size_t required_alignment = 1) {
 		const auto result = scan_target_->begin_data(required_length, required_alignment);
 #ifndef NDEBUG
 		// If data was allocated, make a record of how much so as to be able to hold the caller to that
@@ -293,7 +293,7 @@ public:
 		int number_of_cycles) const;
 
 	/*!	Sets the CRT delegate; set to @c nullptr if no delegate is desired. */
-	inline void set_delegate(Delegate *delegate) {
+	inline void set_delegate(Delegate *const delegate) {
 		delegate_ = delegate;
 	}
 
@@ -453,6 +453,21 @@ private:
 	Framing framing_ = Framing::CalibratingAutomaticFixed;
 	bool has_first_reading_ = false;
 	void posit(Display::Rect);
+
+	struct ScanTargetPreferences: public Display::ScanTarget::Delegate {
+		static constexpr bool DefaultForceHorizontalScans = false;
+		bool force_horizontal_scans = DefaultForceHorizontalScans;
+
+		void set(const Preferences &preferences) override {
+			force_horizontal_scans = preferences.force_horizontal_scans.value_or(DefaultForceHorizontalScans);
+		}
+	} preferences_;
+	uint16_t start_of_line_y_;
+	uint16_t current_vertical_flywheel() const {
+		return uint16_t(
+			std::min(vertical_flywheel_.current_output_position() / vertical_flywheel_output_divider_, 65535)
+		);
+	}
 
 #ifndef NDEBUG
 	size_t allocated_data_length_ = std::numeric_limits<size_t>::min();

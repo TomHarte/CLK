@@ -380,193 +380,213 @@ inline std::array<float, 9> from_rgb_matrix(const ColourSpace colour_space) {
 	for use of shared memory where available.
 */
 struct ScanTarget {
-		virtual ~ScanTarget() = default;
+	virtual ~ScanTarget() = default;
 
 
-	/*
-		This top section of the interface deals with modal settings. A ScanTarget can
-		assume that the modals change very infrequently.
+/*
+	This top section of the interface deals with modal settings. A ScanTarget can
+	assume that the modals change very infrequently.
+*/
+
+	struct Modals {
+		/// Describes the format of input data.
+		InputDataType input_data_type;
+
+		struct InputDataTweaks {
+			/// If using the PhaseLinkedLuminance8 data type, this value provides an offset
+			/// to add to phase before indexing the supplied luminances.
+			float phase_linked_luminance_offset = 0.0f;
+
+		} input_data_tweaks;
+
+		/// Describes the type of display that the data is being shown on.
+		DisplayType display_type = DisplayType::SVideo;
+
+		/// If being fed composite data, this defines the colour space in use.
+		ColourSpace composite_colour_space;
+
+		/// Provides an integral clock rate for the duration of "a single line", specifically
+		/// for an idealised line. So e.g. in NTSC this will be for the duration of 227.5
+		/// colour clocks, regardless of whether the source actually stretches lines to
+		/// 228 colour cycles, abbreviates them to 227 colour cycles, etc.
+		int cycles_per_line;
+
+		/// Sets a GCD for the durations of pixels coming out of this device. This with
+		/// the @c cycles_per_line are offered for sizing of intermediary buffers.
+		int clocks_per_pixel_greatest_common_divisor;
+
+		/// Provides the number of colour cycles in a line, as a quotient.
+		int colour_cycle_numerator, colour_cycle_denominator;
+
+		/// Provides a pre-estimate of the likely number of left-to-right scans per frame.
+		/// This isn't a guarantee, but it should provide a decent-enough estimate.
+		int expected_vertical_lines;
+
+		/// Provides an additional restriction on the section of the display that is expected
+		/// to contain interesting content.
+		Rect visible_area;
+
+		/// Describes the usual gamma of the output device these scans would appear on.
+		float intended_gamma = 2.2f;
+
+		/// Provides a brightness multiplier for the display output.
+		float brightness = 1.0f;
+
+		/// Specifies the range of values that will be output for x and y coordinates.
+		struct {
+			uint16_t x, y;
+		} output_scale;
+
+		/// Describes the intended display aspect ratio.
+		float aspect_ratio = 4.0f / 3.0f;
+	};
+
+	/// Sets the total format of input data.
+	virtual void set_modals(Modals) = 0;
+
+
+/*
+	This second section of the interface allows provision of the streamed data, plus some control
+	over the streaming.
+*/
+
+	/*!
+		Defines a scan in terms of its two endpoints.
 	*/
+	struct Scan {
+		struct EndPoint {
+			/// Provide the coordinate of this endpoint. These are fixed point, purely fractional
+			/// numbers, relative to the scale provided in the Modals.
+			uint16_t x, y;
 
-		struct Modals {
-			/// Describes the format of input data.
-			InputDataType input_data_type;
+			/// Provides the offset, in samples, into the most recently allocated write area, of data
+			/// at this end point.
+			uint16_t data_offset;
 
-			struct InputDataTweaks {
-				/// If using the PhaseLinkedLuminance8 data type, this value provides an offset
-				/// to add to phase before indexing the supplied luminances.
-				float phase_linked_luminance_offset = 0.0f;
+			/// For composite video, provides the angle of the colour subcarrier at this endpoint.
+			///
+			/// This is a slightly weird fixed point, being:
+			///
+			///		* a six-bit fractional part;
+			///		* a nine-bit integral part; and
+			///		* a sign.
+			///
+			/// Positive numbers indicate that the colour subcarrier is 'running positively' on this
+			/// line; i.e. it is any NTSC line or an appropriate swing PAL line, encoded as
+			/// x*cos(a) + y*sin(a).
+			///
+			/// Negative numbers indicate a 'negative running' colour subcarrier; i.e. it is one of
+			/// the phase alternated lines of PAL, encoded as x*cos(a) - y*sin(a), or x*cos(-a) + y*sin(-a),
+			/// whichever you prefer.
+			///
+			/// It will produce undefined behaviour if signs differ on a single scan.
+			int16_t composite_angle;
 
-			} input_data_tweaks;
+			/// Gives the number of cycles since the most recent horizontal retrace ended.
+			uint16_t cycles_since_end_of_horizontal_retrace;
+		} end_points[2];
 
-			/// Describes the type of display that the data is being shown on.
-			DisplayType display_type = DisplayType::SVideo;
+		/// For composite video, dictates the amplitude of the colour subcarrier as a proportion of
+		/// the whole, as determined from the colour burst. Will be 0 if there was no colour burst.
+		union {
+			uint8_t composite_amplitude;
 
-			/// If being fed composite data, this defines the colour space in use.
-			ColourSpace composite_colour_space;
+			uint32_t padding;
+		};
+	};
 
-			/// Provides an integral clock rate for the duration of "a single line", specifically
-			/// for an idealised line. So e.g. in NTSC this will be for the duration of 227.5
-			/// colour clocks, regardless of whether the source actually stretches lines to
-			/// 228 colour cycles, abbreviates them to 227 colour cycles, etc.
-			int cycles_per_line;
+	/// Requests a new scan to populate.
+	///
+	/// @return A valid pointer, or @c nullptr if insufficient further storage is available.
+	virtual Scan *begin_scan() = 0;
 
-			/// Sets a GCD for the durations of pixels coming out of this device. This with
-			/// the @c cycles_per_line are offered for sizing of intermediary buffers.
-			int clocks_per_pixel_greatest_common_divisor;
+	/// Requests a new scan to populate.
+	virtual void end_scan() {}
 
-			/// Provides the number of colour cycles in a line, as a quotient.
-			int colour_cycle_numerator, colour_cycle_denominator;
+	/// Finds the first available storage of at least @c required_length pixels in size which is
+	/// suitably aligned for writing of @c required_alignment number of samples at a time.
+	///
+	/// Calls will be paired off with calls to @c end_data.
+	///
+	/// @returns a pointer to the allocated space if any was available; @c nullptr otherwise.
+	virtual uint8_t *begin_data(size_t required_length, size_t required_alignment = 1) = 0;
 
-			/// Provides a pre-estimate of the likely number of left-to-right scans per frame.
-			/// This isn't a guarantee, but it should provide a decent-enough estimate.
-			int expected_vertical_lines;
+	/// Announces that the owner is finished with the region created by the most recent @c begin_data
+	/// and indicates that its actual final size was @c actual_length.
+	///
+	/// It is required that every call to begin_data be paired with a call to end_data.
+	virtual void end_data([[maybe_unused]] size_t actual_length) {}
 
-			/// Provides an additional restriction on the section of the display that is expected
-			/// to contain interesting content.
-			Rect visible_area;
+	/// Tells the scan target that its owner is about to change; this is a hint that existing
+	/// data and scan allocations should be invalidated.
+	virtual void will_change_owner() {}
 
-			/// Describes the usual gamma of the output device these scans would appear on.
-			float intended_gamma = 2.2f;
+	/// Acts as a fence, marking the end of an atomic set of [begin/end]_[scan/data] calls] — all future pieces of
+	/// data will have no relation to scans prior to the submit() and all future scans will similarly have no relation to
+	/// prior runs of data.
+	///
+	/// Drawing is defined to be best effort, so the scan target should either:
+	///
+	///		(i)	output everything received since the previous submit; or
+	///		(ii)	output nothing.
+	///
+	/// If there were any allocation failures — i.e. any nullptr responses to begin_data or
+	/// begin_scan — then (ii) is a required response. But a scan target may also need to opt for (ii)
+	/// for any other reason.
+	///
+	/// The ScanTarget isn't bound to take any drawing action immediately; it may sit on submitted data for
+	/// as long as it feels is appropriate, subject to a @c flush.
+	virtual void submit() {}
 
-			/// Provides a brightness multiplier for the display output.
-			float brightness = 1.0f;
 
-			/// Specifies the range of values that will be output for x and y coordinates.
-			struct {
-				uint16_t x, y;
-			} output_scale;
+/*
+	ScanTargets also receive notification of certain events that may be helpful in processing, particularly
+	for synchronising internal output to the outside world.
+*/
 
-			/// Describes the intended display aspect ratio.
-			float aspect_ratio = 4.0f / 3.0f;
+	enum class Event {
+		BeginHorizontalRetrace,
+		EndHorizontalRetrace,
+
+		BeginVerticalRetrace,
+		EndVerticalRetrace,
+	};
+
+	/*!
+		Provides a hint that the named event has occurred.
+
+		Guarantee:
+		* any announce acts as an implicit fence on data/scans, much as a submit().
+
+		Permitted ScanTarget implementation:
+		* ignore all output during retrace periods.
+
+		@param event The event.
+		@param is_visible @c true if the output stream is visible immediately after this event; @c false otherwise.
+		@param location The location of the event.
+		@param composite_amplitude The amplitude of the colour burst on this line (0, if no colour burst was found).
+	*/
+	virtual void announce(
+		[[maybe_unused]] Event event,
+		[[maybe_unused]] bool is_visible,
+		[[maybe_unused]] const Scan::EndPoint &location,
+		[[maybe_unused]] uint8_t composite_amplitude) {}
+
+
+/*
+	A delegate protocol allows scan targets to provide preferences in the other direction, if relevant.
+*/
+	struct Delegate {
+		struct Preferences {
+			/// Request that the scan producer provide an artificially-constant vertical position across scan lines if it would
+			/// otherwise produce very shallow diagonals.
+			std::optional<bool> force_horizontal_scans;
 		};
 
-		/// Sets the total format of input data.
-		virtual void set_modals(Modals) = 0;
+		virtual void set(const Preferences &) = 0;
+	};
+	virtual void set_delegate(Delegate &) {}
 
-
-	/*
-		This second section of the interface allows provision of the streamed data, plus some control
-		over the streaming.
-	*/
-
-		/*!
-			Defines a scan in terms of its two endpoints.
-		*/
-		struct Scan {
-			struct EndPoint {
-				/// Provide the coordinate of this endpoint. These are fixed point, purely fractional
-				/// numbers, relative to the scale provided in the Modals.
-				uint16_t x, y;
-
-				/// Provides the offset, in samples, into the most recently allocated write area, of data
-				/// at this end point.
-				uint16_t data_offset;
-
-				/// For composite video, provides the angle of the colour subcarrier at this endpoint.
-				///
-				/// This is a slightly weird fixed point, being:
-				///
-				///		* a six-bit fractional part;
-				///		* a nine-bit integral part; and
-				///		* a sign.
-				///
-				/// Positive numbers indicate that the colour subcarrier is 'running positively' on this
-				/// line; i.e. it is any NTSC line or an appropriate swing PAL line, encoded as
-				/// x*cos(a) + y*sin(a).
-				///
-				/// Negative numbers indicate a 'negative running' colour subcarrier; i.e. it is one of
-				/// the phase alternated lines of PAL, encoded as x*cos(a) - y*sin(a), or x*cos(-a) + y*sin(-a),
-				/// whichever you prefer.
-				///
-				/// It will produce undefined behaviour if signs differ on a single scan.
-				int16_t composite_angle;
-
-				/// Gives the number of cycles since the most recent horizontal retrace ended.
-				uint16_t cycles_since_end_of_horizontal_retrace;
-			} end_points[2];
-
-			/// For composite video, dictates the amplitude of the colour subcarrier as a proportion of
-			/// the whole, as determined from the colour burst. Will be 0 if there was no colour burst.
-			union {
-				uint8_t composite_amplitude;
-
-				uint32_t padding;
-			};
-		};
-
-		/// Requests a new scan to populate.
-		///
-		/// @return A valid pointer, or @c nullptr if insufficient further storage is available.
-		virtual Scan *begin_scan() = 0;
-
-		/// Requests a new scan to populate.
-		virtual void end_scan() {}
-
-		/// Finds the first available storage of at least @c required_length pixels in size which is
-		/// suitably aligned for writing of @c required_alignment number of samples at a time.
-		///
-		/// Calls will be paired off with calls to @c end_data.
-		///
-		/// @returns a pointer to the allocated space if any was available; @c nullptr otherwise.
-		virtual uint8_t *begin_data(size_t required_length, size_t required_alignment = 1) = 0;
-
-		/// Announces that the owner is finished with the region created by the most recent @c begin_data
-		/// and indicates that its actual final size was @c actual_length.
-		///
-		/// It is required that every call to begin_data be paired with a call to end_data.
-		virtual void end_data([[maybe_unused]] size_t actual_length) {}
-
-		/// Tells the scan target that its owner is about to change; this is a hint that existing
-		/// data and scan allocations should be invalidated.
-		virtual void will_change_owner() {}
-
-		/// Acts as a fence, marking the end of an atomic set of [begin/end]_[scan/data] calls] — all future pieces of
-		/// data will have no relation to scans prior to the submit() and all future scans will similarly have no relation to
-		/// prior runs of data.
-		///
-		/// Drawing is defined to be best effort, so the scan target should either:
-		///
-		///		(i)	output everything received since the previous submit; or
-		///		(ii)	output nothing.
-		///
-		/// If there were any allocation failures — i.e. any nullptr responses to begin_data or
-		/// begin_scan — then (ii) is a required response. But a scan target may also need to opt for (ii)
-		/// for any other reason.
-		///
-		/// The ScanTarget isn't bound to take any drawing action immediately; it may sit on submitted data for
-		/// as long as it feels is appropriate, subject to a @c flush.
-		virtual void submit() {}
-
-
-	/*
-		ScanTargets also receive notification of certain events that may be helpful in processing, particularly
-		for synchronising internal output to the outside world.
-	*/
-
-		enum class Event {
-			BeginHorizontalRetrace,
-			EndHorizontalRetrace,
-
-			BeginVerticalRetrace,
-			EndVerticalRetrace,
-		};
-
-		/*!
-			Provides a hint that the named event has occurred.
-
-			Guarantee:
-			* any announce acts as an implicit fence on data/scans, much as a submit().
-
-			Permitted ScanTarget implementation:
-			* ignore all output during retrace periods.
-
-			@param event The event.
-			@param is_visible @c true if the output stream is visible immediately after this event; @c false otherwise.
-			@param location The location of the event.
-			@param composite_amplitude The amplitude of the colour burst on this line (0, if no colour burst was found).
-		*/
-		virtual void announce([[maybe_unused]] Event event, [[maybe_unused]] bool is_visible, [[maybe_unused]] const Scan::EndPoint &location, [[maybe_unused]] uint8_t composite_amplitude) {}
 };
 
 struct ScanStatus {

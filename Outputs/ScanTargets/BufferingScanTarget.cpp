@@ -321,6 +321,10 @@ void BufferingScanTarget::set_modals(const Modals modals) {
 	});
 }
 
+void BufferingScanTarget::set_delegate(Delegate &delegate) {
+	delegate.set(Delegate::Preferences{.force_horizontal_scans = true});
+}
+
 // MARK: - Consumer.
 
 BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
