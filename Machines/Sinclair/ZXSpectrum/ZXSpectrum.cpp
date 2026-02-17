@@ -152,7 +152,7 @@ public:
 			case Model::SixteenK:
 			case Model::FortyEightK:	rom_name = ROM::Name::Spectrum48k;		break;
 			case Model::OneTwoEightK:	rom_name = ROM::Name::Spectrum128k;		break;
-			case Model::Plus2:			rom_name = ROM::Name::SpecrumPlus2;		break;
+			case Model::Plus2:			rom_name = ROM::Name::SpectrumPlus2;	break;
 			case Model::Plus2a:
 			case Model::Plus3:			rom_name = ROM::Name::SpectrumPlus3;	break;
 			// TODO: possibly accept the +3 ROM in multiple parts?

@@ -154,6 +154,7 @@ set(CLK_SOURCES
 	Machines/Utility/MemoryFuzzer.cpp
 	Machines/Utility/MemoryPacker.cpp
 	Machines/Utility/ROMCatalogue.cpp
+	Machines/Utility/ROMLibrary.cpp
 	Machines/Utility/StringSerialiser.cpp
 	Machines/Utility/Typer.cpp
 

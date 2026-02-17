@@ -1105,7 +1105,7 @@ const std::vector<Description> &Description::all_roms() {
 			0x2cbe8995u
 		},
 		{
-			SpecrumPlus2,
+			SpectrumPlus2,
 			"ZXSpectrum",
 			"the +2 ROM",
 			"plus2.rom",

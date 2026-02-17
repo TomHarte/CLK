@@ -192,7 +192,7 @@ enum Name {
 	// ZX Spectrum.
 	Spectrum48k,
 	Spectrum128k,
-	SpecrumPlus2,
+	SpectrumPlus2,
 	SpectrumPlus3,
 
 };
