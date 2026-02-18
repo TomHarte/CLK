@@ -105,6 +105,7 @@ public:
 
 	/// Causes any enqueued actions that are not yet scheduled to be scheduled.
 	void perform() {
+		const std::lock_guard guard(condition_mutex_);
 		static_assert(!perform_automatically);
 		if(actions_.empty()) {
 			return;
