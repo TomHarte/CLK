@@ -10,6 +10,8 @@
 
 #include "RawSectorDump.hpp"
 
+#include <string_view>
+
 namespace Storage::MassStorage {
 
 /*!
@@ -19,7 +21,7 @@ namespace Storage::MassStorage {
 */
 class DAT: public RawSectorDump<256> {
 public:
-	DAT(const std::string &file_name);
+	DAT(const std::string_view file_name);
 };
 
 }

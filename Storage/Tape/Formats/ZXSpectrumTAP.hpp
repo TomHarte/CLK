@@ -12,7 +12,7 @@
 #include "Storage/FileHolder.hpp"
 
 #include <cstdint>
-#include <string>
+#include <string_view>
 
 namespace Storage::Tape {
 
@@ -27,7 +27,7 @@ public:
 
 		@throws ErrorNotZXSpectrumTAP if this file could not be opened and recognised as a valid Spectrum-format TAP.
 	*/
-	ZXSpectrumTAP(const std::string &file_name);
+	ZXSpectrumTAP(std::string_view);
 
 	enum {
 		ErrorNotZXSpectrumTAP
@@ -37,7 +37,7 @@ private:
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
 	struct Serialiser: public FormatSerialiser {
-		Serialiser(const std::string &file_name);
+		Serialiser(std::string_view file_name);
 	private:
 		Storage::FileHolder file_;
 

@@ -24,7 +24,7 @@ const std::size_t number_of_tracks = 35;
 
 }
 
-NIB::NIB(const std::string &file_name) :
+NIB::NIB(const std::string_view file_name) :
 	file_(file_name) {
 	// A NIB should be 35 tracks, each 6656 bytes long.
 	if(file_.stats().st_size != track_length*number_of_tracks) {
@@ -48,7 +48,7 @@ bool NIB::is_read_only() const {
 	return file_.is_known_read_only();
 }
 
-bool NIB::represents(const std::string &name) const {
+bool NIB::represents(const std::string_view name) const {
 	return name == file_.name();
 }
 

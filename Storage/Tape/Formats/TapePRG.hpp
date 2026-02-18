@@ -13,7 +13,7 @@
 #include "Storage/TargetPlatforms.hpp"
 
 #include <cstdint>
-#include <string>
+#include <string_view>
 
 namespace Storage::Tape {
 
@@ -28,7 +28,7 @@ public:
 		@param file_name The name of the file to load.
 		@throws ErrorBadFormat if this file could not be opened and recognised as the specified type.
 	*/
-	PRG(const std::string &file_name);
+	PRG(std::string_view file_name);
 
 	enum {
 		ErrorBadFormat
@@ -38,7 +38,7 @@ private:
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
 	struct Serialiser: public FormatSerialiser, public TargetPlatform::Recipient {
-		Serialiser(const std::string &file_name, uint16_t load_address, uint16_t length);
+		Serialiser(std::string_view file_name, uint16_t load_address, uint16_t length);
 		void set_target_platforms(TargetPlatform::Type) override;
 
 	private:

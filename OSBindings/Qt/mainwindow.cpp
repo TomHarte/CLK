@@ -1481,15 +1481,15 @@ void MainWindow::addActivityObserver() {
 	activitySource->set_activity_observer(this);
 }
 
-void MainWindow::register_led(const std::string &name, uint8_t) {
+void MainWindow::register_led(const std::string_view name, uint8_t) {
 	std::lock_guard guard(ledStatusesLock);
-	ledStatuses[name] = false;
+	ledStatuses[std::string(name)] = false;
 	QMetaObject::invokeMethod(this, "updateStatusBarText");
 }
 
-void MainWindow::set_led_status(const std::string &name, const bool isLit) {
+void MainWindow::set_led_status(const std::string_view name, const bool isLit) {
 	std::lock_guard guard(ledStatusesLock);
-	ledStatuses[name] = isLit;
+	ledStatuses[std::string(name)] = isLit;
 	QMetaObject::invokeMethod(this, "updateStatusBarText");
 }
 

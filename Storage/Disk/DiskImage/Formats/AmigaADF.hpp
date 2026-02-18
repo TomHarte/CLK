@@ -26,13 +26,13 @@ public:
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain an .ADF format image.
 	*/
-	AmigaADF(const std::string &file_name);
+	AmigaADF(std::string_view file_name);
 
 	// implemented to satisfy @c Disk
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
-	bool represents(const std::string &) const;
+	bool represents(std::string_view) const;
 
 private:
 	mutable Storage::FileHolder file_;

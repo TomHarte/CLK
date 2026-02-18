@@ -28,8 +28,8 @@ uint8_t JFD::read8() const {
 	return uint8_t(gzgetc(file_));
 }
 
-JFD::JFD(const std::string &file_name) : file_name_(file_name) {
-	file_ = gzopen(file_name.c_str(), "rb");
+JFD::JFD(const std::string_view file_name) : file_name_(file_name) {
+	file_ = gzopen(std::string(file_name).c_str(), "rb");
 
 	// First four bytes: signature.
 	uint8_t signature[4];
@@ -117,6 +117,6 @@ std::unique_ptr<Track> JFD::track_at_position(const Track::Address address) cons
 		sectors);
 }
 
-bool JFD::represents(const std::string &name) const {
+bool JFD::represents(const std::string_view name) const {
 	return name == file_name_;
 }

@@ -12,7 +12,7 @@
 
 using namespace Storage::Disk;
 
-MFMSectorDump::MFMSectorDump(const std::string &file_name) : file_(file_name) {}
+MFMSectorDump::MFMSectorDump(const std::string_view file_name) : file_(file_name) {}
 
 void MFMSectorDump::set_geometry(int sectors_per_track, uint8_t sector_size, uint8_t first_sector, Encodings::MFM::Density density) {
 	sectors_per_track_ = sectors_per_track;
@@ -74,6 +74,6 @@ bool MFMSectorDump::is_read_only() const {
 	return file_.is_known_read_only();
 }
 
-bool MFMSectorDump::represents(const std::string &name) const {
+bool MFMSectorDump::represents(const std::string_view name) const {
 	return name == file_.name();
 }

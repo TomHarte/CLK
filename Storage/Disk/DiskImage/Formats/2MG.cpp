@@ -23,7 +23,7 @@ using namespace Storage::Disk;
 // So, I guess: go factory, pervasively. And probably stop the strict disk/mass storage/tape
 // distinction, given that clearly some platforms just capture volumes abstractly from media.
 
-Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::string &file_name) {
+Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::string_view file_name) {
 	FileHolder file(file_name);
 
 	// Check the signature.

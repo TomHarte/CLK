@@ -30,7 +30,7 @@ public:
 		Raises an exception if the file name doesn't appear to identify a valid
 		Apple II mass storage image.
 	*/
-	HDV(const std::string &file_name, long start = 0, long size = std::numeric_limits<long>::max());
+	HDV(const std::string_view file_name, long start = 0, long size = std::numeric_limits<long>::max());
 
 private:
 	mutable FileHolder file_;

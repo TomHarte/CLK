@@ -171,7 +171,7 @@ public:
 
 	/// Adds an activity observer; it'll be notified of disk activity.
 	/// The caller can specify whether to add an LED based on disk motor.
-	void set_activity_observer(Activity::Observer *observer, const std::string &name, bool add_motor_led);
+	void set_activity_observer(Activity::Observer *observer, std::string_view name, bool add_motor_led);
 
 	/*!
 		Attempts to step to the specified offset and returns the track there if one exists; an uninitialised

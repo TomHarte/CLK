@@ -12,7 +12,7 @@
 #include "Storage/FileHolder.hpp"
 
 #include <cstdint>
-#include <string>
+#include <string_view>
 #include <vector>
 
 namespace Storage::Tape {
@@ -27,7 +27,7 @@ public:
 
 		@throws ErrorNotCAS if this file could not be opened and recognised as a valid CAS file.
 	*/
-	CAS(const std::string &file_name);
+	CAS(std::string_view file_name);
 
 	enum {
 		ErrorNotCAS

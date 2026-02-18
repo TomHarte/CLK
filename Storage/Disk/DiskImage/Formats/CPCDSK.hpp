@@ -12,7 +12,8 @@
 #include "Storage/Disk/Encodings/MFM/Sector.hpp"
 #include "Storage/FileHolder.hpp"
 
-#include <string>
+#include <string_view>
+#include <memory>
 #include <vector>
 
 namespace Storage::Disk {
@@ -28,13 +29,13 @@ public:
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain an Acorn .ADF format image.
 	*/
-	CPCDSK(const std::string &file_name);
+	CPCDSK(std::string_view file_name);
 
 	// DiskImage interface.
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
 	bool is_read_only() const;
-	bool represents(const std::string &) const;
+	bool represents(std::string_view) const;
 	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &);
 	std::unique_ptr<::Storage::Disk::Track> track_at_position(::Storage::Disk::Track::Address) const;
 

@@ -496,7 +496,7 @@ void Drive::set_disk_is_rotating(const bool is_rotating) {
 
 void Drive::set_activity_observer(
 	Activity::Observer *const observer,
-	const std::string &name,
+	const std::string_view name,
 	const bool add_motor_led
 ) {
 	observer_ = observer;

@@ -15,13 +15,13 @@ namespace Storage::Disk {
 
 class MOOF: public DiskImage {
 public:
-	MOOF(const std::string &file_name);
+	MOOF(std::string_view file_name);
 
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
 	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
-	bool represents(const std::string &) const;
+	bool represents(std::string_view) const;
 	bool is_read_only() const;
 
 private:

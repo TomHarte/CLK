@@ -13,8 +13,8 @@
 #include "Storage/FileHolder.hpp"
 #include "Storage/TargetPlatforms.hpp"
 
-#include <string>
-#include <map>
+#include <string_view>
+#include <unordered_map>
 
 namespace Storage::Disk {
 
@@ -33,13 +33,13 @@ public:
 		@throws Error::InvalidFormat if the file doesn't appear to contain an .HFE format image.
 		@throws Error::UnknownVersion if the file looks correct but is an unsupported version.
 	*/
-	IPF(const std::string &file_name);
+	IPF(std::string_view file_name);
 
 	// implemented to satisfy @c Disk
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
-	bool represents(const std::string &) const;
+	bool represents(std::string_view) const;
 
 private:
 	mutable Storage::FileHolder file_;
@@ -70,7 +70,7 @@ private:
 
 	int head_count_;
 	int track_count_;
-	std::map<Track::Address, TrackDescription> tracks_;
+	std::unordered_map<Track::Address, TrackDescription> tracks_;
 	bool is_sps_format_ = false;
 
 	TargetPlatform::Type target_platforms() final {

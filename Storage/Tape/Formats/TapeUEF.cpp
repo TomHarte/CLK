@@ -20,8 +20,8 @@ using Logger = Log::Logger<Log::Source::TapeUEF>;
 
 using namespace Storage::Tape;
 
-UEF::Parser::Parser(const std::string &file_name) {
-	file_ = gzopen(file_name.c_str(), "rb");
+UEF::Parser::Parser(const std::string_view file_name) {
+	file_ = gzopen(std::string(file_name).c_str(), "rb");
 
 	char identifier[10];
 	const int bytes_read = gzread(file_, identifier, 10);
@@ -121,7 +121,7 @@ float UEF::Parser::read<float>() {
 	return result;
 }
 
-UEF::UEF(const std::string &file_name) : file_name_(file_name) {
+UEF::UEF(const std::string_view file_name) : file_name_(file_name) {
 	Parser parser(file_name);
 
 	// If a chunk of type 0005 exists anywhere in the UEF then the UEF specifies its target machine.
@@ -145,7 +145,7 @@ std::unique_ptr<FormatSerialiser> UEF::format_serialiser() const {
 	return std::make_unique<Serialiser>(file_name_);
 }
 
-UEF::Serialiser::Serialiser(const std::string &file_name): parser_(file_name) {
+UEF::Serialiser::Serialiser(const std::string_view file_name): parser_(file_name) {
 }
 
 UEF::Serialiser::~Serialiser() {

@@ -15,7 +15,7 @@
 
 using namespace Storage::State;
 
-std::unique_ptr<Analyser::Static::Target> SNA::load(const std::string &file_name) {
+std::unique_ptr<Analyser::Static::Target> SNA::load(const std::string_view file_name) {
 	// Make sure the file is accessible and appropriately sized.
 	FileHolder file(file_name);
 	if(file.stats().st_size != 48*1024 + 0x1b) {

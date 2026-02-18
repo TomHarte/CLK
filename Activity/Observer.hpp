@@ -9,7 +9,7 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
+#include <string_view>
 
 namespace Activity {
 
@@ -33,15 +33,15 @@ public:
 	};
 
 	/// Announces to the receiver that there is an LED of name @c name.
-	virtual void register_led([[maybe_unused]] const std::string &name, [[maybe_unused]] uint8_t presentation = 0) {}
+	virtual void register_led([[maybe_unused]] std::string_view name, [[maybe_unused]] uint8_t presentation = 0) {}
 
 	/// Announces to the receiver that there is a drive of name @c name.
 	///
 	/// If a drive has the same name as an LED, that LED goes with this drive.
-	virtual void register_drive([[maybe_unused]] const std::string &name) {}
+	virtual void register_drive([[maybe_unused]] std::string_view name) {}
 
 	/// Informs the receiver of the new state of the LED with name @c name.
-	virtual void set_led_status([[maybe_unused]] const std::string &name, [[maybe_unused]] bool lit) {}
+	virtual void set_led_status([[maybe_unused]] std::string_view name, [[maybe_unused]] bool lit) {}
 
 	enum class DriveEvent {
 		StepNormal,
@@ -50,10 +50,10 @@ public:
 	};
 
 	/// Informs the receiver that the named event just occurred for the drive with name @c name.
-	virtual void announce_drive_event([[maybe_unused]] const std::string &name, [[maybe_unused]] DriveEvent event) {}
+	virtual void announce_drive_event([[maybe_unused]] std::string_view name, [[maybe_unused]] DriveEvent event) {}
 
 	/// Informs the receiver of the motor-on status of the drive with name @c name.
-	virtual void set_drive_motor_status([[maybe_unused]] const std::string &name, [[maybe_unused]] bool is_on) {}
+	virtual void set_drive_motor_status([[maybe_unused]] std::string_view name, [[maybe_unused]] bool is_on) {}
 };
 
 }

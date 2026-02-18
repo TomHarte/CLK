@@ -10,7 +10,7 @@
 
 #include "MFMSectorDump.hpp"
 
-#include <string>
+#include <string_view>
 
 namespace Storage::Disk {
 
@@ -20,7 +20,7 @@ namespace Storage::Disk {
 */
 class FAT12: public MFMSectorDump {
 public:
-	FAT12(const std::string &file_name);
+	FAT12(std::string_view file_name);
 	HeadPosition maximum_head_position() const final;
 	int head_count() const final;
 

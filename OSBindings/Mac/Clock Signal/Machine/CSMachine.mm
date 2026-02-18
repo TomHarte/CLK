@@ -12,6 +12,7 @@
 #import "CSHighPrecisionTimer.h"
 #include "CSROMFetcher.hpp"
 #import "CSScanTarget+CppScanTarget.h"
+#import "NSString+StringView.h"
 
 #include "MediaTarget.hpp"
 #include "JoystickMachine.hpp"
@@ -86,16 +87,23 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 };
 
 struct ActivityObserver: public Activity::Observer {
-	void register_led(const std::string &name, uint8_t flags) final {
-		[machine addLED:[NSString stringWithUTF8String:name.c_str()] isPersistent:(flags & Activity::Observer::LEDPresentation::Persistent) ? YES : NO];
+	void register_led(const std::string_view name, const uint8_t flags) final {
+		[machine
+			addLED:[[NSString alloc] initWithStringView:name]
+			isPersistent:(flags & Activity::Observer::LEDPresentation::Persistent) ? YES : NO
+		];
 	}
 
-	void set_led_status(const std::string &name, bool lit) final {
-		[machine.delegate machine:machine led:[NSString stringWithUTF8String:name.c_str()] didChangeToLit:lit];
+	void set_led_status(const std::string_view name, const bool lit) final {
+		[machine.delegate
+			machine:machine
+			led:[[NSString alloc] initWithStringView:name]
+			didChangeToLit:lit
+		];
 	}
 
-	void announce_drive_event(const std::string &name, DriveEvent) final {
-		[machine.delegate machine:machine ledShouldBlink:[NSString stringWithUTF8String:name.c_str()]];
+	void announce_drive_event(const std::string_view name, DriveEvent) final {
+		[machine.delegate machine:machine ledShouldBlink:[[NSString alloc] initWithStringView:name]];
 	}
 
 	__unsafe_unretained CSMachine *machine;

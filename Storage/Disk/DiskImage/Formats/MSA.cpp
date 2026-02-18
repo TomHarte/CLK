@@ -14,7 +14,7 @@
 
 using namespace Storage::Disk;
 
-MSA::MSA(const std::string &file_name) :
+MSA::MSA(const std::string_view file_name) :
 	file_(file_name) {
 	const auto signature = file_.get_be<uint16_t>();
 	if(signature != 0x0e0f) throw Error::InvalidFormat;
@@ -95,6 +95,6 @@ int MSA::head_count() const {
 	return sides_;
 }
 
-bool MSA::represents(const std::string &name) const {
+bool MSA::represents(const std::string_view name) const {
 	return name == file_.name();
 }
