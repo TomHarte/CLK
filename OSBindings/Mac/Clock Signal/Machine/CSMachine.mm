@@ -777,11 +777,15 @@ struct ActivityObserver: public Activity::Observer {
 	});
 }
 
-- (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
+- (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view
+	now:(const CVTimeStamp *)now
+	outputTime:(const CVTimeStamp *)outputTime
+{
 	__weak CSMachine *weakSelf = self;
+	const auto refreshPeriod = view.refreshPeriod;
 
 	std::lock_guard guard(_updaterMutex);
-	_updater->enqueue([weakSelf] {
+	_updater->enqueue([weakSelf, refreshPeriod] {
 		CSMachine *const strongSelf = weakSelf;
 		if(!strongSelf) {
 			return;
@@ -803,7 +807,7 @@ struct ActivityObserver: public Activity::Observer {
 		const auto scanStatus = strongSelf->_machine->scan_producer()->get_scan_status();
 		const bool canSynchronise = strongSelf->_scanSynchroniser.can_synchronise(
 			scanStatus,
-			strongSelf.view.refreshPeriod
+			refreshPeriod
 		);
 
 		if(canSynchronise) {
