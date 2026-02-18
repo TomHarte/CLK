@@ -1112,7 +1112,9 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		// Add a callback to update the scan target buffer and commit the drawing.
 		[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
-			self->_scanTarget.complete_output_area(outputArea);
+			@synchronized (self) {
+				self->_scanTarget.complete_output_area(outputArea);
+			}
 		}];
 		[commandBuffer commit];
 	}
