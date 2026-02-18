@@ -14,6 +14,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <optional>
 
 #include "Concurrency/SpinLock.hpp"
