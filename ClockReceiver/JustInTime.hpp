@@ -85,7 +85,7 @@ public:
 	/// Adds time to the actor.
 	///
 	/// @returns @c true if adding time caused a flush; @c false otherwise.
-	forceinline bool operator += (LocalTimeScale rhs) {
+	forceinline bool operator += (const LocalTimeScale rhs) {
 		if constexpr (std::is_base_of<ClockingHint::Source, T>::value) {
 			if(clocking_preference_ == ClockingHint::Preference::None) {
 				return false;
@@ -222,7 +222,10 @@ public:
 
 	/// Indicates the amount of time, in the local time scale, until the first local slot that falls wholly
 	/// after @c duration, if that delay were to occur in @c offset units of time from now.
-	[[nodiscard]] forceinline LocalTimeScale back_map(TargetTimeScale duration, TargetTimeScale offset) const {
+	[[nodiscard]] forceinline LocalTimeScale back_map(
+		const TargetTimeScale duration,
+		const TargetTimeScale offset
+	) const {
 		// A 1:1 mapping is easy.
 		if constexpr (multiplier == 1 && divider == 1) {
 			return duration;
@@ -295,7 +298,7 @@ template <class T, class LocalTimeScale = HalfCycles, class TargetTimeScale = Lo
 class AsyncJustInTimeActor {
 public:
 	/// Constructs a new AsyncJustInTimeActor using the same construction arguments as the included object.
-	template<typename... Args> AsyncJustInTimeActor(TargetTimeScale threshold, Args&&... args) :
+	template<typename... Args> AsyncJustInTimeActor(const TargetTimeScale threshold, Args&&... args) :
 		object_(std::forward<Args>(args)...),
 		threshold_(threshold) {}
 
