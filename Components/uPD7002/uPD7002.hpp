@@ -6,7 +6,11 @@
 //  Copyright © 2025 Thomas Harte. All rights reserved.
 //
 
+#pragma once
+
 #include "ClockReceiver/ClockReceiver.hpp"
+
+#include <atomic>
 
 namespace NEC {
 
@@ -21,7 +25,7 @@ public:
 
 	/// Defines a mean for an observer to receive notifications upon updates to the interrupt line.
 	struct Delegate {
-	virtual void did_change_interrupt_status(uPD7002 &) = 0;
+		virtual void did_change_interrupt_status(uPD7002 &) = 0;
 	};
 	void set_delegate(Delegate *);
 
@@ -33,7 +37,7 @@ public:
 	void set_input(int channel, float value);
 
 private:
-	float inputs_[4]{};
+	std::atomic<float> inputs_[4]{};
 	uint16_t result_ = 0;
 	bool interrupt_ = false;
 
