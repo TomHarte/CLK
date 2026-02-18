@@ -9,6 +9,7 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <limits>
@@ -456,10 +457,13 @@ private:
 
 	struct ScanTargetPreferences: public Display::ScanTarget::Delegate {
 		static constexpr bool DefaultForceHorizontalScans = false;
-		bool force_horizontal_scans = DefaultForceHorizontalScans;
+		std::atomic<bool> force_horizontal_scans = DefaultForceHorizontalScans;
 
 		void set(const Preferences &preferences) override {
-			force_horizontal_scans = preferences.force_horizontal_scans.value_or(DefaultForceHorizontalScans);
+			force_horizontal_scans.store(
+				preferences.force_horizontal_scans.value_or(DefaultForceHorizontalScans),
+				std::memory_order_relaxed
+			);
 		}
 	} preferences_;
 	uint16_t start_of_line_y_;

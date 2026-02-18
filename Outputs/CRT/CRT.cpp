@@ -445,7 +445,8 @@ Outputs::Display::ScanTarget::Scan::EndPoint CRT::end_point(const uint16_t data_
 		// Clamp the available range on endpoints. These will almost always be within range, but may go
 		// out during times of resync.
 		.x = uint16_t(std::min(horizontal_flywheel_.current_output_position(), 65535)),
-		.y = preferences_.force_horizontal_scans ? start_of_line_y_ : current_vertical_flywheel(),
+		.y = preferences_.force_horizontal_scans.load(std::memory_order_relaxed) ?
+			start_of_line_y_ : current_vertical_flywheel(),
 		.data_offset = data_offset,
 
 		.composite_angle = int16_t(composite_angle),
