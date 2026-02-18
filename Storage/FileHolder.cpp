@@ -105,7 +105,7 @@ std::string FileHolder::extension() const {
 	return extension;
 }
 
-const std::string &FileHolder::name() const {
+const std::string_view FileHolder::name() const {
 	return name_;
 }
 

@@ -188,7 +188,7 @@ void enable_vertex_attributes(
 ) {
 	OpenGL::DirtyZone zone;
 	vertex_array.bind_all();
-	const auto enable = [&](const std::string &name, uint16_t &element) {
+	const auto enable = [&](const auto &name, uint16_t &element) {
 		shader.enable_vertex_attribute_with_pointer(
 			name,
 			1,

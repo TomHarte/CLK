@@ -454,7 +454,7 @@ void enable_vertex_attributes(
 ) {
 	Outputs::Display::BufferingScanTarget::Scan scan;
 	vertex_array.bind_all();
-	const auto enable = [&](const std::string &name, auto &element, const bool normalise, const GLint size) {
+	const auto enable = [&](const auto &name, auto &element, const bool normalise, const GLint size) {
 		assert(sizeof(element) == 1 || sizeof(element) == 2);
 		shader.enable_vertex_attribute_with_pointer(
 			name,

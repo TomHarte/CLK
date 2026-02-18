@@ -101,7 +101,7 @@ OpenGL::LineOutputShader::LineOutputShader(
 
 	BufferingScanTarget::Line line;
 	vertex_array.bind_all();
-	const auto enable = [&](const std::string &name, uint16_t &element, const GLint size) {
+	const auto enable = [&](const auto &name, uint16_t &element, const GLint size) {
 		shader_.enable_vertex_attribute_with_pointer(
 			name,
 			size,

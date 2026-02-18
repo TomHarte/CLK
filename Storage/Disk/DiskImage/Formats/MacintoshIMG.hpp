@@ -31,7 +31,7 @@ public:
 
 		@throws Error::InvalidFormat if this file doesn't appear to be in Disk Copy 4.2 format.
 	*/
-	MacintoshIMG(const std::string &file_name);
+	MacintoshIMG(std::string_view file_name);
 
 	enum class FixedType {
 		GCR

@@ -42,7 +42,7 @@ MacintoshIMG::MacintoshIMG(
 	}
 }
 
-MacintoshIMG::MacintoshIMG(const std::string &file_name) :
+MacintoshIMG::MacintoshIMG(const std::string_view file_name) :
 	file_(file_name) {
 
 	// Test 1: is this a raw sector dump? If so it'll start with
