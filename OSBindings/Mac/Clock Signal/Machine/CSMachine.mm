@@ -189,6 +189,7 @@ struct ActivityObserver: public Activity::Observer {
 	_machine->scan_producer()->set_scan_target(_view.scanTarget.scanTarget);
 
 	updater = std::make_unique<Updater>();
+	std::atomic_thread_fence(std::memory_order_release);
 	updater->performer.machine = _machine.get();
 	if(updater->performer.machine) {
 		updater->start();
@@ -532,6 +533,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)applyInputEvent:(dispatch_block_t)event {
+	std::atomic_thread_fence(std::memory_order_acquire);
 	updater->enqueue([event] {
 		event();
 	});
@@ -763,6 +765,7 @@ struct ActivityObserver: public Activity::Observer {
 - (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue {
 	__weak CSMachine *weakSelf = self;
 
+	std::atomic_thread_fence(std::memory_order_acquire);
 	updater->enqueue([weakSelf] {
 		CSMachine *const strongSelf = weakSelf;
 		if(strongSelf) {
@@ -774,6 +777,7 @@ struct ActivityObserver: public Activity::Observer {
 - (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
 	__weak CSMachine *weakSelf = self;
 
+	std::atomic_thread_fence(std::memory_order_acquire);
 	updater->enqueue([weakSelf] {
 		CSMachine *const strongSelf = weakSelf;
 		if(!strongSelf) {
@@ -821,6 +825,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)stop {
+	std::atomic_thread_fence(std::memory_order_acquire);
 	updater->stop();
 }
 
