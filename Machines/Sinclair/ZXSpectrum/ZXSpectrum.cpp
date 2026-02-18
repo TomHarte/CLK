@@ -41,6 +41,7 @@
 #include "ClockReceiver/JustInTime.hpp"
 
 #include <array>
+#include <atomic>
 
 namespace {
 
@@ -60,10 +61,12 @@ public:
 
 	void did_set_input(const Input &digital_input, bool is_active) final {
 		const auto apply_kempston = [&](uint8_t mask) {
-			if(is_active) kempston_ |= mask; else kempston_ &= ~mask;
+			if(is_active) write_kempston_ |= mask; else write_kempston_ &= ~mask;
+			kempston_.store(write_kempston_, std::memory_order_relaxed);
 		};
 		const auto apply_sinclair = [&](uint16_t mask) {
-			if(is_active) sinclair_ &= ~mask; else sinclair_ |= mask;
+			if(is_active) write_sinclair_ &= ~mask; else write_sinclair_ |= mask;
+			sinclair_.store(write_sinclair_, std::memory_order_relaxed);
 		};
 
 		switch(digital_input.type) {
@@ -95,18 +98,23 @@ public:
 	/// @returns The value that a Kempston joystick interface would report if this joystick
 	/// were plugged into it.
 	uint8_t get_kempston() {
-		return kempston_;
+		return kempston_.load(std::memory_order_relaxed);
 	}
 
 	/// @returns The value that a Sinclair interface would report if this joystick
 	/// were plugged into it via @c port (which should be either 0 or 1, for ports 1 or 2).
-	uint8_t get_sinclair(int port) {
-		return uint8_t(sinclair_ >> (port * 8));
+	uint8_t get_sinclair(const int port) {
+		return uint8_t(sinclair_.load(std::memory_order_relaxed) >> (port * 8));
 	}
 
 private:
-	uint8_t kempston_ = 0x00;
-	uint16_t sinclair_ = 0xffff;
+	static constexpr uint8_t DefaultKempston = 0x00;
+	static constexpr uint16_t DefaultSinclair = 0xffff;
+	uint8_t write_kempston_ = DefaultKempston;
+	uint16_t write_sinclair_ = DefaultSinclair;
+
+	std::atomic<uint8_t> kempston_ = DefaultKempston;
+	std::atomic<uint16_t> sinclair_ = DefaultSinclair;
 };
 
 }

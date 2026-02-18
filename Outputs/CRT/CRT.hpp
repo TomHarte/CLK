@@ -9,17 +9,22 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <optional>
+
+#include "Concurrency/SpinLock.hpp"
 
 #include "Outputs/ScanTarget.hpp"
 #include "Outputs/CRT/Internals/Flywheel.hpp"
 #include "Outputs/CRT/Internals/RectAccumulator.hpp"
 
 #include "Numeric/CubicCurve.hpp"
+
 
 namespace Outputs::CRT {
 
@@ -228,6 +233,7 @@ public:
 		@returns A pointer to the allocated area if room is available; @c nullptr otherwise.
 	*/
 	inline uint8_t *begin_data(const std::size_t required_length, const std::size_t required_alignment = 1) {
+		std::lock_guard guard(scan_target_lock_);
 		const auto result = scan_target_->begin_data(required_length, required_alignment);
 #ifndef NDEBUG
 		// If data was allocated, make a record of how much so as to be able to hold the caller to that
@@ -385,6 +391,7 @@ private:
 
 	int cycles_per_line_ = 1;
 
+	Concurrency::SpinLock<Concurrency::Barrier::AcquireRelease> scan_target_lock_;
 	Outputs::Display::ScanTarget *scan_target_ = &Outputs::Display::NullScanTarget::singleton;
 	Outputs::Display::ScanTarget::Modals scan_target_modals_;
 
@@ -456,10 +463,13 @@ private:
 
 	struct ScanTargetPreferences: public Display::ScanTarget::Delegate {
 		static constexpr bool DefaultForceHorizontalScans = false;
-		bool force_horizontal_scans = DefaultForceHorizontalScans;
+		std::atomic<bool> force_horizontal_scans = DefaultForceHorizontalScans;
 
 		void set(const Preferences &preferences) override {
-			force_horizontal_scans = preferences.force_horizontal_scans.value_or(DefaultForceHorizontalScans);
+			force_horizontal_scans.store(
+				preferences.force_horizontal_scans.value_or(DefaultForceHorizontalScans),
+				std::memory_order_relaxed
+			);
 		}
 	} preferences_;
 	uint16_t start_of_line_y_;

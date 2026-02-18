@@ -126,7 +126,14 @@ struct ActivityObserver: public Activity::Observer {
 	CSJoystickManager *_joystickManager;
 	NSMutableArray<CSMachineLED *> *_leds;
 
-	std::unique_ptr<Updater> updater;
+	std::unique_ptr<Updater> _ownedUpdater;
+	std::atomic<Updater *> _updater;	// This will only ever be updated from nullptr to a valid pointer;
+										// that pointer will live for the lifetime of this NSObject.
+										//
+										// So, it's safe to read this atomically and check for nullptr. If
+										// it is nullptr then you read it ahead of the object being created.
+										// If it isn't then the object will definitely still be alive if
+										// other NSObject lifetime invariants have held.
 	Time::ScanSynchroniser _scanSynchroniser;
 
 	NSTimer *_joystickTimer;
@@ -188,11 +195,13 @@ struct ActivityObserver: public Activity::Observer {
 	_analyser = machine;
 	_machine->scan_producer()->set_scan_target(_view.scanTarget.scanTarget);
 
-	updater = std::make_unique<Updater>();
-	updater->performer.machine = _machine.get();
-	if(updater->performer.machine) {
-		updater->start();
+	_ownedUpdater = std::make_unique<Updater>();
+	std::atomic_thread_fence(std::memory_order_release);
+	_ownedUpdater->performer.machine = _machine.get();
+	if(_ownedUpdater->performer.machine) {
+		_ownedUpdater->start();
 	}
+	_updater.store(_ownedUpdater.get(), std::memory_order_relaxed);
 
 	_leds = [[NSMutableArray alloc] init];
 	Activity::Source *const activity_source = _machine->activity_source();
@@ -532,6 +541,9 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)applyInputEvent:(dispatch_block_t)event {
+	const auto updater = _updater.load(std::memory_order_relaxed);
+	if(!updater) return;
+
 	updater->enqueue([event] {
 		event();
 	});
@@ -763,18 +775,28 @@ struct ActivityObserver: public Activity::Observer {
 - (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue {
 	__weak CSMachine *weakSelf = self;
 
-	updater->enqueue([weakSelf] {
+	const auto updater = _updater.load(std::memory_order_relaxed);
+	if(!updater) return;
+
+	updater->enqueue([weakSelf, updater] {
 		CSMachine *const strongSelf = weakSelf;
 		if(strongSelf) {
-			strongSelf->updater->performer.timed_machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
+			updater->performer.timed_machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
 		}
 	});
 }
 
-- (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
+- (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view
+	now:(const CVTimeStamp *)now
+	outputTime:(const CVTimeStamp *)outputTime
+{
 	__weak CSMachine *weakSelf = self;
+	const auto refreshPeriod = view.refreshPeriod;
 
-	updater->enqueue([weakSelf] {
+	const auto updater = _updater.load(std::memory_order_relaxed);
+	if(!updater) return;
+
+	updater->enqueue([weakSelf, refreshPeriod, updater] {
 		CSMachine *const strongSelf = weakSelf;
 		if(!strongSelf) {
 			return;
@@ -782,7 +804,7 @@ struct ActivityObserver: public Activity::Observer {
 
 		// Grab a pointer to the timed machine from somewhere where it has already
 		// been dynamically cast, to avoid that cost here.
-		MachineTypes::TimedMachine *const timed_machine = strongSelf->updater->performer.timed_machine;
+		MachineTypes::TimedMachine *const timed_machine = updater->performer.timed_machine;
 
 		// Definitely update video; update audio too if that pipeline is looking a little dry.
 		auto outputs = MachineTypes::TimedMachine::Output::Video;
@@ -795,7 +817,7 @@ struct ActivityObserver: public Activity::Observer {
 		const auto scanStatus = strongSelf->_machine->scan_producer()->get_scan_status();
 		const bool canSynchronise = strongSelf->_scanSynchroniser.can_synchronise(
 			scanStatus,
-			strongSelf.view.refreshPeriod
+			refreshPeriod
 		);
 
 		if(canSynchronise) {
@@ -821,6 +843,8 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)stop {
+	const auto updater = _updater.load(std::memory_order_relaxed);
+	if(!updater) return;
 	updater->stop();
 }
 

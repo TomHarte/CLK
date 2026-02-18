@@ -24,7 +24,9 @@ void uPD7002::run_for(const HalfCycles count) {
 
 	if(count >= conversion_time_remaining_) {
 		conversion_time_remaining_ = HalfCycles(0);
-		result_ = uint16_t(inputs_[channel_] * 65535.0f) & (high_precision_ ? 0xfff0 : 0xff00);
+		result_ = uint16_t(
+			inputs_[channel_].load(std::memory_order_relaxed) * 65535.0f) & (high_precision_ ? 0xfff0 : 0xff00
+		);
 		set_interrupt(true);
 		return;
 	}
@@ -81,5 +83,5 @@ void uPD7002::set_interrupt(const bool value) {
 }
 
 void uPD7002::set_input(const int channel, const float value) {
-	inputs_[channel] = value;
+	inputs_[channel].store(value, std::memory_order_relaxed);
 }
