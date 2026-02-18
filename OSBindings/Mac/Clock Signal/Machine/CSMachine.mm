@@ -126,7 +126,8 @@ struct ActivityObserver: public Activity::Observer {
 	CSJoystickManager *_joystickManager;
 	NSMutableArray<CSMachineLED *> *_leds;
 
-	std::unique_ptr<Updater> updater;
+	std::mutex _updaterMutex;
+	std::unique_ptr<Updater> _updater;
 	Time::ScanSynchroniser _scanSynchroniser;
 
 	NSTimer *_joystickTimer;
@@ -188,11 +189,12 @@ struct ActivityObserver: public Activity::Observer {
 	_analyser = machine;
 	_machine->scan_producer()->set_scan_target(_view.scanTarget.scanTarget);
 
-	updater = std::make_unique<Updater>();
+	std::lock_guard guard(_updaterMutex);
+	_updater = std::make_unique<Updater>();
 	std::atomic_thread_fence(std::memory_order_release);
-	updater->performer.machine = _machine.get();
-	if(updater->performer.machine) {
-		updater->start();
+	_updater->performer.machine = _machine.get();
+	if(_updater->performer.machine) {
+		_updater->start();
 	}
 
 	_leds = [[NSMutableArray alloc] init];
@@ -533,8 +535,8 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)applyInputEvent:(dispatch_block_t)event {
-	std::atomic_thread_fence(std::memory_order_acquire);
-	updater->enqueue([event] {
+	std::lock_guard guard(_updaterMutex);
+	_updater->enqueue([event] {
 		event();
 	});
 }
@@ -765,11 +767,12 @@ struct ActivityObserver: public Activity::Observer {
 - (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue {
 	__weak CSMachine *weakSelf = self;
 
-	std::atomic_thread_fence(std::memory_order_acquire);
-	updater->enqueue([weakSelf] {
+	std::lock_guard guard(_updaterMutex);
+	_updater->enqueue([weakSelf] {
 		CSMachine *const strongSelf = weakSelf;
 		if(strongSelf) {
-			strongSelf->updater->performer.timed_machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
+			std::lock_guard guard(strongSelf->_updaterMutex);
+			strongSelf->_updater->performer.timed_machine->flush_output(MachineTypes::TimedMachine::Output::Audio);
 		}
 	});
 }
@@ -777,8 +780,8 @@ struct ActivityObserver: public Activity::Observer {
 - (void)scanTargetViewDisplayLinkDidFire:(CSScanTargetView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
 	__weak CSMachine *weakSelf = self;
 
-	std::atomic_thread_fence(std::memory_order_acquire);
-	updater->enqueue([weakSelf] {
+	std::lock_guard guard(_updaterMutex);
+	_updater->enqueue([weakSelf] {
 		CSMachine *const strongSelf = weakSelf;
 		if(!strongSelf) {
 			return;
@@ -786,7 +789,8 @@ struct ActivityObserver: public Activity::Observer {
 
 		// Grab a pointer to the timed machine from somewhere where it has already
 		// been dynamically cast, to avoid that cost here.
-		MachineTypes::TimedMachine *const timed_machine = strongSelf->updater->performer.timed_machine;
+		std::lock_guard guard(strongSelf->_updaterMutex);
+		MachineTypes::TimedMachine *const timed_machine = strongSelf->_updater->performer.timed_machine;
 
 		// Definitely update video; update audio too if that pipeline is looking a little dry.
 		auto outputs = MachineTypes::TimedMachine::Output::Video;
@@ -826,7 +830,8 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)stop {
 	std::atomic_thread_fence(std::memory_order_acquire);
-	updater->stop();
+	std::lock_guard guard(_updaterMutex);
+	_updater->stop();
 }
 
 + (BOOL)attemptInstallROM:(NSURL *)url {
