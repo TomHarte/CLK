@@ -934,10 +934,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		// Ensure texture changes are noted.
 		const auto writeAreaModificationStart =
-			size_t(outputArea.begin.write_area_x + outputArea.begin.write_area_y * BufferWidth)
+			size_t(outputArea.begin.write_area_x + outputArea.begin.write_area_y * BufferingScanTarget::WriteAreaWidth)
 				* _bytesPerInputPixel;
 		const auto writeAreaModificationEnd =
-			size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * BufferWidth)
+			size_t(outputArea.end.write_area_x + outputArea.end.write_area_y * BufferingScanTarget::WriteAreaWidth)
 				* _bytesPerInputPixel;
 		range_perform(
 			writeAreaModificationStart,
