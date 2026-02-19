@@ -932,7 +932,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		const auto outputArea = _scanTarget.get_output_area();
 
-		// Ensure texture changes are noted.
+		// Ensure buffer changes are noted.
 		const auto writeAreaModificationStart =
 			size_t(outputArea.begin.write_area_x + outputArea.begin.write_area_y * BufferWidth)
 				* _bytesPerInputPixel;
@@ -945,6 +945,26 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			_totalTextureBytes,
 			[&](const size_t start, const size_t size) {
 				[_writeAreaBuffer didModifyRange:NSMakeRange(start, size)];
+			}
+		);
+
+		range_perform(
+			outputArea.begin.scan,
+			outputArea.end.scan,
+			NumBufferedScans,
+			[&](const size_t start, const size_t size) {
+				static constexpr auto scanSize = sizeof(Outputs::Display::BufferingScanTarget::Scan);
+				[_scansBuffer didModifyRange:NSMakeRange(start * scanSize, size * scanSize)];
+			}
+		);
+
+		range_perform(
+			outputArea.begin.line,
+			outputArea.end.line,
+			NumBufferedLines,
+			[&](const size_t start, const size_t size) {
+				static constexpr auto lineSize = sizeof(Outputs::Display::BufferingScanTarget::Line);
+				[_linesBuffer didModifyRange:NSMakeRange(start * lineSize, size * lineSize)];
 			}
 		);
 
