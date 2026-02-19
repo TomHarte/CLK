@@ -9,6 +9,7 @@
 #include "SAA5050.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 
 namespace {
@@ -151,7 +152,7 @@ enum ControlCode: uint8_t {
 using namespace Mullard;
 
 void SAA5050Serialiser::begin_frame(const bool is_odd) {
-	line_ = -2;
+	line_ = next_line_ = 0;
 	row_ = 0;
 	odd_frame_ = is_odd;
 
@@ -162,7 +163,7 @@ void SAA5050Serialiser::begin_frame(const bool is_odd) {
 }
 
 void SAA5050Serialiser::begin_line() {
-	line_ += 2;
+	line_ = next_line_;
 	if(line_ == 20) {
 		line_ = 0;
 		++row_;
@@ -172,6 +173,7 @@ void SAA5050Serialiser::begin_line() {
 		}
 		row_has_double_height_ = false;
 	}
+	next_line_ = line_ + 2;
 
 	output_.reset();
 	has_output_ = false;
@@ -265,6 +267,8 @@ void SAA5050Serialiser::add(const Numeric::SizedInt<7> c) {
 }
 
 void SAA5050Serialiser::load_pixels(const uint8_t c) {
+	assert(line_ >= 0 && line_ < 20);
+
 	if(flash_ && ((frame_counter_&31) > 23)) {	// Complete guess on the blink period here.
 		output_.reset();
 		return;

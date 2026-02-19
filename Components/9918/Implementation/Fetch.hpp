@@ -284,10 +284,10 @@ private:
 		sprite.image[2] = colour;
 		sprite.x -= sprite.early_clock();
 
-		const AddressT graphic_location = base->sprite_generator_table_address_ & bits<11>(AddressT((name << 3) | sprite.row));
+		const AddressT graphic_location =
+			base->sprite_generator_table_address_ & bits<11>(AddressT((name << 3) | sprite.row));
 		sprite.image[0] = base->ram_[graphic_location];
-		sprite.image[1] = base->ram_[graphic_location+16];	// TODO: occasional out-of-bounds accesses here. Check
-															// uninitialised Master System.
+		sprite.image[1] = base->ram_[graphic_location | 16];
 
 		if constexpr (SpriteBuffer::test_is_filling) {
 			if(slot == ((mode == SpriteMode::Mode2) ? 7 : 3)) {
