@@ -95,7 +95,6 @@
 */
 
 namespace {
-constexpr auto BufferWidth = Outputs::Display::FilterGenerator::SuggestedBufferWidth;
 constexpr size_t NumBufferedLines = 500;
 constexpr size_t NumBufferedScans = NumBufferedLines * 4;
 
@@ -474,7 +473,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// Build a descriptor for any intermediate line texture.
 	MTLTextureDescriptor *const lineTextureDescriptor = [MTLTextureDescriptor
 		texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
-		width:BufferWidth
+		width:Outputs::Display::FilterGenerator::SuggestedBufferWidth
 		height:NumBufferedLines
 		mipmapped:NO];
 	lineTextureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
