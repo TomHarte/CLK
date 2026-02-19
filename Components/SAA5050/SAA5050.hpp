@@ -74,7 +74,7 @@ private:
 	Output output_;
 	bool has_output_ = false;
 
-	int row_, line_;
+	int row_, line_, next_line_;
 	bool odd_frame_;
 
 	bool flash_ = false;
