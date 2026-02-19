@@ -236,7 +236,7 @@ private:
 			count += 8;
 
 			// Output pixel row prematurely if storage is exhausted.
-			if(output_state == OutputState::Pixels && pixel_pointer == pixels + DefaultAllocationSize) {
+			if(output_state == OutputState::Pixels && pixels && pixel_pointer == pixels + DefaultAllocationSize) {
 				flush_pixels();
 				count = 0;
 			}
