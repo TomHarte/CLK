@@ -17,6 +17,7 @@
 #include "Outputs/OpenGL/Shaders/LineOutputShader.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 using namespace Outputs::Display::OpenGL;
@@ -126,10 +127,10 @@ void ScanTarget::set_alphas() {
 	static constexpr float OutputAlpha = 0.64f;
 
 	if(!scan_output_shader_.empty()) {
-		scan_output_shader_.set_alpha(is_interlaced() ? OutputAlpha*OutputAlpha : OutputAlpha);
+		scan_output_shader_.set_alpha(is_interlaced() ? std::sqrt(OutputAlpha) : OutputAlpha);
 	}
 	if(!line_output_shader_.empty()) {
-		line_output_shader_.set_alpha(is_interlaced() ? OutputAlpha*OutputAlpha : OutputAlpha);
+		line_output_shader_.set_alpha(is_interlaced() ? std::sqrt(OutputAlpha) : OutputAlpha);
 	}
 }
 
@@ -546,9 +547,17 @@ void ScanTarget::process_to_rgb(const OutputArea &area) {
 	}
 }
 
-void ScanTarget::output_lines(const OutputArea &area) {
+void ScanTarget::bind_current_output_buffer() {
 	output_buffers_[output_buffer_ & (is_interlaced() ? 1 : 0)].bind_framebuffer();
+}
 
+void ScanTarget::toggle_output_buffer() {
+	output_buffer_ ^= 1;
+	bind_current_output_buffer();
+}
+
+void ScanTarget::output_lines(const OutputArea &area) {
+	bind_current_output_buffer();
 	BufferingScanTarget::output_lines(
 		area,
 		[&](const size_t begin, const size_t end) {
@@ -565,15 +574,13 @@ void ScanTarget::output_lines(const OutputArea &area) {
 				full_display_rectangle_.draw(0.0, 0.0, 0.0);
 			}
 			test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
-			output_buffer_ ^= 1;
-			output_buffers_[output_buffer_ & (is_interlaced() ? 1 : 0)].bind_framebuffer();
+			toggle_output_buffer();
 		}
 	);
 }
 
 void ScanTarget::output_scans(const OutputArea &area) {
-	output_buffers_[output_buffer_ & (is_interlaced() ? 1 : 0)].bind_framebuffer();
-
+	bind_current_output_buffer();
 	BufferingScanTarget::output_scans(
 		area,
 		[&](const size_t begin, const size_t end) {
@@ -590,8 +597,7 @@ void ScanTarget::output_scans(const OutputArea &area) {
 				full_display_rectangle_.draw(0.0, 0.0, 0.0);
 			}
 			test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
-			output_buffer_ ^= 1;
-			output_buffers_[output_buffer_ & (is_interlaced() ? 1 : 0)].bind_framebuffer();
+			toggle_output_buffer();
 		}
 	);
 }
@@ -604,6 +610,12 @@ void ScanTarget::draw(const int output_width, const int output_height) {
 
 	if(!output_buffers_[0].empty()) {
 		if(is_interlaced()) {
+			if(!was_interlacing_) {
+				output_buffers_[1].bind_framebuffer();
+				output_buffers_[0].bind_texture();
+				copy_shader_.perform(OutputTextureUnits[0], 1.0f);
+			}
+
 			test_gl([&]{ glEnable(GL_BLEND); });
 			test_gl([&]{ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); });
 			test_gl([&]{ glDisable(GL_STENCIL_TEST); });
@@ -619,6 +631,7 @@ void ScanTarget::draw(const int output_width, const int output_height) {
 			output_buffers_[0].bind_texture();
 			copy_shader_.perform(OutputTextureUnits[0], 1.0f);
 		}
+		was_interlacing_ = is_interlaced();
 	}
 
 	is_drawing_to_output_.clear(std::memory_order_release);

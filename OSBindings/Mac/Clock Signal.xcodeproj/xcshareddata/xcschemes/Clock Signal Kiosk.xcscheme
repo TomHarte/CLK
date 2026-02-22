@@ -98,7 +98,7 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--new=bbcmicro"
+            argument = "--new=electron"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -107,7 +107,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--display=CompositeColour"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--help"
