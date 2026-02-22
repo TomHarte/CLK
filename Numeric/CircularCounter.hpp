@@ -12,6 +12,11 @@
 
 namespace Numeric {
 
+template <typename IntT>
+constexpr bool is_power_of_two(const IntT value) {
+	return !(value & (value - 1));
+}
+
 template <typename IntT, IntT limit>
 class CircularCounter {
 public:
@@ -22,8 +27,15 @@ public:
 
 	CircularCounter &operator ++() {
 		++value_;
-		if(value_ == limit) {
-			value_ = 0;
+
+		// Inspection confirms that the compiler does not make the following
+		// optimisation automatically.
+		if constexpr (is_power_of_two(limit)) {
+			value_ &= limit - 1;
+		} else {
+			if(value_ == limit) {
+				value_ = 0;
+			}
 		}
 		return *this;
 	}

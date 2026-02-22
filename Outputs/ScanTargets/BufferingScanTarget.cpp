@@ -234,6 +234,29 @@ void BufferingScanTarget::announce(
 			++read;
 			frame_read_.store(read, std::memory_order_relaxed);
 		}
+
+		// Look for an even-odd pattern in start-of-frame line placement as an indication that
+		// incoming video is interlaced. That might be helpful information in deciding exactly
+		// how to display scans pleasantly, depending on the display target.
+		start_history_[start_history_pointer_] = location;
+		++start_history_pointer_;
+
+		static constexpr int CoordinateEpsilon = 100;
+		const auto similar_enough = [&](const size_t start, const size_t stride) {
+			for(size_t index = start + stride; index < start_history_.size(); index += stride) {
+				if(
+					abs(start_history_[index - stride].x - start_history_[index].x) > CoordinateEpsilon ||
+					abs(start_history_[index - stride].y - start_history_[index].y) > CoordinateEpsilon
+				) {
+					return false;
+				}
+			}
+			return true;
+		};
+		is_interlaced_.store(
+			!similar_enough(0, 1) && similar_enough(0, 2) && similar_enough(1, 2),
+			std::memory_order_relaxed
+		);
 	}
 
 	// Proceed from here only if a change in visibility has occurred.
@@ -415,4 +438,8 @@ const Outputs::Display::ScanTarget::Modals &BufferingScanTarget::modals() const 
 
 bool BufferingScanTarget::has_new_modals() const {
 	return modals_are_dirty_.load(std::memory_order_relaxed);
+}
+
+bool BufferingScanTarget::is_interlaced() const {
+	return is_interlaced_.load(std::memory_order_relaxed);
 }

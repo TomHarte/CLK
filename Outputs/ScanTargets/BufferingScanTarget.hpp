@@ -164,6 +164,13 @@ public:
 	/// @returns the current @c Modals.
 	const Modals &modals() const;
 
+	/// @returns whether the current output being received appears to describe an interlaced signal.
+	/// This is a hint only, potentially to provide for better deinterlacing of output, being derived locally
+	/// from line positioning. Specifically: if a scan target pays no heed to this whatsoever it's likely to
+	/// end up doing the equivalent of a bob. If it so desires, it might prefer to do something closer to
+	/// a weave if and only if interlaced video is detected.
+	bool is_interlaced() const;
+
 	/// @returns @c true if new modals are available; @c false otherwise.
 	///
 	/// Safe to call from any thread.
@@ -317,6 +324,12 @@ private:
 	std::atomic<Numeric::CircularCounter<uint16_t, NumFrames>> frame_read_;
 	std::atomic<Numeric::CircularCounter<uint16_t, NumFrames>> frame_write_;
 
+	// A recent history of field start positions, to allow detection of interlaced video.
+	// That can be used as a hint for display purposes.
+	static constexpr size_t StartHistoryLength = 16;
+	std::array<Outputs::Display::ScanTarget::Scan::EndPoint, StartHistoryLength> start_history_;
+	Numeric::CircularCounter<size_t, StartHistoryLength> start_history_pointer_;
+	std::atomic<bool> is_interlaced_ = false;
 
 	// By convention everything in the PointerSet points to the next instance
 	// of whatever it is that will be used. So a client should start with whatever
