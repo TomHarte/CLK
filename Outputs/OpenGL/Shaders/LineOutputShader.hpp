@@ -28,13 +28,13 @@ public:
 		int expected_vertical_lines,
 		int scale_x,
 		int scale_y,
-		float alpha,
 		const VertexArray &,
 		GLenum source_texture_unit
 	);
 	LineOutputShader() = default;
 
 	void set_aspect_ratio_transformation(const std::array<float, 9> &);
+	void set_alpha(float);
 	void bind();
 
 	void reset() { shader_.reset(); }

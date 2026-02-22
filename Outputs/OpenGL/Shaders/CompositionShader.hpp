@@ -65,13 +65,13 @@ public:
 		int scale_y,
 		int source_width,
 		int source_height,
-		float alpha,
 		const VertexArray &,
 		GLenum source_texture_unit
 	);
 	ScanOutputShader() = default;
 
 	void set_aspect_ratio_transformation(const std::array<float, 9> &);
+	void set_alpha(float);
 	void bind();
 
 	void reset() { shader_.reset(); }

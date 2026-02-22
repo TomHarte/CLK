@@ -40,6 +40,7 @@
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
+      enableGPUValidationMode = "1"
       allowLocationSimulation = "YES">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
@@ -90,14 +91,14 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--rompath=/Users/thomasharte/Projects/CLK/ROMImages"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--volume=0.01"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--new=zxspectrum"
+            argument = "--new=bbcmicro"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

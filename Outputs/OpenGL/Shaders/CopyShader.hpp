@@ -44,7 +44,7 @@ public:
 	CopyShader(CopyShader &&) = default;
 	CopyShader &operator =(CopyShader &&) = default;
 
-	void perform(const GLenum source);
+	void perform(const GLenum source, float alpha);
 	bool empty() const {
 		return shader_.empty();
 	}

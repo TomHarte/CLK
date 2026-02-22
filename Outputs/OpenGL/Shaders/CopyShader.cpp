@@ -32,6 +32,7 @@ constexpr char fragment_shader[] = R"glsl(
 uniform sampler2D source;
 uniform float brightness;
 uniform float gamma;
+uniform float alpha;
 
 in vec2 coordinate;
 
@@ -49,7 +50,7 @@ void main(void) {
 		pow(outputColour.r, gamma),
 		pow(outputColour.g, gamma),
 		pow(outputColour.b, gamma),
-		1.0
+		alpha
 	);
 #endif
 }
@@ -110,12 +111,13 @@ OpenGL::CopyShader::CopyShader(
 	);
 }
 
-void OpenGL::CopyShader::perform(const GLenum source) {
+void OpenGL::CopyShader::perform(const GLenum source, const float alpha) {
 	shader_.bind();
 	if(source_ != source) {
 		source_ = source;
 		shader_.set_uniform("source", GLint(source_ - GL_TEXTURE0));
 	}
+	shader_.set_uniform("alpha", GLfloat(alpha));
 
 	vertices_.bind();
 	test_gl([&]{ glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); });

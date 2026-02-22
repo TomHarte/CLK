@@ -537,7 +537,6 @@ OpenGL::ScanOutputShader::ScanOutputShader(
 	const int scale_y,
 	const int source_width,
 	const int source_height,
-	const float alpha,
 	const VertexArray &vertex_array,
 	const GLenum source_texture_unit
 ) {
@@ -553,11 +552,14 @@ OpenGL::ScanOutputShader::ScanOutputShader(
 	shader_.set_uniform("lineHeight", 1.05f / GLfloat(expected_vertical_lines));
 	shader_.set_uniform("positionScale", GLfloat(scale_x), GLfloat(scale_y));
 	shader_.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
-	shader_.set_uniform("alpha", GLfloat(alpha));
 }
 
 void OpenGL::ScanOutputShader::set_aspect_ratio_transformation(const std::array<float, 9> &transform) {
 	shader_.set_uniform_matrix("scale", 3, false, transform.data());
+}
+
+void OpenGL::ScanOutputShader::set_alpha(const float alpha) {
+	shader_.set_uniform("alpha", GLfloat(alpha));
 }
 
 void OpenGL::ScanOutputShader::bind() {
