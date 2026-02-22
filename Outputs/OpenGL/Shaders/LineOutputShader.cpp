@@ -88,7 +88,6 @@ OpenGL::LineOutputShader::LineOutputShader(
 	const int expected_vertical_lines,
 	const int scale_x,
 	const int scale_y,
-	const float alpha,
 	const VertexArray &vertex_array,
 	const GLenum source_texture_unit
 ) {
@@ -122,11 +121,14 @@ OpenGL::LineOutputShader::LineOutputShader(
 	shader_.set_uniform("positionScale", GLfloat(scale_x), GLfloat(scale_y));
 	shader_.set_uniform("sourceSize", GLfloat(source_width) / cycle_multiplier, GLfloat(source_height));
 	shader_.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
-	shader_.set_uniform("alpha", GLfloat(alpha));
 }
 
 void OpenGL::LineOutputShader::set_aspect_ratio_transformation(const std::array<float, 9> &transform) {
 	shader_.set_uniform_matrix("scale", 3, false, transform.data());
+}
+
+void OpenGL::LineOutputShader::set_alpha(const float alpha) {
+	shader_.set_uniform("alpha", GLfloat(alpha));
 }
 
 void OpenGL::LineOutputShader::bind() {

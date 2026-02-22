@@ -40,6 +40,7 @@
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
+      enableGPUValidationMode = "1"
       allowLocationSimulation = "YES">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
@@ -90,14 +91,14 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--rompath=/Users/thomasharte/Projects/CLK/ROMImages"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "--volume=0.01"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--new=zxspectrum"
+            argument = "--volume=0.01"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--new=electron"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -106,7 +107,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--display=CompositeColour"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--help"

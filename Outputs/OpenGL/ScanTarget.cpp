@@ -17,6 +17,7 @@
 #include "Outputs/OpenGL/Shaders/LineOutputShader.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 using namespace Outputs::Display::OpenGL;
@@ -36,7 +37,7 @@ constexpr GLenum SeparationTextureUnit = GL_TEXTURE2;
 constexpr GLenum DemodulationTextureUnit = GL_TEXTURE3;
 
 /// Contains the current display.
-constexpr GLenum OutputTextureUnit = GL_TEXTURE4;
+constexpr GLenum OutputTextureUnits[] = {GL_TEXTURE4, GL_TEXTURE5};
 
 using Logger = Log::Logger<Log::Source::OpenGL>;
 
@@ -90,9 +91,6 @@ ScanTarget::ScanTarget(const API api, const GLuint target_framebuffer, const flo
 	// and specify GL_MAP_PERSISTENT_BIT. Then map the buffer now, and let the client
 	// write straight into it.
 
-	test_gl([&]{ glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR); });
-	test_gl([&]{ glBlendColor(0.4f, 0.4f, 0.4f, 1.0f); });
-
 	// Set stencil function for underdraw.
 	test_gl([&]{ glStencilFunc(GL_EQUAL, 0, GLuint(~0)); });
 	test_gl([&]{ glStencilOp(GL_KEEP, GL_KEEP, GL_INCR); });
@@ -108,13 +106,13 @@ void ScanTarget::set_target_framebuffer(const GLuint target_framebuffer) {
 }
 
 void ScanTarget::update_aspect_ratio_transformation() {
-	if(output_buffer_.empty()) {
+	if(output_buffers_[0].empty()) {
 		return;
 	}
 
 	const auto framing = aspect_ratio_transformation(
 		BufferingScanTarget::modals(),
-		float(output_buffer_.width()) / float(output_buffer_.height())
+		float(output_buffers_[0].width()) / float(output_buffers_[0].height())
 	);
 
 	if(!line_output_shader_.empty()) {
@@ -125,10 +123,20 @@ void ScanTarget::update_aspect_ratio_transformation() {
 	}
 }
 
+void ScanTarget::set_alphas() {
+	static constexpr float OutputAlpha = 0.64f;
+
+	if(!scan_output_shader_.empty()) {
+		scan_output_shader_.set_alpha(is_interlaced() ? std::sqrt(OutputAlpha) : OutputAlpha);
+	}
+	if(!line_output_shader_.empty()) {
+		line_output_shader_.set_alpha(is_interlaced() ? std::sqrt(OutputAlpha) : OutputAlpha);
+	}
+}
+
 void ScanTarget::setup_pipeline() {
 	const auto modals = BufferingScanTarget::modals();
 	const auto data_type_size = Outputs::Display::size_for_data_type(modals.input_data_type);
-	static constexpr float OutputAlpha = 0.64f;
 
 	// Possibly create a new source texture.
 	if(source_texture_.empty() || source_texture_.channels() != data_type_size) {
@@ -207,7 +215,6 @@ void ScanTarget::setup_pipeline() {
 				modals.output_scale.y,
 				WriteAreaWidth,
 				WriteAreaHeight,
-				OutputAlpha,
 				scans_,
 				SourceDataTextureUnit);
 		}
@@ -288,7 +295,6 @@ void ScanTarget::setup_pipeline() {
 					modals.expected_vertical_lines,
 					modals.output_scale.x,
 					modals.output_scale.y,
-					OutputAlpha,
 					lines_,
 					DemodulationTextureUnit
 				);
@@ -338,6 +344,7 @@ void ScanTarget::setup_pipeline() {
 
 	}
 
+	set_alphas();
 	update_aspect_ratio_transformation();
 	existing_modals_ = modals;
 }
@@ -425,33 +432,37 @@ void ScanTarget::update(const int output_width, const int output_height) {
 		const auto output_buffer_width = output_width * 2;
 		const auto output_buffer_height = output_height * 2;
 		if(
-			output_buffer_.empty() ||
-			output_buffer_.width() != output_buffer_width ||
-			output_buffer_.height() != output_buffer_height
+			output_buffers_[0].empty() ||
+			output_buffers_[0].width() != output_buffer_width ||
+			output_buffers_[0].height() != output_buffer_height
 		) {
-			TextureTarget new_output_buffer(
-				api_,
-				output_buffer_width,
-				output_buffer_height,
-				OutputTextureUnit,
-				GL_NEAREST,
-				true
-			);
+			const auto update = [&](const size_t index) {
+				TextureTarget new_output_buffer(
+					api_,
+					output_buffer_width,
+					output_buffer_height,
+					OutputTextureUnits[index],
+					GL_NEAREST,
+					true
+				);
 
-			// Resize old buffer into new.
-			if(!output_buffer_.empty()) {
-				new_output_buffer.bind_framebuffer();
-				output_buffer_.bind_texture();
-				copy_shader_.perform(OutputTextureUnit);
-			}
-			std::swap(output_buffer_, new_output_buffer);
+				// Resize old buffer into new.
+				if(!output_buffers_[index].empty()) {
+					new_output_buffer.bind_framebuffer();
+					output_buffers_[index].bind_texture();
+					copy_shader_.perform(OutputTextureUnits[index], 1.0f);
+				}
+				std::swap(output_buffers_[index], new_output_buffer);
+			};
+			update(0);
+			update(1);
 
 			update_aspect_ratio_transformation();
 		}
 
-		output_buffer_.bind_framebuffer();
 		test_gl([&]{ glEnable(GL_BLEND); });
 		test_gl([&]{ glEnable(GL_STENCIL_TEST); });
+		test_gl([&]{ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); });
 
 		if(!is_rgb(existing_modals_->display_type)) {
 			output_lines(area);
@@ -535,7 +546,17 @@ void ScanTarget::process_to_rgb(const OutputArea &area) {
 	}
 }
 
+void ScanTarget::bind_current_output_buffer() {
+	output_buffers_[output_buffer_ & (is_interlaced() ? 1 : 0)].bind_framebuffer();
+}
+
+void ScanTarget::toggle_output_buffer() {
+	output_buffer_ ^= 1;
+	bind_current_output_buffer();
+}
+
 void ScanTarget::output_lines(const OutputArea &area) {
+	bind_current_output_buffer();
 	BufferingScanTarget::output_lines(
 		area,
 		[&](const size_t begin, const size_t end) {
@@ -552,11 +573,13 @@ void ScanTarget::output_lines(const OutputArea &area) {
 				full_display_rectangle_.draw(0.0, 0.0, 0.0);
 			}
 			test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
+			toggle_output_buffer();
 		}
 	);
 }
 
 void ScanTarget::output_scans(const OutputArea &area) {
+	bind_current_output_buffer();
 	BufferingScanTarget::output_scans(
 		area,
 		[&](const size_t begin, const size_t end) {
@@ -573,6 +596,7 @@ void ScanTarget::output_scans(const OutputArea &area) {
 				full_display_rectangle_.draw(0.0, 0.0, 0.0);
 			}
 			test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
+			toggle_output_buffer();
 		}
 	);
 }
@@ -580,15 +604,38 @@ void ScanTarget::output_scans(const OutputArea &area) {
 void ScanTarget::draw(const int output_width, const int output_height) {
 	while(is_drawing_to_output_.test_and_set(std::memory_order_acquire));
 
-	test_gl([&]{ glDisable(GL_BLEND); });
-	test_gl([&]{ glDisable(GL_STENCIL_TEST); });
+	test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
+	test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
 
-	if(!output_buffer_.empty()) {
-		// Copy the accumulation texture to the target.
-		test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
-		test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
-		output_buffer_.bind_texture();
-		copy_shader_.perform(OutputTextureUnit);
+	if(!output_buffers_[0].empty()) {
+		if(is_interlaced()) {
+			if(!was_interlacing_) {
+				set_alphas();
+				output_buffers_[1].bind_framebuffer();
+				output_buffers_[0].bind_texture();
+				copy_shader_.perform(OutputTextureUnits[0], 1.0f);
+			}
+
+			test_gl([&]{ glEnable(GL_BLEND); });
+			test_gl([&]{ glDisable(GL_STENCIL_TEST); });
+			test_gl([&]{ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); });
+
+			output_buffers_[0].bind_texture();
+			copy_shader_.perform(OutputTextureUnits[0], 1.0f);
+			output_buffers_[1].bind_texture();
+			copy_shader_.perform(OutputTextureUnits[1], 0.5f);
+		} else {
+			if(was_interlacing_) {
+				set_alphas();
+			}
+
+			test_gl([&]{ glDisable(GL_BLEND); });
+			test_gl([&]{ glDisable(GL_STENCIL_TEST); });
+
+			output_buffers_[0].bind_texture();
+			copy_shader_.perform(OutputTextureUnits[0], 1.0f);
+		}
+		was_interlacing_ = is_interlaced();
 	}
 
 	is_drawing_to_output_.clear(std::memory_order_release);

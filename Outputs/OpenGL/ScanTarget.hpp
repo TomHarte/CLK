@@ -85,6 +85,7 @@ private:
 	// Receives scan target modals.
 	std::optional<ScanTarget::Modals> existing_modals_;
 	void setup_pipeline();
+	void set_alphas();
 
 	GLsync fence_ = nullptr;
 	std::atomic_flag is_drawing_to_output_;
@@ -109,7 +110,10 @@ private:
 	TextureTarget composition_buffer_;
 	TextureTarget separation_buffer_;
 	TextureTarget demodulation_buffer_;
-	TextureTarget output_buffer_;
+
+	std::array<TextureTarget, 2> output_buffers_;
+	int output_buffer_ = 0;
+	bool was_interlacing_ = false;
 
 	Shader composition_shader_;
 	Shader separation_shader_;
@@ -123,6 +127,9 @@ private:
 	void process_to_rgb(const OutputArea &);
 	void output_lines(const OutputArea &);
 	void output_scans(const OutputArea &);
+
+	void bind_current_output_buffer();
+	void toggle_output_buffer();
 };
 
 }
