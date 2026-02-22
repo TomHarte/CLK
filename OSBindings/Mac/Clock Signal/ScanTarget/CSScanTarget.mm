@@ -390,7 +390,25 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	const NSUInteger frameBufferWidth = MIN(NSUInteger(size.width) * (_isUsingSupersampling ? 2 : 1), 16384);
 	const NSUInteger frameBufferHeight = MIN(NSUInteger(size.height) * (_isUsingSupersampling ? 2 : 1), 16384);
 
-	// Generate a framebuffer and a stencil.
+	// Generate stencil.
+	MTLTextureDescriptor *const stencilTextureDescriptor = [MTLTextureDescriptor
+		texture2DDescriptorWithPixelFormat:MTLPixelFormatStencil8
+		width:frameBufferWidth
+		height:frameBufferHeight
+		mipmapped:NO];
+	stencilTextureDescriptor.usage = MTLTextureUsageRenderTarget;
+	stencilTextureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
+	_frameBufferStencil = [_view.device newTextureWithDescriptor:stencilTextureDescriptor];
+
+	// Establish intended stencil useage; it's only to track which pixels haven't been painted
+	// at all at the end of every frame. So: always paint, and replace the stored stencil value
+	// (which is seeded as 0) with the nominated one (a 1).
+	MTLDepthStencilDescriptor *depthStencilDescriptor = [[MTLDepthStencilDescriptor alloc] init];
+	depthStencilDescriptor.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
+	depthStencilDescriptor.frontFaceStencil.depthStencilPassOperation = MTLStencilOperationReplace;
+	_drawStencilState = [_view.device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
+
+	// Generate framebuffer.
 	MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
 		texture2DDescriptorWithPixelFormat:_view.colorPixelFormat
 		width:frameBufferWidth
@@ -400,15 +418,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
 	id<MTLTexture> _oldFrameBuffer = _frameBuffer;
 	_frameBuffer = [_view.device newTextureWithDescriptor:textureDescriptor];
-
-	MTLTextureDescriptor *const stencilTextureDescriptor = [MTLTextureDescriptor
-		texture2DDescriptorWithPixelFormat:MTLPixelFormatStencil8
-		width:frameBufferWidth
-		height:frameBufferHeight
-		mipmapped:NO];
-	stencilTextureDescriptor.usage = MTLTextureUsageRenderTarget;
-	stencilTextureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
-	_frameBufferStencil = [_view.device newTextureWithDescriptor:stencilTextureDescriptor];
 
 	// Generate a render pass with that framebuffer and stencil.
 	_frameBufferRenderPass = [[MTLRenderPassDescriptor alloc] init];
@@ -420,14 +429,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	_frameBufferRenderPass.stencilAttachment.texture = _frameBufferStencil;
 	_frameBufferRenderPass.stencilAttachment.loadAction = MTLLoadActionLoad;
 	_frameBufferRenderPass.stencilAttachment.storeAction = MTLStoreActionStore;
-
-	// Establish intended stencil useage; it's only to track which pixels haven't been painted
-	// at all at the end of every frame. So: always paint, and replace the stored stencil value
-	// (which is seeded as 0) with the nominated one (a 1).
-	MTLDepthStencilDescriptor *depthStencilDescriptor = [[MTLDepthStencilDescriptor alloc] init];
-	depthStencilDescriptor.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
-	depthStencilDescriptor.frontFaceStencil.depthStencilPassOperation = MTLStencilOperationReplace;
-	_drawStencilState = [_view.device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
 
 	// Draw from _oldFrameBuffer to _frameBuffer; otherwise clear the new framebuffer.
 	if(_oldFrameBuffer) {
