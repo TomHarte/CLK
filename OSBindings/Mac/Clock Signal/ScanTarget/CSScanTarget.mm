@@ -228,11 +228,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		/// Scans are painted to the composition buffer, which is processed to the separated luma buffer and then the finalised line buffer,
 		/// from which lines are painted to the frame buffer.
 		CompositeColour
-
-		// TODO: decide what to do for downward-scaled direct-to-display. Obvious options are to include lowpass
-		// filtering into the scan outputter and continue hoping that the vertical takes care of itself, or maybe
-		// to stick with DirectToDisplay but with a minimum size for the frame buffer and apply filtering from
-		// there to the screen.
 	};
 	Pipeline _pipeline;
 
@@ -601,8 +596,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			textureDescriptor.allowGPUOptimizedContents = NO;
 		}
 
-		// TODO: the call below is the only reason why this project now requires macOS 10.13;
-		// is it all that helpful versus just uploading each frame?
 		const NSUInteger bytesPerRow = BufferingScanTarget::WriteAreaWidth * _bytesPerInputPixel;
 		_writeAreaTexture = [_writeAreaBuffer
 			newTextureWithDescriptor:textureDescriptor
