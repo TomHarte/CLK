@@ -460,7 +460,6 @@ void ScanTarget::update(const int output_width, const int output_height) {
 			update_aspect_ratio_transformation();
 		}
 
-		set_alphas();
 		test_gl([&]{ glEnable(GL_BLEND); });
 		test_gl([&]{ glEnable(GL_STENCIL_TEST); });
 		test_gl([&]{ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); });
@@ -611,20 +610,25 @@ void ScanTarget::draw(const int output_width, const int output_height) {
 	if(!output_buffers_[0].empty()) {
 		if(is_interlaced()) {
 			if(!was_interlacing_) {
+				set_alphas();
 				output_buffers_[1].bind_framebuffer();
 				output_buffers_[0].bind_texture();
 				copy_shader_.perform(OutputTextureUnits[0], 1.0f);
 			}
 
 			test_gl([&]{ glEnable(GL_BLEND); });
-			test_gl([&]{ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); });
 			test_gl([&]{ glDisable(GL_STENCIL_TEST); });
+			test_gl([&]{ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); });
 
 			output_buffers_[0].bind_texture();
 			copy_shader_.perform(OutputTextureUnits[0], 1.0f);
 			output_buffers_[1].bind_texture();
 			copy_shader_.perform(OutputTextureUnits[1], 0.5f);
 		} else {
+			if(was_interlacing_) {
+				set_alphas();
+			}
+
 			test_gl([&]{ glDisable(GL_BLEND); });
 			test_gl([&]{ glDisable(GL_STENCIL_TEST); });
 
