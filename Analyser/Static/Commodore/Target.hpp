@@ -18,14 +18,21 @@ namespace Analyser::Static::Commodore {
 struct Plus4Target: public Analyser::Static::Target, public Reflection::StructImpl<Plus4Target> {
 	// TODO: region, etc.
 	std::string loading_command;
-	bool has_c1541 = false;
+
+	ReflectableEnum(DiskDrive,
+		None,
+		C1541,
+		C1551,
+	);
+	DiskDrive disk_drive = DiskDrive::None;
 
 	Plus4Target() : Analyser::Static::Target(Machine::Plus4) {}
 
 private:
 	friend Reflection::StructImpl<Plus4Target>;
 	void declare_fields() {
-		DeclareField(has_c1541);
+		AnnounceEnum(DiskDrive);
+		DeclareField(disk_drive);
 	}
 };
 

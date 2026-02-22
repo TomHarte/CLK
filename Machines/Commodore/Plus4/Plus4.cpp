@@ -198,8 +198,16 @@ public:
 		const auto kernel = ROM::Name::Plus4KernelPALv5;
 		const auto basic = ROM::Name::Plus4BASIC;
 		ROM::Request request = ROM::Request(basic) && ROM::Request(kernel);
-		if(target.has_c1541) {
-			request = request && C1540::Machine::rom_request(C1540::Personality::C1541);
+		using DiskDrive = Analyser::Static::Commodore::Plus4Target::DiskDrive;
+		switch(target.disk_drive) {
+			case DiskDrive::C1541:
+				request = request && C1540::Machine::rom_request(C1540::Personality::C1541);
+			break;
+			case DiskDrive::None:
+			break;
+			case DiskDrive::C1551:
+				Logger::error().append("TODO: load 1551 ROM");
+			break;
 		}
 
 		auto roms = rom_fetcher(request);
@@ -216,11 +224,18 @@ public:
 
 		video_map_.page<PagerSide::ReadWrite, 0, 65536>(ram_.data());
 
-		if(target.has_c1541) {
-			c1541_ = std::make_unique<C1540::Machine>(C1540::Personality::C1541, roms);
-			c1541_->set_serial_bus(serial_bus_);
-			Serial::attach(serial_port_, serial_bus_);
-			c1541_->run_for(Cycles(2000000));
+		switch(target.disk_drive) {
+			case DiskDrive::None:
+			break;
+			case DiskDrive::C1541:
+				c1541_ = std::make_unique<C1540::Machine>(C1540::Personality::C1541, roms);
+				c1541_->set_serial_bus(serial_bus_);
+				Serial::attach(serial_port_, serial_bus_);
+				c1541_->run_for(Cycles(2000000));
+			break;
+			case DiskDrive::C1551:
+				Logger::error().append("TODO: install 1551");
+			break;
 		}
 
 		tape_handler_.set_clock_rate(clock);
