@@ -253,10 +253,11 @@ void BufferingScanTarget::announce(
 			}
 			return true;
 		};
-		is_interlaced_.store(
-			!similar_enough(0, 1) && similar_enough(0, 2) && similar_enough(1, 2),
-			std::memory_order_relaxed
-		);
+		if(!similar_enough(0, 1) && similar_enough(0, 2) && similar_enough(1, 2)) {
+			is_interlaced_.store(true, std::memory_order_relaxed);
+		} else if(similar_enough(0, 1)) {
+			is_interlaced_.store(false, std::memory_order_relaxed);
+		}
 	}
 
 	// Proceed from here only if a change in visibility has occurred.
