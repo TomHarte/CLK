@@ -194,8 +194,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// When inter-frame blending is in use, the frame buffer contains the most recent output.
 	// Metal isn't really set up for single-buffered output, so this acts as if it were that
 	// single buffer. This texture is complete 2d data, copied directly to the display.
-	id<MTLTexture> _frameBuffer;
-	MTLRenderPassDescriptor *_frameBufferRenderPass;	// The render pass for _drawing to_ the frame buffer.
+	id<MTLTexture> _frameBuffers[2];
+	MTLRenderPassDescriptor *_frameBufferRenderPasses[2];	// The render pass for _drawing to_ the frame buffer.
 	BOOL _dontClearFrameBuffer;
 
 	// Textures: the stencil.
@@ -403,36 +403,38 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	depthStencilDescriptor.frontFaceStencil.depthStencilPassOperation = MTLStencilOperationReplace;
 	_drawStencilState = [_view.device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
 
-	// Generate framebuffer.
-	MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
-		texture2DDescriptorWithPixelFormat:_view.colorPixelFormat
-		width:frameBufferWidth
-		height:frameBufferHeight
-		mipmapped:NO];
-	textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
-	textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
-	id<MTLTexture> _oldFrameBuffer = _frameBuffer;
-	_frameBuffer = [_view.device newTextureWithDescriptor:textureDescriptor];
+	// Generate framebuffers.
+	for(int c = 0; c < 2; c++) {
+		MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
+			texture2DDescriptorWithPixelFormat:_view.colorPixelFormat
+			width:frameBufferWidth
+			height:frameBufferHeight
+			mipmapped:NO];
+		textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
+		textureDescriptor.resourceOptions = MTLResourceStorageModePrivate;
+		id<MTLTexture> _oldFrameBuffer = _frameBuffers[c];
+		_frameBuffers[c] = [_view.device newTextureWithDescriptor:textureDescriptor];
 
-	// Generate a render pass with that framebuffer and stencil.
-	_frameBufferRenderPass = [[MTLRenderPassDescriptor alloc] init];
-	_frameBufferRenderPass.colorAttachments[0].texture = _frameBuffer;
-	_frameBufferRenderPass.colorAttachments[0].loadAction = MTLLoadActionLoad;
-	_frameBufferRenderPass.colorAttachments[0].storeAction = MTLStoreActionStore;
+		// Generate a render pass with that framebuffer and stencil.
+		_frameBufferRenderPasses[c] = [[MTLRenderPassDescriptor alloc] init];
+		_frameBufferRenderPasses[c].colorAttachments[0].texture = _frameBuffers[c];
+		_frameBufferRenderPasses[c].colorAttachments[0].loadAction = MTLLoadActionLoad;
+		_frameBufferRenderPasses[c].colorAttachments[0].storeAction = MTLStoreActionStore;
 
-	_frameBufferRenderPass.stencilAttachment.clearStencil = 0;
-	_frameBufferRenderPass.stencilAttachment.texture = _frameBufferStencil;
-	_frameBufferRenderPass.stencilAttachment.loadAction = MTLLoadActionLoad;
-	_frameBufferRenderPass.stencilAttachment.storeAction = MTLStoreActionStore;
+		_frameBufferRenderPasses[c].stencilAttachment.clearStencil = 0;
+		_frameBufferRenderPasses[c].stencilAttachment.texture = _frameBufferStencil;
+		_frameBufferRenderPasses[c].stencilAttachment.loadAction = MTLLoadActionLoad;
+		_frameBufferRenderPasses[c].stencilAttachment.storeAction = MTLStoreActionStore;
 
-	// Draw from _oldFrameBuffer to _frameBuffer; otherwise clear the new framebuffer.
-	if(_oldFrameBuffer) {
-		[self copyTexture:_oldFrameBuffer to:_frameBuffer];
-	} else {
-		// TODO: this use of clearTexture is the only reason _frameBuffer has a marked usage of
-		// MTLTextureUsageShaderWrite; it'd probably be smarter to blank it with geometry rather than potentially
-		// complicating its storage further?
-		[self clearTexture:_frameBuffer];
+		// Draw from _oldFrameBuffer to _frameBuffer; otherwise clear the new framebuffer.
+		if(_oldFrameBuffer) {
+			[self copyTexture:_oldFrameBuffer to:_frameBuffers[c]];
+		} else {
+			// TODO: this use of clearTexture is the only reason _frameBuffer has a marked usage of
+			// MTLTextureUsageShaderWrite; it'd probably be smarter to blank it with geometry rather than potentially
+			// complicating its storage further?
+			[self clearTexture:_frameBuffers[c]];
+		}
 	}
 
 	// Don't clear the framebuffer at the end of this frame.
@@ -747,7 +749,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	if(start == end) return;
 
 	// Generate a command encoder for the view.
-	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPass];
+	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPasses[0]];
 
 	// Final output. Could be scans or lines.
 	[encoder setRenderPipelineState:_outputPipeline];
@@ -791,14 +793,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 - (void)outputFrameCleanerToCommandBuffer:(id<MTLCommandBuffer>)commandBuffer {
 	// Generate a command encoder for the view.
-	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPass];
+	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPasses[0]];
 
 	[encoder setRenderPipelineState:_clearPipeline];
 	[encoder setDepthStencilState:_clearStencilState];
 	[encoder setStencilReferenceValue:0];
 
-	[encoder setVertexTexture:_frameBuffer atIndex:0];
-	[encoder setFragmentTexture:_frameBuffer atIndex:0];
+	[encoder setVertexTexture:_frameBuffers[0] atIndex:0];
+	[encoder setFragmentTexture:_frameBuffers[0] atIndex:0];
 	[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
@@ -892,8 +894,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		[commandBuffer renderCommandEncoderWithDescriptor:view.currentRenderPassDescriptor];
 
 	[encoder setRenderPipelineState:_isUsingSupersampling ? _supersamplePipeline : _copyPipeline];
-	[encoder setVertexTexture:_frameBuffer atIndex:0];
-	[encoder setFragmentTexture:_frameBuffer atIndex:0];
+	[encoder setVertexTexture:_frameBuffers[0] atIndex:0];
+	[encoder setFragmentTexture:_frameBuffers[0] atIndex:0];
 
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
 	[encoder endEncoding];
@@ -921,7 +923,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	}
 
 	@synchronized(self) {
-		if(!_frameBufferRenderPass) return;
+		if(!_frameBufferRenderPasses[0]) return;
 
 		const auto outputArea = _scanTarget.get_output_area();
 
@@ -1128,14 +1130,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	NSBitmapImageRep *const result =
 		[[NSBitmapImageRep alloc]
 			initWithBitmapDataPlanes:NULL
-			pixelsWide:(NSInteger)_frameBuffer.width
-			pixelsHigh:(NSInteger)_frameBuffer.height
+			pixelsWide:(NSInteger)_frameBuffers[0].width
+			pixelsHigh:(NSInteger)_frameBuffers[0].height
 			bitsPerSample:8
 			samplesPerPixel:4
 			hasAlpha:YES
 			isPlanar:NO
 			colorSpaceName:NSDeviceRGBColorSpace
-			bytesPerRow:4 * (NSInteger)_frameBuffer.width
+			bytesPerRow:4 * (NSInteger)_frameBuffers[0].width
 			bitsPerPixel:0];
 
 	// Create a CPU-accessible texture and copy the current contents of the _frameBuffer to it.
@@ -1143,20 +1145,20 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLTexture> cpuTexture;
 	MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
 		texture2DDescriptorWithPixelFormat:_view.colorPixelFormat
-		width:_frameBuffer.width
-		height:_frameBuffer.height
+		width:_frameBuffers[0].width
+		height:_frameBuffers[0].height
 		mipmapped:NO];
 	textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
 	textureDescriptor.resourceOptions = MTLResourceStorageModeManaged;
 	cpuTexture = [_view.device newTextureWithDescriptor:textureDescriptor];
-	[[self copyTexture:_frameBuffer to:cpuTexture] waitUntilCompleted];
+	[[self copyTexture:_frameBuffers[0] to:cpuTexture] waitUntilCompleted];
 
 	// Copy from the CPU-visible texture to the bitmap image representation.
 	uint8_t *const bitmapData = result.bitmapData;
 	[cpuTexture
 		getBytes:bitmapData
-		bytesPerRow:_frameBuffer.width*4
-		fromRegion:MTLRegionMake2D(0, 0, _frameBuffer.width, _frameBuffer.height)
+		bytesPerRow:_frameBuffers[0].width*4
+		fromRegion:MTLRegionMake2D(0, 0, _frameBuffers[0].width, _frameBuffers[0].height)
 		mipmapLevel:0];
 
 	// Set alpha to fully opaque and do some byte shuffling if necessary;
@@ -1165,7 +1167,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// I'm not putting my foot down and having the GPU do the conversion I want
 	// because this lets me reuse _copyPipeline and thereby cut down on boilerplate,
 	// especially given that screenshots are not a bottleneck.
-	const NSUInteger totalBytes = _frameBuffer.width * _frameBuffer.height * 4;
+	const NSUInteger totalBytes = _frameBuffers[0].width * _frameBuffers[0].height * 4;
 	const bool flipRedBlue = _view.colorPixelFormat == MTLPixelFormatBGRA8Unorm;
 	for(NSUInteger offset = 0; offset < totalBytes; offset += 4) {
 		if(flipRedBlue) {
