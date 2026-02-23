@@ -227,7 +227,7 @@ void BufferingScanTarget::announce(
 
 		frame.first_line = submit_pointers.line;
 		frame.first_scan = submit_pointers.scan;
-		frame.was_complete = previous_frame_was_complete_;
+		frame.previous_was_complete = previous_frame_was_complete_;
 		frame.is_interlaced = is_interlaced_;
 		frame.field_index = field_index_ & (frame.is_interlaced ? 1 : 0);
 
