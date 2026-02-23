@@ -197,6 +197,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLTexture> _frameBuffers[2];
 	MTLRenderPassDescriptor *_frameBufferRenderPasses[2];	// The render pass for _drawing to_ the frame buffer.
 	BOOL _dontClearFrameBuffer;
+	int _fieldIndex;
 
 	// Textures: the stencil.
 	//
@@ -749,7 +750,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	if(start == end) return;
 
 	// Generate a command encoder for the view.
-	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPasses[0]];
+	id<MTLRenderCommandEncoder> encoder =
+		[commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPasses[_fieldIndex]];
 
 	// Final output. Could be scans or lines.
 	[encoder setRenderPipelineState:_outputPipeline];
@@ -793,14 +795,15 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 - (void)outputFrameCleanerToCommandBuffer:(id<MTLCommandBuffer>)commandBuffer {
 	// Generate a command encoder for the view.
-	id<MTLRenderCommandEncoder> encoder = [commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPasses[0]];
+	id<MTLRenderCommandEncoder> encoder =
+		[commandBuffer renderCommandEncoderWithDescriptor:_frameBufferRenderPasses[_fieldIndex]];
 
 	[encoder setRenderPipelineState:_clearPipeline];
 	[encoder setDepthStencilState:_clearStencilState];
 	[encoder setStencilReferenceValue:0];
 
-	[encoder setVertexTexture:_frameBuffers[0] atIndex:0];
-	[encoder setFragmentTexture:_frameBuffers[0] atIndex:0];
+	[encoder setVertexTexture:_frameBuffers[_fieldIndex] atIndex:0];
+	[encoder setFragmentTexture:_frameBuffers[_fieldIndex] atIndex:0];
 	[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
@@ -893,6 +896,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLRenderCommandEncoder> encoder =
 		[commandBuffer renderCommandEncoderWithDescriptor:view.currentRenderPassDescriptor];
 
+	// TODO: differnet copy phase if weave deinterlacing.
 	[encoder setRenderPipelineState:_isUsingSupersampling ? _supersamplePipeline : _copyPipeline];
 	[encoder setVertexTexture:_frameBuffers[0] atIndex:0];
 	[encoder setFragmentTexture:_frameBuffers[0] atIndex:0];
@@ -967,13 +971,15 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		const auto end_field =
 			[&](
 				const bool was_complete,
-				[[maybe_unused]] const int field_index,
+				const int field_index,
 				[[maybe_unused]] const bool is_interlaced
 			) {
 				if(was_complete && !_dontClearFrameBuffer) {
 					[self outputFrameCleanerToCommandBuffer:commandBuffer];
 				}
 				_dontClearFrameBuffer = NO;
+
+				_fieldIndex = field_index;
 			};
 
 		switch(_pipeline) {
@@ -1120,6 +1126,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (NSBitmapImageRep *)imageRepresentation {
+	// TODO: deinterlacing
+
 	// Create an NSBitmapRep as somewhere to copy pixel data to.
 	NSBitmapImageRep *const result =
 		[[NSBitmapImageRep alloc]
