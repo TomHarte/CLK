@@ -169,11 +169,13 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLCommandQueue> _commandQueue;
 
 	// Pipelines.
-	id<MTLRenderPipelineState> _composePipeline;		// Renders to the composition texture.
-	id<MTLRenderPipelineState> _outputPipeline;			// Draws to the frame buffer.
-	id<MTLRenderPipelineState> _copyPipeline;			// Copies from one texture to another.
-	id<MTLRenderPipelineState> _supersamplePipeline;	// Resamples from one texture to one that is 1/4 as large.
-	id<MTLRenderPipelineState> _clearPipeline;			// Applies additional inter-frame clearing (cf. the stencil).
+	id<MTLRenderPipelineState> _composePipeline;			// Renders to the composition texture.
+	id<MTLRenderPipelineState> _outputPipeline;				// Draws to the frame buffer.
+	id<MTLRenderPipelineState> _copyPipeline;				// Copies from one texture to another.
+	id<MTLRenderPipelineState> _supersampleCopyPipeline;	// Resamples from one texture to one that is 1/4 as large.
+	id<MTLRenderPipelineState> _mixPipeline;				// Combines two textures, mixing them 50:50.
+	id<MTLRenderPipelineState> _supersampleMixPipeline;		// Resamples and combines two textures.
+	id<MTLRenderPipelineState> _clearPipeline;				// Applies additional inter-frame clearing (cf. the stencil).
 
 	// Buffers.
 	id<MTLBuffer> _uniformsBuffer;	// A static buffer, containing a copy of the Uniforms struct.
@@ -311,8 +313,14 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"copyFragment"];
 		_copyPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 
-		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"interpolateFragment"];
-		_supersamplePipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"interpolateCopyFragment"];
+		_supersampleCopyPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"mixFragment"];
+		_mixPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"interpolateMixFragment"];
+		_supersampleMixPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 
 		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"clearFragment"];
 		pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatStencil8;
@@ -729,7 +737,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			[library newFunctionWithName:_pipeline == Pipeline::DirectToDisplay ? @"scanToDisplay" : @"lineToDisplay"];
 
 		if(_pipeline != Pipeline::DirectToDisplay) {
-			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"interpolateFragment"];
+			pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"interpolateCopyFragment"];
 		} else {
 			const bool isRGBOutput = modals.display_type == Outputs::Display::DisplayType::RGB;
 			pipelineDescriptor.fragmentFunction = fragment_function(
@@ -899,17 +907,39 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// Every pixel will be drawn, so don't clear or reload.
 	view.currentRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
-	id<MTLRenderCommandEncoder> encoder =
-		[commandBuffer renderCommandEncoderWithDescriptor:view.currentRenderPassDescriptor];
 
-	// TODO: differnet copy phase if weave deinterlacing.
-	[encoder setRenderPipelineState:_isUsingSupersampling ? _supersamplePipeline : _copyPipeline];
-	[encoder setVertexTexture:_frameBuffers[_fieldIndex] atIndex:0];
-	[encoder setFragmentTexture:_frameBuffers[_fieldIndex] atIndex:0];
+	{
+		id<MTLRenderCommandEncoder> encoder =
+			[commandBuffer renderCommandEncoderWithDescriptor:view.currentRenderPassDescriptor];
 
-	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
-	[encoder endEncoding];
-	encoder = nil;
+		[encoder setRenderPipelineState:
+			_isUsingSupersampling ?
+				(_isInterlaced ? _supersampleMixPipeline : _supersampleCopyPipeline) :
+				(_isInterlaced ? _mixPipeline : _copyPipeline)
+		];
+
+		[encoder setVertexTexture:_frameBuffers[0] atIndex:0];
+		[encoder setFragmentTexture:_frameBuffers[0] atIndex:0];
+		[encoder setVertexTexture:_frameBuffers[1] atIndex:1];
+		[encoder setFragmentTexture:_frameBuffers[1] atIndex:1];
+
+		[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+		[encoder endEncoding];
+		encoder = nil;
+	}
+
+//	if(_isInterlaced) {
+//		id<MTLRenderCommandEncoder> encoder =
+//			[commandBuffer renderCommandEncoderWithDescriptor:view.currentRenderPassDescriptor];
+//
+//		[encoder setRenderPipelineState:_isUsingSupersampling ? _supersampleAddPipeline : _addPipeline];
+//		[encoder setVertexTexture:_frameBuffers[1] atIndex:0];
+//		[encoder setFragmentTexture:_frameBuffers[1] atIndex:0];
+//
+//		[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+//		[encoder endEncoding];
+//		encoder = nil;
+//	}
 
 	[commandBuffer presentDrawable:view.currentDrawable];
 	[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
