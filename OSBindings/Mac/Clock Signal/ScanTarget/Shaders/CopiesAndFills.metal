@@ -34,11 +34,39 @@ fragment half4 copyFragment(
 }
 
 /// Bilinearly samples @c texture.
-fragment half4 interpolateFragment(
+fragment half4 interpolateCopyFragment(
 	const CopyInterpolator vert [[stage_in]],
 	const metal::texture2d<half> texture [[texture(0)]]
 ) {
 	return texture.sample(linearSampler, vert.textureCoordinates);
+}
+
+/// Point-samples @c texture to copy directly from source to target.
+fragment half4 mixFragment(
+	const CopyInterpolator vert [[stage_in]],
+	const metal::texture2d<half> texture1 [[texture(0)]],
+	const metal::texture2d<half> texture2 [[texture(1)]]
+) {
+	return
+		metal::mix(
+			texture1.sample(nearestSampler, vert.textureCoordinates),
+			texture2.sample(nearestSampler, vert.textureCoordinates),
+			0.5
+		);
+}
+
+/// Bilinearly samples @c texture.
+fragment half4 interpolateMixFragment(
+	const CopyInterpolator vert [[stage_in]],
+	const metal::texture2d<half> texture1 [[texture(0)]],
+	const metal::texture2d<half> texture2 [[texture(1)]]
+) {
+	return
+		metal::mix(
+			texture1.sample(linearSampler, vert.textureCoordinates),
+			texture2.sample(linearSampler, vert.textureCoordinates),
+			0.5
+		);
 }
 
 /// Fills with black.
