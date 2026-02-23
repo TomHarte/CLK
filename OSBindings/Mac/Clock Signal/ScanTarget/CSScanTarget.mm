@@ -960,6 +960,10 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Hence every pixel is touched every frame, regardless of the machine's output.
 		//
 
+		const auto output_items =
+			[&](const size_t begin, const size_t end) {
+				[self outputFrom:begin to:end commandBuffer:commandBuffer];
+			};
 		const auto end_field =
 			[&](
 				const bool was_complete,
@@ -974,13 +978,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		switch(_pipeline) {
 			case Pipeline::DirectToDisplay:
-				_scanTarget.output_scans(
-					outputArea,
-					[&](const size_t begin, const size_t end) {
-						[self outputFrom:begin to:end commandBuffer:commandBuffer];
-					},
-					end_field
-				);
+				_scanTarget.output_scans(outputArea, output_items, end_field);
 			break;
 
 			case Pipeline::CompositeColour:
@@ -1097,13 +1095,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 					[computeEncoder endEncoding];
 				}
 
-				_scanTarget.output_lines(
-					outputArea,
-					[&](const size_t begin, const size_t end) {
-						[self outputFrom:begin to:end commandBuffer:commandBuffer];
-					},
-					end_field
-				);
+				_scanTarget.output_lines(outputArea, output_items, end_field);
 			break;
 		}
 
