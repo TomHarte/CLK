@@ -320,9 +320,7 @@ private:
 								// generating interlaced video. This is detected based on the recent pattern of frames,
 								// so might lag slightly and won't necessarily be known immediately at machine start.
 
-		int field_index;		// Alternates between 0 and 1 when [seemingly] receiving conventional two-field
-								// interlaced video; stays at 0 if video seems to be anything other than
-								// two-field interlaced.
+		int field_index;		// Alternates between 0 and 1.
 	};
 	static constexpr uint16_t NumFrames = 60;
 	std::array<Frame, NumFrames> frames_;
