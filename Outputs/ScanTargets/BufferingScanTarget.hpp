@@ -164,13 +164,6 @@ public:
 	/// @returns the current @c Modals.
 	const Modals &modals() const;
 
-	/// @returns whether the current output being received appears to describe an interlaced signal.
-	/// This is a hint only, potentially to provide for better deinterlacing of output, being derived locally
-	/// from line positioning. Specifically: if a scan target pays no heed to this whatsoever it's likely to
-	/// end up doing the equivalent of a bob. If it so desires, it might prefer to do something closer to
-	/// a weave if and only if interlaced video is detected.
-	bool is_interlaced() const;
-
 	/// @returns @c true if new modals are available; @c false otherwise.
 	///
 	/// Safe to call from any thread.
@@ -179,10 +172,10 @@ public:
 	template <typename OutputFuncT, typename FrameFuncT, typename CountGetT, typename FrameLimitGetT>
 	void output(
 		const OutputArea &area,
-		const OutputFuncT &&output,
-		const FrameFuncT &&end_frame,
-		const CountGetT &&count,
-		const FrameLimitGetT &&limit
+		OutputFuncT &&output,
+		FrameFuncT &&end_frame,
+		CountGetT &&count,
+		FrameLimitGetT &&limit
 	) const {
 		if(count(area.end) == count(area.begin) && area.end.frame == area.begin.frame) {
 			return;
@@ -200,8 +193,11 @@ public:
 				output(output_begin, limit(frames_[frame_begin]));
 				output_begin = limit(frames_[frame_begin]);
 			}
-			end_frame(frames_[frame_begin].was_complete);
-
+			end_frame(
+				frames_[frame_begin].was_complete,
+				frames_[frame_begin].field_index,
+				frames_[frame_begin].is_interlaced
+			);
 			++frame_begin;
 			if(frame_begin == frames_.size()) frame_begin = 0;
 		} while(frame_begin != area.end.frame);
@@ -214,13 +210,13 @@ public:
 	template <typename ScanFuncT, typename FrameFuncT>
 	void output_scans(
 		const OutputArea &area,
-		const ScanFuncT &&output_scans,
-		const FrameFuncT &&end_frame
+		ScanFuncT &&output_scans,
+		FrameFuncT &&end_frame
 	) const {
 		output(
 			area,
-			std::move(output_scans),
-			std::move(end_frame),
+			output_scans,
+			end_frame,
 			[](const auto &endpoint) { return endpoint.scan; },
 			[](const auto &frame) { return frame.first_scan; }
 		);
@@ -229,13 +225,13 @@ public:
 	template <typename LineFuncT, typename FrameFuncT>
 	void output_lines(
 		const OutputArea &area,
-		const LineFuncT &&output_lines,
-		const FrameFuncT &&end_frame
+		LineFuncT &&output_lines,
+		FrameFuncT &&end_frame
 	) const {
 		output(
 			area,
-			std::move(output_lines),
-			std::move(end_frame),
+			output_lines,
+			end_frame,
 			[](const auto &endpoint) { return endpoint.line; },
 			[](const auto &frame) { return frame.first_line; }
 		);
@@ -318,6 +314,8 @@ private:
 		size_t first_scan;
 		size_t first_line;
 		bool was_complete;
+		int field_index;
+		bool is_interlaced;
 	};
 	static constexpr uint16_t NumFrames = 60;
 	std::array<Frame, NumFrames> frames_;
@@ -329,7 +327,8 @@ private:
 	static constexpr size_t StartHistoryLength = 16;
 	std::array<Outputs::Display::ScanTarget::Scan::EndPoint, StartHistoryLength> start_history_;
 	Numeric::CircularCounter<size_t, StartHistoryLength> start_history_pointer_;
-	std::atomic<bool> is_interlaced_ = false;
+	bool is_interlaced_ = false;
+	int field_index_ = 0;
 
 	// By convention everything in the PointerSet points to the next instance
 	// of whatever it is that will be used. So a client should start with whatever

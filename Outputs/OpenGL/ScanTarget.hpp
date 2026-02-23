@@ -112,8 +112,8 @@ private:
 	TextureTarget demodulation_buffer_;
 
 	std::array<TextureTarget, 2> output_buffers_;
-	int output_buffer_ = 0;
 	bool was_interlacing_ = false;
+	bool is_interlacing_ = false;
 
 	Shader composition_shader_;
 	Shader separation_shader_;
@@ -128,8 +128,9 @@ private:
 	void output_lines(const OutputArea &);
 	void output_scans(const OutputArea &);
 
+	int field_index_ = 0;
 	void bind_current_output_buffer();
-	void toggle_output_buffer();
+	void end_field(bool was_complete, int field_index, bool is_interlaced);
 };
 
 }

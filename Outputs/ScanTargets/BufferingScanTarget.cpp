@@ -223,9 +223,15 @@ void BufferingScanTarget::announce(
 
 		auto write = frame_write_.load(std::memory_order_relaxed);
 		const auto submit_pointers = submit_pointers_.load(std::memory_order_relaxed);
-		frames_[write].first_line = submit_pointers.line;
-		frames_[write].first_scan = submit_pointers.scan;
-		frames_[write].was_complete = previous_frame_was_complete_;
+		auto &frame = frames_[write];
+
+		frame.first_line = submit_pointers.line;
+		frame.first_scan = submit_pointers.scan;
+		frame.was_complete = previous_frame_was_complete_;
+		frame.is_interlaced = is_interlaced_;
+		frame.field_index = field_index_ & (frame.is_interlaced ? 1 : 0);
+
+		field_index_ ^= 1;
 		++write;
 		frame_write_.store(write, std::memory_order_release);
 
@@ -254,9 +260,9 @@ void BufferingScanTarget::announce(
 			return true;
 		};
 		if(!similar_enough(0, 1) && similar_enough(0, 2) && similar_enough(1, 2)) {
-			is_interlaced_.store(true, std::memory_order_relaxed);
+			is_interlaced_ = true;
 		} else if(similar_enough(0, 1)) {
-			is_interlaced_.store(false, std::memory_order_relaxed);
+			is_interlaced_ = false;
 		}
 	}
 
@@ -439,8 +445,4 @@ const Outputs::Display::ScanTarget::Modals &BufferingScanTarget::modals() const 
 
 bool BufferingScanTarget::has_new_modals() const {
 	return modals_are_dirty_.load(std::memory_order_relaxed);
-}
-
-bool BufferingScanTarget::is_interlaced() const {
-	return is_interlaced_.load(std::memory_order_relaxed);
 }
