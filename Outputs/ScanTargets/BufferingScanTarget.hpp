@@ -194,7 +194,7 @@ public:
 				output_begin = limit(frames_[frame_begin]);
 			}
 			end_frame(
-				frames_[frame_begin].was_complete,
+				frames_[frame_begin].previous_was_complete,
 				frames_[frame_begin].field_index,
 				frames_[frame_begin].is_interlaced
 			);
@@ -311,11 +311,18 @@ private:
 	// Frames always advance as a simple function of time and have a very
 	// large buffer in terms of clock time.
 	struct Frame {
-		size_t first_scan;
-		size_t first_line;
-		bool was_complete;
-		int field_index;
-		bool is_interlaced;
+		size_t first_scan;			// Index into the scans of the first one in this frame.
+		size_t first_line;			// Index into the lines of the first one in this frame.
+		bool previous_was_complete;	// Indicates whether the frame before this one was 'complete', i.e. there was no
+									// back pressure, all data the emulated machine wanted to publish was published.
+
+		bool is_interlaced;		// Indicates whether the pattern of scans makes it look like the emulated machine is
+								// generating interlaced video. This is detected based on the recent pattern of frames,
+								// so might lag slightly and won't necessarily be known immediately at machine start.
+
+		int field_index;		// Alternates between 0 and 1 when [seemingly] receiving conventional two-field
+								// interlaced video; stays at 0 if video seems to be anything other than
+								// two-field interlaced.
 	};
 	static constexpr uint16_t NumFrames = 60;
 	std::array<Frame, NumFrames> frames_;
