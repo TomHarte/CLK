@@ -198,6 +198,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	MTLRenderPassDescriptor *_frameBufferRenderPasses[2];	// The render pass for _drawing to_ the frame buffer.
 	BOOL _dontClearFrameBuffer;
 	int _fieldIndex;
+	bool _isInterlaced;
 
 	// Textures: the stencil.
 	//
@@ -262,6 +263,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 - (Uniforms *)uniforms {
 	return reinterpret_cast<Uniforms *>(_uniformsBuffer.contents);
+}
+
+- (void)setAlpha {
+	static constexpr float alpha = 0.64f;
+	self.uniforms->outputAlpha =  __fp16(_isInterlaced ? std::sqrt(alpha) : alpha);
 }
 
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view {
@@ -558,7 +564,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// This is fixed for now; consider making it a function of frame rate and/or of whether frame syncing
 	// is ongoing (which would require a way to signal that to this scan target).
-	self.uniforms->outputAlpha = __fp16(0.64f);
+	[self setAlpha];
 	self.uniforms->outputMultiplier = __fp16(modals.brightness);
 
 	const float displayGamma = 2.2f;	// This is assumed.
@@ -898,8 +904,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 	// TODO: differnet copy phase if weave deinterlacing.
 	[encoder setRenderPipelineState:_isUsingSupersampling ? _supersamplePipeline : _copyPipeline];
-	[encoder setVertexTexture:_frameBuffers[0] atIndex:0];
-	[encoder setFragmentTexture:_frameBuffers[0] atIndex:0];
+	[encoder setVertexTexture:_frameBuffers[_fieldIndex] atIndex:0];
+	[encoder setFragmentTexture:_frameBuffers[_fieldIndex] atIndex:0];
 
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
 	[encoder endEncoding];
@@ -972,14 +978,21 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			[&](
 				const bool was_complete,
 				const int field_index,
-				[[maybe_unused]] const bool is_interlaced
+				const bool is_interlaced
 			) {
 				if(was_complete && !_dontClearFrameBuffer) {
 					[self outputFrameCleanerToCommandBuffer:commandBuffer];
 				}
 				_dontClearFrameBuffer = NO;
-
 				_fieldIndex = field_index;
+
+				if(_isInterlaced != is_interlaced) {
+					_isInterlaced = is_interlaced;
+
+					[self setAlpha];
+					[self copyTexture:_frameBuffers[0] to:_frameBuffers[1]];
+					[self outputFrameCleanerToCommandBuffer:commandBuffer];
+				}
 			};
 
 		switch(_pipeline) {

@@ -45,4 +45,3 @@ struct Uniforms {
 	// Sets a brightness multiplier for output colours.
 	half outputMultiplier;
 };
-
