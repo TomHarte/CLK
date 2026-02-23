@@ -127,10 +127,10 @@ void ScanTarget::set_alphas() {
 	static constexpr float OutputAlpha = 0.64f;
 
 	if(!scan_output_shader_.empty()) {
-		scan_output_shader_.set_alpha(is_interlaced() ? std::sqrt(OutputAlpha) : OutputAlpha);
+		scan_output_shader_.set_alpha(is_interlacing_ ? std::sqrt(OutputAlpha) : OutputAlpha);
 	}
 	if(!line_output_shader_.empty()) {
-		line_output_shader_.set_alpha(is_interlaced() ? std::sqrt(OutputAlpha) : OutputAlpha);
+		line_output_shader_.set_alpha(is_interlacing_ ? std::sqrt(OutputAlpha) : OutputAlpha);
 	}
 }
 
@@ -547,16 +547,25 @@ void ScanTarget::process_to_rgb(const OutputArea &area) {
 }
 
 void ScanTarget::bind_current_output_buffer() {
-	output_buffers_[output_buffer_ & (is_interlaced() ? 1 : 0)].bind_framebuffer();
+	output_buffers_[field_index_].bind_framebuffer();
 }
 
-void ScanTarget::toggle_output_buffer() {
-	output_buffer_ ^= 1;
-	bind_current_output_buffer();
+void ScanTarget::end_field(
+	const bool was_complete,
+	const int field_index,
+	const bool is_interlaced
+) {
+	if(was_complete) {
+		full_display_rectangle_.draw(0.0, 0.0, 0.0);
+	}
+	test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
+	field_index_ = field_index;
+	output_buffers_[field_index].bind_framebuffer();
+	is_interlacing_ = is_interlaced;
 }
 
 void ScanTarget::output_lines(const OutputArea &area) {
-	bind_current_output_buffer();
+	output_buffers_[field_index_].bind_framebuffer();
 	BufferingScanTarget::output_lines(
 		area,
 		[&](const size_t begin, const size_t end) {
@@ -568,12 +577,12 @@ void ScanTarget::output_lines(const OutputArea &area) {
 			line_output_shader_.bind();
 			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_lines)); });
 		},
-		[&](const bool was_complete) {
-			if(was_complete) {
-				full_display_rectangle_.draw(0.0, 0.0, 0.0);
-			}
-			test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
-			toggle_output_buffer();
+		[&](
+			const bool was_complete,
+			const int field_index,
+			const bool is_interlaced
+		) {
+			end_field(was_complete, field_index, is_interlaced);
 		}
 	);
 }
@@ -591,12 +600,12 @@ void ScanTarget::output_scans(const OutputArea &area) {
 			composition_buffer_.bind_texture();
 			test_gl([&]{ glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans)); });
 		},
-		[&](const bool was_complete) {
-			if(was_complete) {
-				full_display_rectangle_.draw(0.0, 0.0, 0.0);
-			}
-			test_gl([&]{ glClear(GL_STENCIL_BUFFER_BIT); });
-			toggle_output_buffer();
+		[&](
+			const bool was_complete,
+			const int field_index,
+			const bool is_interlaced
+		) {
+			end_field(was_complete, field_index, is_interlaced);
 		}
 	);
 }
@@ -608,7 +617,7 @@ void ScanTarget::draw(const int output_width, const int output_height) {
 	test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
 
 	if(!output_buffers_[0].empty()) {
-		if(is_interlaced()) {
+		if(is_interlacing_) {
 			if(!was_interlacing_) {
 				set_alphas();
 				output_buffers_[1].bind_framebuffer();
@@ -635,7 +644,7 @@ void ScanTarget::draw(const int output_width, const int output_height) {
 			output_buffers_[0].bind_texture();
 			copy_shader_.perform(OutputTextureUnits[0], 1.0f);
 		}
-		was_interlacing_ = is_interlaced();
+		was_interlacing_ = is_interlacing_;
 	}
 
 	is_drawing_to_output_.clear(std::memory_order_release);

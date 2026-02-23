@@ -960,6 +960,18 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		// Hence every pixel is touched every frame, regardless of the machine's output.
 		//
 
+		const auto end_field =
+			[&](
+				const bool was_complete,
+				[[maybe_unused]] const int field_index,
+				[[maybe_unused]] const bool is_interlaced
+			) {
+				if(was_complete && !_dontClearFrameBuffer) {
+					[self outputFrameCleanerToCommandBuffer:commandBuffer];
+				}
+				_dontClearFrameBuffer = NO;
+			};
+
 		switch(_pipeline) {
 			case Pipeline::DirectToDisplay:
 				_scanTarget.output_scans(
@@ -967,12 +979,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 					[&](const size_t begin, const size_t end) {
 						[self outputFrom:begin to:end commandBuffer:commandBuffer];
 					},
-					[&](const bool was_complete) {
-						if(was_complete && !_dontClearFrameBuffer) {
-							[self outputFrameCleanerToCommandBuffer:commandBuffer];
-						}
-						_dontClearFrameBuffer = NO;
-					}
+					end_field
 				);
 			break;
 
@@ -1095,12 +1102,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 					[&](const size_t begin, const size_t end) {
 						[self outputFrom:begin to:end commandBuffer:commandBuffer];
 					},
-					[&](const bool was_complete) {
-						if(was_complete && !_dontClearFrameBuffer) {
-							[self outputFrameCleanerToCommandBuffer:commandBuffer];
-						}
-						_dontClearFrameBuffer = NO;
-					}
+					end_field
 				);
 			break;
 		}
