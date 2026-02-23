@@ -129,6 +129,7 @@ struct Uniforms {
 	__fp16 outputAlpha;
 	__fp16 outputGamma;
 	__fp16 outputMultiplier;
+	__fp16 weightedMixAlpha;
 };
 
 // Kernel sizes above and in the shaders themselves assume a maximum filter kernel size.
@@ -173,9 +174,12 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLRenderPipelineState> _outputPipeline;				// Draws to the frame buffer.
 	id<MTLRenderPipelineState> _copyPipeline;				// Copies from one texture to another.
 	id<MTLRenderPipelineState> _supersampleCopyPipeline;	// Resamples from one texture to one that is 1/4 as large.
-	id<MTLRenderPipelineState> _mixPipeline;				// Combines two textures, mixing them 50:50.
-	id<MTLRenderPipelineState> _supersampleMixPipeline;		// Resamples and combines two textures.
 	id<MTLRenderPipelineState> _clearPipeline;				// Applies additional inter-frame clearing (cf. the stencil).
+
+	id<MTLRenderPipelineState> _equalMixPipeline;
+	id<MTLRenderPipelineState> _supersampleEqualMixPipeline;
+	id<MTLRenderPipelineState> _weightedMixPipeline;
+	id<MTLRenderPipelineState> _supersampleWeightedMixPipeline;
 
 	// Buffers.
 	id<MTLBuffer> _uniformsBuffer;	// A static buffer, containing a copy of the Uniforms struct.
@@ -269,7 +273,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 - (void)setAlpha {
 	static constexpr float alpha = 0.64f;
-	self.uniforms->outputAlpha =  __fp16(_isInterlaced ? std::sqrt(alpha) : alpha);
+	self.uniforms->outputAlpha = __fp16(std::sqrt(alpha));
+	self.uniforms->weightedMixAlpha = __fp16(alpha);
 }
 
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view {
@@ -316,11 +321,17 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"interpolateCopyFragment"];
 		_supersampleCopyPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 
-		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"mixFragment"];
-		_mixPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"equalMixFragment"];
+		_equalMixPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 
-		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"interpolateMixFragment"];
-		_supersampleMixPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"interpolateEqualMixFragment"];
+		_supersampleEqualMixPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"weightedMixFragment"];
+		_weightedMixPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
+
+		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"interpolateWeightedMixFragment"];
+		_supersampleWeightedMixPipeline = [_view.device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:nil];
 
 		pipelineDescriptor.fragmentFunction = [library newFunctionWithName:@"clearFragment"];
 		pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatStencil8;
@@ -914,32 +925,20 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 		[encoder setRenderPipelineState:
 			_isUsingSupersampling ?
-				(_isInterlaced ? _supersampleMixPipeline : _supersampleCopyPipeline) :
-				(_isInterlaced ? _mixPipeline : _copyPipeline)
+				(_isInterlaced ? _supersampleEqualMixPipeline : _supersampleWeightedMixPipeline) :
+				(_isInterlaced ? _equalMixPipeline : _weightedMixPipeline)
 		];
 
-		[encoder setVertexTexture:_frameBuffers[0] atIndex:0];
-		[encoder setFragmentTexture:_frameBuffers[0] atIndex:0];
-		[encoder setVertexTexture:_frameBuffers[1] atIndex:1];
-		[encoder setFragmentTexture:_frameBuffers[1] atIndex:1];
+		[encoder setVertexTexture:_frameBuffers[_fieldIndex ^ 1] atIndex:0];
+		[encoder setFragmentTexture:_frameBuffers[_fieldIndex ^ 1] atIndex:0];
+		[encoder setVertexTexture:_frameBuffers[_fieldIndex] atIndex:1];
+		[encoder setFragmentTexture:_frameBuffers[_fieldIndex] atIndex:1];
+		[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 		[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
 		[encoder endEncoding];
 		encoder = nil;
 	}
-
-//	if(_isInterlaced) {
-//		id<MTLRenderCommandEncoder> encoder =
-//			[commandBuffer renderCommandEncoderWithDescriptor:view.currentRenderPassDescriptor];
-//
-//		[encoder setRenderPipelineState:_isUsingSupersampling ? _supersampleAddPipeline : _addPipeline];
-//		[encoder setVertexTexture:_frameBuffers[1] atIndex:0];
-//		[encoder setFragmentTexture:_frameBuffers[1] atIndex:0];
-//
-//		[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
-//		[encoder endEncoding];
-//		encoder = nil;
-//	}
 
 	[commandBuffer presentDrawable:view.currentDrawable];
 	[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
@@ -1018,10 +1017,6 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 				if(_isInterlaced != is_interlaced) {
 					_isInterlaced = is_interlaced;
-
-					[self setAlpha];
-					[self copyTexture:_frameBuffers[0] to:_frameBuffers[1]];
-					[self outputFrameCleanerToCommandBuffer:commandBuffer];
 				}
 			};
 

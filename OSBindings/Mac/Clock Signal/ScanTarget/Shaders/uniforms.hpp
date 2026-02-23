@@ -44,4 +44,7 @@ struct Uniforms {
 
 	// Sets a brightness multiplier for output colours.
 	half outputMultiplier;
+
+	// Sets the opacity used by the weighted-mix copy shaders.
+	half weightedMixAlpha;
 };

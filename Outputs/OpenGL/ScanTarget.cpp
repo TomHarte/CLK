@@ -39,6 +39,8 @@ constexpr GLenum DemodulationTextureUnit = GL_TEXTURE3;
 /// Contains the current display.
 constexpr GLenum OutputTextureUnits[] = {GL_TEXTURE4, GL_TEXTURE5};
 
+static constexpr float FieldAlpha = 0.64f;
+
 using Logger = Log::Logger<Log::Source::OpenGL>;
 
 template <typename SourceT>
@@ -124,13 +126,11 @@ void ScanTarget::update_aspect_ratio_transformation() {
 }
 
 void ScanTarget::set_alphas() {
-	static constexpr float OutputAlpha = 0.64f;
-
 	if(!scan_output_shader_.empty()) {
-		scan_output_shader_.set_alpha(is_interlacing_ ? std::sqrt(OutputAlpha) : OutputAlpha);
+		scan_output_shader_.set_alpha(std::sqrt(FieldAlpha));
 	}
 	if(!line_output_shader_.empty()) {
-		line_output_shader_.set_alpha(is_interlacing_ ? std::sqrt(OutputAlpha) : OutputAlpha);
+		line_output_shader_.set_alpha(std::sqrt(FieldAlpha));
 	}
 }
 
@@ -617,32 +617,22 @@ void ScanTarget::draw(const int output_width, const int output_height) {
 	test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
 
 	if(!output_buffers_[0].empty()) {
+		test_gl([&]{ glEnable(GL_BLEND); });
+		test_gl([&]{ glDisable(GL_STENCIL_TEST); });
+		test_gl([&]{ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); });
+
 		if(is_interlacing_) {
-			if(!was_interlacing_) {
-				set_alphas();
-				output_buffers_[1].bind_framebuffer();
-				output_buffers_[0].bind_texture();
-				copy_shader_.perform(OutputTextureUnits[0], 1.0f);
-			}
-
-			test_gl([&]{ glEnable(GL_BLEND); });
-			test_gl([&]{ glDisable(GL_STENCIL_TEST); });
-			test_gl([&]{ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); });
-
+			// Always a 50:50 blend.
 			output_buffers_[0].bind_texture();
 			copy_shader_.perform(OutputTextureUnits[0], 1.0f);
 			output_buffers_[1].bind_texture();
 			copy_shader_.perform(OutputTextureUnits[1], 0.5f);
 		} else {
-			if(was_interlacing_) {
-				set_alphas();
-			}
-
-			test_gl([&]{ glDisable(GL_BLEND); });
-			test_gl([&]{ glDisable(GL_STENCIL_TEST); });
-
-			output_buffers_[0].bind_texture();
-			copy_shader_.perform(OutputTextureUnits[0], 1.0f);
+			// Draw the current field above the previous.
+			output_buffers_[field_index_ ^ 1].bind_texture();
+			copy_shader_.perform(OutputTextureUnits[field_index_ ^ 1], 1.0f);
+			output_buffers_[field_index_].bind_texture();
+			copy_shader_.perform(OutputTextureUnits[field_index_], FieldAlpha);
 		}
 		was_interlacing_ = is_interlacing_;
 	}
