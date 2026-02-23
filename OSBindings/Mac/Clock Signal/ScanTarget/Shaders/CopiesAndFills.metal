@@ -69,6 +69,7 @@ fragment half4 interpolateEqualMixFragment(
 
 fragment half4 weightedMixFragment(
 	const CopyInterpolator vert [[stage_in]],
+	const constant Uniforms &uniforms [[buffer(0)]],
 	const metal::texture2d<half> texture1 [[texture(0)]],
 	const metal::texture2d<half> texture2 [[texture(1)]]
 ) {
@@ -76,12 +77,13 @@ fragment half4 weightedMixFragment(
 		metal::mix(
 			texture1.sample(nearestSampler, vert.textureCoordinates),
 			texture2.sample(nearestSampler, vert.textureCoordinates),
-			0.64
+			uniforms.weightedMixAlpha
 		);
 }
 
 fragment half4 interpolateWeightedMixFragment(
 	const CopyInterpolator vert [[stage_in]],
+	const constant Uniforms &uniforms [[buffer(0)]],
 	const metal::texture2d<half> texture1 [[texture(0)]],
 	const metal::texture2d<half> texture2 [[texture(1)]]
 ) {
@@ -89,7 +91,7 @@ fragment half4 interpolateWeightedMixFragment(
 		metal::mix(
 			texture1.sample(linearSampler, vert.textureCoordinates),
 			texture2.sample(linearSampler, vert.textureCoordinates),
-			0.64
+			uniforms.weightedMixAlpha
 		);
 }
 

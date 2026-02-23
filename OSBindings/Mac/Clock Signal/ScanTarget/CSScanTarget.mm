@@ -129,6 +129,7 @@ struct Uniforms {
 	__fp16 outputAlpha;
 	__fp16 outputGamma;
 	__fp16 outputMultiplier;
+	__fp16 weightedMixAlpha;
 };
 
 // Kernel sizes above and in the shaders themselves assume a maximum filter kernel size.
@@ -273,6 +274,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 - (void)setAlpha {
 	static constexpr float alpha = 0.64f;
 	self.uniforms->outputAlpha = __fp16(std::sqrt(alpha));
+	self.uniforms->weightedMixAlpha = __fp16(alpha);
 }
 
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view {
@@ -931,6 +933,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		[encoder setFragmentTexture:_frameBuffers[_fieldIndex ^ 1] atIndex:0];
 		[encoder setVertexTexture:_frameBuffers[_fieldIndex] atIndex:1];
 		[encoder setFragmentTexture:_frameBuffers[_fieldIndex] atIndex:1];
+		[encoder setFragmentBuffer:_uniformsBuffer offset:0 atIndex:0];
 
 		[encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
 		[encoder endEncoding];
