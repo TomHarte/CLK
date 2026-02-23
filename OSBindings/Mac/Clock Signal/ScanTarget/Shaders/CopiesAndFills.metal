@@ -41,8 +41,7 @@ fragment half4 interpolateCopyFragment(
 	return texture.sample(linearSampler, vert.textureCoordinates);
 }
 
-/// Point-samples @c texture to copy directly from source to target.
-fragment half4 mixFragment(
+fragment half4 equalMixFragment(
 	const CopyInterpolator vert [[stage_in]],
 	const metal::texture2d<half> texture1 [[texture(0)]],
 	const metal::texture2d<half> texture2 [[texture(1)]]
@@ -55,8 +54,7 @@ fragment half4 mixFragment(
 		);
 }
 
-/// Bilinearly samples @c texture.
-fragment half4 interpolateMixFragment(
+fragment half4 interpolateEqualMixFragment(
 	const CopyInterpolator vert [[stage_in]],
 	const metal::texture2d<half> texture1 [[texture(0)]],
 	const metal::texture2d<half> texture2 [[texture(1)]]
@@ -66,6 +64,32 @@ fragment half4 interpolateMixFragment(
 			texture1.sample(linearSampler, vert.textureCoordinates),
 			texture2.sample(linearSampler, vert.textureCoordinates),
 			0.5
+		);
+}
+
+fragment half4 weightedMixFragment(
+	const CopyInterpolator vert [[stage_in]],
+	const metal::texture2d<half> texture1 [[texture(0)]],
+	const metal::texture2d<half> texture2 [[texture(1)]]
+) {
+	return
+		metal::mix(
+			texture1.sample(nearestSampler, vert.textureCoordinates),
+			texture2.sample(nearestSampler, vert.textureCoordinates),
+			0.64
+		);
+}
+
+fragment half4 interpolateWeightedMixFragment(
+	const CopyInterpolator vert [[stage_in]],
+	const metal::texture2d<half> texture1 [[texture(0)]],
+	const metal::texture2d<half> texture2 [[texture(1)]]
+) {
+	return
+		metal::mix(
+			texture1.sample(linearSampler, vert.textureCoordinates),
+			texture2.sample(linearSampler, vert.textureCoordinates),
+			0.64
 		);
 }
 
