@@ -1164,11 +1164,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (NSBitmapImageRep *)imageRepresentation {
-	// TODO: deinterlacing
-
-	const auto &buffer = _frameBuffers[0];
-
 	// Create an NSBitmapRep as somewhere to copy pixel data to.
+	const auto &buffer = _frameBuffers[0];
 	NSBitmapImageRep *const result =
 		[[NSBitmapImageRep alloc]
 			initWithBitmapDataPlanes:NULL
@@ -1181,41 +1178,56 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			colorSpaceName:NSDeviceRGBColorSpace
 			bytesPerRow:4 * (NSInteger)buffer.width
 			bitsPerPixel:0];
-
-	// Create a CPU-accessible texture and copy the current contents of the _frameBuffer to it.
-	// TODO: supersample rather than directly copy if appropriate?
-	id<MTLTexture> cpuTexture;
-	MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
-		texture2DDescriptorWithPixelFormat:_view.colorPixelFormat
-		width:buffer.width
-		height:buffer.height
-		mipmapped:NO];
-	textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
-	textureDescriptor.resourceOptions = MTLResourceStorageModeManaged;
-	cpuTexture = [_view.device newTextureWithDescriptor:textureDescriptor];
-	[[self copyTexture:buffer to:cpuTexture] waitUntilCompleted];
-
-	// Copy from the CPU-visible texture to the bitmap image representation.
 	uint8_t *const bitmapData = result.bitmapData;
-	[cpuTexture
-		getBytes:bitmapData
-		bytesPerRow:buffer.width*4
-		fromRegion:MTLRegionMake2D(0, 0, buffer.width, buffer.height)
-		mipmapLevel:0];
+	const NSUInteger totalBytes = buffer.width * buffer.height * 4;
+	std::vector<uint8_t> workBuffer(totalBytes);
+
+	const auto composite = [&](id<MTLTexture> source, const std::optional<float> amplitude) {
+		// This code isn't smart enough to resize.
+		assert(source.width == buffer.width && source.height == buffer.height);
+
+		// Create a CPU-accessible texture and copy the current contents of the _frameBuffer to it.
+		id<MTLTexture> cpuTexture;
+		MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
+			texture2DDescriptorWithPixelFormat:_view.colorPixelFormat
+			width:source.width
+			height:source.height
+			mipmapped:NO];
+		textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+		textureDescriptor.resourceOptions = MTLResourceStorageModeManaged;
+		cpuTexture = [_view.device newTextureWithDescriptor:textureDescriptor];
+		[[self copyTexture:source to:cpuTexture] waitUntilCompleted];
+
+		const bool applyAmplitude = amplitude.has_value();
+
+		// Copy from the CPU-visible texture to the work buffer, and composite into the bitmap.
+		[cpuTexture
+			getBytes:applyAmplitude ? workBuffer.data() : bitmapData
+			bytesPerRow:source.width*4
+			fromRegion:MTLRegionMake2D(0, 0, source.width, source.height)
+			mipmapLevel:0];
+
+		if(applyAmplitude) {
+			for(NSUInteger offset = 0; offset < totalBytes; offset++) {
+				bitmapData[offset] =
+					uint8_t(
+						float(bitmapData[offset]) * (1.0f - *amplitude) +
+						float(workBuffer[offset]) * *amplitude
+					);
+			}
+		}
+	};
+
+	composite(_frameBuffers[_fieldIndex], std::nullopt);
+	composite(_frameBuffers[_fieldIndex ^ 1],
+		_isInterlaced ? 0.5f : self.uniforms->weightedMixAlpha);
 
 	// Set alpha to fully opaque and do some byte shuffling if necessary;
 	// Apple likes BGR for output but RGB is the best I can specify to NSBitmapImageRep.
-	//
-	// I'm not putting my foot down and having the GPU do the conversion I want
-	// because this lets me reuse _copyPipeline and thereby cut down on boilerplate,
-	// especially given that screenshots are not a bottleneck.
-	const NSUInteger totalBytes = buffer.width * buffer.height * 4;
 	const bool flipRedBlue = _view.colorPixelFormat == MTLPixelFormatBGRA8Unorm;
 	for(NSUInteger offset = 0; offset < totalBytes; offset += 4) {
 		if(flipRedBlue) {
-			const uint8_t red = bitmapData[offset];
-			bitmapData[offset] = bitmapData[offset+2];
-			bitmapData[offset+2] = red;
+			std::swap(bitmapData[offset], bitmapData[offset+2]);
 		}
 		bitmapData[offset+3] = 0xff;
 	}
