@@ -16,8 +16,9 @@ namespace Reflection {
 /*!
 	Calls @c t.dispatch<c>(args...) as efficiently as possible.
 */
-template <typename TargetT, typename... Args> void dispatch(TargetT &t, uint8_t c, Args &&... args) {
-#define Opt(x)		case x: t.template dispatch<x>(std::forward<Args>(args)...);	break
+template <typename TargetT, typename... Args>
+auto dispatch(TargetT &t, const uint8_t c, Args &&... args) {
+#define Opt(x)		case x: return t.template dispatch<x>(std::forward<Args>(args)...);
 #define Opt4(x)		Opt(x + 0x00);		Opt(x + 0x01);		Opt(x + 0x02);		Opt(x + 0x03)
 #define Opt16(x)	Opt4(x + 0x00);		Opt4(x + 0x04);		Opt4(x + 0x08);		Opt4(x + 0x0c)
 #define Opt64(x)	Opt16(x + 0x00);	Opt16(x + 0x10);	Opt16(x + 0x20);	Opt16(x + 0x30)
@@ -26,6 +27,7 @@ template <typename TargetT, typename... Args> void dispatch(TargetT &t, uint8_t 
 	switch(c) {
 		Opt256(0);
 	}
+	__builtin_unreachable();
 
 #undef Opt256
 #undef Opt64
@@ -68,20 +70,21 @@ struct RangeDispatcher {
 
 	/// Perform @c target.perform<n>() for the input range `begin <= n < end`.
 	template <typename... Args>
-	static void dispatch(SequencerT &target, int begin, int end, Args&&... args) {
+	static auto dispatch(SequencerT &target, const int begin, const int end, Args&&... args) {
 
 		// Minor optimisation: do a comparison with end once outside the loop and if it implies so
 		// then do no further comparisons within the loop. This is somewhat targetted at expected
 		// use cases.
 		if(end < SequencerT::max) {
-			dispatch<true>(target, begin, end, args...);
+			return dispatch<true>(target, begin, end, args...);
 		} else {
-			dispatch<false>(target, begin, end, args...);
+			return dispatch<false>(target, begin, end, args...);
 		}
 	}
 
 private:
-	template <bool use_end, typename... Args> static void dispatch(SequencerT &target, int begin, int end, Args&&... args) {
+	template <bool use_end, typename... Args>
+	static auto dispatch(SequencerT &target, const int begin, const int end, Args&&... args) {
 #define index(n)											\
 	case n:													\
 		if constexpr (n <= SequencerT::max) {				\
@@ -141,13 +144,13 @@ struct SubrangeDispatcher {
 	}
 
 private:
-	static constexpr int find_begin(int n) {
+	static consteval int find_begin(int n) {
 		const auto type = ClassifierT::region(n);
 		while(n && ClassifierT::region(n - 1) == type) --n;
 		return n;
 	}
 
-	static constexpr int find_end(int n) {
+	static consteval int find_end(int n) {
 		const auto type = ClassifierT::region(n);
 		while(n < ClassifierT::max && ClassifierT::region(n) == type) ++n;
 		return n;
