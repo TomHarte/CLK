@@ -1166,18 +1166,20 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 - (NSBitmapImageRep *)imageRepresentation {
 	// TODO: deinterlacing
 
+	const auto &buffer = _frameBuffers[0];
+
 	// Create an NSBitmapRep as somewhere to copy pixel data to.
 	NSBitmapImageRep *const result =
 		[[NSBitmapImageRep alloc]
 			initWithBitmapDataPlanes:NULL
-			pixelsWide:(NSInteger)_frameBuffers[0].width
-			pixelsHigh:(NSInteger)_frameBuffers[0].height
+			pixelsWide:(NSInteger)buffer.width
+			pixelsHigh:(NSInteger)buffer.height
 			bitsPerSample:8
 			samplesPerPixel:4
 			hasAlpha:YES
 			isPlanar:NO
 			colorSpaceName:NSDeviceRGBColorSpace
-			bytesPerRow:4 * (NSInteger)_frameBuffers[0].width
+			bytesPerRow:4 * (NSInteger)buffer.width
 			bitsPerPixel:0];
 
 	// Create a CPU-accessible texture and copy the current contents of the _frameBuffer to it.
@@ -1185,20 +1187,20 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	id<MTLTexture> cpuTexture;
 	MTLTextureDescriptor *const textureDescriptor = [MTLTextureDescriptor
 		texture2DDescriptorWithPixelFormat:_view.colorPixelFormat
-		width:_frameBuffers[0].width
-		height:_frameBuffers[0].height
+		width:buffer.width
+		height:buffer.height
 		mipmapped:NO];
 	textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
 	textureDescriptor.resourceOptions = MTLResourceStorageModeManaged;
 	cpuTexture = [_view.device newTextureWithDescriptor:textureDescriptor];
-	[[self copyTexture:_frameBuffers[0] to:cpuTexture] waitUntilCompleted];
+	[[self copyTexture:buffer to:cpuTexture] waitUntilCompleted];
 
 	// Copy from the CPU-visible texture to the bitmap image representation.
 	uint8_t *const bitmapData = result.bitmapData;
 	[cpuTexture
 		getBytes:bitmapData
-		bytesPerRow:_frameBuffers[0].width*4
-		fromRegion:MTLRegionMake2D(0, 0, _frameBuffers[0].width, _frameBuffers[0].height)
+		bytesPerRow:buffer.width*4
+		fromRegion:MTLRegionMake2D(0, 0, buffer.width, buffer.height)
 		mipmapLevel:0];
 
 	// Set alpha to fully opaque and do some byte shuffling if necessary;
@@ -1207,7 +1209,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	// I'm not putting my foot down and having the GPU do the conversion I want
 	// because this lets me reuse _copyPipeline and thereby cut down on boilerplate,
 	// especially given that screenshots are not a bottleneck.
-	const NSUInteger totalBytes = _frameBuffers[0].width * _frameBuffers[0].height * 4;
+	const NSUInteger totalBytes = buffer.width * buffer.height * 4;
 	const bool flipRedBlue = _view.colorPixelFormat == MTLPixelFormatBGRA8Unorm;
 	for(NSUInteger offset = 0; offset < totalBytes; offset += 4) {
 		if(flipRedBlue) {
