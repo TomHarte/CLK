@@ -272,9 +272,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (void)setAlpha {
-	static constexpr float alpha = 0.64f;
-	self.uniforms->outputAlpha = __fp16(std::sqrt(alpha));
-	self.uniforms->weightedMixAlpha = __fp16(alpha);
+	self.uniforms->outputAlpha = __fp16(BufferingScanTarget::TwoFrameAlpha);
+	self.uniforms->weightedMixAlpha = __fp16(BufferingScanTarget::InterframeAlpha);
 }
 
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view {
