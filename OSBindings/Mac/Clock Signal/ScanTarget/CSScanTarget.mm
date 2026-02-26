@@ -271,10 +271,22 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	return reinterpret_cast<Uniforms *>(_uniformsBuffer.contents);
 }
 
+- (void)setIsFrameSynced:(BOOL)isFrameSynced {
+	if(_isFrameSynced == isFrameSynced) {
+		return;
+	}
+	_isFrameSynced = isFrameSynced;
+	[self setAlpha];
+}
+
 - (void)setAlpha {
-	static constexpr float alpha = 0.64f;
-	self.uniforms->outputAlpha = __fp16(std::sqrt(alpha));
-	self.uniforms->weightedMixAlpha = __fp16(alpha);
+	if(_isFrameSynced) {
+		self.uniforms->outputAlpha = __fp16(1.0f);
+		self.uniforms->weightedMixAlpha = __fp16(1.0f);
+	} else {
+		self.uniforms->outputAlpha = __fp16(BufferingScanTarget::TwoFrameAlpha);
+		self.uniforms->weightedMixAlpha = __fp16(BufferingScanTarget::InterframeAlpha);
+	}
 }
 
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view {

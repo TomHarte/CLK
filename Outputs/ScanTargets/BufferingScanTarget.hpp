@@ -237,6 +237,9 @@ public:
 		);
 	}
 
+	static constexpr float InterframeAlpha = 0.64f;
+	static constexpr float TwoFrameAlpha = 1.0f - (1.0f - InterframeAlpha) * (1.0f - InterframeAlpha);
+
 private:
 	// ScanTarget overrides.
 	void set_modals(Modals) final;
