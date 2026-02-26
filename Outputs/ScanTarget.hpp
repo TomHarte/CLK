@@ -600,7 +600,7 @@ struct ScanStatus {
 	/// 0 (start of visible area field) to 1 (end of field).
 	///
 	/// This will increase monotonically, being a measure
-	/// of the current vertical position — i.e. if current_position = 0.8 then a caller can
+	/// of the current vertical position — i.e. if `current_position` = 0.8 then a caller can
 	/// conclude that the top 80% of the visible part of the display has been painted.
 	float current_position = 0.0f;
 	/// The total number of hsyncs so far encountered;
