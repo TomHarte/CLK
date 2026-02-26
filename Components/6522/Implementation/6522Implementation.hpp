@@ -6,6 +6,8 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
+#pragma once
+
 #include "Outputs/Log.hpp"
 
 // As-yet unimplemented (incomplete list):
