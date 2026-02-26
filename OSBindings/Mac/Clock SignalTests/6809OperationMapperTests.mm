@@ -17,19 +17,15 @@ using namespace InstructionSet::M6809;
 namespace {
 
 struct OperationCapture {
-	template <Operation operation, AddressingMode mode> void schedule() {
-		this->operation = operation;
-		this->mode = mode;
+	template <Operation operation, AddressingMode mode> auto schedule() {
+		return std::make_pair(operation, mode);
 	}
-	Operation operation;
-	AddressingMode mode;
 };
 
-template <Page page> OperationCapture capture(uint8_t opcode) {
+template <Page page> std::pair<Operation, AddressingMode> capture(const uint8_t opcode) {
 	OperationCapture catcher;
 	OperationMapper<page> mapper;
-	Reflection::dispatch(mapper, opcode, catcher);
-	return catcher;
+	return Reflection::dispatch(mapper, opcode, catcher);
 }
 
 }
@@ -39,17 +35,21 @@ template <Page page> OperationCapture capture(uint8_t opcode) {
 
 @implementation M6809OperationMapperTests
 
-- (void)testOpcode:(uint8_t)opcode page:(Page)page isOperation:(Operation)operation addressingMode:(AddressingMode)mode {
-	OperationCapture catcher;
-
-	switch(page) {
-		case Page::Page0:	catcher = capture<Page::Page0>(opcode);	break;
-		case Page::Page1:	catcher = capture<Page::Page1>(opcode);	break;
-		case Page::Page2:	catcher = capture<Page::Page2>(opcode);	break;
-	}
-
-	XCTAssertEqual(catcher.operation, operation, "Operation didn't match for opcode 0x%02x in page %d", opcode, int(page));
-	XCTAssertEqual(catcher.mode, mode, "Mode didn't match for opcode 0x%02x in page %d", opcode, int(page));
+- (void)
+	testOpcode:(uint8_t)opcode
+	page:(Page)page
+	isOperation:(Operation)expectedOperation
+	addressingMode:(AddressingMode)expectedMode
+{
+	const auto &[operation, mode] = [&]() {
+		switch(page) {
+			case Page::Page0:	return capture<Page::Page0>(opcode);
+			case Page::Page1:	return capture<Page::Page1>(opcode);
+			case Page::Page2:	return capture<Page::Page2>(opcode);
+		}
+	} ();
+	XCTAssertEqual(expectedOperation, operation, "Operation didn't match for opcode 0x%02x in page %d", opcode, int(page));
+	XCTAssertEqual(expectedMode, mode, "Mode didn't match for opcode 0x%02x in page %d", opcode, int(page));
 }
 
 - (void)testMap {
