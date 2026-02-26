@@ -6,12 +6,12 @@
 //  Copyright © 2025 Thomas Harte. All rights reserved.
 //
 
+#pragma once
+
 #include "Numeric/RegisterSizes.hpp"
 
 #include <cassert>
 #include <compare>
-
-#pragma once
 
 namespace CPU::MOS6502Mk2 {
 

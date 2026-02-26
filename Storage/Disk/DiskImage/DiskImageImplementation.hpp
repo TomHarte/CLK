@@ -6,6 +6,8 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
+#pragma once
+
 template <typename T>
 HeadPosition DiskImageHolder<T>::maximum_head_position() const {
 	return disk_image_.maximum_head_position();

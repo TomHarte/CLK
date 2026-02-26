@@ -6,6 +6,8 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
+#pragma once
+
 #include "ROMMachine.hpp"
 
 /// @returns a ROM fetcher that will check: (i) this application's support directory; and

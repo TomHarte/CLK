@@ -6,13 +6,13 @@
 //  Copyright © 2025 Thomas Harte. All rights reserved.
 //
 
+#pragma once
+
 #include "Decoder.hpp"
 #include "Model.hpp"
 #include "Registers.hpp"
 
 #include "Numeric/Carry.hpp"
-
-#pragma once
 
 namespace CPU::MOS6502Mk2 {
 

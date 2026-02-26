@@ -6,6 +6,8 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
+#pragma once
+
 /*!
 	A repository for all the internal state of a CPU::MOS6502::Processor; extracted into a separate base
 	class in order to remove it from visibility within the main 6502.hpp.

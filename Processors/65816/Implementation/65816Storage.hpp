@@ -5,6 +5,8 @@
 //  Created by Thomas Harte on 23/09/2020.
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
+#pragma once
+#pragma once
 
 enum MicroOp: uint8_t {
 	/// Fetches a byte from the program counter to the instruction buffer and increments the program counter.

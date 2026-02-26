@@ -6,6 +6,8 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
+#pragma once
+
 template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, uses_ready_line>::run_for(const Cycles cycles) {
 
 #define perform_bus(address, value, operation)	\

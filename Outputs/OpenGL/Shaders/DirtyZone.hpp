@@ -6,6 +6,8 @@
 //  Copyright © 2026 Thomas Harte. All rights reserved.
 //
 
+#pragma once
+
 #include <cstdint>
 
 namespace Outputs::Display::OpenGL {

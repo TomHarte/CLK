@@ -6,6 +6,8 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
+#pragma once
+
 template <	class T,
 			bool uses_bus_request,
 			bool uses_wait_line> Processor <T, uses_bus_request, uses_wait_line>

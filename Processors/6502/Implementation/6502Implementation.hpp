@@ -6,6 +6,8 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
+#pragma once
+
 /*
 	Here lies the implementations of those methods declared in the CPU::MOS6502::Processor template, or declared
 	as inline within CPU::MOS6502::ProcessorBase. So it's stuff that has to be in a header file, visible from
