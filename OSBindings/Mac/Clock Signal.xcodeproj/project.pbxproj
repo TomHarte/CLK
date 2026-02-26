@@ -2016,6 +2016,8 @@
 		4BA3AF702F0EC4AD0088C3BC /* Samplers.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Samplers.metal; sourceTree = "<group>"; };
 		4BA3AF712F0EC4AD0088C3BC /* uniforms.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = uniforms.hpp; sourceTree = "<group>"; };
 		4BA3AF722F0EC4AD0088C3BC /* Vertices.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Vertices.metal; sourceTree = "<group>"; };
+		4BA5015E2F4F7CA50013416F /* Registers.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Registers.hpp; sourceTree = "<group>"; };
+		4BA501602F4F7DEE0013416F /* 6809.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6809.hpp; sourceTree = "<group>"; };
 		4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+StdVector.h"; sourceTree = "<group>"; };
 		4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "NSData+StdVector.mm"; sourceTree = "<group>"; };
 		4BA6B6AD284EDAC000A3B7A8 /* 68000OldVsNew.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000OldVsNew.mm; sourceTree = "<group>"; };
@@ -4456,6 +4458,15 @@
 			path = Shaders;
 			sourceTree = "<group>";
 		};
+		4BA5015F2F4F7CA50013416F /* 6809 */ = {
+			isa = PBXGroup;
+			children = (
+				4BA501602F4F7DEE0013416F /* 6809.hpp */,
+				4BA5015E2F4F7CA50013416F /* Registers.hpp */,
+			);
+			path = 6809;
+			sourceTree = "<group>";
+		};
 		4BAB62AA1D3272D200DF5BA0 /* Disk */ = {
 			isa = PBXGroup;
 			children = (
@@ -5049,6 +5060,7 @@
 				4B1414561B58879D00E04248 /* 6502 */,
 				4B4DEC15252BFA9C004583AC /* 6502Esque */,
 				4B884C732EA47FCC00073840 /* 6502Mk2 */,
+				4BA5015F2F4F7CA50013416F /* 6809 */,
 				4BF8D4CC251C0C9C00BBE21B /* 65816 */,
 				42AD552D2A0C4D5000ACE410 /* 68000 */,
 				4B77069E1EC9045B0053B588 /* Z80 */,
