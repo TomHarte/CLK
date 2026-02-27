@@ -11,6 +11,7 @@
 #include "Outputs/CRT/CRT.hpp"
 #include "Outputs/CRT/MismatchWarner.hpp"
 #include "ClockReceiver/ClockReceiver.hpp"
+#include "Machines/Utility/ROMCatalogue.hpp"
 
 #include <cstdint>
 #include <memory>

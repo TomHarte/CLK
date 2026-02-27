@@ -79,25 +79,36 @@ Outputs::Display::ScanStatus VideoOutput::get_scaled_scan_status() const {
 
 void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
 	has_colour_rom_ = true;
+
+	const uint8_t xor_mask = 0x4 ^ rom[0];
+
 	for(std::size_t c = 0; c < 8; c++) {
-		colour_forms_[c] = 0;
-
-		uint8_t *const colour = reinterpret_cast<uint8_t *>(&colour_forms_[c]);
-		const std::size_t index = (c << 2);
-
 		// Values in the ROM are encoded for indexing by two square waves
 		// in quadrature, which means that they're indexed in the order
-		// 0, 1, 3, 2.
-		colour[0] = uint8_t((rom[index] & 0x0f) << 4);
-		colour[1] = uint8_t(rom[index] & 0xf0);
-		colour[2] = uint8_t(rom[index+1] & 0xf0);
-		colour[3] = uint8_t((rom[index+1] & 0x0f) << 4);
+		// 0, 1, 3, 2. Each four meaningful values are followed by
+		// four unused values.
+		uint8_t colour[4];
+		if(rom.size() == 128) {
+			const std::size_t index = c << 2;
+			colour[0] = uint8_t((rom[index] & 0x0f) << 4);
+			colour[1] = uint8_t(rom[index] & 0xf0);
+			colour[2] = uint8_t(rom[index+1] & 0xf0);
+			colour[3] = uint8_t((rom[index+1] & 0x0f) << 4);
+		} else {
+			const std::size_t index = c << 3;
+			colour[0] = uint8_t((rom[index+0] ^ xor_mask) << 4);
+			colour[1] = uint8_t((rom[index+1] ^ xor_mask) << 4);
+			colour[2] = uint8_t((rom[index+3] ^ xor_mask) << 4);
+			colour[3] = uint8_t((rom[index+2] ^ xor_mask) << 4);
+		}
 
 		// Extracting just the visible part of the stored range of values
 		// means extracting the range 0x40 to 0xe0.
 		for(int sub = 0; sub < 4; ++sub) {
 			colour[sub] = ((colour[sub] - 0x40) * 255) / 0xa0;
 		}
+
+		colour_forms_[c] = std::bit_cast<uint32_t>(colour);
 	}
 
 	// Check for big endianness and byte swap if required.
