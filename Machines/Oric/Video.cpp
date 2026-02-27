@@ -10,7 +10,7 @@
 
 #include <algorithm>
 
-//#define SUPPLY_COMPOSITE
+#define SUPPLY_COMPOSITE
 
 using namespace Oric;
 
@@ -144,6 +144,9 @@ void VideoOutput::run_for(const Cycles cycles) {
 		int cycles_run_for = 0;
 
 		if(vsync()) {
+			// TODO: REMOVE THIS TEMPORARY TESTING HACK.
+			crt_.set_immediate_default_phase(0.0f);
+
 			// this is a sync line
 			cycles_run_for = v_sync_end_position_ - counter_;
 			clamp(crt_.output_sync((v_sync_end_position_ - v_sync_start_position_) * 6));
