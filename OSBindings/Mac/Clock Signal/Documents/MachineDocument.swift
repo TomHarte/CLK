@@ -396,10 +396,12 @@ class MachineDocument:
 			if newModifiers.modifierFlags.contains(.shift) != shiftIsDown {
 				shiftIsDown = newModifiers.modifierFlags.contains(.shift)
 				machine.setKey(VK_Shift, characters: nil, isPressed: shiftIsDown, isRepeat: false)
+				machine.setKey(VK_RightShift, characters: nil, isPressed: shiftIsDown, isRepeat: false)
 			}
 			if newModifiers.modifierFlags.contains(.control) != controlIsDown {
 				controlIsDown = newModifiers.modifierFlags.contains(.control)
 				machine.setKey(VK_Control, characters: nil, isPressed: controlIsDown, isRepeat: false)
+				machine.setKey(VK_RightControl, characters: nil, isPressed: controlIsDown, isRepeat: false)
 			}
 			if newModifiers.modifierFlags.contains(.command) != commandIsDown {
 				commandIsDown = newModifiers.modifierFlags.contains(.command)
@@ -408,6 +410,7 @@ class MachineDocument:
 			if newModifiers.modifierFlags.contains(.option) != optionIsDown {
 				optionIsDown = newModifiers.modifierFlags.contains(.option)
 				machine.setKey(VK_Option, characters: nil, isPressed: optionIsDown, isRepeat: false)
+				machine.setKey(VK_RightOption, characters: nil, isPressed: optionIsDown, isRepeat: false)
 			}
 		}
 	}
