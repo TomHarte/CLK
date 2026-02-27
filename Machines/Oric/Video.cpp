@@ -32,6 +32,9 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	crt_.set_phase_linked_luminance_offset(-1.0f / 8.0f);
 	data_type_ = Outputs::Display::InputDataType::Red1Green1Blue1;
 	crt_.set_input_data_type(data_type_);
+	crt_.set_composite_function_type(
+		Outputs::CRT::CRT::CompositeSourceType::DiscreteFourSamplesPerCycle
+	);
 	crt_.set_delegate(&frequency_mismatch_warner_);
 	update_crt_frequency();
 
@@ -144,9 +147,6 @@ void VideoOutput::run_for(const Cycles cycles) {
 		int cycles_run_for = 0;
 
 		if(vsync()) {
-			// TODO: REMOVE THIS TEMPORARY TESTING HACK.
-			crt_.set_immediate_default_phase(0.0f);
-
 			// this is a sync line
 			cycles_run_for = v_sync_end_position_ - counter_;
 			clamp(crt_.output_sync((v_sync_end_position_ - v_sync_start_position_) * 6));
