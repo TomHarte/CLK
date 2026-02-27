@@ -443,7 +443,11 @@ Outputs::Display::ScanTarget::Scan::EndPoint CRT::end_point(const uint16_t data_
 	const auto lost_precision = cycles_since_horizontal_sync_ % time_multiplier_;
 	const auto unsigned_angle =
 		((phase_numerator_ - lost_precision * colour_cycle_numerator_) << 6) / phase_denominator_;
-	const auto composite_angle = unsigned_angle * (is_alternate_line_ ? -1 : 1);
+	const auto composite_angle = unsigned_angle *
+		((is_alternate_line_ && colour_burst_phase_adjustment_ == 0xff) ? -1 : 1);
+		// Don't swing the phase if discrete four samples/cycle composite sampling is set because:
+		//	(i) it'd make no difference to the output, contractually; and
+		//	(ii) it'd complicate the samplers, unnecessarily as per (i).
 
 	return Display::ScanTarget::Scan::EndPoint{
 		// Clamp the available range on endpoints. These will almost always be within range, but may go
