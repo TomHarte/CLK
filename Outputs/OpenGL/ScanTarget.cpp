@@ -162,6 +162,7 @@ void ScanTarget::setup_pipeline() {
 	};
 	const float sample_multiplier =
 		FilterGenerator::suggested_sample_multiplier(
+			modals.input_data_type,
 			subcarrier_frequency(modals),
 			modals.cycles_per_line
 		);
@@ -232,6 +233,7 @@ void ScanTarget::setup_pipeline() {
 				modals.display_type,
 				modals.composite_colour_space,
 				sample_multiplier,
+				modals.input_data_tweaks.phase_linked_luminance_offset,
 				WriteAreaWidth, WriteAreaHeight,
 				buffer_width, LineBufferHeight,
 				scans_,

@@ -130,6 +130,7 @@ struct Uniforms {
 	__fp16 outputGamma;
 	__fp16 outputMultiplier;
 	__fp16 weightedMixAlpha;
+	__fp16 phaseLinkedLuminanceOffset;
 };
 
 // Kernel sizes above and in the shaders themselves assume a maximum filter kernel size.
@@ -577,6 +578,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	self.uniforms->scale[0] = modals.output_scale.x;
 	self.uniforms->scale[1] = modals.output_scale.y;
 	self.uniforms->lineWidth = 1.05f / modals.expected_vertical_lines;
+	self.uniforms->phaseLinkedLuminanceOffset = __fp16(modals.input_data_tweaks.phase_linked_luminance_offset);
 	[self setAspectRatio];
 
 	const auto toRGB = to_rgb_matrix(modals.composite_colour_space);
@@ -668,6 +670,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		if(_pipeline != Pipeline::DirectToDisplay) {
 			cyclesMultiplier =
 				Outputs::Display::FilterGenerator::suggested_sample_multiplier(
+					modals.input_data_type,
 					float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator),
 					modals.cycles_per_line
 				);

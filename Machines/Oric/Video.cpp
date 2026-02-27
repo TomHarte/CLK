@@ -10,8 +10,6 @@
 
 #include <algorithm>
 
-//#define SUPPLY_COMPOSITE
-
 using namespace Oric;
 
 namespace {
@@ -32,6 +30,9 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	crt_.set_phase_linked_luminance_offset(-1.0f / 8.0f);
 	data_type_ = Outputs::Display::InputDataType::Red1Green1Blue1;
 	crt_.set_input_data_type(data_type_);
+	crt_.set_composite_function_type(
+		Outputs::CRT::CRT::CompositeSourceType::DiscreteFourSamplesPerCycle
+	);
 	crt_.set_delegate(&frequency_mismatch_warner_);
 	update_crt_frequency();
 
@@ -53,14 +54,10 @@ void VideoOutput::update_crt_frequency() {
 void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
 	crt_.set_display_type(display_type);
 
-#ifdef SUPPLY_COMPOSITE
 	const auto data_type =
 		(!has_colour_rom_ || display_type == Outputs::Display::DisplayType::RGB) ?
 			Outputs::Display::InputDataType::Red1Green1Blue1 :
 			Outputs::Display::InputDataType::PhaseLinkedLuminance8;
-#else
-	const auto data_type = Outputs::Display::InputDataType::Red1Green1Blue1;
-#endif
 
 	if(data_type_ != data_type) {
 		data_type_ = data_type;
