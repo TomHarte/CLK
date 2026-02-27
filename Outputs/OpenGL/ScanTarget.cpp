@@ -233,6 +233,7 @@ void ScanTarget::setup_pipeline() {
 				modals.display_type,
 				modals.composite_colour_space,
 				sample_multiplier,
+				modals.input_data_tweaks.phase_linked_luminance_offset,
 				WriteAreaWidth, WriteAreaHeight,
 				buffer_width, LineBufferHeight,
 				scans_,

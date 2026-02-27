@@ -88,6 +88,7 @@ constexpr char composition_vertex_shader[] = R"glsl(
 uniform float cyclesSinceRetraceMultiplier;
 uniform vec2 sourceSize;
 uniform vec2 targetSize;
+uniform float unitPhaseOffset;
 
 in float scanEndpoint0CyclesSinceRetrace;
 in float scanEndpoint0DataOffset;
@@ -128,6 +129,7 @@ void main(void) {
 	) / 64.0;
 	phase = 2.0 * 3.141592654 * unitPhase;
 	compositeAmplitude = scanCompositeAmplitude;
+	unitPhase -= sign(unitPhase) * unitPhaseOffset;
 
 	// Position: inteprolates x = [start -> end]Clock; y = line.
 	vec2 eyePosition = vec2(
@@ -497,6 +499,7 @@ OpenGL::Shader OpenGL::composition_shader(
 	const DisplayType display,
 	const ColourSpace colour_space,
 	const float cycles_multiplier,
+	const float phase_linked_luminance_offset,
 	const int source_width,
 	const int source_height,
 	const int target_width,
@@ -520,11 +523,15 @@ OpenGL::Shader OpenGL::composition_shader(
 	//
 	// Set uniforms.
 	//
-	shader.set_uniform("cyclesSinceRetraceMultiplier", cycles_multiplier);
-	shader.set_uniform("sourceSize", float(source_width), float(source_height));
-	shader.set_uniform("targetSize", float(target_width), float(target_height));
+	shader.set_uniform("cyclesSinceRetraceMultiplier", GLfloat(cycles_multiplier));
+	shader.set_uniform("sourceSize", GLfloat(source_width), GLfloat(source_height));
+	shader.set_uniform("targetSize", GLfloat(target_width), GLfloat(target_height));
 	shader.set_uniform("source", GLint(source_texture_unit - GL_TEXTURE0));
 	shader.set_uniform_matrix("fromRGB", 3, false, from_rgb_matrix(colour_space).data());
+	shader.set_uniform("unitPhaseOffset",
+		input == InputDataType::PhaseLinkedLuminance8 ?
+			GLfloat(phase_linked_luminance_offset) : GLfloat(0.0f)
+	);
 
 	return shader;
 }
