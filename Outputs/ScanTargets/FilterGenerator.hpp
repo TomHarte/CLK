@@ -9,6 +9,7 @@
 #pragma once
 
 #include "SignalProcessing/FIRFilter.hpp"
+#include "Outputs/ScanTarget.hpp"
 
 #include <algorithm>
 
@@ -30,6 +31,7 @@ public:
 	/// at most `buffer_width` in size in order to capture sufficient detail to do a good job of decoding composite video with a subcarrier
 	/// at `per_line_subcarrier_frequency`.
 	static float suggested_sample_multiplier(
+		InputDataType,
 		float per_line_subcarrier_frequency,
 		int samples_per_line,
 		int buffer_width = SuggestedBufferWidth

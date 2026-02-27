@@ -670,6 +670,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		if(_pipeline != Pipeline::DirectToDisplay) {
 			cyclesMultiplier =
 				Outputs::Display::FilterGenerator::suggested_sample_multiplier(
+					modals.input_data_type,
 					float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator),
 					modals.cycles_per_line
 				);
