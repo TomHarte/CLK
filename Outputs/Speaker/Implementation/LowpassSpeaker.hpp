@@ -317,7 +317,7 @@ private:
 	}
 
 public:
-	void set_output_volume(float volume) final {
+	void set_output_volume(const float volume) final {
 		scale_.store(int(std::clamp(volume * 65536.0f, 0.0f, 65536.0f)));
 	}
 
@@ -333,7 +333,7 @@ public:
 			it is safe to read from @c buffer, and in stereo it will be half the number — it is a count
 			of the number of time points at which audio was sampled.
 	*/
-	void push(const int16_t *buffer, size_t length) {
+	void push(const int16_t *const buffer, const size_t length) {
 		buffer_ = buffer;
 #ifndef NDEBUG
 		const bool did_process =
@@ -396,7 +396,7 @@ private:
 
 	SampleSource &sample_source_;
 
-	void skip_samples(size_t count) {
+	void skip_samples(const size_t count) {
 		sample_source_.template apply_samples<Action::Ignore>(count, nullptr);
 	}
 
@@ -404,7 +404,7 @@ private:
 		return int(65536.0 / sample_source_.average_output_peak());
 	}
 
-	void get_samples(size_t length, int16_t *target) {
+	void get_samples(const size_t length, int16_t *const target) {
 		if constexpr (SampleSource::is_stereo) {
 			StereoSample *const stereo_target = reinterpret_cast<StereoSample *>(target);
 			sample_source_.template apply_samples<Action::Store>(length, stereo_target);

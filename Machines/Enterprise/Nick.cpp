@@ -39,7 +39,7 @@ uint16_t mapped_colour(const uint8_t source) {
 			(green << 4) + blue
 		)
 	};
-	return *reinterpret_cast<const uint16_t *>(parts);
+	return std::bit_cast<uint16_t>(parts);
 }
 
 }

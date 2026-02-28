@@ -347,7 +347,10 @@ struct Microcycle: public MicrocycleOperationStorage<op> {
 			* if this is a word read, reads a word (in the host platform's endianness) from @c target; and
 			* if this is a write, does the converse of a read.
 	*/
-	forceinline void apply(uint8_t *target, OperationT read_write_mask = Operation::PermitRead | Operation::PermitWrite) const {
+	forceinline void apply(
+		uint8_t *const target,
+		const OperationT read_write_mask = Operation::PermitRead | Operation::PermitWrite
+	) const {
 		assert( (this->operation & (Operation::SelectWord | Operation::SelectByte)) != (Operation::SelectWord | Operation::SelectByte));
 
 		switch(

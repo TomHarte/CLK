@@ -141,7 +141,7 @@ public:
 	std::size_t write(const std::vector<uint8_t> &);
 
 	/*! Writes @c buffer one byte at a time in order, writing @c size bytes in total. */
-	std::size_t write(const uint8_t *, std::size_t);
+	std::size_t write(const void *, std::size_t);
 
 	/*! Moves @c bytes from the anchor indicated by @c whence: SEEK_SET, SEEK_CUR or SEEK_END. */
 	bool seek(long offset, Whence);

@@ -398,7 +398,7 @@ struct ProcessorStorage {
 		}
 
 	private:
-		uint8_t *byte(int pointer) {
+		uint8_t *byte(const int pointer) {
 			assert(pointer >= 0 && pointer < 4);
 			#if TARGET_RT_BIG_ENDIAN
 				return reinterpret_cast<uint8_t *>(&value) + (3 ^ pointer);

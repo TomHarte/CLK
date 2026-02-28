@@ -510,9 +510,11 @@ void Video::write(int address, uint16_t value) {
 			if(address == 0x20) video_stream_.will_change_border_colour();
 
 			raw_palette_[address - 0x20] = value;
-			uint8_t *const entry = reinterpret_cast<uint8_t *>(&palette_[address - 0x20]);
-			entry[0] = uint8_t((value & 0x700) >> 7);
-			entry[1] = uint8_t((value & 0x77) << 1);
+			const uint8_t entry[] = {
+				uint8_t((value & 0x700) >> 7),
+				uint8_t((value & 0x77) << 1),
+			};
+			palette_[address - 0x20] = std::bit_cast<uint16_t>(entry);
 		} break;
 	}
 }
