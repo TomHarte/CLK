@@ -797,12 +797,28 @@ const std::vector<Description> &Description::all_roms() {
 	// Oric.
 	//
 		{
-			OricColourROM,
+			OricColourROM128,
 			"Oric",
-			"the Oric colour ROM",
+			"the Oric colour ROM (128-byte version)",
 			"colour.rom",
 			128,
 			0xd50fca65u
+		},
+		{
+			OricColourROM256,
+			"Oric",
+			"the Oric colour ROM (256-byte version)",
+			"ORIC.PAL-PROM-TBP24S10-1ab9b572.bin",
+			256,
+			0x1ab9b572u
+		},
+		{
+			OricPravetzColourROM,
+			"Oric",
+			"the Pravetz 8D colour ROM",
+			"PRAVETZ-8D.PAL-PROM-82S129-1576a69b.bin",
+			256,
+			0x1576a69bu
 		},
 		{
 			OricBASIC10,
