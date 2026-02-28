@@ -269,7 +269,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (Uniforms *)uniforms {
-	return reinterpret_cast<Uniforms *>(_uniformsBuffer.contents);
+	return static_cast<Uniforms *>(_uniformsBuffer.contents);
 }
 
 - (void)setIsFrameSynced:(BOOL)isFrameSynced {
@@ -313,13 +313,13 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			options:SharedResourceOptionsTexture];
 
 		// Install all that storage in the buffering scan target.
-		_scanTarget.set_write_area(reinterpret_cast<uint8_t *>(_writeAreaBuffer.contents));
+		_scanTarget.set_write_area(static_cast<uint8_t *>(_writeAreaBuffer.contents));
 		_scanTarget.set_line_buffer(
-			reinterpret_cast<BufferingScanTarget::Line *>(_linesBuffer.contents),
+			static_cast<BufferingScanTarget::Line *>(_linesBuffer.contents),
 			NumBufferedLines
 		);
 		_scanTarget.set_scan_buffer(
-			reinterpret_cast<BufferingScanTarget::Scan *>(_scansBuffer.contents),
+			static_cast<BufferingScanTarget::Scan *>(_scansBuffer.contents),
 			NumBufferedScans
 		);
 
@@ -887,7 +887,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 - (id<MTLBuffer>)bufferForOffset:(size_t)offset {
 	// Store and apply the offset.
 	const auto buffer = _lineOffsetBuffers[_lineOffsetBuffer];
-	*(reinterpret_cast<int *>(_lineOffsetBuffers[_lineOffsetBuffer].contents)) = int(offset);
+	*(static_cast<int *>(_lineOffsetBuffers[_lineOffsetBuffer].contents)) = int(offset);
 	++_lineOffsetBuffer;
 	return buffer;
 }

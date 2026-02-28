@@ -169,9 +169,11 @@ public:
 		}
 
 		for(int c = 0; c < 16; c++) {
-			uint8_t *colour = reinterpret_cast<uint8_t *>(&colours_[c]);
-			colour[0] = luminances[c];
-			colour[1] = chrominances[c];
+			const uint8_t colour[2] = {
+				luminances[c],
+				chrominances[c]
+			};
+			colours_[c] = std::bit_cast<uint16_t>(colour);
 		}
 	}
 

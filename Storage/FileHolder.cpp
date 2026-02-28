@@ -73,7 +73,7 @@ std::size_t FileHolder::write(const std::vector<uint8_t> &buffer) {
 	return std::fwrite(buffer.data(), 1, buffer.size(), file_);
 }
 
-std::size_t FileHolder::write(const uint8_t *buffer, const std::size_t size) {
+std::size_t FileHolder::write(const void *buffer, const std::size_t size) {
 	return std::fwrite(buffer, 1, size, file_);
 }
 

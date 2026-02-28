@@ -277,8 +277,8 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::uni
 
 	// Rewrite the entire disk image, in extended form.
 	Storage::FileHolder output(file_name_, Storage::FileMode::Rewrite);
-	output.write(reinterpret_cast<const uint8_t *>("EXTENDED CPC DSK File\r\nDisk-Info\r\n"), 34);
-	output.write(reinterpret_cast<const uint8_t *>("Clock Signal  "), 14);
+	output.write("EXTENDED CPC DSK File\r\nDisk-Info\r\n", 34);
+	output.write("Clock Signal  ", 14);
 	output.put(uint8_t(head_position_count_));
 	output.put(uint8_t(head_count_));
 	output.putn(2, 0);
@@ -318,7 +318,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::uni
 		if(!track) continue;
 
 		// Output track header.
-		output.write(reinterpret_cast<const uint8_t *>("Track-Info\r\n"), 13);
+		output.write("Track-Info\r\n", 13);
 		output.putn(3, 0);
 		output.put(track->track);
 		output.put(track->side);

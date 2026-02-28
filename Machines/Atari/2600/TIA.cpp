@@ -563,8 +563,8 @@ void TIA::draw_playfield(int start, int end) {
 	// proceed along four-pixel boundaries, plotting four pixels at a time
 	int aligned_position = (start + 3)&~3;
 	while(aligned_position < end) {
-		int offset = (aligned_position - first_pixel_cycle) >> 2;
-		uint32_t value = ((background_[(offset/20)&background_half_mask_] >> (offset%20))&1) * 0x01010101;
+		const int offset = (aligned_position - first_pixel_cycle) >> 2;
+		const uint32_t value = ((background_[(offset/20)&background_half_mask_] >> (offset%20))&1) * 0x01010101;
 		*reinterpret_cast<uint32_t *>(&collision_buffer_[aligned_position - first_pixel_cycle]) |= value;
 		aligned_position += 4;
 	}
