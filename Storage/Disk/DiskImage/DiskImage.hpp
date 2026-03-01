@@ -109,7 +109,7 @@ public:
 	void flush_tracks() override;
 	bool tracks_differ(Track::Address lhs, Track::Address rhs) const override;
 	bool is_read_only() const override;
-	bool represents(const std::string &) const override;
+	bool represents(std::string_view) const override;
 	bool has_written() const override;
 
 private:

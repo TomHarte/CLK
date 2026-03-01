@@ -16,7 +16,7 @@
 
 using namespace Storage::Disk;
 
-OricMFMDSK::OricMFMDSK(const std::string &file_name) :
+OricMFMDSK::OricMFMDSK(const std::string_view file_name) :
 		file_(file_name) {
 	if(!file_.check_signature<SignatureType::String>("MFM_DISK"))
 		throw Error::InvalidFormat;
@@ -168,6 +168,6 @@ bool OricMFMDSK::is_read_only() const {
 	return file_.is_known_read_only();
 }
 
-bool OricMFMDSK::represents(const std::string &name) const {
+bool OricMFMDSK::represents(const std::string_view name) const {
 	return name == file_.name();
 }

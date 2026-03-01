@@ -16,7 +16,7 @@
 
 using namespace Storage::Disk;
 
-G64::G64(const std::string &file_name) :
+G64::G64(const std::string_view file_name) :
 		file_(file_name) {
 	// read and check the file signature
 	if(!file_.check_signature<SignatureType::String>("GCR-1541")) throw Error::InvalidFormat;
@@ -105,6 +105,6 @@ std::unique_ptr<Track> G64::track_at_position(const Track::Address address) cons
 	// would make the above correct but supposing I'm wrong, the above would produce some incorrectly clocked tracks.
 }
 
-bool G64::represents(const std::string &name) const {
+bool G64::represents(const std::string_view name) const {
 	return name == file_.name();
 }

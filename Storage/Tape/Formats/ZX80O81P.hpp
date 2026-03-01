@@ -14,7 +14,7 @@
 #include "Storage/TargetPlatforms.hpp"
 
 #include <cstdint>
-#include <string>
+#include <string_view>
 #include <vector>
 
 namespace Storage::Tape {
@@ -29,7 +29,7 @@ public:
 
 		@throws ErrorNotZX80O81P if this file could not be opened and recognised as a valid ZX80-format .O.
 	*/
-	ZX80O81P(const std::string &file_name);
+	ZX80O81P(std::string_view file_name);
 
 	enum {
 		ErrorNotZX80O81P

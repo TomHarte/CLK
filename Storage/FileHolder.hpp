@@ -17,6 +17,7 @@
 #include <cstring>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace Storage {
@@ -58,7 +59,7 @@ public:
 
 		@throws Error::CantOpen if the file cannot be opened.
 	*/
-	FileHolder(const std::string &file_name, FileMode ideal_mode = FileMode::ReadWrite);
+	FileHolder(std::string_view file_name, FileMode ideal_mode = FileMode::ReadWrite);
 	FileHolder(FileHolder &&);
 
 	/*!
@@ -198,7 +199,7 @@ public:
 	/*!
 		Returns the underlying file name.
 	*/
-	const std::string &name() const;
+	const std::string_view name() const;
 
 	/*!
 		Ensures the file is at least @c length bytes long, appending 0s until it is
@@ -231,7 +232,7 @@ private:
 	std::mutex file_access_mutex_;
 };
 
-inline std::vector<uint8_t> contents_of(const std::string &file_name) {
+inline std::vector<uint8_t> contents_of(const std::string_view file_name) {
 	FileHolder file(file_name, FileMode::Read);
 	return file.read(size_t(file.stats().st_size));
 }

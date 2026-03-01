@@ -23,24 +23,24 @@ FileHolder::~FileHolder() {
 	if(file_) std::fclose(file_);
 }
 
-FileHolder::FileHolder(const std::string &file_name, const FileMode ideal_mode)
+FileHolder::FileHolder(const std::string_view file_name, const FileMode ideal_mode)
 	: name_(file_name) {
-	stat(file_name.c_str(), &file_stats_);
+	stat(name_.c_str(), &file_stats_);
 	is_read_only_ = false;
 
 	switch(ideal_mode) {
 		case FileMode::ReadWrite:
-			file_ = std::fopen(file_name.c_str(), "rb+");
+			file_ = std::fopen(name_.c_str(), "rb+");
 			if(file_) break;
 			is_read_only_ = true;
 			[[fallthrough]];
 
 		case FileMode::Read:
-			file_ = std::fopen(file_name.c_str(), "rb");
+			file_ = std::fopen(name_.c_str(), "rb");
 		break;
 
 		case FileMode::Rewrite:
-			file_ = std::fopen(file_name.c_str(), "w");
+			file_ = std::fopen(name_.c_str(), "w");
 		break;
 	}
 
@@ -105,7 +105,7 @@ std::string FileHolder::extension() const {
 	return extension;
 }
 
-const std::string &FileHolder::name() const {
+const std::string_view FileHolder::name() const {
 	return name_;
 }
 

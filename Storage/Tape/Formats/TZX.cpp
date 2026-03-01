@@ -19,7 +19,7 @@ constexpr unsigned int TZXClockMSMultiplier = 3500;
 using Logger = Log::Logger<Log::Source::TZX>;
 }
 
-TZX::TZX(const std::string &file_name) : file_name_(file_name) {
+TZX::TZX(const std::string_view file_name) : file_name_(file_name) {
 	Storage::FileHolder file(file_name, FileMode::Read);
 
 	// Check for signature followed by a 0x1a
@@ -38,7 +38,7 @@ std::unique_ptr<FormatSerialiser> TZX::format_serialiser() const {
 	return std::make_unique<Serialiser>(file_name_);
 }
 
-TZX::Serialiser::Serialiser(const std::string &file_name) : file_(file_name, FileMode::Read) {
+TZX::Serialiser::Serialiser(const std::string_view file_name) : file_(file_name, FileMode::Read) {
 	reset();
 }
 

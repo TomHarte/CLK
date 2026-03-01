@@ -22,7 +22,7 @@ namespace {
 	constexpr int bytes_per_sector = 256;
 }
 
-AppleDSK::AppleDSK(const std::string &file_name) :
+AppleDSK::AppleDSK(const std::string_view file_name) :
 	file_(file_name) {
 	if(file_.stats().st_size % (number_of_tracks*bytes_per_sector)) throw Error::InvalidFormat;
 
@@ -126,6 +126,6 @@ void AppleDSK::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>>
 	}
 }
 
-bool AppleDSK::represents(const std::string &name) const {
+bool AppleDSK::represents(const std::string_view name) const {
 	return name == file_.name();
 }

@@ -28,7 +28,7 @@ public:
 		Raises an exception if the file name doesn't appear to identify a valid
 		Macintosh mass storage image.
 	*/
-	HFV(const std::string &file_name);
+	HFV(const std::string_view file_name);
 
 private:
 	mutable FileHolder file_;

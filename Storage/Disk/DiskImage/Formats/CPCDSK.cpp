@@ -17,7 +17,7 @@
 
 using namespace Storage::Disk;
 
-CPCDSK::CPCDSK(const std::string &file_name) :
+CPCDSK::CPCDSK(const std::string_view file_name) :
 	file_name_(file_name),
 	is_extended_(false) {
 	FileHolder file(file_name);
@@ -389,6 +389,6 @@ bool CPCDSK::is_read_only() const {
 	return is_read_only_;
 }
 
-bool CPCDSK::represents(const std::string &name) const {
+bool CPCDSK::represents(const std::string_view name) const {
 	return name == file_name_;
 }

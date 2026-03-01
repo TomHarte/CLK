@@ -11,7 +11,7 @@
 #include "Storage/Disk/DiskImage/DiskImage.hpp"
 #include "Storage/FileHolder.hpp"
 
-#include <string>
+#include <string_view>
 
 namespace Storage::Disk {
 
@@ -26,12 +26,12 @@ public:
 
 		@throws Error::InvalidFormat if this file doesn't appear to be a DMK.
 	*/
-	DMK(const std::string &file_name);
+	DMK(std::string_view file_name);
 
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
 	bool is_read_only() const;
-	bool represents(const std::string &) const;
+	bool represents(std::string_view) const;
 
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 

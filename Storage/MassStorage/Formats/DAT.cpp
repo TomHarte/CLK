@@ -10,7 +10,7 @@
 
 using namespace Storage::MassStorage;
 
-DAT::DAT(const std::string &file_name) : RawSectorDump(file_name) {
+DAT::DAT(const std::string_view file_name) : RawSectorDump(file_name) {
 	// Does the third sector contain the 'Hugo' signature?
 	const auto sector3 = get_block(2);
 	if(sector3.size() != 256) {

@@ -14,7 +14,7 @@
 
 using namespace Storage::Tape;
 
-CSW::CSW(const std::string &file_name) {
+CSW::CSW(const std::string_view file_name) {
 	Storage::FileHolder file(file_name, FileMode::Read);
 	if(file.stats().st_size < 0x20) throw ErrorNotCSW;
 

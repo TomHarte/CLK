@@ -11,6 +11,9 @@
 #include "Storage/Disk/DiskImage/DiskImage.hpp"
 #include "Storage/FileHolder.hpp"
 
+#include <string_view>
+#include <unordered_map>
+
 namespace Storage::Disk {
 
 /*!
@@ -26,17 +29,17 @@ public:
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain an Acorn .ADF format image.
 	*/
-	IMD(const std::string &file_name);
+	IMD(std::string_view file_name);
 
 	// DiskImage interface.
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
-	bool represents(const std::string &) const;
+	bool represents(std::string_view) const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 
 private:
 	mutable FileHolder file_;
-	std::map<Storage::Disk::Track::Address, long> track_locations_;
+	std::unordered_map<Storage::Disk::Track::Address, long> track_locations_;
 	uint8_t cylinders_ = 0, heads_ = 0;
 };
 

@@ -69,7 +69,7 @@ public:
 	/*!
 		@returns @c true if the file named by the string is what underlies this disk image; @c false otherwise.
 	*/
-	virtual bool represents(const std::string &) const = 0;
+	virtual bool represents(std::string_view) const = 0;
 
 	/*!
 		@returns @c true if this disk has been written to at any point; @c false otherwise.

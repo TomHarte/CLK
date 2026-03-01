@@ -59,7 +59,7 @@ const auto basic_signature = signature<0xd3>;
 const auto ascii_signature = signature<0xea>;
 }
 
-CAS::CAS(const std::string &file_name) {
+CAS::CAS(const std::string_view file_name) {
 	Storage::FileHolder file(file_name, FileMode::Read);
 
 	enum class Mode {

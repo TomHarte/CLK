@@ -23,7 +23,7 @@ public:
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain a .SSD format image.
 	*/
-	SSD(const std::string &file_name);
+	SSD(std::string_view file_name);
 
 	HeadPosition maximum_head_position() const final;
 	int head_count() const final;

@@ -12,7 +12,7 @@
 #include "Storage/Disk/Track/PCMTrack.hpp"
 #include "Storage/FileHolder.hpp"
 
-#include <memory>
+#include <string_view>
 
 namespace Storage::Disk {
 
@@ -23,7 +23,7 @@ namespace Storage::Disk {
 */
 class NIB: public DiskImage {
 public:
-	NIB(const std::string &file_name);
+	NIB(std::string_view file_name);
 
 	// Implemented to satisfy @c DiskImage.
 	HeadPosition maximum_head_position() const;
@@ -31,7 +31,7 @@ public:
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
 	bool is_read_only() const;
-	bool represents(const std::string &) const;
+	bool represents(std::string_view) const;
 
 private:
 	mutable FileHolder file_;

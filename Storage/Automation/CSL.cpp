@@ -146,10 +146,10 @@ bool append_typed(std::vector<Storage::Automation::CSL::KeyEvent> &down, std::ve
 
 }
 
-std::vector<CSL::Instruction> CSL::parse(const std::string &file_name) {
+std::vector<CSL::Instruction> CSL::parse(const std::string_view file_name) {
 	std::vector<Instruction> instructions;
 	std::ifstream file;
-	file.open(file_name);
+	file.open(std::string(file_name));
 
 	using Type = Instruction::Type;
 	static const std::unordered_map<std::string, Type> keywords = {

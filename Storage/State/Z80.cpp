@@ -61,7 +61,7 @@ std::vector<uint8_t> read_memory(Storage::FileHolder &file, size_t size, bool is
 
 }
 
-std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name) {
+std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string_view file_name) {
 	FileHolder file(file_name);
 
 	// Construct a target with a Spectrum state.

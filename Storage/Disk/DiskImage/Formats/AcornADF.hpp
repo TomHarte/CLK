@@ -10,7 +10,8 @@
 
 #include "MFMSectorDump.hpp"
 
-#include <string>
+#include <cstdint>
+#include <string_view>
 
 namespace Storage::Disk {
 
@@ -25,7 +26,7 @@ public:
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain an Acorn .ADF format image.
 	*/
-	AcornADF(const std::string &file_name);
+	AcornADF(std::string_view file_name);
 
 	HeadPosition maximum_head_position() const final;
 	int head_count() const final;

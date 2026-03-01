@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -88,6 +89,6 @@ enum Errors {
 	InvalidKeyword,
 	InvalidArgument,
 };
-std::vector<Instruction> parse(const std::string &file_name);
+std::vector<Instruction> parse(std::string_view file_name);
 
 }

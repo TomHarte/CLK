@@ -110,7 +110,7 @@ template <typename IteratorT> void write_checksum(IteratorT begin, IteratorT end
 
 }
 
-AmigaADF::AmigaADF(const std::string &file_name) :
+AmigaADF::AmigaADF(const std::string_view file_name) :
 		file_(file_name) {
 	// Dumb validation only for now: a size check.
 	if(file_.stats().st_size != 901120) throw Error::InvalidFormat;
@@ -186,6 +186,6 @@ long AmigaADF::get_file_offset_for_position(Track::Address address) const {
 	return (address.position.as_int() * 2 + address.head) * 512 * 11;
 }
 
-bool AmigaADF::represents(const std::string &name) const {
+bool AmigaADF::represents(const std::string_view name) const {
 	return name == file_.name();
 }
