@@ -10,8 +10,6 @@
 
 #include <algorithm>
 
-//#define SUPPLY_COMPOSITE
-
 using namespace Oric;
 
 namespace {
@@ -32,6 +30,9 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	crt_.set_phase_linked_luminance_offset(-1.0f / 8.0f);
 	data_type_ = Outputs::Display::InputDataType::Red1Green1Blue1;
 	crt_.set_input_data_type(data_type_);
+	crt_.set_composite_function_type(
+		Outputs::CRT::CRT::CompositeSourceType::DiscreteFourSamplesPerCycle
+	);
 	crt_.set_delegate(&frequency_mismatch_warner_);
 	update_crt_frequency();
 
@@ -53,14 +54,10 @@ void VideoOutput::update_crt_frequency() {
 void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
 	crt_.set_display_type(display_type);
 
-#ifdef SUPPLY_COMPOSITE
 	const auto data_type =
 		(!has_colour_rom_ || display_type == Outputs::Display::DisplayType::RGB) ?
 			Outputs::Display::InputDataType::Red1Green1Blue1 :
 			Outputs::Display::InputDataType::PhaseLinkedLuminance8;
-#else
-	const auto data_type = Outputs::Display::InputDataType::Red1Green1Blue1;
-#endif
 
 	if(data_type_ != data_type) {
 		data_type_ = data_type;
@@ -82,25 +79,36 @@ Outputs::Display::ScanStatus VideoOutput::get_scaled_scan_status() const {
 
 void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
 	has_colour_rom_ = true;
+
+	const uint8_t xor_mask = 0x4 ^ rom[0];
+
 	for(std::size_t c = 0; c < 8; c++) {
-		colour_forms_[c] = 0;
-
-		uint8_t *const colour = reinterpret_cast<uint8_t *>(&colour_forms_[c]);
-		const std::size_t index = (c << 2);
-
 		// Values in the ROM are encoded for indexing by two square waves
 		// in quadrature, which means that they're indexed in the order
-		// 0, 1, 3, 2.
-		colour[0] = uint8_t((rom[index] & 0x0f) << 4);
-		colour[1] = uint8_t(rom[index] & 0xf0);
-		colour[2] = uint8_t(rom[index+1] & 0xf0);
-		colour[3] = uint8_t((rom[index+1] & 0x0f) << 4);
+		// 0, 1, 3, 2. Each four meaningful values are followed by
+		// four unused values.
+		uint8_t colour[4];
+		if(rom.size() == 128) {
+			const std::size_t index = c << 2;
+			colour[0] = uint8_t((rom[index] & 0x0f) << 4);
+			colour[1] = uint8_t(rom[index] & 0xf0);
+			colour[2] = uint8_t(rom[index+1] & 0xf0);
+			colour[3] = uint8_t((rom[index+1] & 0x0f) << 4);
+		} else {
+			const std::size_t index = c << 3;
+			colour[0] = uint8_t((rom[index+0] ^ xor_mask) << 4);
+			colour[1] = uint8_t((rom[index+1] ^ xor_mask) << 4);
+			colour[2] = uint8_t((rom[index+3] ^ xor_mask) << 4);
+			colour[3] = uint8_t((rom[index+2] ^ xor_mask) << 4);
+		}
 
 		// Extracting just the visible part of the stored range of values
 		// means extracting the range 0x40 to 0xe0.
 		for(int sub = 0; sub < 4; ++sub) {
 			colour[sub] = ((colour[sub] - 0x40) * 255) / 0xa0;
 		}
+
+		colour_forms_[c] = std::bit_cast<uint32_t>(colour);
 	}
 
 	// Check for big endianness and byte swap if required.

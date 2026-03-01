@@ -130,6 +130,7 @@ struct Uniforms {
 	__fp16 outputGamma;
 	__fp16 outputMultiplier;
 	__fp16 weightedMixAlpha;
+	__fp16 phaseLinkedLuminanceOffset;
 };
 
 // Kernel sizes above and in the shaders themselves assume a maximum filter kernel size.
@@ -268,13 +269,25 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 }
 
 - (Uniforms *)uniforms {
-	return reinterpret_cast<Uniforms *>(_uniformsBuffer.contents);
+	return static_cast<Uniforms *>(_uniformsBuffer.contents);
+}
+
+- (void)setIsFrameSynced:(BOOL)isFrameSynced {
+	if(_isFrameSynced == isFrameSynced) {
+		return;
+	}
+	_isFrameSynced = isFrameSynced;
+	[self setAlpha];
 }
 
 - (void)setAlpha {
-	static constexpr float alpha = 0.64f;
-	self.uniforms->outputAlpha = __fp16(std::sqrt(alpha));
-	self.uniforms->weightedMixAlpha = __fp16(alpha);
+	if(_isFrameSynced) {
+		self.uniforms->outputAlpha = __fp16(1.0f);
+		self.uniforms->weightedMixAlpha = __fp16(1.0f);
+	} else {
+		self.uniforms->outputAlpha = __fp16(BufferingScanTarget::TwoFrameAlpha);
+		self.uniforms->weightedMixAlpha = __fp16(BufferingScanTarget::InterframeAlpha);
+	}
 }
 
 - (nonnull instancetype)initWithView:(nonnull MTKView *)view {
@@ -300,13 +313,13 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 			options:SharedResourceOptionsTexture];
 
 		// Install all that storage in the buffering scan target.
-		_scanTarget.set_write_area(reinterpret_cast<uint8_t *>(_writeAreaBuffer.contents));
+		_scanTarget.set_write_area(static_cast<uint8_t *>(_writeAreaBuffer.contents));
 		_scanTarget.set_line_buffer(
-			reinterpret_cast<BufferingScanTarget::Line *>(_linesBuffer.contents),
+			static_cast<BufferingScanTarget::Line *>(_linesBuffer.contents),
 			NumBufferedLines
 		);
 		_scanTarget.set_scan_buffer(
-			reinterpret_cast<BufferingScanTarget::Scan *>(_scansBuffer.contents),
+			static_cast<BufferingScanTarget::Scan *>(_scansBuffer.contents),
 			NumBufferedScans
 		);
 
@@ -565,6 +578,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	self.uniforms->scale[0] = modals.output_scale.x;
 	self.uniforms->scale[1] = modals.output_scale.y;
 	self.uniforms->lineWidth = 1.05f / modals.expected_vertical_lines;
+	self.uniforms->phaseLinkedLuminanceOffset = __fp16(modals.input_data_tweaks.phase_linked_luminance_offset);
 	[self setAspectRatio];
 
 	const auto toRGB = to_rgb_matrix(modals.composite_colour_space);
@@ -656,6 +670,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		if(_pipeline != Pipeline::DirectToDisplay) {
 			cyclesMultiplier =
 				Outputs::Display::FilterGenerator::suggested_sample_multiplier(
+					modals.input_data_type,
 					float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator),
 					modals.cycles_per_line
 				);
@@ -872,7 +887,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 - (id<MTLBuffer>)bufferForOffset:(size_t)offset {
 	// Store and apply the offset.
 	const auto buffer = _lineOffsetBuffers[_lineOffsetBuffer];
-	*(reinterpret_cast<int *>(_lineOffsetBuffers[_lineOffsetBuffer].contents)) = int(offset);
+	*(static_cast<int *>(_lineOffsetBuffers[_lineOffsetBuffer].contents)) = int(offset);
 	++_lineOffsetBuffer;
 	return buffer;
 }

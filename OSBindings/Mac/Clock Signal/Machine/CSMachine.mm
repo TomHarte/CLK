@@ -823,12 +823,15 @@ struct ActivityObserver: public Activity::Observer {
 		);
 
 		if(canSynchronise) {
-			const double multiplier = strongSelf->_scanSynchroniser.next_speed_multiplier(
-				strongSelf->_machine->scan_producer()->get_scan_status()
-			);
+			const auto scan_status = strongSelf->_machine->scan_producer()->get_scan_status();
+			const double multiplier = strongSelf->_scanSynchroniser.next_speed_multiplier(scan_status);
 			timed_machine->set_speed_multiplier(multiplier);
+
+			strongSelf->_view.scanTarget.isFrameSynced =
+				scan_status.current_position > 0.9f || scan_status.current_position < 0.1f;
 		} else {
 			timed_machine->set_speed_multiplier(1.0);
+			strongSelf->_view.scanTarget.isFrameSynced = NO;
 		}
 
 		// Ask Metal to rasterise all that just happened and present it.

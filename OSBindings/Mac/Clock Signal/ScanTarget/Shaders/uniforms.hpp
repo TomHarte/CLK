@@ -47,4 +47,7 @@ struct Uniforms {
 
 	// Sets the opacity used by the weighted-mix copy shaders.
 	half weightedMixAlpha;
+
+	// Offset of the centre of each phase-linked luminance window from 1/8, 3/8, 5/8 and 7/8.
+	half phaseLinkedLuminanceOffset;
 };

@@ -39,8 +39,6 @@ constexpr GLenum DemodulationTextureUnit = GL_TEXTURE3;
 /// Contains the current display.
 constexpr GLenum OutputTextureUnits[] = {GL_TEXTURE4, GL_TEXTURE5};
 
-static constexpr float FieldAlpha = 0.64f;
-
 using Logger = Log::Logger<Log::Source::OpenGL>;
 
 template <typename SourceT>
@@ -127,10 +125,10 @@ void ScanTarget::update_aspect_ratio_transformation() {
 
 void ScanTarget::set_alphas() {
 	if(!scan_output_shader_.empty()) {
-		scan_output_shader_.set_alpha(std::sqrt(FieldAlpha));
+		scan_output_shader_.set_alpha(BufferingScanTarget::TwoFrameAlpha);
 	}
 	if(!line_output_shader_.empty()) {
-		line_output_shader_.set_alpha(std::sqrt(FieldAlpha));
+		line_output_shader_.set_alpha(BufferingScanTarget::TwoFrameAlpha);
 	}
 }
 
@@ -164,6 +162,7 @@ void ScanTarget::setup_pipeline() {
 	};
 	const float sample_multiplier =
 		FilterGenerator::suggested_sample_multiplier(
+			modals.input_data_type,
 			subcarrier_frequency(modals),
 			modals.cycles_per_line
 		);
@@ -234,6 +233,7 @@ void ScanTarget::setup_pipeline() {
 				modals.display_type,
 				modals.composite_colour_space,
 				sample_multiplier,
+				modals.input_data_tweaks.phase_linked_luminance_offset,
 				WriteAreaWidth, WriteAreaHeight,
 				buffer_width, LineBufferHeight,
 				scans_,
@@ -632,7 +632,7 @@ void ScanTarget::draw(const int output_width, const int output_height) {
 			output_buffers_[field_index_ ^ 1].bind_texture();
 			copy_shader_.perform(OutputTextureUnits[field_index_ ^ 1], 1.0f);
 			output_buffers_[field_index_].bind_texture();
-			copy_shader_.perform(OutputTextureUnits[field_index_], FieldAlpha);
+			copy_shader_.perform(OutputTextureUnits[field_index_], BufferingScanTarget::InterframeAlpha);
 		}
 		was_interlacing_ = is_interlacing_;
 	}

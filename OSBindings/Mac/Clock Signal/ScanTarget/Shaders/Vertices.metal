@@ -186,6 +186,7 @@ vertex SourceInterpolator scanToComposition(
 	) / 64.0f;
 	result.colourPhase = 2.0f * 3.141592654f * result.unitColourPhase;
 	result.colourAmplitude = float(scans[instanceID].compositeAmplitude) / 255.0f;
+	result.unitColourPhase -= metal::sign(result.unitColourPhase) * uniforms.phaseLinkedLuminanceOffset;
 
 	// Map position into eye space, allowing for target texture dimensions.
 	const float2 textureSize = float2(texture.get_width(), texture.get_height());

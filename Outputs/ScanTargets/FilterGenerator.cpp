@@ -89,10 +89,19 @@ FilterGenerator::FilterPair FilterGenerator::demouldation_filter() const {
 }
 
 float FilterGenerator::suggested_sample_multiplier(
+	const InputDataType input_type,
 	const float per_line_subcarrier_frequency,
 	const int samples_per_line,
 	const int buffer_width
 ) {
+	// If phase-linked luminance output is in effect, pick a 'high' integral multiple of the
+	// subcarrier, ignoring the samples per line. This will allow the shaders to do point sampling
+	// with impunity.
+	if(input_type == InputDataType::PhaseLinkedLuminance8) {
+		const float sample_multiplier = per_line_subcarrier_frequency * 8.0f <= buffer_width ? 8.0f : 4.0f;
+		return sample_multiplier * per_line_subcarrier_frequency / float(samples_per_line);
+	}
+
 	// Determine the minimum output width that will capture sufficient colour subcarrier information.
 	const float minimum = MinColourSubcarrierMultiplier * per_line_subcarrier_frequency;
 

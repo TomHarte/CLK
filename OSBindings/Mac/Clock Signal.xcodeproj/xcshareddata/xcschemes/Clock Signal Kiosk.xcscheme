@@ -94,12 +94,16 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Soft/Oric/Disks/Doggy.dsk&quot;"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "--volume=0.01"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--new=electron"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--display=svideo"

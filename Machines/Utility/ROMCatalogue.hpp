@@ -139,7 +139,9 @@ enum Name {
 	MSXMusic,
 
 	// Oric.
-	OricColourROM,
+	OricColourROM128,
+	OricColourROM256,
+	OricPravetzColourROM,
 	OricBASIC10,
 	OricBASIC11,
 	OricPravetzBASIC,

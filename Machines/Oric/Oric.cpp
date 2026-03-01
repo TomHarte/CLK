@@ -308,29 +308,36 @@ public:
 			c |= 0x40;
 		}
 
-		::ROM::Request request = ::ROM::Request(::ROM::Name::OricColourROM, true);
-		::ROM::Name basic;
-		switch(target.rom) {
-			case Analyser::Static::Oric::Target::ROM::BASIC10:	basic = ::ROM::Name::OricBASIC10;		break;
-			default:
-			case Analyser::Static::Oric::Target::ROM::BASIC11:	basic = ::ROM::Name::OricBASIC11;		break;
-			case Analyser::Static::Oric::Target::ROM::Pravetz:	basic = ::ROM::Name::OricPravetzBASIC;	break;
-		}
-		request = request && ::ROM::Request(basic);
+		using Request = ::ROM::Request;
+		using Name = ::ROM::Name;
+		auto request = (
+			Request(Name::OricColourROM128, true) ||
+			Request(Name::OricColourROM256, true) ||
+			Request(Name::OricPravetzColourROM, true)
+		);
+		const auto basic = [&]() {
+			switch(target.rom) {
+				case Analyser::Static::Oric::Target::ROM::BASIC10:	return Name::OricBASIC10;
+				default:
+				case Analyser::Static::Oric::Target::ROM::BASIC11:	return Name::OricBASIC11;
+				case Analyser::Static::Oric::Target::ROM::Pravetz:	return Name::OricPravetzBASIC;
+			}
+		} ();
+		request = request && Request(basic);
 
 		switch(disk_interface) {
 			default: break;
 			case DiskInterface::BD500:
-				request = request && ::ROM::Request(::ROM::Name::OricByteDrive500);
+				request = request && Request(Name::OricByteDrive500);
 			break;
 			case DiskInterface::Jasmin:
-				request = request && ::ROM::Request(::ROM::Name::OricJasmin);
+				request = request && Request(Name::OricJasmin);
 			break;
 			case DiskInterface::Microdisc:
-				request = request && ::ROM::Request(::ROM::Name::OricMicrodisc);
+				request = request && Request(Name::OricMicrodisc);
 			break;
 			case DiskInterface::Pravetz:
-				request = request && ::ROM::Request(::ROM::Name::Oric8DOSBoot) && ::ROM::Request(::ROM::Name::DiskIIStateMachine16Sector);
+				request = request && Request(Name::Oric8DOSBoot) && Request(Name::DiskIIStateMachine16Sector);
 			break;
 		}
 
@@ -341,7 +348,11 @@ public:
 
 		// The colour ROM is optional; an alternative composite encoding can be used if
 		// it is absent.
-		const auto colour_rom = roms.find(::ROM::Name::OricColourROM);
+		const auto colour_rom = [&] {
+			if(const auto rom = roms.find(Name::OricColourROM128); rom != roms.end()) return rom;
+			if(const auto rom = roms.find(Name::OricColourROM256); rom != roms.end()) return rom;
+			return roms.find(Name::OricPravetzColourROM);
+		} ();
 		if(colour_rom != roms.end()) {
 			video_->set_colour_rom(colour_rom->second);
 		}
@@ -350,19 +361,19 @@ public:
 		switch(disk_interface) {
 			default: break;
 			case DiskInterface::BD500:
-				disk_rom_ = std::move(roms.find(::ROM::Name::OricByteDrive500)->second);
+				disk_rom_ = std::move(roms.find(Name::OricByteDrive500)->second);
 			break;
 			case DiskInterface::Jasmin:
-				disk_rom_ = std::move(roms.find(::ROM::Name::OricJasmin)->second);
+				disk_rom_ = std::move(roms.find(Name::OricJasmin)->second);
 			break;
 			case DiskInterface::Microdisc:
-				disk_rom_ = std::move(roms.find(::ROM::Name::OricMicrodisc)->second);
+				disk_rom_ = std::move(roms.find(Name::OricMicrodisc)->second);
 			break;
 			case DiskInterface::Pravetz: {
-				pravetz_rom_ = std::move(roms.find(::ROM::Name::Oric8DOSBoot)->second);
+				pravetz_rom_ = std::move(roms.find(Name::Oric8DOSBoot)->second);
 				pravetz_rom_.resize(512);
 
-				diskii_->set_state_machine(roms.find(::ROM::Name::DiskIIStateMachine16Sector)->second);
+				diskii_->set_state_machine(roms.find(Name::DiskIIStateMachine16Sector)->second);
 			} break;
 		}
 

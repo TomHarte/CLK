@@ -182,7 +182,7 @@ void CRT::set_new_display_type(const int cycles_per_line, const Outputs::Display
 }
 
 void CRT::set_composite_function_type(const CompositeSourceType type, const float offset_of_first_sample) {
-	if(type == DiscreteFourSamplesPerCycle) {
+	if(type == CompositeSourceType::DiscreteFourSamplesPerCycle) {
 		colour_burst_phase_adjustment_ = uint8_t(offset_of_first_sample * 256.0f) & 63;
 	} else {
 		colour_burst_phase_adjustment_ = 0xff;
@@ -441,9 +441,13 @@ Outputs::Display::ScanTarget::Scan::EndPoint CRT::end_point(const uint16_t data_
 	// TODO: I could supply time_multiplier_ as a modal and just not round .cycles_since_end_of_horizontal_retrace.
 	// Would that be better?
 	const auto lost_precision = cycles_since_horizontal_sync_ % time_multiplier_;
-	const auto composite_angle =
-		(((phase_numerator_ - lost_precision * colour_cycle_numerator_) << 6) / phase_denominator_)
-			* (is_alternate_line_ ? -1 : 1);
+	const auto unsigned_angle =
+		((phase_numerator_ - lost_precision * colour_cycle_numerator_) << 6) / phase_denominator_;
+	const auto composite_angle = unsigned_angle *
+		((is_alternate_line_ && colour_burst_phase_adjustment_ == 0xff) ? -1 : 1);
+		// Don't swing the phase if discrete four samples/cycle composite sampling is set because:
+		//	(i) it'd make no difference to the output, contractually; and
+		//	(ii) it'd complicate the samplers, unnecessarily as per (i).
 
 	return Display::ScanTarget::Scan::EndPoint{
 		// Clamp the available range on endpoints. These will almost always be within range, but may go
@@ -554,8 +558,9 @@ void CRT::output_scan(const Scan &scan) {
 		) {
 			// Load phase_numerator_ as a fixed-point quantity in the range [0, 255].
 			phase_numerator_ = scan.phase;
-			if(colour_burst_phase_adjustment_ != 0xff)
+			if(colour_burst_phase_adjustment_ != 0xff) {
 				phase_numerator_ = (phase_numerator_ & ~63) + colour_burst_phase_adjustment_;
+			}
 
 			// Multiply the phase_numerator_ up to be to the proper scale.
 			phase_numerator_ = (phase_numerator_ * phase_denominator_) >> 8;

@@ -51,7 +51,7 @@ struct MachineRunner {
 
 	void start() {
 		last_time_ = Time::nanos_now();
-		timer_ = SDL_AddTimer(timer_period, &sdl_callback, reinterpret_cast<void *>(this));
+		timer_ = SDL_AddTimer(timer_period, &sdl_callback, static_cast<void *>(this));
 	}
 
 	void stop() {
@@ -120,7 +120,7 @@ private:
 
 	static constexpr Uint32 timer_period = 4;
 	static Uint32 sdl_callback(Uint32, void *param) {
-		reinterpret_cast<MachineRunner *>(param)->update();
+		static_cast<MachineRunner *>(param)->update();
 		return timer_period;
 	}
 
@@ -205,7 +205,7 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	}
 
 	static void SDL_audio_callback(void *const userdata, Uint8 *const stream, const int len) {
-		reinterpret_cast<SpeakerDelegate *>(userdata)->audio_callback(stream, len);
+		static_cast<SpeakerDelegate *>(userdata)->audio_callback(stream, len);
 	}
 
 	SDL_AudioDeviceID audio_device;

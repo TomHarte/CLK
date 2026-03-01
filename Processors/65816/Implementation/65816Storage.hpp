@@ -5,6 +5,8 @@
 //  Created by Thomas Harte on 23/09/2020.
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
+#pragma once
+#pragma once
 
 enum MicroOp: uint8_t {
 	/// Fetches a byte from the program counter to the instruction buffer and increments the program counter.
@@ -396,7 +398,7 @@ struct ProcessorStorage {
 		}
 
 	private:
-		uint8_t *byte(int pointer) {
+		uint8_t *byte(const int pointer) {
 			assert(pointer >= 0 && pointer < 4);
 			#if TARGET_RT_BIG_ENDIAN
 				return reinterpret_cast<uint8_t *>(&value) + (3 ^ pointer);

@@ -24,4 +24,6 @@
 
 - (void)willChangeOwner;
 
+@property (nonatomic, assign) BOOL isFrameSynced;
+
 @end

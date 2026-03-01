@@ -41,7 +41,7 @@ using namespace InstructionSet::M68k;
 	NSBundle *const bundle = [NSBundle bundleForClass:[self class]];
 	NSURL *const testURL = [bundle URLForResource:@"bcd-table" withExtension:@"bin" subdirectory:@"flamewing 68000 BCD tests"];
 	NSData *const testData = [NSData dataWithContentsOfURL:testURL];
-	const uint8_t *bytes = reinterpret_cast<const uint8_t *>(testData.bytes);
+	const uint8_t *bytes = static_cast<const uint8_t *>(testData.bytes);
 
 	NullFlowController flow_controller;
 

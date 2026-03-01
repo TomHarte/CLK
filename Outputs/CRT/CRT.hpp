@@ -248,7 +248,7 @@ public:
 	/*!	Sets the gamma exponent for the simulated screen. */
 	void set_input_gamma(float);
 
-	enum CompositeSourceType {
+	enum class CompositeSourceType {
 		/// The composite function provides continuous output.
 		Continuous,
 		/// The composite function provides discrete output with four unique values per colour cycle.

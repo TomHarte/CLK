@@ -6,8 +6,7 @@
 //  Copyright © 2024 Thomas Harte. All rights reserved.
 //
 
-#ifndef StringSimilarity_hpp
-#define StringSimilarity_hpp
+#pragma once
 
 #include <cstdint>
 #include <set>
@@ -61,5 +60,3 @@ inline double similarity(std::string_view first, std::string_view second) {
 }
 
 }
-
-#endif /* StringSimilarity_h */

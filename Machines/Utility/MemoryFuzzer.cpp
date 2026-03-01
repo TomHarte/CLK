@@ -10,7 +10,7 @@
 
 #include <cstdlib>
 
-void Memory::Fuzz(uint8_t *buffer, std::size_t size) {
+void Memory::Fuzz(uint8_t *const buffer, const std::size_t size) {
 	const unsigned int divider = (unsigned(RAND_MAX) + 1) / 256;
 	unsigned int shift = 1, value = 1;
 	while(value < divider) {
@@ -23,6 +23,6 @@ void Memory::Fuzz(uint8_t *buffer, std::size_t size) {
 	}
 }
 
-void Memory::Fuzz(uint16_t *buffer, std::size_t size) {
+void Memory::Fuzz(uint16_t *const buffer, const std::size_t size) {
 	Fuzz(reinterpret_cast<uint8_t *>(buffer), size * sizeof(uint16_t));
 }
