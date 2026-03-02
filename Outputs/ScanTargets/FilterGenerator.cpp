@@ -34,10 +34,8 @@ FilterGenerator::FilterPair FilterGenerator::separation_filter() const {
 		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
 			MaxKernelSize,
 			samples_per_line_,
-			subcarrier_frequency_ / 6.0f,	// Based on the broad logic that artefact colour 'sort of' assumes  that
-											// subcarrier_frequency_/4 pixels won't be discernable, and /6 is a bit
-											// smaller than that. Hands are suitably waved.
-			subcarrier_frequency_ * 0.5f
+			0.0f,
+			subcarrier_frequency_ * 0.55f
 		);
 
 	// Chrominance; attempt to pick the smallest kernel that covers at least one
@@ -80,8 +78,8 @@ FilterGenerator::FilterPair FilterGenerator::demouldation_filter() const {
 		SignalProcessing::KaiserBessel::filter<SignalProcessing::ScalarType::Float>(
 			MaxKernelSize,
 			samples_per_line_,
-			subcarrier_frequency_ * 0.05f,
-			subcarrier_frequency_ * 0.5f
+			subcarrier_frequency_ * 0.1f,
+			subcarrier_frequency_ * 0.25f
 		)
 		* (decoding_path_ == DecodingPath::SVideo ? 2.0f : 1.0f);
 
