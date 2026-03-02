@@ -1,3 +1,5 @@
+![GitHub](https://img.shields.io/github/license/TomHarte/CLK?style=for-the-badge)![GitHub Release Date](https://img.shields.io/github/release-date/TomHarte/CLK?label=Latest%20Release&style=for-the-badge)![GitHub last commit](https://img.shields.io/github/last-commit/TomHarte/CLK?style=for-the-badge)![GitHub repo size](https://img.shields.io/github/repo-size/TomHarte/CLK?style=for-the-badge)
+
 # Clock Signal
 
 <img align="left" src="READMEImages/Icon.png" alt="Clock Signal Application Icon" /> Clock Signal ('CLK') is an emulator that seeks to be invisible. Users directly launch classic software, avoiding the learning curves associated with emulators and with classic machines.
