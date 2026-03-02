@@ -24,13 +24,17 @@ enum class ReadWrite {
 	Write
 };
 
+tempalte <typename Traits>
 struct Processor {
+	Processor(Traits::BusHandlerT &bus_handler) noexcept : bus_handler_(bus_handler) {}
+
 	void run_for(const Cycles cycles) {
 		static constexpr auto FirstCounter = __COUNTER__;
 
 	}
 
 private:
+	Traits::BusHandlerT &bus_handler_;
 	Cycles cycles_;
 };
 
