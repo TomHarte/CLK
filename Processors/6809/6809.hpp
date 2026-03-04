@@ -49,20 +49,20 @@ struct Processor {
 		#define attach(a, b)		join(a, b)
 		#define access_label()		attach(repeat, __LINE__)
 
-		#define access(read_write, bus_state, addr, value, ...)	{											\
-			static constexpr int location = restore_point();												\
-			[[fallthrough]]; case location:																	\
-			/* [[maybe_unused]] */ access_label():															\
-																											\
-			if constexpr (Traits::pause_precision >= PausePrecision::AnyCycle) {							\
+		#define access(read_write, bus_state, addr, value, ...)	{									\
+			static constexpr int location = restore_point();										\
+			[[fallthrough]]; case location:															\
+			[[maybe_unused]] access_label():														\
+																									\
+			if constexpr (Traits::pause_precision >= PausePrecision::AnyCycle) {					\
 				if(cycles_ <= Cycles(0)) {															\
 					resume_point_ = location;														\
-					return;																					\
-				}																							\
-			}																								\
-																											\
-			cycles_ -= bus_handler_.template perform<read_write, bus_state>(addr, value);	\
-			__VA_ARGS__;																					\
+					return;																			\
+				}																					\
+			}																						\
+																									\
+			cycles_ -= bus_handler_.template perform<read_write, bus_state>(addr, value);			\
+			__VA_ARGS__;																			\
 		}
 
 		cycles_ += cycles;
