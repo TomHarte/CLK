@@ -2446,6 +2446,8 @@
 		4BCA6CC71D9DD9F000C2D7B2 /* CommodoreROM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CommodoreROM.hpp; path = Encodings/CommodoreROM.hpp; sourceTree = "<group>"; };
 		4BCA6FA82F589C0C000B9537 /* MO5.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MO5.hpp; sourceTree = "<group>"; };
 		4BCA6FA92F589C0C000B9537 /* MO5.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MO5.cpp; sourceTree = "<group>"; };
+		4BCA6FB12F58BA1E000B9537 /* PartialAddresses.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PartialAddresses.hpp; sourceTree = "<group>"; };
+		4BCA6FB32F58BB98000B9537 /* Data.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Data.hpp; sourceTree = "<group>"; };
 		4BCA98C21D065CA20062F44C /* 6522.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6522.hpp; sourceTree = "<group>"; };
 		4BCC76B32E5EB19500F0D39D /* IDE.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = IDE.hpp; sourceTree = "<group>"; };
 		4BCC76B42E5F899D00F0D39D /* VHD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = VHD.hpp; sourceTree = "<group>"; };
@@ -5072,6 +5074,7 @@
 				4BA5015F2F4F7CA50013416F /* 6809 */,
 				4BF8D4CC251C0C9C00BBE21B /* 65816 */,
 				42AD552D2A0C4D5000ACE410 /* 68000 */,
+				4BCA6FB22F58BA1E000B9537 /* Bus */,
 				4B77069E1EC9045B0053B588 /* Z80 */,
 			);
 			name = Processors;
@@ -5335,6 +5338,15 @@
 				4BCA6FAA2F589C0C000B9537 /* MO5 */,
 			);
 			path = Thomson;
+			sourceTree = "<group>";
+		};
+		4BCA6FB22F58BA1E000B9537 /* Bus */ = {
+			isa = PBXGroup;
+			children = (
+				4BCA6FB12F58BA1E000B9537 /* PartialAddresses.hpp */,
+				4BCA6FB32F58BB98000B9537 /* Data.hpp */,
+			);
+			path = Bus;
 			sourceTree = "<group>";
 		};
 		4BCE0048227CE8CA000CA200 /* Apple */ = {

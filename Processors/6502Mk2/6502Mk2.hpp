@@ -14,6 +14,8 @@
 #include "Registers.hpp"
 
 #include "ClockReceiver/ClockReceiver.hpp"
+#include "Processors/Bus/Data.hpp"
+#include "Processors/Bus/PartialAddresses.hpp"
 
 #include <cassert>
 #include <type_traits>
@@ -60,6 +62,12 @@ constexpr bool is_write(const BusOperation op) { return op >= BusOperation::Writ
 constexpr bool is_access(const BusOperation op) { return op <= BusOperation::ReadVector || op == BusOperation::Write; }
 constexpr bool is_dataless(const BusOperation op) { return !is_read(op) && !is_write(op); }
 
+constexpr Bus::Data::AccessType access_type(const BusOperation op) {
+	if(is_read(op)) return Bus::Data::AccessType::Read;
+	if(is_write(op)) return Bus::Data::AccessType::Write;
+	return Bus::Data::AccessType::NoData;
+}
+
 enum class Line {
 	Reset,
 	IRQ,
@@ -73,30 +81,10 @@ enum class Line {
 
 namespace Address {
 
-struct Literal {
-	constexpr Literal(const uint16_t address) noexcept : address_(address) {}
-	operator uint16_t() const {
-		return address_;
-	}
-
-private:
-	uint16_t address_;
-};
-
-template <uint8_t Page>
-struct FixedPage {
-	FixedPage(const uint8_t address) noexcept : address_(address) {}
-	operator uint16_t() const {
-		return (Page << 8) | address_;
-	}
-
-private:
-	uint8_t address_;
-};
-
-using ZeroPage = FixedPage<0x00>;
-using Stack = FixedPage<0x01>;
-using Vector = FixedPage<0xff>;
+using ZeroPage = Bus::Address::FixedPage<uint16_t, uint8_t, uint8_t, 0x00>;
+using Stack = Bus::Address::FixedPage<uint16_t, uint8_t, uint8_t, 0x01>;
+using Vector = Bus::Address::FixedPage<uint16_t, uint8_t, uint8_t, 0xff>;
+using Literal = Bus::Address::Literal<uint16_t>;
 
 }  // namespace Address
 
@@ -104,49 +92,13 @@ using Vector = FixedPage<0xff>;
 
 namespace Data {
 
-/// A value that can be read from or written to, without effect.
-struct NoValue {
-	operator uint8_t() const { return 0xff; }
-	NoValue() = default;
-	constexpr NoValue(uint8_t) noexcept {}
-};
+using Writeable = Bus::Data::Writeable<uint8_t>;
+using NoValue = Bus::Data::NoValue<uint8_t>;
 
-/// A value that can be written only, not read. With a DEBUG build test that it is written before it is read.
-class Writeable {
-public:
-	uint8_t operator=(const uint8_t value) {
-		#ifndef NDEBUG
-		did_write_ = true;
-		#endif
-		return result_ = value;
-	}
-	operator uint8_t() const {
-		assert(did_write_);
-		return result_;
-	}
+}
 
-private:
-	uint8_t result_;
-
-	#ifndef NDEBUG
-	bool did_write_ = false;
-	#endif
-};
-
-template <BusOperation, typename Enable = void> struct Value;
-template <BusOperation operation> struct Value<operation, std::enable_if_t<is_read(operation)>> {
-	using type = Writeable &;
-};
-template <BusOperation operation> struct Value<operation, std::enable_if_t<is_write(operation)>> {
-	using type = const uint8_t;
-};
-template <BusOperation operation> struct Value<operation, std::enable_if_t<is_dataless(operation)>> {
-	using type = const NoValue;
-};
-
-} // namespace Data
-
-template <BusOperation operation> using data_t = typename Data::Value<operation>::type;
+template <BusOperation operation>
+using data_t = Bus::Data::data_t<uint8_t, access_type(operation)>;
 
 // MARK: - Storage.
 

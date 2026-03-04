@@ -33,14 +33,14 @@ struct ConcreteMachine:
 		typename AddressT
 	>
 	Cycles perform(
-		const AddressT address,
-		CPU::M6809::data_t<operation> value
+		[[maybe_unused]] const AddressT address,
+		[[maybe_unused]] CPU::M6809::data_t<read_write> value
 	) {
+		return Cycles(1);
 	}
 
 private:
 	struct M6809Traits {
-		static constexpr auto uses_ready_line = true;
 		static constexpr auto pause_precision = CPU::M6809::PausePrecision::BetweenInstructions;
 		using BusHandlerT = ConcreteMachine;
 	};

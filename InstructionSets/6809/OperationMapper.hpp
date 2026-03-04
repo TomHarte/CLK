@@ -98,13 +98,13 @@ auto OperationMapper<Page::Page0>::dispatch(SchedulerT &s) {
 				O::Page1,	O::Page2,	O::NOP,		O::SYNC,	O::None,	O::None,	O::LBRA,	O::LBSR,
 				O::None,	O::DAA,		O::ORCC,	O::None,	O::ANDCC,	O::SEX,		O::EXG,		O::TFR,
 			};
-			static constexpr AddressingMode modes[] = {
+			static constexpr AddressingMode specific_modes[] = {
 				AM::Variant,	AM::Variant,	AM::Inherent,	AM::Inherent,
 				AM::Illegal,	AM::Illegal,	AM::Relative,	AM::Relative,
 				AM::Illegal,	AM::Inherent,	AM::Immediate,	AM::Illegal,
 				AM::Immediate,	AM::Inherent,	AM::Inherent,	AM::Inherent,
 			};
-			return s.template schedule<operations[lower], modes[lower]>();
+			return s.template schedule<operations[lower], specific_modes[lower]>();
 		}
 		case 0x2: {
 			static constexpr Operation operations[] = {
