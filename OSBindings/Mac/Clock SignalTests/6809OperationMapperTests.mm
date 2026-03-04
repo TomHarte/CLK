@@ -16,14 +16,8 @@ using namespace InstructionSet::M6809;
 
 namespace {
 
-struct OperationCapture {
-	template <Operation operation, AddressingMode mode> auto schedule() {
-		return std::make_pair(operation, mode);
-	}
-};
-
 template <Page page> std::pair<Operation, AddressingMode> capture(const uint8_t opcode) {
-	OperationCapture catcher;
+	OperationReturner catcher;
 	OperationMapper<page> mapper;
 	return Reflection::dispatch(mapper, opcode, catcher);
 }

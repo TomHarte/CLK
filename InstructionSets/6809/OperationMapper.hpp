@@ -68,6 +68,12 @@ enum class Page {
 	Page0, Page1, Page2,
 };
 
+struct OperationReturner {
+	template <Operation operation, AddressingMode mode> auto schedule() {
+		return std::make_pair(operation, mode);
+	}
+};
+
 /*!
 	Calls @c scheduler.schedule<Operation,AddressingMode> to describe the instruction
 	defined by opcode @c i on page @c page.

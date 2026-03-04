@@ -10,6 +10,8 @@
 
 #include "Registers.hpp"
 #include "ClockReceiver/ClockReceiver.hpp"
+
+#include "Reflection/Dispatcher.hpp"
 #include "InstructionSets/6809/OperationMapper.hpp"
 
 #include "Processors/Bus/PartialAddresses.hpp"
@@ -41,7 +43,13 @@ constexpr Bus::Data::AccessType access_type(const ReadWrite read_write) {
 	}
 }
 
-// MARK: - Data bus.
+// MARK: - Bus.
+
+namespace Address {
+
+using Literal = Bus::Address::Literal<uint16_t>;
+
+}
 
 namespace Data {
 
@@ -102,7 +110,15 @@ struct Processor {
 
 		cycles_ += cycles;
 
-		uint8_t opcode_;
+		using Literal = Address::Literal;
+		using Operation = InstructionSet::M6809::Operation;
+
+		InstructionSet::M6809::OperationReturner op_returner;
+		InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page0> op_mapper0;
+		InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page1> op_mapper1;
+		InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page2> op_mapper2;
+
+		uint8_t opcode;
 		while(true) switch(resume_point_) {
 			default:
 				__builtin_unreachable();
@@ -111,7 +127,45 @@ struct Processor {
 
 //			fetch_decode:
 			case ResumePoint::FetchDecode:
-				access(ReadWrite::Read, BusState::Normal, registers_.pc, opcode_);
+				if(cycles_ <= Cycles(0)) {
+					resume_point_ = ResumePoint::FetchDecode;
+					return;
+				}
+
+				// TODO: branch out here if interrupts or exceptions exist.
+
+				access(ReadWrite::Read, BusState::Normal, Literal(registers_.pc), opcode, ++registers_.pc);
+
+				{
+					const auto decoding = Reflection::dispatch(op_mapper0, opcode, op_returner);
+					if(decoding.first == Operation::Page1) {
+						goto fetch_decode_page1;
+					} else if(decoding.first == Operation::Page2) {
+						goto fetch_decode_page2;
+					} else {
+						operation_ = decoding.first;
+						resume_point_ = ResumePoint::Max + int(decoding.second);
+						break;
+					}
+				}
+
+			fetch_decode_page1:
+				access(ReadWrite::Read, BusState::Normal, Literal(registers_.pc), opcode, ++registers_.pc);
+				{
+					const auto decoding = Reflection::dispatch(op_mapper1, opcode, op_returner);
+					operation_ = decoding.first;
+					resume_point_ = ResumePoint::Max + int(decoding.second);
+					break;
+				}
+
+			fetch_decode_page2:
+				access(ReadWrite::Read, BusState::Normal, Literal(registers_.pc), opcode, ++registers_.pc);
+				{
+					const auto decoding = Reflection::dispatch(op_mapper2, opcode, op_returner);
+					operation_ = decoding.first;
+					resume_point_ = ResumePoint::Max + int(decoding.second);
+					break;
+				}
 		}
 
 
@@ -133,6 +187,7 @@ private:
 	using AddressingMode = InstructionSet::M6809::AddressingMode;
 
 	int resume_point_;
+	InstructionSet::M6809::Operation operation_;
 	Registers registers_;
 };
 
