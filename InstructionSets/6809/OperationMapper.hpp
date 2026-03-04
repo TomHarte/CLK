@@ -25,6 +25,8 @@ enum class AddressingMode {
 	Variant,
 	Indexed,
 	Extended,
+
+	Max,
 };
 
 enum class Operation {
