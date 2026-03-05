@@ -21,10 +21,13 @@ enum class AddressingMode {
 	Inherent,
 	Immediate,
 	Direct,
-	Relative,		// TODO: is it worth breaking this into 8- and 16-bit versions?
+	Relative8,
+	Relative16,
 	Variant,
 	Indexed,
 	Extended,
+
+	Max,
 };
 
 enum class Operation {
@@ -66,6 +69,12 @@ enum class Page {
 	Page0, Page1, Page2,
 };
 
+struct OperationReturner {
+	template <Operation operation, AddressingMode mode> auto schedule() {
+		return std::make_pair(operation, mode);
+	}
+};
+
 /*!
 	Calls @c scheduler.schedule<Operation,AddressingMode> to describe the instruction
 	defined by opcode @c i on page @c page.
@@ -96,20 +105,20 @@ auto OperationMapper<Page::Page0>::dispatch(SchedulerT &s) {
 				O::Page1,	O::Page2,	O::NOP,		O::SYNC,	O::None,	O::None,	O::LBRA,	O::LBSR,
 				O::None,	O::DAA,		O::ORCC,	O::None,	O::ANDCC,	O::SEX,		O::EXG,		O::TFR,
 			};
-			static constexpr AddressingMode modes[] = {
+			static constexpr AddressingMode specific_modes[] = {
 				AM::Variant,	AM::Variant,	AM::Inherent,	AM::Inherent,
-				AM::Illegal,	AM::Illegal,	AM::Relative,	AM::Relative,
+				AM::Illegal,	AM::Illegal,	AM::Relative16,	AM::Relative16,
 				AM::Illegal,	AM::Inherent,	AM::Immediate,	AM::Illegal,
 				AM::Immediate,	AM::Inherent,	AM::Inherent,	AM::Inherent,
 			};
-			return s.template schedule<operations[lower], modes[lower]>();
+			return s.template schedule<operations[lower], specific_modes[lower]>();
 		}
 		case 0x2: {
 			static constexpr Operation operations[] = {
 				O::BRA,		O::BRN,		O::BHI,		O::BLS,		O::BCC,		O::BCS,		O::BNE,		O::BEQ,
 				O::BVC,		O::BVS,		O::BPL,		O::BMI,		O::BGE,		O::BLT,		O::BGT,		O::BLE,
 			};
-			return s.template schedule<operations[lower], AM::Relative>();
+			return s.template schedule<operations[lower], AM::Relative8>();
 		}
 		case 0x3: {
 			static constexpr Operation operations[] = {
@@ -160,7 +169,7 @@ auto OperationMapper<Page::Page0>::dispatch(SchedulerT &s) {
 				O::SUBA,	O::CMPA,	O::SBCA,	O::SUBD,	O::ANDA,	O::BITA,	O::LDA,		O::STA,
 				O::EORA,	O::ADCA,	O::ORA,		O::ADDA,	O::CMPX,	O::JSR,		O::LDX,		O::STX,
 			};
-			if(i == 0x8d)	return s.template schedule<O::BSR, AM::Relative>();
+			if(i == 0x8d)	return s.template schedule<O::BSR, AM::Relative8>();
 			else			return s.template schedule<operations[lower], mode>();
 		}
 		case 0xc:	case 0xd:	case 0xe:	case 0xf: {
@@ -190,7 +199,7 @@ auto OperationMapper<Page::Page1>::dispatch(SchedulerT &s) {
 						O::LBRN,	O::LBHI,	O::LBLS,	O::LBCC,	O::LBCS,	O::LBNE,	O::LBEQ,
 			O::LBVC,	O::LBVS,	O::LBPL,	O::LBMI,	O::LBGE,	O::LBLT,	O::LBGT,	O::LBLE,
 		};
-		return s.template schedule<operations[i - 0x21], AM::Relative>();
+		return s.template schedule<operations[i - 0x21], AM::Relative16>();
 	} else switch(i) {
 		default:	return s.template schedule<O::None, AM::Illegal>();
 		case 0x3f:	return s.template schedule<O::SWI2, AM::Inherent>();

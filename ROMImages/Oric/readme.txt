@@ -4,7 +4,7 @@ Expected files:
 
 basic10.rom
 basic11.rom
-colour.rom
+colour.rom, ORIC.PAL-PROM-TBP24S10-1ab9b572.bin or PRAVETZ-8D.PAL-PROM-82S129-1576a69b.bin
 pravetz.rom
 
 Also potentially required:

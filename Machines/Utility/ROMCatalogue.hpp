@@ -175,6 +175,10 @@ enum Name {
 	// Sinclair QL.
 	SinclairQLJS,
 
+	// Thomson MO and TO machines.
+	ThomasonMO5v1,
+	ThomasonMO5v11,
+
 	// Vic-20.
 	Vic20BASIC,
 	Vic20EnglishCharacters,
