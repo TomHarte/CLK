@@ -49,7 +49,7 @@ private:
 
 }
 
-static std::unique_ptr<Machine> MO5(
+std::unique_ptr<Machine> Machine::MO5(
 	const Analyser::Static::Target *target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
