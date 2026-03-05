@@ -21,6 +21,7 @@ namespace CPU::M6809 {
 
 // MARK: - Processor bus signalling.
 
+// Defined as BA:BS.
 enum class BusState {
 	Normal = 0b00,
 	InterruptOrResetAcknowledge = 0b01,
@@ -42,6 +43,26 @@ constexpr Bus::Data::AccessType access_type(const ReadWrite read_write) {
 		case ReadWrite::Write: return Bus::Data::AccessType::Write;
 	}
 }
+
+enum class Line {
+	Halt,
+	DMABusReq,
+	NMI,
+	IRQ,
+	FIRQ,
+	MRDY,
+};
+
+// Missing inputs:
+//
+//	MRDY — allows the bus to be stretched in 1/4 cycle increments
+//
+// Missing outputs:
+//
+//	LIC (6809E) - high during the last cycle of any instruction; hence high -> low indicates fetch beginning.
+//	AVMA — advanced VMA, i.e. bus will be accessed in the next cycle
+//
+// clocks: (Q, E, TSC, XTAL, EXTAL)
 
 // MARK: - Bus.
 
@@ -108,6 +129,8 @@ struct Processor {
 			__VA_ARGS__;																			\
 		}
 
+		#define access_program(name)	int(ResumePoint::Max) + int(AddressingMode::name)
+
 		cycles_ += cycles;
 
 		using Literal = Address::Literal;
@@ -135,18 +158,11 @@ struct Processor {
 				// TODO: branch out here if interrupts or exceptions exist.
 
 				access(ReadWrite::Read, BusState::Normal, Literal(registers_.pc), opcode, ++registers_.pc);
-
 				{
 					const auto decoding = Reflection::dispatch(op_mapper0, opcode, op_returner);
-					if(decoding.first == Operation::Page1) {
-						goto fetch_decode_page1;
-					} else if(decoding.first == Operation::Page2) {
-						goto fetch_decode_page2;
-					} else {
-						operation_ = decoding.first;
-						resume_point_ = ResumePoint::Max + int(decoding.second);
-						break;
-					}
+					operation_ = decoding.first;
+					resume_point_ = ResumePoint::Max + int(decoding.second);
+					break;
 				}
 
 			fetch_decode_page1:
@@ -165,6 +181,13 @@ struct Processor {
 					operation_ = decoding.first;
 					resume_point_ = ResumePoint::Max + int(decoding.second);
 					break;
+				}
+
+			case access_program(Variant):
+				if(operation_ == Operation::Page2) {
+					goto fetch_decode_page2;
+				} else {
+					goto fetch_decode_page1;
 				}
 		}
 
