@@ -84,7 +84,7 @@ void ACIA::write(const int address, const uint8_t value) {
 					transmit.write(false);
 				break;
 			}
-			receive.set_read_delegate(this, Storage::Time(divider_ * 2, int(receive_clock_rate_.as_integral())));
+			receive.set_read_delegate(this, Storage::Time(divider_ * 2, receive_clock_rate_.as<int>()));
 			receive_interrupt_enabled_ = value & 0x80;
 
 			update_interrupt_line();

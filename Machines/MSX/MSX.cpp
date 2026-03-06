@@ -774,7 +774,7 @@ public:
 		}
 
 		if(!tape_player_is_sleeping_)
-			tape_player_.run_for(int(cycle.length.as_integral()));
+			tape_player_.run_for(cycle.length.as<int>());
 
 		return addition;
 	}

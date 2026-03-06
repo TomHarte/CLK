@@ -42,7 +42,7 @@ void Video::flush() {
 void Video::flush(bool next_sync) {
 	if(sync_) {
 		// If in sync, that takes priority. Output the proper amount of sync.
-		crt_.output_sync(int(time_since_update_.as_integral()));
+		crt_.output_sync(time_since_update_.as<int>());
 	} else {
 		// If not presently in sync, then...
 
@@ -50,8 +50,8 @@ void Video::flush(bool next_sync) {
 			// If there is output data queued, output it either if it's being interrupted by
 			// sync, or if we're past its end anyway. Otherwise let it be.
 			int data_length = int(line_data_pointer_ - line_data_);
-			if(data_length < int(time_since_update_.as_integral()) || next_sync) {
-				auto output_length = std::min(data_length, int(time_since_update_.as_integral()));
+			if(data_length < time_since_update_.as<int>() || next_sync) {
+				auto output_length = std::min(data_length, time_since_update_.as<int>());
 				crt_.output_data(output_length);
 				line_data_pointer_ = line_data_ = nullptr;
 				time_since_update_ -= HalfCycles(output_length);

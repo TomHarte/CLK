@@ -213,7 +213,7 @@ void Drive::set_event_delegate(Storage::Disk::Drive::EventDelegate *const delega
 }
 
 void Drive::advance(const Cycles cycles) {
-	cycles_since_index_hole_ += cycles.as_integral();
+	cycles_since_index_hole_ += cycles.get();
 	if(event_delegate_) event_delegate_->advance(cycles);
 }
 
@@ -235,7 +235,7 @@ void Drive::run_for(const Cycles cycles) {
 		if(has_disk_) {
 			Time zero(0);
 
-			auto number_of_cycles = cycles.as_integral();
+			auto number_of_cycles = cycles.get();
 			while(number_of_cycles) {
 				auto cycles_until_next_event = get_cycles_until_next_event();
 				auto cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);

@@ -892,7 +892,7 @@ public:
 
 			// TODO (in the player, not here): adapt it to accept an input clock rate and
 			// run_for as HalfCycles.
-			if(!tape_player_is_sleeping_) tape_player_.run_for(cycle.length.as_integral());
+			if(!tape_player_is_sleeping_) tape_player_.run_for(cycle.length.get());
 
 			// Pump the AY.
 			ay_.run_for(cycle.length);
@@ -1324,7 +1324,7 @@ private:
 		if constexpr (has_fdc) {
 			// Clock the FDC, if connected, using a lazy scale by two
 			if(!fdc_is_sleeping_) {
-				fdc_.run_for(Cycles(time_since_fdc_update_.as_integral()));
+				fdc_.run_for(Cycles(time_since_fdc_update_.get()));
 			}
 			time_since_fdc_update_ = HalfCycles(0);
 		}

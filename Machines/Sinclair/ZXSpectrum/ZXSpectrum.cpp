@@ -629,7 +629,7 @@ private:
 			z80_.set_interrupt_line(video_.last_valid()->get_interrupt_line(), video_.last_sequence_point_overrun());
 		}
 
-		if(!tape_player_is_sleeping_) tape_player_.run_for(duration.as_integral());
+		if(!tape_player_is_sleeping_) tape_player_.run_for(duration.get());
 
 		// Update automatic tape motor control, if enabled; if it's been
 		// 0.5 seconds since software last possibly polled the tape, stop it.
@@ -643,7 +643,7 @@ private:
 		}
 
 		if constexpr (model == Model::Plus3) {
-			fdc_ += Cycles(duration.as_integral());
+			fdc_ += Cycles(duration.get());
 		}
 
 		if(typer_) typer_->run_for(duration);

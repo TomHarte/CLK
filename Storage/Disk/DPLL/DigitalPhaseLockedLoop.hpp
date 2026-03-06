@@ -46,8 +46,8 @@ public:
 		@c number_of_cycles The time to run the loop for.
 	*/
 	void run_for(const Cycles cycles) {
-		offset_ += cycles.as_integral();
-		phase_ += cycles.as_integral();
+		offset_ += cycles.get();
+		phase_ += cycles.get();
 		if(phase_ >= window_length_) {
 			auto windows_crossed = phase_ / window_length_;
 

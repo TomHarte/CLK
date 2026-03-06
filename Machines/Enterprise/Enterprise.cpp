@@ -380,7 +380,7 @@ public:
 
 		// The WD/etc runs at a nominal 8Mhz.
 		if constexpr (has_disk_controller) {
-			exdos_.run_for(Cycles(full_length.as_integral()));
+			exdos_.run_for(Cycles(full_length.get()));
 		}
 
 		switch(cycle.operation) {

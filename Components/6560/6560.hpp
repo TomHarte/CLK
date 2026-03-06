@@ -184,7 +184,7 @@ public:
 		// keep track of the amount of time since the speaker was updated; lazy updates are applied
 		cycles_since_speaker_update_ += cycles;
 
-		auto number_of_cycles = cycles.as_integral();
+		auto number_of_cycles = cycles.get();
 		while(number_of_cycles--) {
 			// keep an old copy of the vertical count because that test is a cycle later than the actual changes
 			int previous_vertical_counter = vertical_counter_;
