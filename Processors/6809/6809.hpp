@@ -31,16 +31,19 @@ enum class BusState {
 
 enum class ReadWrite {
 	Read,
-	Write
+	ReadLast,	// Read with LIC high.
+	Write,
+	WriteLast	// Write with LIC high.,
 };
 
 constexpr bool is_read(const ReadWrite read_write) {
-	return read_write == ReadWrite::Read;
+	return read_write < ReadWrite::Write;
 }
 constexpr Bus::Data::AccessType access_type(const ReadWrite read_write) {
-	switch(read_write) {
-		case ReadWrite::Read: return Bus::Data::AccessType::Read;
-		case ReadWrite::Write: return Bus::Data::AccessType::Write;
+	if(is_read(read_write)) {
+		return Bus::Data::AccessType::Read;
+	} else {
+		return Bus::Data::AccessType::Write;
 	}
 }
 
@@ -50,17 +53,12 @@ enum class Line {
 	NMI,
 	IRQ,
 	FIRQ,
-	MRDY,
+	MRDY,	// Allows the bus to be stretched in 1/4 cycle increments (on a non-E 6809).
 };
 
-// Missing inputs:
-//
-//	MRDY — allows the bus to be stretched in 1/4 cycle increments
-//
 // Missing outputs:
 //
-//	LIC (6809E) - high during the last cycle of any instruction; hence high -> low indicates fetch beginning.
-//	AVMA — advanced VMA, i.e. bus will be accessed in the next cycle
+//	AVMA — advanced VMA, i.e. bus will be accessed in the next cycle.
 //
 // clocks: (Q, E, TSC, XTAL, EXTAL)
 
