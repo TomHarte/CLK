@@ -873,7 +873,7 @@ public:
 
 		// Propagate time far and wide.
 		cycles_since_clock_tick_ += duration;
-		auto ticks = cycles_since_clock_tick_.divide(Cycles(CLOCK_RATE)).as_integral();
+		auto ticks = cycles_since_clock_tick_.divide(Cycles(CLOCK_RATE)).get();
 		while(ticks--) {
 			clock_.update();
 			video_.last_valid()->notify_clock_tick();	// The video controller marshalls the one-second interrupt.

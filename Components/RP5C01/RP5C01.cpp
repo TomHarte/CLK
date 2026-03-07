@@ -41,7 +41,7 @@ void RP5C01::run_for(const HalfCycles cycles) {
 	if(sub_seconds_ < clock_rate_) {
 		return;
 	}
-	const auto elapsed_seconds = int(sub_seconds_.as_integral() / clock_rate_.as_integral());
+	const auto elapsed_seconds = int(sub_seconds_.get() / clock_rate_.get());
 	sub_seconds_ %= clock_rate_;
 
 	// Update time within day.

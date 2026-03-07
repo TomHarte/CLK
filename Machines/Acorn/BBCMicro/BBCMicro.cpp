@@ -910,7 +910,7 @@ public:
 		//
 		// 1Mhz devices.
 		//
-		const auto half_cycles = HalfCycles(duration.as_integral());
+		const auto half_cycles = HalfCycles(duration.get());
 		system_via_.run_for(half_cycles);
 		system_via_port_handler_.advance_keyboard_scan(half_cycles);
 		user_via_.run_for(half_cycles);

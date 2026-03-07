@@ -432,7 +432,7 @@ private:
 	Sinclair::ZX::Keyboard::Keyboard keyboard_;
 	Sinclair::ZX::Keyboard::KeyboardMapper keyboard_mapper_;
 
-	HalfClockReceiver<Storage::Tape::BinaryTapePlayer> tape_player_;
+	ConvertedClockReceiver<Storage::Tape::BinaryTapePlayer, HalfCycles, Cycles> tape_player_;
 	Storage::Tape::ZX8081::Parser parser_;
 
 	bool nmi_is_enabled_ = false;
@@ -486,7 +486,7 @@ private:
 		return GI::AY38910::Utility::read(ay_);
 	}
 	inline void update_audio() {
-		speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
+		speaker_.run_for(audio_queue_, time_since_ay_update_.divide(HalfCycles(4)).template reduce<Cycles>());
 	}
 };
 

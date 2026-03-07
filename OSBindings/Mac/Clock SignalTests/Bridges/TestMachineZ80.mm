@@ -173,7 +173,7 @@ struct PortAccessDelegate191: public CPU::Z80::AllRAMProcessor::PortAccessDelega
 }
 
 - (int)completedHalfCycles {
-	return int(_processor->get_timestamp().as_integral());
+	return _processor->get_timestamp().as<int>();
 }
 
 - (void)setNmiLine:(BOOL)nmiLine {
@@ -244,7 +244,7 @@ struct PortAccessDelegate191: public CPU::Z80::AllRAMProcessor::PortAccessDelega
 		}
 		capture.address = address;
 		capture.value = value;
-		capture.timeStamp = int(timeStamp.as_integral());
+		capture.timeStamp = timeStamp.as<int>();
 
 		[_busOperationCaptures addObject:capture];
 	}

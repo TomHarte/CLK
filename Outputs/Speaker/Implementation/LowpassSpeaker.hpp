@@ -391,7 +391,7 @@ private:
 		at construction, filtering it and passing it on to the speaker's delegate if there is one.
 	*/
 	void run_for(const Cycles cycles) {
-		process(size_t(cycles.as_integral()));
+		process(cycles.as<size_t>());
 	}
 
 	SampleSource &sample_source_;

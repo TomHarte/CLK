@@ -498,7 +498,7 @@ private:
 	}
 
 	void update_audio() {
-		speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide_cycles(Cycles(4)));
+		speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(HalfCycles(8)).template reduce<Cycles>());
 	}
 
 	CPU::MC68000::Processor<ConcreteMachine, true, true> mc68000_;

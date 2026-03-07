@@ -11,10 +11,10 @@
 using namespace Storage::Disk;
 
 Controller::Controller(Cycles clock_rate) :
-		clock_rate_multiplier_(128000000 / clock_rate.as_integral()),
-		clock_rate_(clock_rate.as_integral() * clock_rate_multiplier_),
+		clock_rate_multiplier_(128000000 / clock_rate.get()),
+		clock_rate_(clock_rate.get() * clock_rate_multiplier_),
 		pll_(100, *this),
-		empty_drive_(int(clock_rate.as_integral()), 1, 1),
+		empty_drive_(clock_rate.as<int>(), 1, 1),
 		drive_(&empty_drive_) {
 	empty_drive_.set_clocking_hint_observer(this);
 	set_expected_bit_length(Time(1));
@@ -64,7 +64,7 @@ void Controller::process_event(const Drive::Event &event) {
 }
 
 void Controller::advance(const Cycles cycles) {
-	if(is_reading_) pll_.run_for(Cycles(cycles.as_integral() * clock_rate_multiplier_));
+	if(is_reading_) pll_.run_for(Cycles(cycles.get() * clock_rate_multiplier_));
 }
 
 void Controller::process_write_completed() {

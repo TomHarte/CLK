@@ -154,7 +154,7 @@ Outputs::Display::DisplayType Video::get_display_type() const {
 }
 
 void Video::run_for(HalfCycles duration) {
-	int integer_duration = int(duration.as_integral());
+	auto integer_duration = duration.as<int>();
 	assert(integer_duration >= 0);
 
 	while(integer_duration) {
