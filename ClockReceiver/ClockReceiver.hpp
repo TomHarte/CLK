@@ -24,40 +24,36 @@ constexpr bool is_power_of_two(const int v) {
 	Provides a class that wraps a plain int, providing most of the basic arithmetic and
 	Boolean operators, but forcing callers and receivers to be explicit as to usage.
 */
-template <int ClockScale>
-requires (is_power_of_two(ClockScale))
+template <int ClockDenominator>
+requires (is_power_of_two(ClockDenominator))
 class Clocks {
 public:
-	static constexpr int Scale = ClockScale;
-	static constexpr int Mask = ~(ClockScale - 1);
+	static constexpr int Denominator = ClockDenominator;
 	using IntType = int64_t;
 
-	constexpr Clocks(const IntType rhs) noexcept : length_(rhs * ClockScale) {}
+	constexpr Clocks(const IntType rhs) noexcept : length_(rhs) {}
 	constexpr Clocks() noexcept : length_(0) {}
 
 	// Assignments are implemented anywhere they can't lose data.
 	template <typename SourceClocks>
-	requires (SourceClocks::Mask <= Mask)
-	constexpr Clocks(const SourceClocks rhs) noexcept : length_(rhs.raw() & Mask) {}
-
-	Clocks operator =(const Clocks rhs) {
-		length_ = rhs.length_ & Mask;
-		return *this;
+	requires (SourceClocks::Denominator <= Denominator)
+	constexpr Clocks(const SourceClocks rhs) noexcept {
+		*this = rhs.template reduce<Clocks>();
 	}
 
 	Clocks operator +=(const Clocks rhs)	{	length_ += rhs.length_;	return *this;	}
 	Clocks operator -=(const Clocks rhs)	{	length_ -= rhs.length_;	return *this;	}
-	Clocks operator ++() 					{	length_ += ClockScale;	return *this;	}
-	Clocks operator --()					{	length_ -= ClockScale;	return *this;	}
+	Clocks operator ++() 					{	++length_;	return *this;	}
+	Clocks operator --()					{	--length_;	return *this;	}
 
 	Clocks operator ++(int) {
 		const Clocks result = *this;
-		length_ += ClockScale;
+		++length_;
 		return result;
 	}
 	Clocks operator --(int) {
 		const Clocks result = *this;
-		length_ -= ClockScale;
+		--length_;
 		return result;
 	}
 
@@ -106,14 +102,23 @@ public:
 		return Type(std::clamp(length_, low<Type>, high<Type>));
 	}
 
-	/// @returns The underlying int, in its native form.
+	/// @returns The underlying int, in its native form, potentially scaled upward.
+	template <int GetDenominator = Denominator>
+	requires (GetDenominator >= Denominator)
 	constexpr IntType get() const {
-		return length_ / ClockScale;
+		return length_ << (GetDenominator - Denominator);
 	}
 
-	constexpr IntType raw() const {
-		return length_;
+	/// @returns This value, optionally converted to another time base. Potentially loses precision.
+	template <typename TargetClocks>
+	constexpr TargetClocks reduce() const {
+		if constexpr (TargetClocks::Denominator >= Denominator) {
+			return TargetClocks(length_ << (TargetClocks::Denominator - Denominator));
+		} else {
+			return TargetClocks(length_ >> (Denominator - TargetClocks::Denominator));
+		}
 	}
+
 	// operator int() is deliberately not provided, to avoid accidental subtitution of
 	// classes that use this template.
 
@@ -121,27 +126,32 @@ public:
 		Caculates `*this / divisor`, converting that to `DestinationClocks`.
 		Sets `*this = *this % divisor`.
 	*/
-//	template <typename DestinationClocks = Clocks>
-//	DestinationClocks divide(const DestinationClocks divisor) {
-//		//
-//
-//
-//		Clocks result;
-//		result.length_ = length_ / divisor.length_;
-//		length_ %= divisor.length_;
-//		return result;
-//	}
+	template <typename DestinationClocks = Clocks>
+	requires (DestinationClocks::Denominator >= Denominator)
+	DestinationClocks divide(const Clocks divisor) {
+		Clocks result;
+		result.length_ = length_ / divisor.length_;
+		length_ %= divisor.length_;
+		return reduce<DestinationClocks>();
+	}
 
 	/*!
 		Extracts a whole number of `DestinationClock`s from `*this`.
 		Leaves the residue here.
 	*/
 	template <typename DestinationClocks = Clocks>
-	requires (DestinationClocks::Mask <= Mask)
 	DestinationClocks flush() {
-		const auto result = DestinationClocks(length_);
-		length_ &= Mask ^ DestinationClocks::Mask;
-		return result;
+		if constexpr (DestinationClocks::Denominator >= Denominator) {
+			const auto result = DestinationClocks(get<DestinationClocks::Denominator>());
+			length_ = 0;
+			return result;
+		} else {
+			static constexpr int ShiftRight = Denominator - DestinationClocks::Denominator;
+			static constexpr IntType ResidueMask = (1 << ShiftRight) - 1;
+			const auto result = reduce<DestinationClocks>();
+			length_ &= ResidueMask;
+			return result;
+		}
 	}
 
 	static Clocks max() { return Clocks(std::numeric_limits<IntType>::max()); }
@@ -167,9 +177,9 @@ private:
 };
 
 /// Reasons Clocks into being a count of querter cycles, building half- and whole-cycles from there.
-using Cycles = Clocks<4>;
+using Cycles = Clocks<1>;
 using HalfCycles = Clocks<2>;
-using QuarterCycles = Clocks<1>;
+using QuarterCycles = Clocks<4>;
 
 /*!
 	Provides automated boilerplate for connecting an owner that works in one clock base to a receiver that works in another.

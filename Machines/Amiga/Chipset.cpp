@@ -795,7 +795,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 
 	// Update the disk controller, if any drives are active.
 	if(!disk_controller_is_sleeping_) {
-		disk_controller_.run_for(changes.duration.cycles());
+		disk_controller_.run_for(changes.duration.flush<Cycles>());
 	}
 
 	// Record the interrupt level.

@@ -140,7 +140,7 @@ public:
 
 	/// Enqueues an update-to-now into the AY's deferred queue.
 	inline void update() {
-		speaker_.run_for(audio_queue_, cycles_since_update_.divide_cycles(Cycles(4)));
+		speaker_.run_for(audio_queue_, cycles_since_update_.divide(HalfCycles(8)).reduce<Cycles>());
 	}
 
 	/// Issues a request to the AY to perform all processing up to the current time.
@@ -881,7 +881,7 @@ public:
 			// will do as it's safe to conclude that nobody else has touched video RAM
 			// during that whole window.
 			crtc_counter_ += cycle.length;
-			const Cycles crtc_cycles = crtc_counter_.divide_cycles(Cycles(4));
+			const Cycles crtc_cycles = crtc_counter_.divide(HalfCycles(8)).template reduce<Cycles>();
 			if(crtc_cycles > Cycles(0)) crtc_.run_for(crtc_cycles);
 
 			// Check whether that prompted a change in the interrupt line. If so then date

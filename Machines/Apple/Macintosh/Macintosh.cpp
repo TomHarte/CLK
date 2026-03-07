@@ -614,7 +614,7 @@ private:
 
 		// Consider updating the real-time clock.
 		real_time_clock_ += duration;
-		auto ticks = real_time_clock_.divide_cycles(Cycles(CLOCK_RATE)).get();
+		auto ticks = real_time_clock_.divide(HalfCycles(CLOCK_RATE << 1)).template reduce<Cycles>().get();
 		while(ticks--) {
 			clock_.update();
 			// TODO: leave a delay between toggling the input rather than using this coupled hack.

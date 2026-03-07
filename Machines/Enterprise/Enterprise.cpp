@@ -841,7 +841,10 @@ private:
 	static constexpr int dave_divider = 8;
 	JustInTimeActor<Dave::TimedInterruptSource, HalfCycles, 1, dave_divider> dave_timer_;
 	inline void update_audio() {
-		speaker_.run_for(audio_queue_, time_since_audio_update_.divide_cycles(Cycles(dave_divider)));
+		speaker_.run_for(
+			audio_queue_,
+			time_since_audio_update_.divide(HalfCycles(dave_divider << 1)).template reduce<Cycles>()
+		);
 	}
 
 	// MARK: - EXDos card.
