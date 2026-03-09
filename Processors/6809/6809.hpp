@@ -40,6 +40,9 @@ enum class ReadWrite {
 constexpr bool is_read(const ReadWrite read_write) {
 	return read_write < ReadWrite::Write;
 }
+constexpr bool is_write(const ReadWrite read_write) {
+	return read_write >= ReadWrite::Write;
+}
 constexpr Bus::Data::AccessType access_type(const ReadWrite read_write) {
 	if(is_read(read_write)) {
 		return Bus::Data::AccessType::Read;
@@ -52,7 +55,7 @@ enum class BusPhase {
 	PreMRDY,
 	MRDY,
 	PostMRDY,
-	NonAccess,
+	FullCycle,
 };
 constexpr bool is_terminal(const BusPhase phase) {
 	return phase >= BusPhase::PostMRDY;
@@ -133,7 +136,7 @@ struct Processor {
 				case BusPhase::PreMRDY:		return QuarterCycles(3);
 				case BusPhase::MRDY:		return QuarterCycles(1);
 				case BusPhase::PostMRDY:	return QuarterCycles(1);
-				case BusPhase::NonAccess:	return QuarterCycles(4);
+				case BusPhase::FullCycle:	return QuarterCycles(4);
 				default: __builtin_unreachable();
 			}
 		}
@@ -147,7 +150,53 @@ struct Processor {
 
 		#define join(a, b)			a##b
 		#define attach(a, b)		join(a, b)
-		#define access_label()		attach(repeat, __LINE__)
+		#define local_label(name)	attach(name, __LINE__)
+		#define access_label()		local_label(repeat)
+
+		#define break_up_access(label_prefix, read_write, bus_state, addr, value) {									\
+			if constexpr (!Traits::uses_mrdy) {																		\
+				if constexpr (std::is_same_v<decltype(value), data_t<read_write>>) {								\
+					time_ -= Cycles(1);																				\
+					time_ -= bus_handler_.template perform<BusPhase::FullCycle, read_write, bus_state>(addr, value);\
+				}																									\
+				goto local_label(label_prefix##SkipMRDY);															\
+			}																										\
+																													\
+			if constexpr (Traits::uses_mrdy && std::is_same_v<decltype(value), data_t<read_write>>) {				\
+				time_ -= QuarterCycles(3);																			\
+				time_ - bus_handler_.template perform<BusPhase::PreMRDY, read_write, bus_state>(addr, value);		\
+			}																										\
+																													\
+			static constexpr auto check_mrdy = restore_point();														\
+			case check_mrdy:																						\
+			while(mrdy_) {																							\
+				if constexpr (Traits::pause_precision >= PausePrecision::BetweenBusActions) {						\
+					if(time_ <= 0) {																				\
+						resume_point_ = location;																	\
+						return;																						\
+					}																								\
+				}																									\
+																													\
+				if constexpr (Traits::uses_mrdy && std::is_same_v<decltype(value), data_t<read_write>>) {			\
+					time_ -= QuarterCycles(1);																		\
+					time_ -= bus_handler_.template perform<BusPhase::MRDY, read_write, bus_state>(addr, value);		\
+				}																									\
+			}																										\
+																													\
+			if constexpr (Traits::pause_precision >= PausePrecision::BetweenBusActions) {							\
+				if(time_ <= 0) {																					\
+					resume_point_ = location;																		\
+					return;																							\
+				}																									\
+			}																										\
+																													\
+			if constexpr (Traits::uses_mrdy && std::is_same_v<decltype(value), data_t<read_write>>) {				\
+				time_ -= QuarterCycles(1);																			\
+				time_ -= bus_handler_.template perform<BusPhase::PostMRDY, read_write, bus_state>(addr, value);		\
+			}																										\
+																													\
+			local_label(label_prefix##SkipMRDY): (void)0;															\
+		}
 
 		#define access(read_write, bus_state, addr, value, ...)	{											\
 			static constexpr int location = restore_point();												\
@@ -161,17 +210,16 @@ struct Processor {
 				}																							\
 			}																								\
 																											\
-			if constexpr (is_read(read_write)) {															\
-				if constexpr (std::is_same_v<decltype(value), Data::Writeable>) {							\
-					time_ -= bus_handler_.template perform<read_write, bus_state>(addr, value);			\
-				} else {																					\
-					Data::Writeable target;																	\
-					time_ -= bus_handler_.template perform<read_write, bus_state>(addr, target);			\
-					value = target;																			\
-				}																							\
-			} else {																						\
-				time_ -= bus_handler_.template perform<read_write, bus_state>(addr, value);				\
-			}																								\
+			if constexpr (is_write(read_write)) goto local_label(SimpleAccess);								\
+			if constexpr (std::is_same_v<decltype(value), Data::Writeable>) goto local_label(SimpleAccess);	\
+			break_up_access(viaTarget, read_write, bus_state, addr, target);								\
+			value = target;																					\
+			goto local_label(EndAccess);																	\
+																											\
+			local_label(SimpleAccess):																		\
+			break_up_access(simple, read_write, bus_state, addr, value);									\
+			local_label(EndAccess):																			\
+																											\
 			__VA_ARGS__;																					\
 		}
 
@@ -187,7 +235,8 @@ struct Processor {
 		InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page1> op_mapper1;
 		InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page2> op_mapper2;
 
-		uint8_t opcode;
+		uint8_t opcode = 0;
+		Data::Writeable target;
 		while(true) switch(resume_point_) {
 			default:
 				__builtin_unreachable();
@@ -248,6 +297,8 @@ struct Processor {
 private:
 	Traits::BusHandlerT &bus_handler_;
 	Timescale time_;
+
+	bool mrdy_ = false;
 
 	enum ResumePoint {
 		FetchDecode,
