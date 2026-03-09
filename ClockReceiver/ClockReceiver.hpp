@@ -132,7 +132,7 @@ public:
 		Clocks result;
 		result.length_ = length_ / divisor.length_;
 		length_ %= divisor.length_;
-		return reduce<DestinationClocks>();
+		return result.reduce<DestinationClocks>();
 	}
 
 	/*!

@@ -123,7 +123,7 @@ class AYDeferrer {
 public:
 	/// Constructs a new AY instance and sets its clock rate.
 	AYDeferrer() : ay_(GI::AY38910::Personality::AY38910, audio_queue_), speaker_(ay_) {
-		speaker_.set_input_rate(1000000);
+		speaker_.set_input_rate(1'000'000);
 		// Per the CPC Wiki:
 		// "A is output to the right, channel C is output left, and channel B is output to both left and right".
 		ay_.set_output_mixing(0.0, 0.5, 1.0, 1.0, 0.5, 0.0);
@@ -140,7 +140,8 @@ public:
 
 	/// Enqueues an update-to-now into the AY's deferred queue.
 	inline void update() {
-		speaker_.run_for(audio_queue_, cycles_since_update_.divide(HalfCycles(8)).reduce<Cycles>());
+		const auto cycles = cycles_since_update_.divide(HalfCycles(8)).reduce<Cycles>();
+		speaker_.run_for(audio_queue_, cycles);
 	}
 
 	/// Issues a request to the AY to perform all processing up to the current time.
