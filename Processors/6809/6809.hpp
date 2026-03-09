@@ -113,6 +113,22 @@ struct Processor {
 		if constexpr (std::is_same_v<Timescale, Cycles>) {
 			return Cycles(1);
 		} else {
+			// My reading of the data sheet is that if accessing memory then in each EQ quadrants
+			// the 6809 proceeds as:
+			//
+			// EQ: 00
+			// EQ: 01		address becomes valid
+			// EQ: 11		data transfer begins
+			// ...			waiting if MRDY requested
+			// EQ: 10
+			//
+			// So that splits each access into 3/4 of a cycle in which the state of MRDY doesn't matter,
+			// arbitrarily more quarters of a cycle in which the processor pauses if MRDY is active,
+			// then a final quarter of a cycle to complete the access.
+			//
+			// Code expectation: some machines won't use MRDY and therefore won't be interested in bookkeeping at
+			// quarter-cycle precision. In that case all machine cycles last one cycle long, as per the if constexpr
+			// above. Otherwise machines can take the BusPhase handed to them and enquire as to length.
 			switch(phase) {
 				case BusPhase::PreMRDY:		return QuarterCycles(3);
 				case BusPhase::MRDY:		return QuarterCycles(1);
