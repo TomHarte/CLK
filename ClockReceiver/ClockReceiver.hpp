@@ -136,11 +136,13 @@ public:
 		const auto native_period = length_ / divider.length_;
 		length_ %= divider.length_;
 
-		// Also accumualte some potential wastage if there's a type conversion.
+		// Also accumulate some potential wastage if there's a type conversion.
 		static constexpr auto Shift = Denominator - DestinationClocks::Denominator;
 		if constexpr (Shift != 0) {
-			const auto further_residue = length_ & ((1 << Shift) - 1);
-			length_ += further_residue;
+			const auto further_residue = native_period & ((1 << Shift) - 1);
+			length_ += further_residue * divider.length_;
+			// Logic: whatever part of native period isn't going to be converted is quantity lost after
+			// applying the divider. So unapply it to get back to what wasn't extracted from the original.
 		}
 
 		return DestinationClocks(native_period >> Shift);
