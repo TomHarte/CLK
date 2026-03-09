@@ -381,7 +381,7 @@ private:
 	inline void update_audio() {
 		speaker_.run_for(
 			audio_queue_,
-			time_since_sn76489_update_.divide<Cycles>(HalfCycles(sn76489_divider))
+			time_since_sn76489_update_.divide<Cycles>(sn76489_divider)
 		);
 	}
 

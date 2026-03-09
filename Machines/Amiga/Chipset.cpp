@@ -777,11 +777,11 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 	// Advance the keyboard's serial output, at
 	// close enough to 1,000,000 ticks/second.
 	keyboard_divider_ += changes.duration;
-	keyboard_.run_for(keyboard_divider_.divide<HalfCycles>(14));
+	keyboard_.run_for(keyboard_divider_.divide(14));
 
 	// The CIAs are on the E clock.
 	cia_divider_ += changes.duration;
-	const HalfCycles e_clocks = cia_divider_.divide<HalfCycles>(20);
+	const HalfCycles e_clocks = cia_divider_.divide(20);
 	if(e_clocks > HalfCycles(0)) {
 		cia_a.run_for(e_clocks);
 		cia_b.run_for(e_clocks);

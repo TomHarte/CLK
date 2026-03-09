@@ -103,7 +103,7 @@ private:
 
 	inline uint8_t update_audio() {
 		const unsigned int clock_divisor = 57;
-		auto cycles_to_run_for = cycles_since_audio_update_.divide<Cycles>(clock_divisor).as<int>();
+		auto cycles_to_run_for = cycles_since_audio_update_.divide(clock_divisor).as<int>();
 
 		int table_position = 0;
 		for(int c = 0; c < 3; c++) {

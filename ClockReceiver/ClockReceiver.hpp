@@ -157,9 +157,9 @@ public:
 			length_ = 0;
 			return result;
 		} else {
-			static constexpr int ShiftRight = Denominator - DestinationClocks::Denominator;
-			static constexpr IntType ResidueMask = (1 << ShiftRight) - 1;
-			const auto result = reduce<DestinationClocks>();
+			static constexpr int Shift = Denominator - DestinationClocks::Denominator;
+			static constexpr IntType ResidueMask = (1 << Shift) - 1;
+			const auto result = DestinationClocks(length_ >> Shift);
 			length_ &= ResidueMask;
 			return result;
 		}

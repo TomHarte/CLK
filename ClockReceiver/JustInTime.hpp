@@ -186,10 +186,7 @@ public:
 				const auto duration = time_since_update_.template flush<TargetTimeScale>();
 				object_.run_for(duration);
 			} else {
-				// Get the result of clock dividing; flush that to the other time scale potentially to generate
-				// extra residue and retain that back in the original counter.
 				const auto target_duration = time_since_update_.template divide<TargetTimeScale>(divider);
-				time_since_update_ += target_duration;
 				if(target_duration > TargetTimeScale(0)) {
 					object_.run_for(target_duration);
 				}
