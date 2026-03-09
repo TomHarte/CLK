@@ -705,7 +705,7 @@ template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_
 	return -1;
 }
 
-template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
+template <bool stop_on_cpu> Chipset::Changes Chipset::run(const HalfCycles length) {
 	Changes changes;
 
 	// This code uses 'pixels' as a measure, which is equivalent to one pixel clock time,
