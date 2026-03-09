@@ -123,7 +123,7 @@ void WD1770::run_for(const Cycles cycles) {
 	Storage::Disk::Controller::run_for(cycles);
 
 	if(delay_time_) {
-		const auto number_of_cycles = cycles.as_integral();
+		const auto number_of_cycles = cycles.get();
 		if(delay_time_ <= number_of_cycles) {
 			delay_time_ = 0;
 			posit_event(int(Event1770::Timer));

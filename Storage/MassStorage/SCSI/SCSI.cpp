@@ -11,7 +11,7 @@
 using namespace SCSI;
 
 Bus::Bus(const HalfCycles clock_rate) {
-	cycles_to_time_ = 1.0 / double(clock_rate.as_integral());
+	cycles_to_time_ = 1.0 / clock_rate.as<double>();
 
 	// NB: note that the dispatch times below are **ORDERED**
 	// from least to greatest. Each box should contain the number
@@ -87,7 +87,7 @@ ClockingHint::Preference Bus::preferred_clocking() const {
 }
 
 void Bus::update_observers() {
-	const auto time_elapsed = double(time_in_state_.as_integral()) * cycles_to_time_;
+	const auto time_elapsed = time_in_state_.as<double>() * cycles_to_time_;
 	for(auto &observer: observers_) {
 		observer->scsi_bus_did_change(*this, state_, time_elapsed);
 	}
@@ -98,7 +98,7 @@ void Bus::run_for(const HalfCycles time) {
 		time_in_state_ += time;
 
 		const auto old_index = dispatch_index_;
-		const auto time_as_int = time_in_state_.as_integral();
+		const auto time_as_int = time_in_state_.get();
 		while(dispatch_index_ < dispatch_times_.size() && time_as_int >= dispatch_times_[dispatch_index_]) {
 			++dispatch_index_;
 		}

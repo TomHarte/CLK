@@ -556,7 +556,7 @@ private:
 	forceinline void advance_time(HalfCycles duration) {
 		time_since_video_update_ += duration;
 		iwm_ += duration;
-		ram_subcycle_ = (ram_subcycle_ + duration.as_integral()) & 15;
+		ram_subcycle_ = (ram_subcycle_ + duration.get()) & 15;
 
 		// The VIA runs at one-tenth of the 68000's clock speed, in sync with the E clock.
 		// See: Guide to the Macintosh Hardware Family p149 (PDF p188). Some extra division
@@ -565,7 +565,7 @@ private:
 		// Possibly route vsync.
 		if(time_since_video_update_ < time_until_video_event_) {
 			via_clock_ += duration;
-			via_.run_for(via_clock_.divide(HalfCycles(10)));
+			via_.run_for(via_clock_.divide(10));
 		} else {
 			auto via_time_base = time_since_video_update_ - duration;
 			auto via_cycles_outstanding = duration;
@@ -575,7 +575,7 @@ private:
 				via_cycles_outstanding -= via_cycles;
 
 				via_clock_ += via_cycles;
-				via_.run_for(via_clock_.divide(HalfCycles(10)));
+				via_.run_for(via_clock_.divide(10));
 
 				video_.run_for(time_until_video_event_);
 				time_since_video_update_ -= time_until_video_event_;
@@ -585,7 +585,7 @@ private:
 			}
 
 			via_clock_ += via_cycles_outstanding;
-			via_.run_for(via_clock_.divide(HalfCycles(10)));
+			via_.run_for(via_clock_.divide(10));
 		}
 
 		// The keyboard also has a clock, albeit a very slow one — 100,000 cycles/second.
@@ -601,7 +601,7 @@ private:
 		// Feed mouse inputs within at most 1250 cycles of each other.
 		if(mouse_.has_steps()) {
 			time_since_mouse_update_ += duration;
-			const auto mouse_ticks = time_since_mouse_update_.divide(HalfCycles(2500));
+			const auto mouse_ticks = time_since_mouse_update_.divide(2500);
 			if(mouse_ticks > HalfCycles(0)) {
 				mouse_.prepare_step();
 				scc_.set_dcd(0, mouse_.get_channel(1) & 1);
@@ -614,7 +614,7 @@ private:
 
 		// Consider updating the real-time clock.
 		real_time_clock_ += duration;
-		auto ticks = real_time_clock_.divide_cycles(Cycles(CLOCK_RATE)).as_integral();
+		auto ticks = real_time_clock_.divide<Cycles>(CLOCK_RATE).get();
 		while(ticks--) {
 			clock_.update();
 			// TODO: leave a delay between toggling the input rather than using this coupled hack.
@@ -731,7 +731,7 @@ private:
 		void run_for(HalfCycles duration) {
 			// The 6522 enjoys a divide-by-ten, so multiply back up here to make the
 			// divided-by-two clock the audio works on.
-			audio_.time_since_update += HalfCycles(duration.as_integral() * 5);
+			audio_.time_since_update += HalfCycles(duration.get() * 5);
 		}
 
 		void flush() {

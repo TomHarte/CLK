@@ -688,7 +688,7 @@ private:
 
 	// MARK: - Work deferral updates.
 	inline void update_audio() {
-		speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(SoundGenerator::clock_rate_divider)));
+		speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(SoundGenerator::clock_rate_divider));
 	}
 
 	inline void signal_interrupt(uint8_t interrupt) {

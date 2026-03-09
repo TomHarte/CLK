@@ -705,7 +705,7 @@ template <bool stop_on_cpu> int Chipset::advance_slots(int first_slot, int last_
 	return -1;
 }
 
-template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
+template <bool stop_on_cpu> Chipset::Changes Chipset::run(const HalfCycles length) {
 	Changes changes;
 
 	// This code uses 'pixels' as a measure, which is equivalent to one pixel clock time,
@@ -777,11 +777,11 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 	// Advance the keyboard's serial output, at
 	// close enough to 1,000,000 ticks/second.
 	keyboard_divider_ += changes.duration;
-	keyboard_.run_for(keyboard_divider_.divide(HalfCycles(14)));
+	keyboard_.run_for(keyboard_divider_.divide(14));
 
 	// The CIAs are on the E clock.
 	cia_divider_ += changes.duration;
-	const HalfCycles e_clocks = cia_divider_.divide(HalfCycles(20));
+	const HalfCycles e_clocks = cia_divider_.divide(20);
 	if(e_clocks > HalfCycles(0)) {
 		cia_a.run_for(e_clocks);
 		cia_b.run_for(e_clocks);
@@ -795,7 +795,7 @@ template <bool stop_on_cpu> Chipset::Changes Chipset::run(HalfCycles length) {
 
 	// Update the disk controller, if any drives are active.
 	if(!disk_controller_is_sleeping_) {
-		disk_controller_.run_for(changes.duration.cycles());
+		disk_controller_.run_for(changes.duration.flush<Cycles>());
 	}
 
 	// Record the interrupt level.

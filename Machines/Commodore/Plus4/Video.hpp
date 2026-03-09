@@ -223,7 +223,7 @@ public:
 		// That gives close enough to 456 pixel clocks per line in both systems so the TED just rolls with that.
 
 		subcycles_ += cycles * 2;
-		auto ticks_remaining = subcycles_.divide(is_ntsc_ ? Cycles(4) : Cycles(5)).as<int>();
+		auto ticks_remaining = subcycles_.divide(is_ntsc_ ? 4 : 5).as<int>();
 		while(ticks_remaining) {
 			//
 			// Check for events: (i) deferred; ...

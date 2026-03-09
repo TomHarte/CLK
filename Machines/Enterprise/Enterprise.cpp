@@ -380,7 +380,7 @@ public:
 
 		// The WD/etc runs at a nominal 8Mhz.
 		if constexpr (has_disk_controller) {
-			exdos_.run_for(Cycles(full_length.as_integral()));
+			exdos_.run_for(Cycles(full_length.get()));
 		}
 
 		switch(cycle.operation) {
@@ -841,7 +841,10 @@ private:
 	static constexpr int dave_divider = 8;
 	JustInTimeActor<Dave::TimedInterruptSource, HalfCycles, 1, dave_divider> dave_timer_;
 	inline void update_audio() {
-		speaker_.run_for(audio_queue_, time_since_audio_update_.divide_cycles(Cycles(dave_divider)));
+		speaker_.run_for(
+			audio_queue_,
+			time_since_audio_update_.divide<Cycles>(dave_divider)
+		);
 	}
 
 	// MARK: - EXDos card.

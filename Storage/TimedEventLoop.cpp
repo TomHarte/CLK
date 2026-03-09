@@ -18,7 +18,7 @@ TimedEventLoop::TimedEventLoop(Cycles::IntType input_clock_rate) :
 	input_clock_rate_(input_clock_rate) {}
 
 void TimedEventLoop::run_for(const Cycles cycles) {
-	auto remaining_cycles = cycles.as_integral();
+	auto remaining_cycles = cycles.get();
 #ifndef NDEBUG
 	decltype(remaining_cycles) cycles_advanced = 0;
 #endif
@@ -44,7 +44,7 @@ void TimedEventLoop::run_for(const Cycles cycles) {
 		advance(remaining_cycles);
 	}
 
-	assert(cycles_advanced == cycles.as_integral());
+	assert(cycles_advanced == cycles.get());
 	assert(cycles_until_event_ > 0);
 }
 

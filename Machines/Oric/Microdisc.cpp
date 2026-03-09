@@ -110,7 +110,7 @@ void Microdisc::set_head_load_request(bool head_load) {
 
 void Microdisc::run_for(const Cycles cycles) {
 	if(head_load_request_counter_ < head_load_request_counter_target) {
-		head_load_request_counter_ += cycles.as_integral();
+		head_load_request_counter_ += cycles.get();
 		if(head_load_request_counter_ >= head_load_request_counter_target) set_head_loaded(true);
 	}
 	WD::WD1770::run_for(cycles);

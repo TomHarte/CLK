@@ -185,7 +185,7 @@ public:
 		// Source: ** Understanding the Apple IIe by Jim Sather
 
 		// Determine column at offset.
-		int mapped_column = column_ + int(offset.as_integral());
+		int mapped_column = column_ + offset.as<int>();
 
 		// Map that backwards from the internal pixels-at-start generation to pixels-at-end
 		// (so what was column 0 is now column 25).
@@ -244,7 +244,7 @@ public:
 	*/
 	bool get_is_vertical_blank(Cycles offset) {
 		// Determine column at offset.
-		int mapped_column = column_ + int(offset.as_integral());
+		int mapped_column = column_ + offset.as<int>();
 
 		// Map that backwards from the internal pixels-at-start generation to pixels-at-end
 		// (so what was column 0 is now column 25).
@@ -276,7 +276,7 @@ private:
 		static constexpr int first_sync_column = 49;	// Also a guess.
 		static constexpr int sync_length = 4;			// One of the two likely candidates.
 
-		int int_cycles = int(cycles.as_integral());
+		auto int_cycles = cycles.as<int>();
 		while(int_cycles) {
 			const int cycles_this_line = std::min(65 - column_, int_cycles);
 			const int ending_column = column_ + cycles_this_line;

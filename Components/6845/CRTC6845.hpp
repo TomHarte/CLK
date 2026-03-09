@@ -182,7 +182,7 @@ public:
 	}
 
 	void run_for(const Cycles cycles) {
-		auto cyles_remaining = cycles.as_integral();
+		auto cyles_remaining = cycles.get();
 		while(cyles_remaining--) {
 			// Intention of code below: all conditionals are evaluated as if functional; they should be
 			// ordered so that whatever assignments result don't affect any subsequent conditionals

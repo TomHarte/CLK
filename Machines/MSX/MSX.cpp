@@ -774,7 +774,7 @@ public:
 		}
 
 		if(!tape_player_is_sleeping_)
-			tape_player_.run_for(int(cycle.length.as_integral()));
+			tape_player_.run_for(cycle.length.as<int>());
 
 		return addition;
 	}
@@ -848,7 +848,10 @@ public:
 
 private:
 	void update_audio() {
-		speaker_.speaker.run_for(speaker_.audio_queue, time_since_ay_update_.divide_cycles(Cycles(2)));
+		speaker_.speaker.run_for(
+			speaker_.audio_queue,
+			time_since_ay_update_.divide<Cycles>(2)
+		);
 	}
 
 	class i8255PortHandler: public Intel::i8255::PortHandler {

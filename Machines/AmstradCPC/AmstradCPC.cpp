@@ -123,7 +123,7 @@ class AYDeferrer {
 public:
 	/// Constructs a new AY instance and sets its clock rate.
 	AYDeferrer() : ay_(GI::AY38910::Personality::AY38910, audio_queue_), speaker_(ay_) {
-		speaker_.set_input_rate(1000000);
+		speaker_.set_input_rate(1'000'000);
 		// Per the CPC Wiki:
 		// "A is output to the right, channel C is output left, and channel B is output to both left and right".
 		ay_.set_output_mixing(0.0, 0.5, 1.0, 1.0, 0.5, 0.0);
@@ -140,7 +140,8 @@ public:
 
 	/// Enqueues an update-to-now into the AY's deferred queue.
 	inline void update() {
-		speaker_.run_for(audio_queue_, cycles_since_update_.divide_cycles(Cycles(4)));
+		const auto cycles = cycles_since_update_.divide<Cycles>(4);
+		speaker_.run_for(audio_queue_, cycles);
 	}
 
 	/// Issues a request to the AY to perform all processing up to the current time.
@@ -881,7 +882,7 @@ public:
 			// will do as it's safe to conclude that nobody else has touched video RAM
 			// during that whole window.
 			crtc_counter_ += cycle.length;
-			const Cycles crtc_cycles = crtc_counter_.divide_cycles(Cycles(4));
+			const Cycles crtc_cycles = crtc_counter_.divide<Cycles>(4);
 			if(crtc_cycles > Cycles(0)) crtc_.run_for(crtc_cycles);
 
 			// Check whether that prompted a change in the interrupt line. If so then date
@@ -892,7 +893,7 @@ public:
 
 			// TODO (in the player, not here): adapt it to accept an input clock rate and
 			// run_for as HalfCycles.
-			if(!tape_player_is_sleeping_) tape_player_.run_for(cycle.length.as_integral());
+			if(!tape_player_is_sleeping_) tape_player_.run_for(cycle.length.get());
 
 			// Pump the AY.
 			ay_.run_for(cycle.length);
@@ -1324,7 +1325,7 @@ private:
 		if constexpr (has_fdc) {
 			// Clock the FDC, if connected, using a lazy scale by two
 			if(!fdc_is_sleeping_) {
-				fdc_.run_for(Cycles(time_since_fdc_update_.as_integral()));
+				fdc_.run_for(Cycles(time_since_fdc_update_.get()));
 			}
 			time_since_fdc_update_ = HalfCycles(0);
 		}

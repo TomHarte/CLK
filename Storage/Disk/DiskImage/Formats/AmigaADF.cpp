@@ -137,7 +137,7 @@ std::unique_ptr<Track> AmigaADF::track_at_position(Track::Address address) const
 	const std::vector<uint8_t> track_data = file_.read(512 * 11);
 
 	// Eleven sectors are then encoded.
-	for(size_t s = 0; s < 11; s++) {
+	for(ssize_t s = 0; s < 11; s++) {
 		// Two bytes of 0x00 act as an inter-sector gap.
 		encoder->add_byte(0);
 		encoder->add_byte(0);
@@ -163,7 +163,7 @@ std::unique_ptr<Track> AmigaADF::track_at_position(Track::Address address) const
 
 		// Encode the data.
 		std::array<uint8_t, 512> encoded_data;
-		encode_block(&track_data[s * 512], &track_data[(s + 1) * 512], std::begin(encoded_data));
+		encode_block(track_data.begin() + (s * 512), track_data.begin() + ((s + 1) * 512), std::begin(encoded_data));
 
 		// Write checksums.
 		write_checksum(std::begin(encoded_header), std::end(encoded_header), encoder);

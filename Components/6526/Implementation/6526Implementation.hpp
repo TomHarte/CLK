@@ -183,7 +183,7 @@ uint8_t MOS6526<BusHandlerT, personality>::read(int address) {
 template <typename BusHandlerT, Personality personality>
 void MOS6526<BusHandlerT, personality>::run_for(const HalfCycles half_cycles) {
 	half_divider_ += half_cycles;
-	int sub = half_divider_.divide_cycles().template as<int>();
+	int sub = half_divider_.flush<Cycles>().template as<int>();
 
 	while(sub--) {
 		pending_ <<= 1;
