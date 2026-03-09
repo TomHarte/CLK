@@ -40,11 +40,11 @@ void i8272::run_for(const Cycles cycles) {
 
 	// check for an expired timer
 	if(delay_time_ > 0) {
-		if(cycles.as_integral() >= delay_time_) {
+		if(cycles.get() >= delay_time_) {
 			delay_time_ = 0;
 			posit_event(int(Event8272::Timer));
 		} else {
-			delay_time_ -= cycles.as_integral();
+			delay_time_ -= cycles.get();
 		}
 	}
 
@@ -53,7 +53,7 @@ void i8272::run_for(const Cycles cycles) {
 		int drives_left = drives_seeking_;
 		for(int c = 0; c < 4; c++) {
 			if(drives_[c].phase == Drive::Seeking) {
-				drives_[c].step_rate_counter += cycles.as_integral();
+				drives_[c].step_rate_counter += cycles.get();
 				auto steps = drives_[c].step_rate_counter / (8000 * step_rate_time_);
 				drives_[c].step_rate_counter %= (8000 * step_rate_time_);
 				while(steps--) {
@@ -90,12 +90,12 @@ void i8272::run_for(const Cycles cycles) {
 			int head = c&1;
 
 			if(drives_[drive].head_unload_delay[head] > 0) {
-				if(cycles.as_integral() >= drives_[drive].head_unload_delay[head]) {
+				if(cycles.get() >= drives_[drive].head_unload_delay[head]) {
 					drives_[drive].head_unload_delay[head] = 0;
 					drives_[drive].head_is_loaded[head] = false;
 					head_timers_running_--;
 				} else {
-					drives_[drive].head_unload_delay[head] -= cycles.as_integral();
+					drives_[drive].head_unload_delay[head] -= cycles.get();
 				}
 				timers_left--;
 				if(!timers_left) break;

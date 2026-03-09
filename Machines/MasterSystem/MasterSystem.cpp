@@ -459,7 +459,10 @@ private:
 	}
 
 	inline void update_audio() {
-		speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(audio_divider)));
+		speaker_.run_for(
+			audio_queue_,
+			time_since_sn76489_update_.divide<Cycles>(audio_divider)
+		);
 	}
 
 	void set_mixer_levels(uint8_t mode) {

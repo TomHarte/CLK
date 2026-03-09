@@ -379,7 +379,10 @@ private:
 		cartridge_pages_[1] = &cartridge_[selected_start];
 	}
 	inline void update_audio() {
-		speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(sn76489_divider)));
+		speaker_.run_for(
+			audio_queue_,
+			time_since_sn76489_update_.divide<Cycles>(sn76489_divider)
+		);
 	}
 
 	CPU::Z80::Processor<ConcreteMachine, false, false> z80_;

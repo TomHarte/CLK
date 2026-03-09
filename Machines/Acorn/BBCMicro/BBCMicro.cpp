@@ -172,7 +172,7 @@ public:
 
 private:
 	void post_time() {
-		speaker_.run_for(audio_queue_, time_since_update_.divide(Cycles(2)));
+		speaker_.run_for(audio_queue_, time_since_update_.divide(2));
 	}
 
 	Concurrency::AsyncTaskQueue<false> audio_queue_;
@@ -910,7 +910,7 @@ public:
 		//
 		// 1Mhz devices.
 		//
-		const auto half_cycles = HalfCycles(duration.as_integral());
+		const auto half_cycles = HalfCycles(duration.get());
 		system_via_.run_for(half_cycles);
 		system_via_port_handler_.advance_keyboard_scan(half_cycles);
 		user_via_.run_for(half_cycles);

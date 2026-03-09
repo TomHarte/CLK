@@ -60,7 +60,7 @@ void Video::run_for(HalfCycles duration) {
 	// the number of fetches.
 	while(duration > HalfCycles(0)) {
 		const auto pixel_start = frame_position_ % line_length;
-		const int line = int((frame_position_ / line_length).as_integral());
+		const auto line = (frame_position_ / line_length).as<int>();
 
 		const auto cycles_left_in_line = std::min(line_length - pixel_start, duration);
 
@@ -75,8 +75,8 @@ void Video::run_for(HalfCycles duration) {
 		//
 		//	Then 12 lines of border, 3 of sync, 11 more of border.
 
-		const int first_word = int(pixel_start.as_integral()) >> 4;
-		const int final_word = int((pixel_start + cycles_left_in_line).as_integral()) >> 4;
+		const auto first_word = pixel_start.as<int>() >> 4;
+		const auto final_word = (pixel_start + cycles_left_in_line).as<int>() >> 4;
 
 		if(first_word != final_word) {
 			if(line < 342) {
@@ -155,12 +155,12 @@ void Video::run_for(HalfCycles duration) {
 }
 
 bool Video::vsync() {
-	const auto line = (frame_position_ / line_length).as_integral();
+	const auto line = (frame_position_ / line_length).get();
 	return line >= 353 && line < 356;
 }
 
 HalfCycles Video::next_sequence_point() {
-	const auto line = (frame_position_ / line_length).as_integral();
+	const auto line = (frame_position_ / line_length).get();
 	if(line >= 353 && line < 356) {
 		// Currently in vsync, so get time until start of line 357,
 		// when vsync will end.

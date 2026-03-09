@@ -407,7 +407,7 @@ template <typename T> void MOS6522<T>::evaluate_port_b_output() {
 
 /*! Runs for a specified number of half cycles. */
 template <typename T> void MOS6522<T>::run_for(const HalfCycles half_cycles) {
-	auto number_of_half_cycles = half_cycles.as_integral();
+	auto number_of_half_cycles = half_cycles.get();
 	if(!number_of_half_cycles) return;
 
 	if(is_phase2_) {
@@ -436,7 +436,7 @@ template <typename T> void MOS6522<T>::flush() {
 
 /*! Runs for a specified number of cycles. */
 template <typename T> void MOS6522<T>::run_for(const Cycles cycles) {
-	auto number_of_cycles = cycles.as_integral();
+	auto number_of_cycles = cycles.get();
 	while(number_of_cycles--) {
 		do_phase1();
 		do_phase2();

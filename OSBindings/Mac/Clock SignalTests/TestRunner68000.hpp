@@ -119,7 +119,7 @@ public:
 	}
 
 	int get_cycle_count() {
-		return int(duration_.as_integral()) >> 1;
+		return duration_.as<int>() >> 1;
 	}
 
 	void reset_cycle_count() {

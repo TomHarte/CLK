@@ -22,7 +22,7 @@ template <bool include_clock>
 void Line<include_clock>::advance_writer(HalfCycles cycles) {
 	if(cycles == HalfCycles(0)) return;
 
-	const auto integral_cycles = cycles.as_integral();
+	const auto integral_cycles = cycles.get();
 	remaining_delays_ = std::max(remaining_delays_ - integral_cycles, Cycles::IntType(0));
 	if(events_.empty()) {
 		write_cycles_since_delegate_call_ += integral_cycles;
@@ -89,13 +89,13 @@ template <bool lsb_first, typename IntT> void Line<include_clock>::write_interna
 	int count,
 	IntT levels
 ) {
-	remaining_delays_ += count * cycles.as_integral();
+	remaining_delays_ += count * cycles.get();
 
 	auto event = events_.size();
 	events_.resize(events_.size() + size_t(count)*2);
 	while(count--) {
 		events_[event].type = Event::Delay;
-		events_[event].delay = int(cycles.as_integral());
+		events_[event].delay = cycles.as<int>();
 		IntT bit;
 		if constexpr (lsb_first) {
 			bit = levels & 1;
@@ -166,7 +166,7 @@ void Line<include_clock>::update_delegate(const bool level) {
 		}
 
 		// Forward as many bits as occur.
-		Storage::Time time_left(cycles_to_forward, int(clock_rate_.as_integral()));
+		Storage::Time time_left(cycles_to_forward, clock_rate_.as<int>());
 		const int bit = level ? 1 : 0;
 		while(time_left >= time_left_in_bit_) {
 			if(!read_delegate_->serial_line_did_produce_bit(this, bit)) {
@@ -186,7 +186,7 @@ void Line<include_clock>::update_delegate(const bool level) {
 template <bool include_clock>
 Cycles::IntType Line<include_clock>::minimum_write_cycles_for_read_delegate_bit() {
 	if(!read_delegate_) return 0;
-	return 1 + (read_delegate_bit_length_ * unsigned(clock_rate_.as_integral())).template get<int>();
+	return 1 + (read_delegate_bit_length_ * clock_rate_.as<unsigned int>()).template get<int>();
 }
 
 //

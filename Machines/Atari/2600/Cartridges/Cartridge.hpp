@@ -50,7 +50,7 @@ public:
 		Adjusts @c confidence_counter according to the results of the most recent run_for.
 	*/
 	void apply_confidence(Analyser::Dynamic::ConfidenceCounter &confidence_counter) override {
-		if(cycle_count_.as_integral() < 200) return;
+		if(cycle_count_.get() < 200) return;
 		if(horizontal_counter_resets_ > 10)
 			confidence_counter.add_miss();
 	}

@@ -113,7 +113,7 @@ public:
 	}
 
 	inline void run_for(const Cycles cycles) {
-		unsigned int number_of_cycles = unsigned(cycles.as_integral());
+		auto number_of_cycles = cycles.as<unsigned int>();
 
 		// permit counting _to_ zero; counting _through_ zero initiates the other behaviour
 		if(timer_.value >= number_of_cycles) {

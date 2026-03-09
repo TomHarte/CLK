@@ -468,7 +468,7 @@ private:
 		// Don't even count time for the keyboard unless it has requested it.
 		if(keyboard_needs_clock_) {
 			cycles_since_ikbd_update_ += length;
-			ikbd_.run_for(cycles_since_ikbd_update_.divide(HalfCycles(512)));
+			ikbd_.run_for(cycles_since_ikbd_update_.divide(512));
 		}
 
 		// Flush anything that needs real-time updating.
@@ -498,7 +498,7 @@ private:
 	}
 
 	void update_audio() {
-		speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide_cycles(Cycles(4)));
+		speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide<Cycles>(4));
 	}
 
 	CPU::MC68000::Processor<ConcreteMachine, true, true> mc68000_;

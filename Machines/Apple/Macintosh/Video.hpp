@@ -70,8 +70,8 @@ public:
 	*/
 	bool is_outputting(HalfCycles offset = HalfCycles(0)) {
 		const auto offset_position = frame_position_ + offset % frame_length;
-		const int column = int((offset_position % line_length).as_integral()) >> 4;
-		const int line = int((offset_position / line_length).as_integral());
+		const auto column = (offset_position % line_length).as<int>() >> 4;
+		const auto line = (offset_position / line_length).as<int>();
 		return line < 342 && column < 32;
 	}
 

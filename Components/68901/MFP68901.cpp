@@ -203,7 +203,7 @@ void MFP68901::run_timer_for(const int cycles) {
 void MFP68901::run_for(const HalfCycles time) {
 	cycles_left_ += time;
 
-	const int cycles = int(cycles_left_.flush<Cycles>().as_integral());
+	const auto cycles = cycles_left_.flush<Cycles>().as<int>();
 	if(!cycles) return;
 
 	run_timer_for<0>(cycles);
