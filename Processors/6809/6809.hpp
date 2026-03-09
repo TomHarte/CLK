@@ -17,6 +17,8 @@
 #include "Processors/Bus/PartialAddresses.hpp"
 #include "Processors/Bus/Data.hpp"
 
+#include <type_traits>
+
 namespace CPU::M6809 {
 
 // MARK: - Processor bus signalling.
@@ -35,7 +37,6 @@ enum class ReadWrite {
 	Write,
 	WriteLast	// Write with LIC high.,
 };
-
 constexpr bool is_read(const ReadWrite read_write) {
 	return read_write < ReadWrite::Write;
 }
@@ -45,6 +46,16 @@ constexpr Bus::Data::AccessType access_type(const ReadWrite read_write) {
 	} else {
 		return Bus::Data::AccessType::Write;
 	}
+}
+
+enum class BusPhase {
+	PreMRDY,
+	MRDY,
+	PostMRDY,
+	NonAccess,
+};
+constexpr bool is_terminal(const BusPhase phase) {
+	return phase >= BusPhase::PostMRDY;
 }
 
 enum class Line {
@@ -83,17 +94,38 @@ using data_t = Bus::Data::data_t<uint8_t, access_type(read_write)>;
 // MARK: - Code-generation choices.
 
 enum class PausePrecision {
+	/// The 6809 will potentially exit only at the start of each distinct instruction.
 	BetweenInstructions,
-	AnyCycle,
+	/// The 6809 will potentially exit before beginning any bus access.
+	BetweenAccesses,
+	/// The 6809 will potentially exit before beginning any call to the bus handler; if MRDY is in use then this is more granular than
+	/// between accesses — the processor may end its current run during an MRDY pause.
+	BetweenBusActions,
 };
 
 // MARK: - Processor implementation.
 
 template <typename Traits>
 struct Processor {
+	// Time getter.
+	using Timescale = std::conditional_t<Traits::uses_mrdy, QuarterCycles, Cycles>;
+	static constexpr Timescale duration([[maybe_unused]] const BusPhase phase) {
+		if constexpr (std::is_same_v<Timescale, Cycles>) {
+			return Cycles(1);
+		} else {
+			switch(phase) {
+				case BusPhase::PreMRDY:		return QuarterCycles(3);
+				case BusPhase::MRDY:		return QuarterCycles(1);
+				case BusPhase::PostMRDY:	return QuarterCycles(1);
+				case BusPhase::NonAccess:	return QuarterCycles(4);
+				default: __builtin_unreachable();
+			}
+		}
+	}
+
 	Processor(Traits::BusHandlerT &bus_handler) noexcept : bus_handler_(bus_handler) {}
 
-	void run_for(const Cycles cycles) {
+	void run_for(const Timescale duration) {
 		static constexpr auto FirstCounter = __COUNTER__;
 		#define restore_point()	(__COUNTER__ - FirstCounter + int(ResumePoint::Max) + int(AddressingMode::Max))
 
@@ -101,35 +133,35 @@ struct Processor {
 		#define attach(a, b)		join(a, b)
 		#define access_label()		attach(repeat, __LINE__)
 
-		#define access(read_write, bus_state, addr, value, ...)	{									\
-			static constexpr int location = restore_point();										\
-			[[fallthrough]]; case location:															\
-			[[maybe_unused]] access_label():														\
-																									\
-			if constexpr (Traits::pause_precision >= PausePrecision::AnyCycle) {					\
-				if(cycles_ <= Cycles(0)) {															\
-					resume_point_ = location;														\
-					return;																			\
-				}																					\
-			}																						\
-																									\
-			if constexpr (is_read(read_write)) {																	\
+		#define access(read_write, bus_state, addr, value, ...)	{											\
+			static constexpr int location = restore_point();												\
+			[[fallthrough]]; case location:																	\
+			[[maybe_unused]] access_label():																\
+																											\
+			if constexpr (Traits::pause_precision >= PausePrecision::BetweenAccesses) {						\
+				if(time_ <= 0) {																			\
+					resume_point_ = location;																\
+					return;																					\
+				}																							\
+			}																								\
+																											\
+			if constexpr (is_read(read_write)) {															\
 				if constexpr (std::is_same_v<decltype(value), Data::Writeable>) {							\
-					cycles_ -= bus_handler_.template perform<read_write, bus_state>(addr, value);			\
+					time_ -= bus_handler_.template perform<read_write, bus_state>(addr, value);			\
 				} else {																					\
 					Data::Writeable target;																	\
-					cycles_ -= bus_handler_.template perform<read_write, bus_state>(addr, target);			\
-					value = target;													\
+					time_ -= bus_handler_.template perform<read_write, bus_state>(addr, target);			\
+					value = target;																			\
 				}																							\
 			} else {																						\
-				cycles_ -= bus_handler_.template perform<read_write, bus_state>(addr, value);				\
+				time_ -= bus_handler_.template perform<read_write, bus_state>(addr, value);				\
 			}																								\
-			__VA_ARGS__;																			\
+			__VA_ARGS__;																					\
 		}
 
 		#define access_program(name)	int(ResumePoint::Max) + int(AddressingMode::name)
 
-		cycles_ += cycles;
+		time_ += duration;
 
 		using Literal = Address::Literal;
 		using Operation = InstructionSet::M6809::Operation;
@@ -148,7 +180,7 @@ struct Processor {
 
 //			fetch_decode:
 			case ResumePoint::FetchDecode:
-				if(cycles_ <= Cycles(0)) {
+				if(time_ <= 0) {
 					resume_point_ = ResumePoint::FetchDecode;
 					return;
 				}
@@ -199,7 +231,7 @@ struct Processor {
 
 private:
 	Traits::BusHandlerT &bus_handler_;
-	Cycles cycles_;
+	Timescale time_;
 
 	enum ResumePoint {
 		FetchDecode,

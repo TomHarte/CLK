@@ -41,6 +41,7 @@ struct ConcreteMachine:
 
 private:
 	struct M6809Traits {
+		static constexpr bool uses_mrdy = false;
 		static constexpr auto pause_precision = CPU::M6809::PausePrecision::BetweenInstructions;
 		using BusHandlerT = ConcreteMachine;
 	};
