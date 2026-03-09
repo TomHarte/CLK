@@ -875,7 +875,11 @@ private:
 
 	HalfCycles time_since_audio_update_;
 	void update_audio() {
-		speaker_.run_for(audio_queue_, time_since_audio_update_.divide(HalfCycles(4)).template reduce<Cycles>());
+		const auto cycles = time_since_audio_update_.divide<Cycles>(2);
+		speaker_.run_for(
+			audio_queue_,
+			cycles
+		);
 	}
 
 	// MARK: - Video.

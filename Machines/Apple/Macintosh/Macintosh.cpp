@@ -565,7 +565,7 @@ private:
 		// Possibly route vsync.
 		if(time_since_video_update_ < time_until_video_event_) {
 			via_clock_ += duration;
-			via_.run_for(via_clock_.divide(HalfCycles(10)));
+			via_.run_for(via_clock_.divide<HalfCycles>(10));
 		} else {
 			auto via_time_base = time_since_video_update_ - duration;
 			auto via_cycles_outstanding = duration;
@@ -575,7 +575,7 @@ private:
 				via_cycles_outstanding -= via_cycles;
 
 				via_clock_ += via_cycles;
-				via_.run_for(via_clock_.divide(HalfCycles(10)));
+				via_.run_for(via_clock_.divide<HalfCycles>(10));
 
 				video_.run_for(time_until_video_event_);
 				time_since_video_update_ -= time_until_video_event_;
@@ -585,14 +585,14 @@ private:
 			}
 
 			via_clock_ += via_cycles_outstanding;
-			via_.run_for(via_clock_.divide(HalfCycles(10)));
+			via_.run_for(via_clock_.divide<HalfCycles>(10));
 		}
 
 		// The keyboard also has a clock, albeit a very slow one — 100,000 cycles/second.
 		// Its clock and data lines are connected to the VIA.
 		keyboard_clock_ += duration;
 		if(keyboard_clock_ >= KEYBOARD_CLOCK_RATE) {
-			const auto keyboard_ticks = keyboard_clock_.divide(KEYBOARD_CLOCK_RATE);
+			const auto keyboard_ticks = keyboard_clock_.divide<HalfCycles>(KEYBOARD_CLOCK_RATE);
 			keyboard_.run_for(keyboard_ticks);
 			via_.template set_control_line_input<MOS::MOS6522::Port::B, MOS::MOS6522::Line::Two>(keyboard_.get_data());
 			via_.template set_control_line_input<MOS::MOS6522::Port::B, MOS::MOS6522::Line::One>(keyboard_.get_clock());
@@ -601,7 +601,7 @@ private:
 		// Feed mouse inputs within at most 1250 cycles of each other.
 		if(mouse_.has_steps()) {
 			time_since_mouse_update_ += duration;
-			const auto mouse_ticks = time_since_mouse_update_.divide(HalfCycles(2500));
+			const auto mouse_ticks = time_since_mouse_update_.divide<HalfCycles>(2500);
 			if(mouse_ticks > HalfCycles(0)) {
 				mouse_.prepare_step();
 				scc_.set_dcd(0, mouse_.get_channel(1) & 1);
@@ -614,7 +614,7 @@ private:
 
 		// Consider updating the real-time clock.
 		real_time_clock_ += duration;
-		auto ticks = real_time_clock_.divide(HalfCycles(CLOCK_RATE << 1)).template reduce<Cycles>().get();
+		auto ticks = real_time_clock_.divide<Cycles>(HalfCycles(CLOCK_RATE)).get();
 		while(ticks--) {
 			clock_.update();
 			// TODO: leave a delay between toggling the input rather than using this coupled hack.

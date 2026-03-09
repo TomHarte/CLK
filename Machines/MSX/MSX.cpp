@@ -850,7 +850,7 @@ private:
 	void update_audio() {
 		speaker_.speaker.run_for(
 			speaker_.audio_queue,
-			time_since_ay_update_.divide(HalfCycles(4)).template reduce<Cycles>()
+			time_since_ay_update_.divide<Cycles>(HalfCycles(2))
 		);
 	}
 

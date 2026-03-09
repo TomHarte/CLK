@@ -873,7 +873,7 @@ public:
 
 		// Propagate time far and wide.
 		cycles_since_clock_tick_ += duration;
-		auto ticks = cycles_since_clock_tick_.divide(Cycles(CLOCK_RATE)).get();
+		auto ticks = cycles_since_clock_tick_.divide<Cycles>(CLOCK_RATE).get();
 		while(ticks--) {
 			clock_.update();
 			video_.last_valid()->notify_clock_tick();	// The video controller marshalls the one-second interrupt.
@@ -972,7 +972,7 @@ private:
 	Cycles cycles_until_audio_event_;
 	static constexpr int audio_divider = 16;
 	void update_audio() {
-		const auto divided_cycles = cycles_since_audio_update_.divide(Cycles(audio_divider));
+		const auto divided_cycles = cycles_since_audio_update_.divide<Cycles>(audio_divider);
 		sound_glu_.run_for(divided_cycles);
 		speaker_.run_for(audio_queue_, divided_cycles);
 	}

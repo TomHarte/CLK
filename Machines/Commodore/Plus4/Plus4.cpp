@@ -269,7 +269,7 @@ public:
 
 			if(c1541_) {
 				c1541_cycles_ += length * Cycles(1'000'000);
-				c1541_->run_for(c1541_cycles_.divide(media_divider_));
+				c1541_->run_for(c1541_cycles_.divide<Cycles>(media_divider_));
 			}
 
 			time_since_audio_update_ += length;
@@ -699,7 +699,7 @@ private:
 
 	void advance_timers_and_tape(const Cycles length) {
 		timers_subcycles_ += length;
-		const auto timers_cycles = timers_subcycles_.divide(video_.timer_cycle_length());
+		const auto timers_cycles = timers_subcycles_.divide<Cycles>(video_.timer_cycle_length());
 		timers_.tick(timers_cycles.as<int>());
 
 		tape_handler_.run_for(length);

@@ -843,7 +843,7 @@ private:
 	inline void update_audio() {
 		speaker_.run_for(
 			audio_queue_,
-			time_since_audio_update_.divide(HalfCycles(dave_divider << 1)).template reduce<Cycles>()
+			time_since_audio_update_.divide<Cycles>(HalfCycles(dave_divider))
 		);
 	}
 

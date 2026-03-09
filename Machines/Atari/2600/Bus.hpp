@@ -49,7 +49,7 @@ protected:
 	// speaker backlog accumlation counter
 	Cycles cycles_since_speaker_update_;
 	inline void update_audio() {
-		speaker_.run_for(audio_queue_, cycles_since_speaker_update_.divide(Cycles(CPUTicksPerAudioTick * 3)));
+		speaker_.run_for(audio_queue_, cycles_since_speaker_update_.divide<Cycles>(CPUTicksPerAudioTick * 3));
 	}
 
 	// video backlog accumulation counter

@@ -52,7 +52,7 @@ void Executor::run_for(const Cycles cycles) {
 	// The incoming clock is divided by four; the local cycles_ count
 	// ensures that fractional parts are kept track of.
 	cycles_ += cycles;
-	CachingExecutor::run_for(cycles_.divide(Cycles(4)).as<int>());
+	CachingExecutor::run_for(cycles_.divide<Cycles>(Cycles(4)).as<int>());
 }
 
 void Executor::reset() {

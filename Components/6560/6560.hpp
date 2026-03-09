@@ -475,7 +475,7 @@ private:
 
 	Cycles cycles_since_speaker_update_;
 	void update_audio() {
-		speaker_.run_for(audio_queue_, Cycles(cycles_since_speaker_update_.divide(Cycles(4))));
+		speaker_.run_for(audio_queue_, Cycles(cycles_since_speaker_update_.divide<Cycles>(Cycles(4))));
 	}
 
 	// register state

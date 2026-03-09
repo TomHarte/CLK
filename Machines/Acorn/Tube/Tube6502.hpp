@@ -32,7 +32,7 @@ public:
 	// Multiply by 3/2 to turn that into the tube 6502's usual 3Mhz bus.
 	void run_for(const Cycles cycles) {
 		cycles_modulo_ += cycles * 3;
-		m6502_.run_for(cycles_modulo_.divide(Cycles(2)));
+		m6502_.run_for(cycles_modulo_.divide<Cycles>(2));
 	}
 
 	template <CPU::MOS6502Mk2::BusOperation operation, typename AddressT>

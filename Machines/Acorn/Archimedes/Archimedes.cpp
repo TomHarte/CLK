@@ -399,7 +399,7 @@ private:
 		static constexpr int TickFrequency = ClockRate / 50;	// i.e. 480,000
 		Cycles subtractor = cursor_action_subcycle_;
 		cursor_action_subcycle_ += cycles;
-		auto segments = cursor_action_subcycle_.divide(Cycles(TickFrequency)).as<int>();
+		auto segments = cursor_action_subcycle_.divide<Cycles>(TickFrequency).as<int>();
 		while(segments--) {
 			//
 			// Run up until end of next window.

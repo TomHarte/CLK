@@ -172,7 +172,7 @@ public:
 
 private:
 	void post_time() {
-		speaker_.run_for(audio_queue_, time_since_update_.divide(Cycles(2)));
+		speaker_.run_for(audio_queue_, time_since_update_.divide<Cycles>(2));
 	}
 
 	Concurrency::AsyncTaskQueue<false> audio_queue_;

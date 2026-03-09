@@ -123,16 +123,27 @@ public:
 	// classes that use this template.
 
 	/*!
-		Caculates `*this / divisor`, converting that to `DestinationClocks`.
-		Sets `*this = *this % divisor`.
+		Performs the net division necessary to: (i) convert from Clocks to DestinationClocks; and (ii) further to divide by divider.
+		Returns the number of DestinationClocks. Keeps here any remainder after subtracting the returned amount.
+
+		So e.g. `HalfCycles.divide<Cycles>(n)` with n = 1 will return a conversion from HalfCycles to Cycles for the same duration.
+		Wth n = 2 will return a length in Cycles that is half the duration. Etc.
 	*/
 	template <typename DestinationClocks = Clocks>
-	requires (DestinationClocks::Denominator >= Denominator)
-	DestinationClocks divide(const Clocks divisor) {
-		Clocks result;
-		result.length_ = length_ / divisor.length_;
-		length_ %= divisor.length_;
-		return result.reduce<DestinationClocks>();
+	requires (DestinationClocks::Denominator <= Denominator)
+	DestinationClocks divide(const Clocks divider) {
+		// Apply the clock division.
+		const auto native_period = length_ / divider.length_;
+		length_ %= divider.length_;
+
+		// Also accumualte some potential wastage if there's a type conversion.
+		static constexpr auto Shift = Denominator - DestinationClocks::Denominator;
+		if constexpr (Shift != 0) {
+			const auto further_residue = length_ & ((1 << Shift) - 1);
+			length_ += further_residue;
+		}
+
+		return DestinationClocks(native_period >> Shift);
 	}
 
 	/*!

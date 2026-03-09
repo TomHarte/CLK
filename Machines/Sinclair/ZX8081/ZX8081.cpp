@@ -486,7 +486,7 @@ private:
 		return GI::AY38910::Utility::read(ay_);
 	}
 	inline void update_audio() {
-		speaker_.run_for(audio_queue_, time_since_ay_update_.divide(HalfCycles(4)).template reduce<Cycles>());
+		speaker_.run_for(audio_queue_, time_since_ay_update_.divide<Cycles>(HalfCycles(2)));
 	}
 };
 

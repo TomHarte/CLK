@@ -276,7 +276,7 @@ void TimedInterruptSource::update_channel(const int c, const bool is_linked, con
 void TimedInterruptSource::run_for(const Cycles duration) {
 	// Determine total number of ticks.
 	run_length_ += duration;
-	const Cycles cycles = run_length_.divide(global_divider_);
+	const Cycles cycles = run_length_.divide<Cycles>(global_divider_);
 	if(cycles == Cycles(0)) {
 		return;
 	}

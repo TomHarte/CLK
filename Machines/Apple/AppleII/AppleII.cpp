@@ -154,7 +154,7 @@ private:
 	}
 	static constexpr int audio_divider = has_mockingboard ? 1 : 8;
 	void update_audio() {
-		speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(audio_divider)));
+		speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide<Cycles>(audio_divider));
 	}
 	void update_just_in_time_cards() {
 		if(cycles_since_card_update_ > Cycles(0)) {
