@@ -25,6 +25,32 @@ enum ConditionCode: uint8_t {
 };
 
 struct ConditionCodeRegister {
+	template <ConditionCode code>
+	bool condition() const {
+		switch(code) {
+			case ConditionCode::Negative:	return sign_ & 0x80;
+			case ConditionCode::Zero:		return !zero_;
+			case ConditionCode::Overflow:	return overflow_;
+		}
+	}
+
+	void set_nz(const uint8_t value) {
+		sign_ = zero_ = value;
+	}
+
+	template <ConditionCode code>
+	void set(const bool value) {
+		switch(code) {
+			case ConditionCode::Negative:	sign_ = value ? 0xff : 0x00;	break;
+			case ConditionCode::Zero:		zero_ = value ? 0x00 : 0xff;	break;
+			case ConditionCode::Overflow:	overflow_ = value;				break;
+		}
+	}
+
+private:
+	uint8_t sign_;
+	uint8_t zero_;
+	bool overflow_;
 };
 
 enum R8 {

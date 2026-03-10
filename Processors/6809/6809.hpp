@@ -290,6 +290,10 @@ struct Processor {
 					goto fetch_decode_page1;
 				}
 
+			case access_program(Inherent):
+				perform();
+				goto fetch_decode;
+
 			case access_program(Immediate8):
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
 				perform();

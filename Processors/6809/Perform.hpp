@@ -16,13 +16,15 @@ namespace CPU::M6809 {
 template <R8 r>
 inline void ld(Registers &registers, const uint8_t operand) {
 	registers.reg<r>() = operand;
-	// TODO: V = 0; NZ = as per value.
+	registers.cc.set_nz(operand);
+	registers.cc.set<ConditionCode::Overflow>(false);
 }
 
 template <R16 r>
 inline void ld(Registers &registers, const uint16_t operand) {
 	registers.reg<r>() = operand;
-	// TODO: V = 0; NZ = as per value.
+	registers.cc.set_nz(operand >> 8);
+	registers.cc.set<ConditionCode::Overflow>(false);
 }
 
 inline void perform(const InstructionSet::M6809::Operation operation, Registers &registers, const uint16_t operand) {

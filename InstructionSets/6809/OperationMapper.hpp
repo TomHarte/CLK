@@ -66,6 +66,50 @@ enum class Operation {
 	SWI3,	CMPU,	CMPS,
 };
 
+template <Operation operation>
+constexpr bool is_16bit() {
+	switch(operation) {
+		using enum Operation;
+
+		case SUBB:	case CMPB:	case SBCB:
+		case ANDB:	case BITB:	case LDB:	case STB:
+		case EORB:	case ADCB:	case ORB:	case ADDB:
+		case SUBA:	case CMPA:	case SBCA:	case SUBD:
+		case ANDA:	case BITA:	case LDA:	case STA:
+		case EORA:	case ADCA:	case ORA:	case ADDA:
+		case BSR:
+		case PSHS:	case PULS:	case PSHU:	case PULU:
+		case RTS:	case ABX:	case RTI:
+		case CWAI:	case RESET:	case SWI:
+		case BRA:	case BRN:	case BHI:	case BLS:
+		case BCC:	case BCS:	case BNE:	case BEQ:
+		case BVC:	case BVS:	case BPL:	case BMI:
+		case BGE:	case BLT:	case BGT:	case BLE:
+		case Page1:	case Page2:	case NOP:	case SYNC:
+		case DAA:	case ORCC:	case ANDCC:	case SEX:
+		case EXG:	case TFR:
+		case SWI2:	case SWI3:
+			return false;
+
+		case ADDD:
+		case LDD:	case STD:	case LDU:	case STU:
+		case CMPX:	case JSR:	case LDX:	case STX:
+		case LEAX:	case LEAY:	case LEAS:	case LEAU:
+		case MUL:
+		case LBRN:	case LBHI:	case LBLS:	case LBCC:
+		case LBCS:	case LBNE:	case LBEQ:
+		case LBVC:	case LBVS:	case LBPL:	case LBMI:
+		case LBGE:	case LBLT:	case LBGT:	case LBLE:
+		case LBRA:	case LBSR:
+		case CMPD:	case CMPY:	case LDY:	case STY:
+		case LDS:	case STS:
+		case CMPU:	case CMPS:
+			return true;
+
+		default: return false;
+	}
+}
+
 enum class Page {
 	Page0, Page1, Page2,
 };
@@ -90,7 +134,14 @@ constexpr AddressingMode mode() {
 	constexpr AddressingMode modes[] = {
 		AM::Immediate8, AM::Direct, AM::Indexed, AM::Extended
 	};
-	return modes[(opcode >> 4) & 3];	// TODO: map Immediate8 to Immediate16 depending on operation.
+	constexpr auto prima_facie_mode = modes[(opcode >> 4) & 3];
+	constexpr bool is_16 = is_16bit<operation>();
+
+	if constexpr (prima_facie_mode != AM::Immediate8 || !is_16) {
+		return prima_facie_mode;
+	} else {
+		return AM::Immediate16;
+	}
 };
 
 template <>
