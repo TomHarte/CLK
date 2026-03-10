@@ -65,7 +65,7 @@ struct Media {
 	necessary instructions on how to launch any software provided, plus a measure of confidence in this target's correctness.
 */
 struct Target {
-	Target(Machine machine) : machine(machine) {}
+	Target(const Machine machine) : machine(machine) {}
 	virtual ~Target() = default;
 
 	// This field is entirely optional.

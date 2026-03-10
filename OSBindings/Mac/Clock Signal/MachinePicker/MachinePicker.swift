@@ -516,6 +516,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 
 				return CSStaticAnalyser(spectrumModel: model)
 
+			case "thomsonmo":
+				return CSStaticAnalyser(thomsonMO: 1)
+
 			case "vic20":
 				let memorySize = Kilobytes(vic20MemorySizeButton.selectedTag())
 				let hasC1540 = vic20HasC1540Button.state == .on

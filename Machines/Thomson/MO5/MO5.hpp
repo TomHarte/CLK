@@ -20,7 +20,7 @@ namespace Thomson::MO5 {
 struct Machine {
 	virtual ~Machine() = default;
 
-	static std::unique_ptr<Machine> MO5(
+	static std::unique_ptr<Machine> ThomsonMO(
 		const Analyser::Static::Target *,
 		const ROMMachine::ROMFetcher &
 	);

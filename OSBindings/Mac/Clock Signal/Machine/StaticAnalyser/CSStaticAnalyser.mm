@@ -546,6 +546,18 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
+- (instancetype)initWithThomsonMO:(int)unused {
+	(void)unused;
+
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::Target;
+		auto target = std::make_unique<Target>(Analyser::Machine::ThomsonMO);
+		_targets.push_back(std::move(target));
+	}
+	return self;
+}
+
 - (instancetype)initWithVic20Region:(CSMachineVic20Region)region
 	memorySize:(Kilobytes)memorySize
 	hasC1540:(BOOL)hasC1540

@@ -17,6 +17,7 @@ namespace {
 
 struct ConcreteMachine:
 	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
 	public Machine
 {
 	ConcreteMachine(const Analyser::Static::Target &, const ROMMachine::ROMFetcher &) :
@@ -37,7 +38,7 @@ struct ConcreteMachine:
 		[[maybe_unused]] const AddressT address,
 		[[maybe_unused]] CPU::M6809::data_t<read_write> value
 	) {
-		return Cycles(1);
+		return Cycles(0);
 	}
 
 private:
@@ -47,14 +48,22 @@ private:
 		using BusHandlerT = ConcreteMachine;
 	};
 	CPU::M6809::Processor<M6809Traits> m6809_;
+
+	// MARK: - ScanProducer.
+
+	void set_scan_target(Outputs::Display::ScanTarget *) final {
+	}
+
+	Outputs::Display::ScanStatus get_scan_status() const final {
+		return Outputs::Display::ScanStatus();
+	}
 };
 
 }
 
-std::unique_ptr<Machine> Machine::MO5(
+std::unique_ptr<Machine> Machine::ThomsonMO(
 	const Analyser::Static::Target *target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	return std::make_unique<ConcreteMachine>(*target, rom_fetcher);
 }
-
