@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <utility>
+
 // Cf. https://techheap.packetizer.com/processors/6809/6809Instructions.html
 //
 // Subject to corrections:
