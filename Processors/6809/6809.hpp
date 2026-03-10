@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "Perform.hpp"
 #include "Registers.hpp"
 #include "ClockReceiver/ClockReceiver.hpp"
 
@@ -217,6 +218,10 @@ struct Processor {
 		InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page1> op_mapper1;
 		InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page2> op_mapper2;
 
+		const auto perform = [&]() {
+			CPU::M6809::perform(operation_, registers_, operand_.full);
+		};
+
 		uint8_t opcode = 0;
 		while(true) switch(resume_point_) {
 			default:
@@ -284,6 +289,17 @@ struct Processor {
 				} else {
 					goto fetch_decode_page1;
 				}
+
+			case access_program(Immediate8):
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				perform();
+				goto fetch_decode;
+
+			case access_program(Immediate16):
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				perform();
+				goto fetch_decode;
 		}
 
 
@@ -312,7 +328,6 @@ private:
 	int resume_point_ = ResumePoint::FetchDecode;
 	InstructionSet::M6809::Operation operation_;
 	Registers registers_;
-	Data::Writeable target_;
 
 	enum Exceptions: uint8_t {
 		Reset			= 1 << 0,
@@ -320,6 +335,10 @@ private:
 		NMI				= 1 << 2,
 	};
 	uint8_t exceptions_ = Exceptions::PowerOnReset;
+
+	// Transient storage.
+	Data::Writeable target_;
+	RegisterPair16 operand_;
 };
 
 }

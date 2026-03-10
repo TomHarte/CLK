@@ -27,15 +27,47 @@ enum ConditionCode: uint8_t {
 struct ConditionCodeRegister {
 };
 
+enum R8 {
+	A,
+	B,
+};
+enum R16 {
+	D,
+	X,
+	Y,
+	S,
+	U,
+};
+
 struct Registers {
 	uint16_t x;
 	uint16_t y;
 	uint16_t u;
 	uint16_t s;
 	RegisterPair16 pc;
-	uint8_t a;
-	uint8_t b;
+	RegisterPair16 d;
 	uint8_t dp;
+
+	template <R8 r>
+	uint8_t &reg() {
+		switch(r) {
+			case R8::A:	return d.halves.high;
+			case R8::B:	return d.halves.low;
+			default:	__builtin_unreachable();
+		}
+	}
+
+	template <R16 r>
+	uint16_t &reg() {
+		switch(r) {
+			case R16::D:	return d.full;
+			case R16::X:	return x;
+			case R16::Y:	return y;
+			case R16::S:	return s;
+			case R16::U:	return u;
+			default:	__builtin_unreachable();
+		}
+	}
 
 	ConditionCodeRegister cc;
 };

@@ -1662,6 +1662,7 @@
 		4B4DEC16252BFA9C004583AC /* 6502Selector.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6502Selector.hpp; sourceTree = "<group>"; };
 		4B4DEC18252BFA9C004583AC /* 6502Esque.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6502Esque.hpp; sourceTree = "<group>"; };
 		4B4DEC19252BFB5A004583AC /* LazyFlags.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LazyFlags.hpp; sourceTree = "<group>"; };
+		4B4F037B2F60BEA1008F2735 /* Perform.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Perform.hpp; sourceTree = "<group>"; };
 		4B4F2B7024DF99D4000DA6B0 /* CSScanTarget+CppScanTarget.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CSScanTarget+CppScanTarget.h"; sourceTree = "<group>"; };
 		4B4F475E2533EA64004245B8 /* suite-a.prg */ = {isa = PBXFileReference; lastKnownFileType = file; path = "suite-a.prg"; sourceTree = "<group>"; };
 		4B4F477B253530B7004245B8 /* Jeek816Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Jeek816Tests.swift; sourceTree = "<group>"; };
@@ -4471,6 +4472,7 @@
 			isa = PBXGroup;
 			children = (
 				4BA501602F4F7DEE0013416F /* 6809.hpp */,
+				4B4F037B2F60BEA1008F2735 /* Perform.hpp */,
 				4BA5015E2F4F7CA50013416F /* Registers.hpp */,
 			);
 			path = 6809;
