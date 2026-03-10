@@ -21,17 +21,21 @@ struct NoValue {
 };
 
 /// A value that can be written only, not read. With a DEBUG build test that it is written before it is read.
-template <std::unsigned_integral DataT>
+template <std::unsigned_integral DataT, bool VerifyWrites>
 class Writeable {
 public:
 	DataT operator=(const DataT value) {
-		#ifndef NDEBUG
-		did_write_ = true;
-		#endif
+		if constexpr (VerifyWrites) {
+			#ifndef NDEBUG
+			did_write_ = true;
+			#endif
+		}
 		return result_ = value;
 	}
 	operator DataT() const {
-		assert(did_write_);
+		if constexpr (VerifyWrites) {
+			assert(did_write_);
+		}
 		return result_;
 	}
 
@@ -49,19 +53,19 @@ enum class AccessType {
 	NoData
 };
 
-template <std::unsigned_integral DataT, AccessType> struct Value;
+template <std::unsigned_integral DataT, bool VerifyWrites, AccessType> struct Value;
 
-template <std::unsigned_integral DataT> struct Value<DataT, AccessType::Read> {
-	using type = Writeable<DataT> &;
+template <std::unsigned_integral DataT, bool VerifyWrites> struct Value<DataT, VerifyWrites, AccessType::Read> {
+	using type = Writeable<DataT, VerifyWrites> &;
 };
-template <std::unsigned_integral DataT> struct Value<DataT, AccessType::Write> {
+template <std::unsigned_integral DataT, bool VerifyWrites> struct Value<DataT, VerifyWrites, AccessType::Write> {
 	using type = const DataT;
 };
-template <std::unsigned_integral DataT> struct Value<DataT, AccessType::NoData> {
+template <std::unsigned_integral DataT, bool VerifyWrites> struct Value<DataT, VerifyWrites, AccessType::NoData> {
 	using type = const NoValue<DataT>;
 };
 
-template <std::unsigned_integral DataT, AccessType operation>
-using data_t = typename Data::Value<DataT, operation>::type;
+template <std::unsigned_integral DataT, bool VerifyWrites, AccessType operation>
+using data_t = typename Data::Value<DataT, VerifyWrites, operation>::type;
 
 }	// namespace Bus::Data

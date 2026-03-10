@@ -40,7 +40,7 @@ struct ConcreteMachine:
 		[[maybe_unused]] const AddressT address,
 		[[maybe_unused]] CPU::M6809::data_t<read_write> value
 	) {
-		printf("%d\n", read_write);
+		printf("%s %04x\n", CPU::M6809::is_read(read_write) ? "Read from" : "Write to", +address);
 		if constexpr (CPU::M6809::is_read(read_write)) {
 			value = 0xff;
 			printf("Read 0xff\n");

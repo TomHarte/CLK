@@ -86,13 +86,13 @@ using Literal = Bus::Address::Literal<uint16_t>;
 
 namespace Data {
 
-using Writeable = Bus::Data::Writeable<uint8_t>;
+using Writeable = Bus::Data::Writeable<uint8_t, false>;
 using NoValue = Bus::Data::NoValue<uint8_t>;
 
 }
 
 template <ReadWrite read_write>
-using data_t = Bus::Data::data_t<uint8_t, access_type(read_write)>;
+using data_t = Bus::Data::data_t<uint8_t, false, access_type(read_write)>;
 
 // MARK: - Code-generation choices.
 
@@ -163,19 +163,16 @@ struct Processor {
 
 		#define read(bus_state, addr, value, ...) {																	\
 			if constexpr (!Traits::uses_mrdy) {																		\
-				Data::Writeable writeable;																			\
 				time_ -= Cycles(1);																					\
 				time_ -= 																							\
-					bus_handler_.template perform<BusPhase::FullCycle, ReadWrite::Read, bus_state>(addr, writeable);\
-				value = writeable;																					\
+					bus_handler_.template perform<BusPhase::FullCycle, ReadWrite::Read, bus_state>(addr, target_);	\
 				goto local_label(label_prefix##SkipMRDY);															\
 			}																										\
 																													\
-			Data::Writeable writeable;																				\
 			if constexpr (Traits::uses_mrdy) {																		\
 				time_ -= QuarterCycles(3);																			\
 				time_ -=																							\
-					bus_handler_.template perform<BusPhase::PreMRDY, ReadWrite::Read, bus_state>(addr, writeable);	\
+					bus_handler_.template perform<BusPhase::PreMRDY, ReadWrite::Read, bus_state>(addr, target_);	\
 			}																										\
 																													\
 			static constexpr auto check_mrdy = restore_point();														\
@@ -186,7 +183,7 @@ struct Processor {
 				if constexpr (Traits::uses_mrdy) {																	\
 					time_ -= QuarterCycles(1);																		\
 					time_ -=																						\
-						bus_handler_.template perform<BusPhase::MRDY, ReadWrite::Read, bus_state>(addr, writeable);	\
+						bus_handler_.template perform<BusPhase::MRDY, ReadWrite::Read, bus_state>(addr, target_);	\
 				}																									\
 			}																										\
 																													\
@@ -198,11 +195,11 @@ struct Processor {
 			if constexpr (Traits::uses_mrdy) {																		\
 				time_ -= QuarterCycles(1);																			\
 				time_ -=																							\
-					bus_handler_.template perform<BusPhase::PostMRDY, ReadWrite::Read, bus_state>(addr, writeable);	\
+					bus_handler_.template perform<BusPhase::PostMRDY, ReadWrite::Read, bus_state>(addr, target_);	\
 			}																										\
 																													\
 			local_label(label_prefix##SkipMRDY):																	\
-			value = writeable;																						\
+			value = target_;																						\
 			__VA_ARGS__;																							\
 		}
 
@@ -291,6 +288,7 @@ private:
 	int resume_point_;
 	InstructionSet::M6809::Operation operation_;
 	Registers registers_;
+	Data::Writeable target_;
 };
 
 }

@@ -92,13 +92,13 @@ using Literal = Bus::Address::Literal<uint16_t>;
 
 namespace Data {
 
-using Writeable = Bus::Data::Writeable<uint8_t>;
+using Writeable = Bus::Data::Writeable<uint8_t, true>;
 using NoValue = Bus::Data::NoValue<uint8_t>;
 
 }
 
 template <BusOperation operation>
-using data_t = Bus::Data::data_t<uint8_t, access_type(operation)>;
+using data_t = Bus::Data::data_t<uint8_t, true, access_type(operation)>;
 
 // MARK: - Storage.
 
