@@ -20,10 +20,19 @@ struct ConcreteMachine:
 	public MachineTypes::ScanProducer,
 	public Machine
 {
-	ConcreteMachine(const Analyser::Static::Target &, const ROMMachine::ROMFetcher &) :
+	ConcreteMachine(const Analyser::Static::Target &, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6809_(*this)
 	{
 		set_clock_rate(1'000'000);
+
+		const auto request = ROM::Request(ROM::Name::ThomasonMO5v11);
+		auto roms = rom_fetcher(request);
+		if(!request.validate(roms)) {
+			throw ROMMachine::Error::MissingROMs;
+		}
+
+		const auto &rom = roms.find(ROM::Name::ThomasonMO5v11)->second;
+		std::copy_n(rom.begin(), rom.size(), rom_.begin());
 	}
 
 	void run_for(const Cycles cycles) final {
@@ -41,11 +50,17 @@ struct ConcreteMachine:
 		[[maybe_unused]] CPU::M6809::data_t<read_write> value
 	) {
 		printf("%s %04x\n", CPU::M6809::is_read(read_write) ? "Read from" : "Write to", +address);
+
 		if constexpr (CPU::M6809::is_read(read_write)) {
-			value = 0xff;
-			printf("Read 0xff\n");
+			if(address >= 0xc000) {
+				value = rom_[address - 0xc000];
+				printf("Read %02x\n", rom_[address - 0xc000]);
+			} else {
+				value = 0xff;
+				printf("UNIMPLEMENTED. Read 0xff\n");
+			}
 		}
-		printf("Done\n");
+
 		return Cycles(0);
 	}
 
@@ -56,6 +71,9 @@ private:
 		using BusHandlerT = ConcreteMachine;
 	};
 	CPU::M6809::Processor<M6809Traits> m6809_;
+
+	std::array<uint8_t, 0xf000 + 0x2000> ram_;
+	std::array<uint8_t, 0x4000> rom_;
 
 	// MARK: - ScanProducer.
 

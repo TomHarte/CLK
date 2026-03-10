@@ -230,8 +230,8 @@ struct Processor {
 
 				// TODO: spin here on HALT | DMA | BREQ.
 
-				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<0xffee>(), registers_.pc.halves.low);
-				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<0xffef>(), registers_.pc.halves.high);
+				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<0xfffe>(), registers_.pc.halves.high);
+				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<0xffff>(), registers_.pc.halves.low);
 
 				goto fetch_decode;
 
@@ -245,11 +245,11 @@ struct Processor {
 					return;
 				}
 
-				// TODO: branch out here if interrupts or exceptions exist.
 				if(exceptions_) {
 					if(exceptions_ & (Exceptions::PowerOnReset | Exceptions::Reset)) {
 						goto reset;
 					}
+					// TODO: test interrupts and more.
 				}
 
 				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
@@ -309,7 +309,7 @@ private:
 	};
 	using AddressingMode = InstructionSet::M6809::AddressingMode;
 
-	int resume_point_;
+	int resume_point_ = ResumePoint::FetchDecode;
 	InstructionSet::M6809::Operation operation_;
 	Registers registers_;
 	Data::Writeable target_;
