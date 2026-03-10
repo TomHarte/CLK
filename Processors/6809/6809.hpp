@@ -153,74 +153,57 @@ struct Processor {
 		#define local_label(name)	attach(name, __LINE__)
 		#define access_label()		local_label(repeat)
 
-		#define break_up_access(label_prefix, read_write, bus_state, addr, value) {									\
+		#define check_pause(precision, location)						\
+			if constexpr (Traits::pause_precision >= precision) {		\
+				if(time_ <= 0) {										\
+					resume_point_ = location;							\
+					return;												\
+				}														\
+			}
+
+		#define read(bus_state, addr, value, ...) {																	\
 			if constexpr (!Traits::uses_mrdy) {																		\
-				if constexpr (std::is_same_v<decltype(value), data_t<read_write>>) {								\
-					time_ -= Cycles(1);																				\
-					time_ -= bus_handler_.template perform<BusPhase::FullCycle, read_write, bus_state>(addr, value);\
-				}																									\
+				Data::Writeable writeable;																			\
+				time_ -= Cycles(1);																					\
+				time_ -= 																							\
+					bus_handler_.template perform<BusPhase::FullCycle, ReadWrite::Read, bus_state>(addr, writeable);\
+				value = writeable;																					\
 				goto local_label(label_prefix##SkipMRDY);															\
 			}																										\
 																													\
-			if constexpr (Traits::uses_mrdy && std::is_same_v<decltype(value), data_t<read_write>>) {				\
+			Data::Writeable writeable;																				\
+			if constexpr (Traits::uses_mrdy) {																		\
 				time_ -= QuarterCycles(3);																			\
-				time_ - bus_handler_.template perform<BusPhase::PreMRDY, read_write, bus_state>(addr, value);		\
+				time_ -=																							\
+					bus_handler_.template perform<BusPhase::PreMRDY, ReadWrite::Read, bus_state>(addr, writeable);	\
 			}																										\
 																													\
 			static constexpr auto check_mrdy = restore_point();														\
+			[[fallthrough]];																						\
 			case check_mrdy:																						\
 			while(mrdy_) {																							\
-				if constexpr (Traits::pause_precision >= PausePrecision::BetweenBusActions) {						\
-					if(time_ <= 0) {																				\
-						resume_point_ = location;																	\
-						return;																						\
-					}																								\
-				}																									\
-																													\
-				if constexpr (Traits::uses_mrdy && std::is_same_v<decltype(value), data_t<read_write>>) {			\
+				check_pause(PausePrecision::BetweenBusActions, check_mrdy);											\
+				if constexpr (Traits::uses_mrdy) {																	\
 					time_ -= QuarterCycles(1);																		\
-					time_ -= bus_handler_.template perform<BusPhase::MRDY, read_write, bus_state>(addr, value);		\
+					time_ -=																						\
+						bus_handler_.template perform<BusPhase::MRDY, ReadWrite::Read, bus_state>(addr, writeable);	\
 				}																									\
 			}																										\
 																													\
-			if constexpr (Traits::pause_precision >= PausePrecision::BetweenBusActions) {							\
-				if(time_ <= 0) {																					\
-					resume_point_ = location;																		\
-					return;																							\
-				}																									\
-			}																										\
+			static constexpr auto post_mrdy = restore_point();														\
+			[[fallthrough]];																						\
+			case post_mrdy:																							\
+			check_pause(PausePrecision::BetweenBusActions, post_mrdy);												\
 																													\
-			if constexpr (Traits::uses_mrdy && std::is_same_v<decltype(value), data_t<read_write>>) {				\
+			if constexpr (Traits::uses_mrdy) {																		\
 				time_ -= QuarterCycles(1);																			\
-				time_ -= bus_handler_.template perform<BusPhase::PostMRDY, read_write, bus_state>(addr, value);		\
+				time_ -=																							\
+					bus_handler_.template perform<BusPhase::PostMRDY, ReadWrite::Read, bus_state>(addr, writeable);	\
 			}																										\
 																													\
-			local_label(label_prefix##SkipMRDY): (void)0;															\
-		}
-
-		#define access(read_write, bus_state, addr, value, ...)	{											\
-			static constexpr int location = restore_point();												\
-			[[fallthrough]]; case location:																	\
-			[[maybe_unused]] access_label():																\
-																											\
-			if constexpr (Traits::pause_precision >= PausePrecision::BetweenAccesses) {						\
-				if(time_ <= 0) {																			\
-					resume_point_ = location;																\
-					return;																					\
-				}																							\
-			}																								\
-																											\
-			if constexpr (is_write(read_write)) goto local_label(SimpleAccess);								\
-			if constexpr (std::is_same_v<decltype(value), Data::Writeable>) goto local_label(SimpleAccess);	\
-			break_up_access(viaTarget, read_write, bus_state, addr, target);								\
-			value = target;																					\
-			goto local_label(EndAccess);																	\
-																											\
-			local_label(SimpleAccess):																		\
-			break_up_access(simple, read_write, bus_state, addr, value);									\
-			local_label(EndAccess):																			\
-																											\
-			__VA_ARGS__;																					\
+			local_label(label_prefix##SkipMRDY):																	\
+			value = writeable;																						\
+			__VA_ARGS__;																							\
 		}
 
 		#define access_program(name)	int(ResumePoint::Max) + int(AddressingMode::name)
@@ -236,7 +219,6 @@ struct Processor {
 		InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page2> op_mapper2;
 
 		uint8_t opcode = 0;
-		Data::Writeable target;
 		while(true) switch(resume_point_) {
 			default:
 				__builtin_unreachable();
@@ -252,7 +234,7 @@ struct Processor {
 
 				// TODO: branch out here if interrupts or exceptions exist.
 
-				access(ReadWrite::Read, BusState::Normal, Literal(registers_.pc), opcode, ++registers_.pc);
+				read(BusState::Normal, Literal(registers_.pc), opcode, ++registers_.pc);
 				{
 					const auto decoding = Reflection::dispatch(op_mapper0, opcode, op_returner);
 					operation_ = decoding.first;
@@ -261,7 +243,7 @@ struct Processor {
 				}
 
 			fetch_decode_page1:
-				access(ReadWrite::Read, BusState::Normal, Literal(registers_.pc), opcode, ++registers_.pc);
+				read(BusState::Normal, Literal(registers_.pc), opcode, ++registers_.pc);
 				{
 					const auto decoding = Reflection::dispatch(op_mapper1, opcode, op_returner);
 					operation_ = decoding.first;
@@ -270,7 +252,7 @@ struct Processor {
 				}
 
 			fetch_decode_page2:
-				access(ReadWrite::Read, BusState::Normal, Literal(registers_.pc), opcode, ++registers_.pc);
+				read(BusState::Normal, Literal(registers_.pc), opcode, ++registers_.pc);
 				{
 					const auto decoding = Reflection::dispatch(op_mapper2, opcode, op_returner);
 					operation_ = decoding.first;

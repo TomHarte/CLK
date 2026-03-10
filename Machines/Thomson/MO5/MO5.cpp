@@ -22,7 +22,9 @@ struct ConcreteMachine:
 {
 	ConcreteMachine(const Analyser::Static::Target &, const ROMMachine::ROMFetcher &) :
 		m6809_(*this)
-	{}
+	{
+		set_clock_rate(1'000'000);
+	}
 
 	void run_for(const Cycles cycles) final {
 		m6809_.run_for(cycles);
@@ -38,6 +40,12 @@ struct ConcreteMachine:
 		[[maybe_unused]] const AddressT address,
 		[[maybe_unused]] CPU::M6809::data_t<read_write> value
 	) {
+		printf("%d\n", read_write);
+		if constexpr (CPU::M6809::is_read(read_write)) {
+			value = 0xff;
+			printf("Read 0xff\n");
+		}
+		printf("Done\n");
 		return Cycles(0);
 	}
 
