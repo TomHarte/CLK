@@ -81,6 +81,8 @@ enum class Line {
 namespace Address {
 
 using Literal = Bus::Address::Literal<uint16_t>;
+template <uint16_t address>
+using Fixed = Bus::Address::Fixed<uint16_t, address>;
 
 }
 
@@ -220,9 +222,23 @@ struct Processor {
 			default:
 				__builtin_unreachable();
 
+			// MARK: - Exceptions.
+
+			reset:
+				registers_.dp = 0;
+				exceptions_ &= ~(Exceptions::NMI | Exceptions::PowerOnReset);
+
+				// TODO: spin here on HALT | DMA | BREQ.
+
+				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<0xffee>(), registers_.pc.halves.low);
+				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<0xffef>(), registers_.pc.halves.high);
+
+				goto fetch_decode;
+
+
 			// MARK: - Fetch/decode.
 
-//			fetch_decode:
+			fetch_decode:
 			case ResumePoint::FetchDecode:
 				if(time_ <= 0) {
 					resume_point_ = ResumePoint::FetchDecode;
@@ -230,8 +246,13 @@ struct Processor {
 				}
 
 				// TODO: branch out here if interrupts or exceptions exist.
+				if(exceptions_) {
+					if(exceptions_ & (Exceptions::PowerOnReset | Exceptions::Reset)) {
+						goto reset;
+					}
+				}
 
-				read(BusState::Normal, Literal(registers_.pc), opcode, ++registers_.pc);
+				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
 				{
 					const auto decoding = Reflection::dispatch(op_mapper0, opcode, op_returner);
 					operation_ = decoding.first;
@@ -240,7 +261,7 @@ struct Processor {
 				}
 
 			fetch_decode_page1:
-				read(BusState::Normal, Literal(registers_.pc), opcode, ++registers_.pc);
+				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
 				{
 					const auto decoding = Reflection::dispatch(op_mapper1, opcode, op_returner);
 					operation_ = decoding.first;
@@ -249,7 +270,7 @@ struct Processor {
 				}
 
 			fetch_decode_page2:
-				read(BusState::Normal, Literal(registers_.pc), opcode, ++registers_.pc);
+				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
 				{
 					const auto decoding = Reflection::dispatch(op_mapper2, opcode, op_returner);
 					operation_ = decoding.first;
@@ -278,6 +299,9 @@ private:
 	Timescale time_;
 
 	bool mrdy_ = false;
+	bool halt_ = false;
+	bool dma_ = false;
+	bool breq_ = false;
 
 	enum ResumePoint {
 		FetchDecode,
@@ -289,6 +313,13 @@ private:
 	InstructionSet::M6809::Operation operation_;
 	Registers registers_;
 	Data::Writeable target_;
+
+	enum Exceptions: uint8_t {
+		Reset			= 1 << 0,
+		PowerOnReset	= 1 << 1,
+		NMI				= 1 << 2,
+	};
+	uint8_t exceptions_ = Exceptions::PowerOnReset;
 };
 
 }

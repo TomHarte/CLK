@@ -9,6 +9,7 @@
 #pragma once
 
 #include <cstdint>
+#include "Numeric/RegisterSizes.hpp"
 
 namespace CPU::M6809 {
 
@@ -31,7 +32,7 @@ struct Registers {
 	uint16_t y;
 	uint16_t u;
 	uint16_t s;
-	uint16_t pc;
+	RegisterPair16 pc;
 	uint8_t a;
 	uint8_t b;
 	uint8_t dp;

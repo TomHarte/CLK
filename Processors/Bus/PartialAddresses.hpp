@@ -23,6 +23,13 @@ private:
 	AddressT address_;
 };
 
+template <std::unsigned_integral AddressT, AddressT value>
+struct Fixed {
+	operator AddressT() const {
+		return value;
+	}
+};
+
 template <
 	std::unsigned_integral AddressT,
 	std::unsigned_integral VariableT,
