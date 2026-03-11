@@ -107,7 +107,7 @@ template <Page page> std::pair<Operation, AddressingMode> capture(const uint8_t 
 			}
 		} () + bool(pair.first >> 8);
 
-		XCTAssertEqual(expected_length, pair.second);
+		XCTAssertEqual(expected_length, pair.second, " for opcode %02x", pair.first);
 	}
 };
 

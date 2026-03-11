@@ -76,7 +76,7 @@ constexpr bool is_16bit() {
 		case SUBB:	case CMPB:	case SBCB:
 		case ANDB:	case BITB:	case LDB:	case STB:
 		case EORB:	case ADCB:	case ORB:	case ADDB:
-		case SUBA:	case CMPA:	case SBCA:	case SUBD:
+		case SUBA:	case CMPA:	case SBCA:
 		case ANDA:	case BITA:	case LDA:	case STA:
 		case EORA:	case ADCA:	case ORA:	case ADDA:
 		case BSR:
@@ -93,7 +93,7 @@ constexpr bool is_16bit() {
 		case SWI2:	case SWI3:
 			return false;
 
-		case ADDD:
+		case ADDD:	case SUBD:
 		case LDD:	case STD:	case LDU:	case STU:
 		case CMPX:	case JSR:	case LDX:	case STX:
 		case LEAX:	case LEAY:	case LEAS:	case LEAU:
@@ -155,6 +155,20 @@ auto OperationMapper<Page::Page0>::dispatch(SchedulerT &s) {
 	static constexpr auto upper = (i >> 4) & 0xf;
 	static constexpr auto lower = (i >> 0) & 0xf;
 
+	if constexpr (
+		i == 0x87 ||	i == 0x8f ||	i == 0xc7 ||
+		i == 0xcd ||	i == 0xcf
+	) {
+		// Avoid nonsensical:
+		//
+		//	0x87:	STA immediate
+		//	0x8f:	STX immediate
+		//	0xc7:	STB immediate
+		//	0xcd:	STD immediate
+		//	0xcf:	STU immediate.
+		return s.template schedule<O::None, AM::Illegal>();
+	}
+
 	switch(upper) {
 		default: break;
 
@@ -167,7 +181,7 @@ auto OperationMapper<Page::Page0>::dispatch(SchedulerT &s) {
 				AM::Variant,	AM::Variant,	AM::Inherent,	AM::Inherent,
 				AM::Illegal,	AM::Illegal,	AM::Relative16,	AM::Relative16,
 				AM::Illegal,	AM::Inherent,	AM::Immediate8,	AM::Illegal,
-				AM::Immediate8,	AM::Inherent,	AM::Inherent,	AM::Inherent,
+				AM::Immediate8,	AM::Inherent,	AM::Immediate8,	AM::Immediate8,
 			};
 			return s.template schedule<operations[lower], specific_modes[lower]>();
 		}
