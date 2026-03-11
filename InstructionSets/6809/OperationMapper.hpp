@@ -33,6 +33,11 @@ enum class AddressingMode {
 	Max,
 };
 
+enum class Condition {
+	A,	N,	HI,	LS,	CC,	CS,	NE,	EQ,
+	VC,	VS,	PL,	MI,	GE,	LT,	GT,	LE,
+};
+
 enum class Operation {
 	None,
 

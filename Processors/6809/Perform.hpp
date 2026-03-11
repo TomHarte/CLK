@@ -171,12 +171,29 @@ inline void exg(Registers &registers, const uint8_t operand) {
 	Implementation::set(registers, top, source_values[1]);
 }
 
+// MARK: - Control flow.
+
+template <InstructionSet::M6809::Condition condition, std::unsigned_integral OperandT>
+requires (sizeof(OperandT) <= 2)
+void bra(Registers &registers, const OperandT operand) {
+	if(!registers.cc.test<condition>()) {
+		return;
+	}
+
+	if constexpr (sizeof(OperandT) == 2) {
+		registers.reg<R16::PC>() += operand;
+	} else {
+		registers.reg<R16::PC>() += int8_t(operand);
+	}
+}
+
 // MARK: - Dispatch.
 
 inline void perform(const InstructionSet::M6809::Operation operation, Registers &registers, RegisterPair16 &operand) {
 	auto &byte = operand.halves.low;
 	auto &word = operand.full;
 
+	using Condition = InstructionSet::M6809::Condition;
 	switch(operation) {
 		using enum InstructionSet::M6809::Operation;
 
@@ -201,6 +218,42 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case LSRA:	lsr<R8::A>(registers);				break;
 		case LSRB:	lsr<R8::B>(registers);				break;
 		case LSR:	lsr(registers, byte);				break;
+
+		case BCC:	bra<Condition::CC>(registers, byte);	break;
+		case BCS:	bra<Condition::CS>(registers, byte);	break;
+		case BEQ:	bra<Condition::EQ>(registers, byte);	break;
+		case BGE:	bra<Condition::GE>(registers, byte);	break;
+		case BGT:	bra<Condition::GT>(registers, byte);	break;
+		case BHI:	bra<Condition::HI>(registers, byte);	break;
+		case BLE:	bra<Condition::LE>(registers, byte);	break;
+		case BLS:	bra<Condition::LS>(registers, byte);	break;
+		case BLT:	bra<Condition::LT>(registers, byte);	break;
+		case BMI:	bra<Condition::MI>(registers, byte);	break;
+		case BNE:	bra<Condition::NE>(registers, byte);	break;
+		case BPL:	bra<Condition::PL>(registers, byte);	break;
+		case BRA:	bra<Condition::A>(registers, byte);		break;
+		case BRN:	bra<Condition::N>(registers, byte);		break;
+		case BVC:	bra<Condition::VC>(registers, byte);	break;
+		case BVS:	bra<Condition::VS>(registers, byte);	break;
+
+		// TODO: BIT, BSR
+
+		case LBCC:	bra<Condition::CC>(registers, word);	break;
+		case LBCS:	bra<Condition::CS>(registers, word);	break;
+		case LBEQ:	bra<Condition::EQ>(registers, word);	break;
+		case LBGE:	bra<Condition::GE>(registers, word);	break;
+		case LBGT:	bra<Condition::GT>(registers, word);	break;
+		case LBHI:	bra<Condition::HI>(registers, word);	break;
+		case LBLE:	bra<Condition::LE>(registers, word);	break;
+		case LBLS:	bra<Condition::LS>(registers, word);	break;
+		case LBLT:	bra<Condition::LT>(registers, word);	break;
+		case LBMI:	bra<Condition::MI>(registers, word);	break;
+		case LBNE:	bra<Condition::NE>(registers, word);	break;
+		case LBPL:	bra<Condition::PL>(registers, word);	break;
+		case LBRA:	bra<Condition::A>(registers, word);		break;
+		case LBRN:	bra<Condition::N>(registers, word);		break;
+		case LBVC:	bra<Condition::VC>(registers, word);	break;
+		case LBVS:	bra<Condition::VS>(registers, word);	break;
 
 		case LDA:	ld<R8::A>(registers, byte);			break;
 		case LDB:	ld<R8::B>(registers, byte);			break;

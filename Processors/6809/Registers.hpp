@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include "Numeric/RegisterSizes.hpp"
+#include "InstructionSets/6809/OperationMapper.hpp"
 
 namespace CPU::M6809 {
 
@@ -31,7 +32,7 @@ struct ConditionCodeRegister {
 	}
 
 	template <ConditionCode code>
-	bool condition() const {
+	bool get() const {
 		switch(code) {
 			case ConditionCode::Entire:		return entire_;
 			case ConditionCode::FIRQMask:	return firq_;
@@ -107,6 +108,34 @@ struct ConditionCodeRegister {
 
 	uint8_t carry() const { return carry_; }
 	uint8_t half_carry() const { return half_carry_; }
+
+	template <InstructionSet::M6809::Condition condition>
+	bool test() {
+		switch(condition) {
+			using enum InstructionSet::M6809::Condition;
+
+			case A: return true;
+			case N: return false;
+
+			case CC: return	!get<ConditionCode::Carry>();
+			case CS: return	get<ConditionCode::Carry>();
+			case VC: return	!get<ConditionCode::Overflow>();
+			case VS: return	get<ConditionCode::Overflow>();
+			case PL: return	!get<ConditionCode::Negative>();
+			case MI: return	get<ConditionCode::Negative>();
+			case NE: return	!get<ConditionCode::Zero>();
+			case EQ: return	get<ConditionCode::Zero>();
+
+			case LE: return	get<ConditionCode::Zero>() || test<InstructionSet::M6809::Condition::LT>();
+			case LS: return	get<ConditionCode::Zero>() || get<ConditionCode::Carry>();
+			case LT: return	get<ConditionCode::Negative>() != get<ConditionCode::Overflow>();
+
+			case HI: return !get<ConditionCode::Zero>() && !get<ConditionCode::Carry>();
+			case GE: return get<ConditionCode::Negative>() == get<ConditionCode::Overflow>();
+			case GT: return !get<ConditionCode::Zero>() && test<InstructionSet::M6809::Condition::GE>();
+		}
+		return false;
+	}
 
 private:
 	uint8_t negative_ = 0;
