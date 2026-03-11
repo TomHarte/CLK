@@ -219,7 +219,7 @@ struct Processor {
 		InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page2> op_mapper2;
 
 		const auto perform = [&]() {
-			CPU::M6809::perform(operation_, registers_, operand_.full);
+			CPU::M6809::perform(operation_, registers_, operand_);
 		};
 
 		uint8_t opcode = 0;

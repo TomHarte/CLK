@@ -99,6 +99,42 @@ void and_(Registers &registers, const uint8_t operand) {
 
 // MARK: - Shifts and rolls.
 
+inline void lsl(Registers &registers, uint8_t &value) {
+	// TODO: value for H?
+	registers.cc.set<ConditionCode::Overflow>((value << 1) ^ value);
+	registers.cc.set<ConditionCode::Carry>(value >> 7);
+	value <<= 1;
+	registers.cc.set_nz(value);
+}
+
+template <R8 r>
+void lsl(Registers &registers) {
+	lsl(registers, registers.reg<r>());
+}
+
+inline void asr(Registers &registers, uint8_t &value) {
+	// TODO: value for H?
+	registers.cc.set<ConditionCode::Carry>(value & 1);
+	value = (value >> 1) | (value & 0x80);
+	registers.cc.set_nz(value);
+}
+
+template <R8 r>
+void asr(Registers &registers) {
+	asr(registers, registers.reg<r>());
+}
+
+inline void lsr(Registers &registers, uint8_t &value) {
+	registers.cc.set<ConditionCode::Carry>(value & 1);
+	value >>= 1;
+	registers.cc.set_nz(value);
+}
+
+template <R8 r>
+void lsr(Registers &registers) {
+	lsr(registers, registers.reg<r>());
+}
+
 // MARK: - Data Transfer.
 
 template <R8 r>
@@ -137,33 +173,46 @@ inline void exg(Registers &registers, const uint8_t operand) {
 
 // MARK: - Dispatch.
 
-inline void perform(const InstructionSet::M6809::Operation operation, Registers &registers, uint16_t &operand) {
+inline void perform(const InstructionSet::M6809::Operation operation, Registers &registers, RegisterPair16 &operand) {
+	auto &byte = operand.halves.low;
+	auto &word = operand.full;
+
 	switch(operation) {
 		using enum InstructionSet::M6809::Operation;
 
 		case None:	break;
 
-		case ABX:	abx(registers);									break;
-		case ADCA:	add<R8::A, true>(registers, uint8_t(operand));	break;
-		case ADCB:	add<R8::B, true>(registers, uint8_t(operand));	break;
-		case ADDA:	add<R8::A, false>(registers, uint8_t(operand));	break;
-		case ADDB:	add<R8::B, false>(registers, uint8_t(operand));	break;
-		case ADDD:	addd(registers, operand);						break;
-		case ANDA:	and_<R8::A>(registers, uint8_t(operand));		break;
-		case ANDB:	and_<R8::B>(registers, uint8_t(operand));		break;
-		case ANDCC:	and_<R8::CC>(registers, uint8_t(operand));		break;
+		case ABX:	abx(registers);						break;
+		case ADCA:	add<R8::A, true>(registers, byte);	break;
+		case ADCB:	add<R8::B, true>(registers, byte);	break;
+		case ADDA:	add<R8::A, false>(registers, byte);	break;
+		case ADDB:	add<R8::B, false>(registers, byte);	break;
+		case ADDD:	addd(registers, word);				break;
+		case ANDA:	and_<R8::A>(registers, byte);		break;
+		case ANDB:	and_<R8::B>(registers, byte);		break;
+		case ANDCC:	and_<R8::CC>(registers, byte);		break;
 
-		case LDA:	ld<R8::A>(registers, uint8_t(operand));	break;
-		case LDB:	ld<R8::B>(registers, uint8_t(operand));	break;
+		case ASRA:	asr<R8::A>(registers);				break;
+		case ASRB:	asr<R8::B>(registers);				break;
+		case ASR:	asr(registers, byte);				break;
+		case LSLA:	lsl<R8::A>(registers);				break;
+		case LSLB:	lsl<R8::B>(registers);				break;
+		case LSL:	lsl(registers, byte);				break;
+		case LSRA:	lsr<R8::A>(registers);				break;
+		case LSRB:	lsr<R8::B>(registers);				break;
+		case LSR:	lsr(registers, byte);				break;
 
-		case LDD:	ld<R16::D>(registers, operand);		break;
-		case LDU:	ld<R16::U>(registers, operand);		break;
-		case LDX:	ld<R16::X>(registers, operand);		break;
-		case LDY:	ld<R16::Y>(registers, operand);		break;
-		case LDS:	ld<R16::S>(registers, operand);		break;
+		case LDA:	ld<R8::A>(registers, byte);			break;
+		case LDB:	ld<R8::B>(registers, byte);			break;
 
-		case TFR:	tfr(registers, uint8_t(operand));	break;
-		case EXG:	exg(registers, uint8_t(operand));	break;
+		case LDD:	ld<R16::D>(registers, word);		break;
+		case LDU:	ld<R16::U>(registers, word);		break;
+		case LDX:	ld<R16::X>(registers, word);		break;
+		case LDY:	ld<R16::Y>(registers, word);		break;
+		case LDS:	ld<R16::S>(registers, word);		break;
+
+		case TFR:	tfr(registers, byte);				break;
+		case EXG:	exg(registers, byte);				break;
 
 		default: __builtin_unreachable();
 	}
