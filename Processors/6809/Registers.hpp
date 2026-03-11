@@ -83,8 +83,26 @@ struct ConditionCodeRegister {
 		);
 	}
 
-	void set_nz(const uint8_t value) {
-		negative_ = zero_ = value;
+	template <std::unsigned_integral ValueT>
+	requires (sizeof(ValueT) <= 2)
+	void set_nz(const ValueT value) {
+		if constexpr (std::is_same_v<ValueT, uint8_t>) {
+			negative_ = zero_ = value;
+		} else {
+			negative_ = uint8_t(value >> 8);
+			zero_ = uint8_t(value | (value >> 8));
+		}
+	}
+
+	template <std::unsigned_integral ValueT>
+	requires (sizeof(ValueT) <= 2)
+	void set_overflow(const ValueT result, const ValueT lhs, const ValueT rhs) {
+		const ValueT bits = (result^lhs) & (result^rhs);
+		if constexpr (std::is_same_v<ValueT, uint8_t>) {
+			overflow_ = bits;
+		} else {
+			overflow_ = uint8_t(bits >> 8);
+		}
 	}
 
 	uint8_t carry() const { return carry_; }

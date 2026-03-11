@@ -53,23 +53,67 @@ inline void set(Registers &registers, const int index, const uint16_t value) {
 		default: break;
 	}
 }
-
 }
 
+// MARK: - Arithmetic.
+
+inline void abx(Registers &registers) {
+	registers.reg<R16::X>() += registers.reg<R8::B>();
+}
+
+template <R8 r, bool with_carry>
+void add(Registers &registers, const uint8_t operand) {
+	const uint8_t source = registers.reg<r>();
+	const uint8_t result = source + operand + (with_carry ? registers.cc.carry() : 0);
+
+	registers.cc.set_nz(result);
+	registers.cc.set_overflow(result, source, operand);
+	registers.cc.set<ConditionCode::Carry>(result < operand);
+
+	const uint8_t half = (source & 0xf) + (operand & 0xf) + (with_carry ? registers.cc.carry() : 0);
+	registers.cc.set<ConditionCode::HalfCarry>(half & 0x10);
+
+	registers.reg<r>() = result;
+}
+
+inline void addd(Registers &registers, const uint16_t operand) {
+	const uint16_t source = registers.reg<R16::D>();
+	const uint16_t result = source + operand;
+
+	registers.cc.set_nz(result);
+	registers.cc.set<ConditionCode::Carry>(result < operand);
+	registers.cc.set_overflow(result, source, operand);
+}
+
+// MARK: - Logical.
+
 template <R8 r>
-inline void ld(Registers &registers, const uint8_t operand) {
+void and_(Registers &registers, const uint8_t operand) {
+	if constexpr (r == R8::CC) {
+		registers.reg<R8::CC>() = registers.reg<R8::CC>() & operand;
+	} else {
+		registers.cc.set_nz(registers.reg<r>() &= operand);
+		registers.cc.set<ConditionCode::Overflow>(false);
+	}
+}
+
+// MARK: - Shifts and rolls.
+
+// MARK: - Data Transfer.
+
+template <R8 r>
+void ld(Registers &registers, const uint8_t operand) {
 	registers.reg<r>() = operand;
 	registers.cc.set_nz(operand);
 	registers.cc.set<ConditionCode::Overflow>(false);
 }
 
 template <R16 r>
-inline void ld(Registers &registers, const uint16_t operand) {
+void ld(Registers &registers, const uint16_t operand) {
 	registers.reg<r>() = operand;
-	registers.cc.set_nz(operand >> 8);
+	registers.cc.set_nz(operand);
 	registers.cc.set<ConditionCode::Overflow>(false);
 }
-
 
 inline void tfr(Registers &registers, const uint8_t operand) {
 	const auto source = operand >> 4;
@@ -91,11 +135,23 @@ inline void exg(Registers &registers, const uint8_t operand) {
 	Implementation::set(registers, top, source_values[1]);
 }
 
-inline void perform(const InstructionSet::M6809::Operation operation, Registers &registers, const uint16_t operand) {
+// MARK: - Dispatch.
+
+inline void perform(const InstructionSet::M6809::Operation operation, Registers &registers, uint16_t &operand) {
 	switch(operation) {
 		using enum InstructionSet::M6809::Operation;
 
 		case None:	break;
+
+		case ABX:	abx(registers);									break;
+		case ADCA:	add<R8::A, true>(registers, uint8_t(operand));	break;
+		case ADCB:	add<R8::B, true>(registers, uint8_t(operand));	break;
+		case ADDA:	add<R8::A, false>(registers, uint8_t(operand));	break;
+		case ADDB:	add<R8::B, false>(registers, uint8_t(operand));	break;
+		case ADDD:	addd(registers, operand);						break;
+		case ANDA:	and_<R8::A>(registers, uint8_t(operand));		break;
+		case ANDB:	and_<R8::B>(registers, uint8_t(operand));		break;
+		case ANDCC:	and_<R8::CC>(registers, uint8_t(operand));		break;
 
 		case LDA:	ld<R8::A>(registers, uint8_t(operand));	break;
 		case LDB:	ld<R8::B>(registers, uint8_t(operand));	break;
