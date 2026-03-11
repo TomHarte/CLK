@@ -25,6 +25,11 @@ enum ConditionCode: uint8_t {
 };
 
 struct ConditionCodeRegister {
+	ConditionCodeRegister() = default;
+	ConditionCodeRegister(const uint8_t value) {
+		*this = value;
+	}
+
 	template <ConditionCode code>
 	bool condition() const {
 		switch(code) {
@@ -47,15 +52,25 @@ struct ConditionCodeRegister {
 		}
 	}
 
+	uint8_t operator =(const uint8_t rhs) {
+		return rhs;
+	}
+
+	operator uint8_t() const {
+		return 0x00;
+	}
+
 private:
-	uint8_t sign_;
-	uint8_t zero_;
-	bool overflow_;
+	uint8_t sign_ = 0;
+	uint8_t zero_ = 0;
+	bool overflow_ = false;
 };
 
 enum R8 {
 	A,
 	B,
+	CC,
+	DP,
 };
 enum R16 {
 	D,
@@ -63,6 +78,7 @@ enum R16 {
 	Y,
 	S,
 	U,
+	PC,
 };
 
 struct Registers {
@@ -73,13 +89,19 @@ struct Registers {
 	RegisterPair16 pc;
 	RegisterPair16 d;
 	uint8_t dp;
+	ConditionCodeRegister cc;
 
 	template <R8 r>
-	uint8_t &reg() {
-		switch(r) {
-			case R8::A:	return d.halves.high;
-			case R8::B:	return d.halves.low;
-			default:	__builtin_unreachable();
+	auto &reg() {
+		if constexpr (r == R8::CC) {
+			return cc;
+		} else {
+			switch(r) {
+				case R8::A:		return d.halves.high;
+				case R8::B:		return d.halves.low;
+				case R8::DP:	return dp;
+				default:	__builtin_unreachable();
+			}
 		}
 	}
 
@@ -91,11 +113,10 @@ struct Registers {
 			case R16::Y:	return y;
 			case R16::S:	return s;
 			case R16::U:	return u;
+			case R16::PC:	return pc.full;
 			default:	__builtin_unreachable();
 		}
 	}
-
-	ConditionCodeRegister cc;
 };
 
 }
