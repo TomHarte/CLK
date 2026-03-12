@@ -104,6 +104,13 @@ void and_(Registers &registers, const uint8_t operand) {
 	}
 }
 
+template <R8 r>
+void bit(Registers &registers, const uint8_t operand) {
+	const uint8_t result = operand & registers.reg<r>();
+	registers.cc.set_nz(result);
+	registers.cc.set<ConditionCode::Overflow>(false);
+}
+
 // MARK: - Shifts and rolls.
 
 inline void lsl(Registers &registers, uint8_t &value) {
@@ -178,6 +185,21 @@ inline void exg(Registers &registers, const uint8_t operand) {
 	Implementation::set(registers, top, source_values[1]);
 }
 
+inline void clr(Registers &registers, uint8_t &value) {
+	value = 0;
+
+	registers.cc.set<ConditionCode::Carry>(false);
+	registers.cc.set<ConditionCode::Overflow>(false);
+	registers.cc.set<ConditionCode::Zero>(true);
+	registers.cc.set<ConditionCode::Negative>(false);
+}
+
+template <R8 r>
+void clr(Registers &registers) {
+	clr(registers, registers.reg<r>());
+}
+
+
 // MARK: - Control flow.
 
 template <InstructionSet::M6809::Condition condition, std::unsigned_integral OperandT>
@@ -204,7 +226,8 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 	switch(operation) {
 		using enum InstructionSet::M6809::Operation;
 
-		case None:	break;
+		case None:
+		case NOP: break;
 
 		case ABX:	abx(registers);						break;
 		case ADCA:	add<R8::A, true>(registers, byte);	break;
@@ -243,7 +266,12 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case BVC:	bra<Condition::VC>(registers, byte);	break;
 		case BVS:	bra<Condition::VS>(registers, byte);	break;
 
-		// TODO: BIT, BSR
+		case BITA:	bit<R8::A>(registers, byte);			break;
+		case BITB:	bit<R8::B>(registers, byte);			break;
+
+		case CLRA:	clr<R8::A>(registers);					break;
+		case CLRB:	clr<R8::B>(registers);					break;
+		case CLR:	clr(registers, byte);					break;
 
 		case LBCC:	bra<Condition::CC>(registers, word);	break;
 		case LBCS:	bra<Condition::CS>(registers, word);	break;
@@ -275,6 +303,13 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 
 		case TFR:	tfr(registers, byte);				break;
 		case EXG:	exg(registers, byte);				break;
+
+		// TODO: something more communicative for those that don't really fit the model,
+		// such as BSR?
+		case BSR:
+		case LBSR:
+		case Page1:
+		case Page2:
 
 		default: __builtin_unreachable();
 	}
