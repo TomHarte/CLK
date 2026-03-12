@@ -304,12 +304,25 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case TFR:	tfr(registers, byte);				break;
 		case EXG:	exg(registers, byte);				break;
 
-		// TODO: something more communicative for those that don't really fit the model,
-		// such as BSR?
-		case BSR:
-		case LBSR:
-		case Page1:
-		case Page2:
+		// TODO:
+		//	CMP, COM, CWAI (sans wait), DAA, DEC, EOR, INC, JMP, NEG, OR[CC], ROL, ROR, SBC, SUB, SEX, ST, TST.
+
+		// TODO: something more communicative for those below that don't really fit the model?
+
+		// Flow control that requires stack access.
+		case JSR:	case BSR:	case LBSR:
+		case RTI:	case RTS:
+		case SWI:	case SWI2:	case SWI3:
+		case SYNC:
+
+		// Effective address calculation.
+		case LEAX:	case LEAY:	case LEAS:	case LEAU:	// TODO: maybe these could be implemented?
+
+		// Stack access.
+		case PSHS:	case PULS:	case PSHU:	case PULU:
+
+		// Operation selection.
+		case Page1:	case Page2:
 
 		default: __builtin_unreachable();
 	}
