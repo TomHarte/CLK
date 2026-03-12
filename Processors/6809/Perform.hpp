@@ -85,6 +85,13 @@ inline void addd(Registers &registers, const uint16_t operand) {
 	registers.cc.set_overflow(result, source, operand);
 }
 
+inline void mul(Registers &registers) {
+	const uint16_t result = registers.reg<R8::A>() * registers.reg<R8::B>();
+	registers.reg<R16::D>() = result;
+	registers.cc.set<ConditionCode::Zero>(result);
+	registers.cc.set<ConditionCode::Carry>(result & 0x80);
+}
+
 // MARK: - Logical.
 
 template <R8 r>
@@ -263,6 +270,8 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case LDX:	ld<R16::X>(registers, word);		break;
 		case LDY:	ld<R16::Y>(registers, word);		break;
 		case LDS:	ld<R16::S>(registers, word);		break;
+
+		case MUL:	mul(registers);						break;
 
 		case TFR:	tfr(registers, byte);				break;
 		case EXG:	exg(registers, byte);				break;
