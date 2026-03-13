@@ -352,13 +352,18 @@ PermissionDelegate permission_delegate;
 }
 
 - (instancetype)initWithCommodoreTEDModel:(CSMachineCommodoreTEDModel)model
-	hasC1541:(BOOL)hasC1541
+	diskDrive:(CSMachinePlus4DiskDrive)diskDrive
 {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Commodore::Plus4Target;
 		auto target = std::make_unique<Target>();
-		target->has_c1541 = hasC1541;
+		switch(diskDrive) {
+			case CSMachinePlus4DiskDriveNone:	target->disk_drive = Target::DiskDrive::None;	break;
+			case CSMachinePlus4DiskDriveC1541:	target->disk_drive = Target::DiskDrive::C1541;	break;
+			case CSMachinePlus4DiskDriveC1551:	target->disk_drive = Target::DiskDrive::C1551;	break;
+		}
+
 		_targets.push_back(std::move(target));
 	}
 	return self;

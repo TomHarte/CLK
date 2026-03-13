@@ -1285,7 +1285,7 @@ void MainWindow::start_spectrum() {
 void MainWindow::start_plus4() {
 	using Target = Analyser::Static::Commodore::Plus4Target;
 	auto target = std::make_unique<Target>();
-	target->has_c1541 = ui->plus4C1541CheckBox->isChecked();
+	target->disk_drive = ui->plus4C1541CheckBox->isChecked() ? Target::DiskDrive::C1541 : Target::DiskDrive::None;
 	launchTarget(std::move(target));
 }
 
