@@ -138,6 +138,29 @@ inline void mul(Registers &registers) {
 	registers.cc.set<ConditionCode::Carry>(result & 0x80);
 }
 
+inline void daa(Registers &registers) {
+	uint8_t high = registers.reg<R8::A>() >> 4;
+	uint8_t low = registers.reg<R8::A>() & 0x0f;
+
+	if(
+		registers.cc.get<ConditionCode::Carry>() ||
+		high > 9 ||
+		(high > 8 && low > 9)
+	) {
+		high += 6;
+	}
+	if(
+		registers.cc.get<ConditionCode::HalfCarry>() ||
+		low > 9
+	) {
+		low += 6;
+	}
+
+	const uint8_t result = uint8_t((high << 4) | (low & 0x0f));
+	registers.cc.set_nz(result);
+	registers.cc.set<ConditionCode::Carry>(high >= 16);
+}
+
 // MARK: - Logical.
 
 template <R8 r>
@@ -221,6 +244,31 @@ void lsr(Registers &registers) {
 	lsr(registers, registers.reg<r>());
 }
 
+inline void rol(Registers &registers, uint8_t &value) {
+	registers.cc.set<ConditionCode::Overflow>((value ^ (value << 1)) & 0x80);
+	const auto next_carry = value & 0x80;
+	value = uint8_t((value << 1) | registers.cc.carry());
+	registers.cc.set_nz(value);
+	registers.cc.set<ConditionCode::Carry>(next_carry);
+}
+
+template <R8 r>
+void rol(Registers &registers) {
+	rol(registers, registers.reg<r>());
+}
+
+inline void ror(Registers &registers, uint8_t &value) {
+	const auto next_carry = value & 1;
+	value = uint8_t((value >> 1) | (registers.cc.carry() << 7));
+	registers.cc.set_nz(value);
+	registers.cc.set<ConditionCode::Carry>(next_carry);
+}
+
+template <R8 r>
+void ror(Registers &registers) {
+	ror(registers, registers.reg<r>());
+}
+
 // MARK: - Data Transfer.
 
 template <R8 r>
@@ -230,9 +278,23 @@ void ld(Registers &registers, const uint8_t operand) {
 	registers.cc.set<ConditionCode::Overflow>(false);
 }
 
+template <R8 r>
+void st(Registers &registers, uint8_t &operand) {
+	operand = registers.reg<r>();
+	registers.cc.set_nz(operand);
+	registers.cc.set<ConditionCode::Overflow>(false);
+}
+
 template <R16 r>
 void ld(Registers &registers, const uint16_t operand) {
 	registers.reg<r>() = operand;
+	registers.cc.set_nz(operand);
+	registers.cc.set<ConditionCode::Overflow>(false);
+}
+
+template <R16 r>
+void st(Registers &registers, uint16_t &operand) {
+	operand = registers.reg<r>();
 	registers.cc.set_nz(operand);
 	registers.cc.set<ConditionCode::Overflow>(false);
 }
@@ -313,6 +375,8 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case ADDB:	add<R8::B, false>(registers, byte);	break;
 		case ADDD:	addd(registers, word);				break;
 
+		case DAA:	daa(registers);						break;
+
 		case ANDA:	and_<R8::A>(registers, byte);		break;
 		case ANDB:	and_<R8::B>(registers, byte);		break;
 		case ANDCC:	and_<R8::CC>(registers, byte);		break;
@@ -345,6 +409,12 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case LSRA:	lsr<R8::A>(registers);				break;
 		case LSRB:	lsr<R8::B>(registers);				break;
 		case LSR:	lsr(registers, byte);				break;
+		case ROLA:	rol<R8::A>(registers);				break;
+		case ROLB:	rol<R8::B>(registers);				break;
+		case ROL:	rol(registers, byte);				break;
+		case RORA:	ror<R8::A>(registers);				break;
+		case RORB:	ror<R8::B>(registers);				break;
+		case ROR:	ror(registers, byte);				break;
 
 		case BCC:	bra<Condition::CC>(registers, byte);	break;
 		case BCS:	bra<Condition::CS>(registers, byte);	break;
@@ -389,12 +459,19 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 
 		case LDA:	ld<R8::A>(registers, byte);			break;
 		case LDB:	ld<R8::B>(registers, byte);			break;
+		case STA:	st<R8::A>(registers, byte);			break;
+		case STB:	st<R8::B>(registers, byte);			break;
 
 		case LDD:	ld<R16::D>(registers, word);		break;
 		case LDU:	ld<R16::U>(registers, word);		break;
 		case LDX:	ld<R16::X>(registers, word);		break;
 		case LDY:	ld<R16::Y>(registers, word);		break;
 		case LDS:	ld<R16::S>(registers, word);		break;
+		case STD:	st<R16::D>(registers, word);		break;
+		case STU:	st<R16::U>(registers, word);		break;
+		case STX:	st<R16::X>(registers, word);		break;
+		case STY:	st<R16::Y>(registers, word);		break;
+		case STS:	st<R16::S>(registers, word);		break;
 
 		case MUL:	mul(registers);						break;
 
@@ -407,7 +484,7 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case TST:	tst(registers, byte);				break;
 
 		// TODO:
-		//	CMP, CWAI (sans wait), DAA, ROL, ROR, SBC, SUB, ST.
+		//	SBC, SUB, CMP.
 
 		// TODO: something more communicative for those below that don't really fit the model?
 
@@ -415,7 +492,7 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case JSR:	case BSR:	case LBSR:	case JMP:
 		case RTI:	case RTS:
 		case SWI:	case SWI2:	case SWI3:
-		case SYNC:
+		case SYNC:	case RESET:	case CWAI:
 
 		// Effective address calculation.
 		case LEAX:	case LEAY:	case LEAS:	case LEAU:	// TODO: maybe these could be implemented?
@@ -425,6 +502,7 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 
 		// Operation selection.
 		case Page1:	case Page2:
+		break;
 
 		default: __builtin_unreachable();
 	}
