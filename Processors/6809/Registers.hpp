@@ -205,23 +205,23 @@ struct IndexedAddressDecoder {
 	IndexedAddressDecoder(const uint8_t format) : format_(format) {}
 
 	enum FormSuffix: uint8_t {
-		Offset8bit = 0b00110,
-		Offset8bitFromPC = 0b01100,
-		Offset16bit = 0b01001,
-		Offset16bitFromPC = 0b01101,
-		NoOffset = 0b00100,
-		ARegisterOffset = 0b00110,
-		BRegisterOffset = 0b00101,
-		DRegisterOffset = 0b01011,
-		IncrementBy1 = 0b01011,
-		IncrementBy2 = 0b00001,
-		DecrementBy1 = 0b00010,
-		DecrementBy2 = 0b00011,
+		Offset8bit = 0b1000,
+		Offset8bitFromPC = 0b1100,
+		Offset16bit = 0b1001,
+		Offset16bitFromPC = 0b1101,
+		NoOffset = 0b0100,
+		ARegisterOffset = 0b0110,
+		BRegisterOffset = 0b0101,
+		DRegisterOffset = 0b1011,
+		IncrementBy1 = 0b1011,
+		IncrementBy2 = 0b0001,
+		DecrementBy1 = 0b0010,
+		DecrementBy2 = 0b0011,
 	};
 
 	int required_continuation() const {
 		if(!(format_ & 0x80)) return 0;
-		switch(format_ & 0b11111) {
+		switch(format_ & 0b1111) {
 			using enum FormSuffix;
 			case Offset8bit:	case Offset8bitFromPC:	return 1;
 			case Offset16bit:	case Offset16bitFromPC:	return 2;
@@ -242,15 +242,15 @@ struct IndexedAddressDecoder {
 			if(
 				(format_ & 0x80) &&
 				(
-					((format_ & 0b11111) == FormSuffix::Offset8bitFromPC) ||
-					((format_ & 0b11111) == FormSuffix::Offset16bitFromPC)
+					((format_ & 0b1111) == FormSuffix::Offset8bitFromPC) ||
+					((format_ & 0b1111) == FormSuffix::Offset16bitFromPC)
 				)
 			) {
 				return registers.reg<R16::PC>();
 			}
 
 			const int offset = [&] {
-				switch(format_ & 0b11111) {
+				switch(format_ & 0b1111) {
 					default: return 0;
 					case DecrementBy2: return -2;
 					case DecrementBy1: return -1;
@@ -275,7 +275,7 @@ struct IndexedAddressDecoder {
 			return uint16_t(base + (int8_t(format_ << 3) >> 3));
 		}
 
-		switch(format_ & 0b11111) {
+		switch(format_ & 0b1111) {
 			using enum FormSuffix;
 
 			default:	return base;
@@ -285,13 +285,16 @@ struct IndexedAddressDecoder {
 			case Offset8bitFromPC:	return uint16_t(registers.reg<R16::PC>() + int8_t(continuation_));
 			case Offset16bitFromPC:	return uint16_t(registers.reg<R16::PC>() + continuation_);
 
-			// TODO: verify that these are signed.
-//			case ARegisterOffset:	return uint16_t(base + int8_t(registers.reg<R8::A>()));	// TODO: enable once enum is disambiguated.
+			case ARegisterOffset:	return uint16_t(base + int8_t(registers.reg<R8::A>()));
 			case BRegisterOffset:	return uint16_t(base + int8_t(registers.reg<R8::B>()));
 			case DRegisterOffset:	return base + registers.reg<R16::D>();
 		}
 
 		return base;
+	}
+
+	bool indirect() const {
+		return (format_ & 0x90) == 0x90;
 	}
 
 private:
