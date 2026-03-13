@@ -83,6 +83,30 @@ inline void abx(Registers &registers) {
 	registers.reg<R16::X>() += registers.reg<R8::B>();
 }
 
+inline void neg(Registers &registers, uint8_t &value) {
+	registers.cc.set<ConditionCode::Overflow>(value == 0x80);
+	registers.cc.set<ConditionCode::Carry>(!value);
+	value = -value;
+	registers.cc.set_nz(value);
+}
+
+template <R8 r>
+void neg(Registers &registers) {
+	neg(registers, registers.reg<r>());
+}
+
+inline void com(Registers &registers, uint8_t &value) {
+	value = ~value;
+	registers.cc.set_nz(value);
+	registers.cc.set<ConditionCode::Overflow>(false);
+	registers.cc.set<ConditionCode::Carry>(true);
+}
+
+template <R8 r>
+void com(Registers &registers) {
+	com(registers, registers.reg<r>());
+}
+
 template <R8 r, bool with_carry>
 void add(Registers &registers, const uint8_t operand) {
 	const uint8_t source = registers.reg<r>();
@@ -305,6 +329,13 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case DECB:	dec<R8::B>(registers);				break;
 		case DEC:	dec(registers, byte);				break;
 
+		case NEGA:	neg<R8::A>(registers);				break;
+		case NEGB:	neg<R8::B>(registers);				break;
+		case NEG:	neg(registers, byte);				break;
+		case COMA:	com<R8::A>(registers);				break;
+		case COMB:	com<R8::B>(registers);				break;
+		case COM:	com(registers, byte);				break;
+
 		case ASRA:	asr<R8::A>(registers);				break;
 		case ASRB:	asr<R8::B>(registers);				break;
 		case ASR:	asr(registers, byte);				break;
@@ -376,12 +407,12 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case TST:	tst(registers, byte);				break;
 
 		// TODO:
-		//	CMP, COM, CWAI (sans wait), DAA,  JMP, NEG, ROL, ROR, SBC, SUB, ST.
+		//	CMP, CWAI (sans wait), DAA, ROL, ROR, SBC, SUB, ST.
 
 		// TODO: something more communicative for those below that don't really fit the model?
 
 		// Flow control that requires stack access.
-		case JSR:	case BSR:	case LBSR:
+		case JSR:	case BSR:	case LBSR:	case JMP:
 		case RTI:	case RTS:
 		case SWI:	case SWI2:	case SWI3:
 		case SYNC:
