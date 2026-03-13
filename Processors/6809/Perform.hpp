@@ -57,6 +57,28 @@ inline void set(Registers &registers, const int index, const uint16_t value) {
 
 // MARK: - Arithmetic.
 
+inline void inc(Registers &registers, uint8_t &value) {
+	++value;
+	registers.cc.set_nz(value);
+	registers.cc.set<ConditionCode::Overflow>(value == 0x80);
+}
+
+template <R8 r>
+void inc(Registers &registers) {
+	inc(registers, registers.reg<r>());
+}
+
+inline void dec(Registers &registers, uint8_t &value) {
+	--value;
+	registers.cc.set_nz(value);
+	registers.cc.set<ConditionCode::Overflow>(value == 0x7f);
+}
+
+template <R8 r>
+void dec(Registers &registers) {
+	dec(registers, registers.reg<r>());
+}
+
 inline void abx(Registers &registers) {
 	registers.reg<R16::X>() += registers.reg<R8::B>();
 }
@@ -105,10 +127,36 @@ void and_(Registers &registers, const uint8_t operand) {
 }
 
 template <R8 r>
+void or_(Registers &registers, const uint8_t operand) {
+	if constexpr (r == R8::CC) {
+		registers.reg<R8::CC>() = registers.reg<R8::CC>() | operand;
+	} else {
+		registers.cc.set_nz(registers.reg<r>() |= operand);
+		registers.cc.set<ConditionCode::Overflow>(false);
+	}
+}
+
+template <R8 r>
+void eor_(Registers &registers, const uint8_t operand) {
+	registers.cc.set_nz(registers.reg<r>() ^= operand);
+	registers.cc.set<ConditionCode::Overflow>(false);
+}
+
+template <R8 r>
 void bit(Registers &registers, const uint8_t operand) {
 	const uint8_t result = operand & registers.reg<r>();
 	registers.cc.set_nz(result);
 	registers.cc.set<ConditionCode::Overflow>(false);
+}
+
+inline void tst(Registers &registers, const uint8_t value) {
+	registers.cc.set_nz(value);
+	registers.cc.set<ConditionCode::Overflow>(false);
+}
+
+template <R8 r>
+void tst(Registers &registers) {
+	tst(registers, registers.reg<r>());
 }
 
 // MARK: - Shifts and rolls.
@@ -199,6 +247,11 @@ void clr(Registers &registers) {
 	clr(registers, registers.reg<r>());
 }
 
+inline void sex(Registers &registers) {
+	const uint8_t bottom = registers.reg<R8::B>();
+	registers.reg<R8::A>() = (bottom & 0x80) ? 0xff : 0x00;
+	registers.cc.set_nz(bottom);
+}
 
 // MARK: - Control flow.
 
@@ -235,9 +288,22 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case ADDA:	add<R8::A, false>(registers, byte);	break;
 		case ADDB:	add<R8::B, false>(registers, byte);	break;
 		case ADDD:	addd(registers, word);				break;
+
 		case ANDA:	and_<R8::A>(registers, byte);		break;
 		case ANDB:	and_<R8::B>(registers, byte);		break;
 		case ANDCC:	and_<R8::CC>(registers, byte);		break;
+		case ORA:	or_<R8::A>(registers, byte);		break;
+		case ORB:	or_<R8::B>(registers, byte);		break;
+		case ORCC:	or_<R8::CC>(registers, byte);		break;
+		case EORA:	eor_<R8::A>(registers, byte);		break;
+		case EORB:	eor_<R8::B>(registers, byte);		break;
+
+		case INCA:	inc<R8::A>(registers);				break;
+		case INCB:	inc<R8::B>(registers);				break;
+		case INC:	inc(registers, byte);				break;
+		case DECA:	dec<R8::A>(registers);				break;
+		case DECB:	dec<R8::B>(registers);				break;
+		case DEC:	dec(registers, byte);				break;
 
 		case ASRA:	asr<R8::A>(registers);				break;
 		case ASRB:	asr<R8::B>(registers);				break;
@@ -304,8 +370,13 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case TFR:	tfr(registers, byte);				break;
 		case EXG:	exg(registers, byte);				break;
 
+		case SEX:	sex(registers);						break;
+		case TSTA:	tst<R8::A>(registers);				break;
+		case TSTB:	tst<R8::B>(registers);				break;
+		case TST:	tst(registers, byte);				break;
+
 		// TODO:
-		//	CMP, COM, CWAI (sans wait), DAA, DEC, EOR, INC, JMP, NEG, OR[CC], ROL, ROR, SBC, SUB, SEX, ST, TST.
+		//	CMP, COM, CWAI (sans wait), DAA,  JMP, NEG, ROL, ROR, SBC, SUB, ST.
 
 		// TODO: something more communicative for those below that don't really fit the model?
 
