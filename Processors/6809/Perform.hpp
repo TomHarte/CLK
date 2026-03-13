@@ -131,6 +131,33 @@ inline void addd(Registers &registers, const uint16_t operand) {
 	registers.cc.set_overflow(result, source, operand);
 }
 
+template <R8 r, bool with_carry, bool store_result>
+void sub(Registers &registers, const uint8_t operand) {
+	const uint8_t source = registers.reg<r>();
+	const uint8_t result = source - operand - (with_carry ? registers.cc.carry() : 0);
+
+	registers.cc.set_nz(result);
+	registers.cc.set_overflow(result, uint8_t(~source), operand);
+	registers.cc.set<ConditionCode::Carry>(result > source);
+
+	const uint8_t half = (source & 0xf) - (operand & 0xf) - (with_carry ? registers.cc.carry() : 0);
+	registers.cc.set<ConditionCode::HalfCarry>(half & 0x10);
+
+	if constexpr (store_result) registers.reg<r>() = result;
+}
+
+template <R16 r, bool store_result>
+void sub(Registers &registers, const uint16_t operand) {
+	const uint16_t source = registers.reg<r>();
+	const uint16_t result = source - operand;
+
+	registers.cc.set_nz(result);
+	registers.cc.set_overflow(result, uint16_t(~source), operand);
+	registers.cc.set<ConditionCode::Carry>(result > source);
+
+	if constexpr (store_result) registers.reg<r>() = result;
+}
+
 inline void mul(Registers &registers) {
 	const uint16_t result = registers.reg<R8::A>() * registers.reg<R8::B>();
 	registers.reg<R16::D>() = result;
@@ -357,6 +384,9 @@ void bra(Registers &registers, const OperandT operand) {
 
 // MARK: - Dispatch.
 
+/// Performs anything that doesn't involve calculating an effective address, manipulating the stack or affecting the ongoing flow of operation,
+/// i.e. the subset of instructions that can be rationalised as not touching memory or having any knowledge of the instruction stream once
+/// an appropriately-sized operand has been fetched.
 inline void perform(const InstructionSet::M6809::Operation operation, Registers &registers, RegisterPair16 &operand) {
 	auto &byte = operand.halves.low;
 	auto &word = operand.full;
@@ -369,52 +399,67 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case NOP: break;
 
 		case ABX:	abx(registers);						break;
+
 		case ADCA:	add<R8::A, true>(registers, byte);	break;
 		case ADCB:	add<R8::B, true>(registers, byte);	break;
 		case ADDA:	add<R8::A, false>(registers, byte);	break;
 		case ADDB:	add<R8::B, false>(registers, byte);	break;
 		case ADDD:	addd(registers, word);				break;
 
-		case DAA:	daa(registers);						break;
+		case SBCA:	sub<R8::A, true, true>(registers, byte);	break;
+		case SBCB:	sub<R8::B, true, true>(registers, byte);	break;
+		case SUBA:	sub<R8::A, false, true>(registers, byte);	break;
+		case SUBB:	sub<R8::B, false, true>(registers, byte);	break;
+		case CMPA:	sub<R8::A, false, false>(registers, byte);	break;
+		case CMPB:	sub<R8::B, false, false>(registers, byte);	break;
 
-		case ANDA:	and_<R8::A>(registers, byte);		break;
-		case ANDB:	and_<R8::B>(registers, byte);		break;
-		case ANDCC:	and_<R8::CC>(registers, byte);		break;
-		case ORA:	or_<R8::A>(registers, byte);		break;
-		case ORB:	or_<R8::B>(registers, byte);		break;
-		case ORCC:	or_<R8::CC>(registers, byte);		break;
-		case EORA:	eor_<R8::A>(registers, byte);		break;
-		case EORB:	eor_<R8::B>(registers, byte);		break;
+		case SUBD:	sub<R16::D, true>(registers, word);		break;
+		case CMPX:	sub<R16::X, false>(registers, word);	break;
+		case CMPD:	sub<R16::D, false>(registers, word);	break;
+		case CMPY:	sub<R16::Y, false>(registers, word);	break;
+		case CMPU:	sub<R16::U, false>(registers, word);	break;
+		case CMPS:	sub<R16::S, false>(registers, word);	break;
 
-		case INCA:	inc<R8::A>(registers);				break;
-		case INCB:	inc<R8::B>(registers);				break;
-		case INC:	inc(registers, byte);				break;
-		case DECA:	dec<R8::A>(registers);				break;
-		case DECB:	dec<R8::B>(registers);				break;
-		case DEC:	dec(registers, byte);				break;
+		case DAA:	daa(registers);							break;
 
-		case NEGA:	neg<R8::A>(registers);				break;
-		case NEGB:	neg<R8::B>(registers);				break;
-		case NEG:	neg(registers, byte);				break;
-		case COMA:	com<R8::A>(registers);				break;
-		case COMB:	com<R8::B>(registers);				break;
-		case COM:	com(registers, byte);				break;
+		case ANDA:	and_<R8::A>(registers, byte);			break;
+		case ANDB:	and_<R8::B>(registers, byte);			break;
+		case ANDCC:	and_<R8::CC>(registers, byte);			break;
+		case ORA:	or_<R8::A>(registers, byte);			break;
+		case ORB:	or_<R8::B>(registers, byte);			break;
+		case ORCC:	or_<R8::CC>(registers, byte);			break;
+		case EORA:	eor_<R8::A>(registers, byte);			break;
+		case EORB:	eor_<R8::B>(registers, byte);			break;
 
-		case ASRA:	asr<R8::A>(registers);				break;
-		case ASRB:	asr<R8::B>(registers);				break;
-		case ASR:	asr(registers, byte);				break;
-		case LSLA:	lsl<R8::A>(registers);				break;
-		case LSLB:	lsl<R8::B>(registers);				break;
-		case LSL:	lsl(registers, byte);				break;
-		case LSRA:	lsr<R8::A>(registers);				break;
-		case LSRB:	lsr<R8::B>(registers);				break;
-		case LSR:	lsr(registers, byte);				break;
-		case ROLA:	rol<R8::A>(registers);				break;
-		case ROLB:	rol<R8::B>(registers);				break;
-		case ROL:	rol(registers, byte);				break;
-		case RORA:	ror<R8::A>(registers);				break;
-		case RORB:	ror<R8::B>(registers);				break;
-		case ROR:	ror(registers, byte);				break;
+		case INCA:	inc<R8::A>(registers);					break;
+		case INCB:	inc<R8::B>(registers);					break;
+		case INC:	inc(registers, byte);					break;
+		case DECA:	dec<R8::A>(registers);					break;
+		case DECB:	dec<R8::B>(registers);					break;
+		case DEC:	dec(registers, byte);					break;
+
+		case NEGA:	neg<R8::A>(registers);					break;
+		case NEGB:	neg<R8::B>(registers);					break;
+		case NEG:	neg(registers, byte);					break;
+		case COMA:	com<R8::A>(registers);					break;
+		case COMB:	com<R8::B>(registers);					break;
+		case COM:	com(registers, byte);					break;
+
+		case ASRA:	asr<R8::A>(registers);					break;
+		case ASRB:	asr<R8::B>(registers);					break;
+		case ASR:	asr(registers, byte);					break;
+		case LSLA:	lsl<R8::A>(registers);					break;
+		case LSLB:	lsl<R8::B>(registers);					break;
+		case LSL:	lsl(registers, byte);					break;
+		case LSRA:	lsr<R8::A>(registers);					break;
+		case LSRB:	lsr<R8::B>(registers);					break;
+		case LSR:	lsr(registers, byte);					break;
+		case ROLA:	rol<R8::A>(registers);					break;
+		case ROLB:	rol<R8::B>(registers);					break;
+		case ROL:	rol(registers, byte);					break;
+		case RORA:	ror<R8::A>(registers);					break;
+		case RORB:	ror<R8::B>(registers);					break;
+		case ROR:	ror(registers, byte);					break;
 
 		case BCC:	bra<Condition::CC>(registers, byte);	break;
 		case BCS:	bra<Condition::CS>(registers, byte);	break;
@@ -457,36 +502,31 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case LBVC:	bra<Condition::VC>(registers, word);	break;
 		case LBVS:	bra<Condition::VS>(registers, word);	break;
 
-		case LDA:	ld<R8::A>(registers, byte);			break;
-		case LDB:	ld<R8::B>(registers, byte);			break;
-		case STA:	st<R8::A>(registers, byte);			break;
-		case STB:	st<R8::B>(registers, byte);			break;
+		case LDA:	ld<R8::A>(registers, byte);				break;
+		case LDB:	ld<R8::B>(registers, byte);				break;
+		case STA:	st<R8::A>(registers, byte);				break;
+		case STB:	st<R8::B>(registers, byte);				break;
 
-		case LDD:	ld<R16::D>(registers, word);		break;
-		case LDU:	ld<R16::U>(registers, word);		break;
-		case LDX:	ld<R16::X>(registers, word);		break;
-		case LDY:	ld<R16::Y>(registers, word);		break;
-		case LDS:	ld<R16::S>(registers, word);		break;
-		case STD:	st<R16::D>(registers, word);		break;
-		case STU:	st<R16::U>(registers, word);		break;
-		case STX:	st<R16::X>(registers, word);		break;
-		case STY:	st<R16::Y>(registers, word);		break;
-		case STS:	st<R16::S>(registers, word);		break;
+		case LDD:	ld<R16::D>(registers, word);			break;
+		case LDU:	ld<R16::U>(registers, word);			break;
+		case LDX:	ld<R16::X>(registers, word);			break;
+		case LDY:	ld<R16::Y>(registers, word);			break;
+		case LDS:	ld<R16::S>(registers, word);			break;
+		case STD:	st<R16::D>(registers, word);			break;
+		case STU:	st<R16::U>(registers, word);			break;
+		case STX:	st<R16::X>(registers, word);			break;
+		case STY:	st<R16::Y>(registers, word);			break;
+		case STS:	st<R16::S>(registers, word);			break;
 
-		case MUL:	mul(registers);						break;
+		case MUL:	mul(registers);							break;
 
-		case TFR:	tfr(registers, byte);				break;
-		case EXG:	exg(registers, byte);				break;
+		case TFR:	tfr(registers, byte);					break;
+		case EXG:	exg(registers, byte);					break;
 
-		case SEX:	sex(registers);						break;
-		case TSTA:	tst<R8::A>(registers);				break;
-		case TSTB:	tst<R8::B>(registers);				break;
-		case TST:	tst(registers, byte);				break;
-
-		// TODO:
-		//	SBC, SUB, CMP.
-
-		// TODO: something more communicative for those below that don't really fit the model?
+		case SEX:	sex(registers);							break;
+		case TSTA:	tst<R8::A>(registers);					break;
+		case TSTB:	tst<R8::B>(registers);					break;
+		case TST:	tst(registers, byte);					break;
 
 		// Flow control that requires stack access.
 		case JSR:	case BSR:	case LBSR:	case JMP:
@@ -495,7 +535,7 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case SYNC:	case RESET:	case CWAI:
 
 		// Effective address calculation.
-		case LEAX:	case LEAY:	case LEAS:	case LEAU:	// TODO: maybe these could be implemented?
+		case LEAX:	case LEAY:	case LEAS:	case LEAU:
 
 		// Stack access.
 		case PSHS:	case PULS:	case PSHU:	case PULU:
