@@ -224,8 +224,10 @@ struct Processor {
 
 		uint8_t opcode = 0;
 		while(true) switch(resume_point_) {
-			default:
+			default: {
+				[[maybe_unused]] const auto mode = AddressingMode(resume_point_ - ResumePoint::Max);
 				__builtin_unreachable();
+			}
 
 			// MARK: - Exceptions.
 
@@ -239,7 +241,6 @@ struct Processor {
 				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<0xffff>(), registers_.pc.halves.low);
 
 				goto fetch_decode;
-
 
 			// MARK: - Fetch/decode.
 
@@ -261,6 +262,7 @@ struct Processor {
 				{
 					const auto decoding = Reflection::dispatch(op_mapper0, opcode, op_returner);
 					operation_ = decoding.first;
+					printf("Operation %d\n", operation_);
 					resume_point_ = ResumePoint::Max + int(decoding.second);
 					break;
 				}
@@ -331,6 +333,9 @@ private:
 
 	int resume_point_ = ResumePoint::FetchDecode;
 	InstructionSet::M6809::Operation operation_;
+#ifndef NDEBUG
+	AddressingMode addressing_mode_;
+#endif
 	Registers registers_;
 
 	enum Exceptions: uint8_t {

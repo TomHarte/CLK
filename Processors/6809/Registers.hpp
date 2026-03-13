@@ -201,4 +201,102 @@ struct Registers {
 	}
 };
 
+struct IndexedAddressDecoder {
+	IndexedAddressDecoder(const uint8_t format) : format_(format) {}
+
+	enum FormSuffix: uint8_t {
+		Offset8bit = 0b00110,
+		Offset8bitFromPC = 0b01100,
+		Offset16bit = 0b01001,
+		Offset16bitFromPC = 0b01101,
+		NoOffset = 0b00100,
+		ARegisterOffset = 0b00110,
+		BRegisterOffset = 0b00101,
+		DRegisterOffset = 0b01011,
+		IncrementBy1 = 0b01011,
+		IncrementBy2 = 0b00001,
+		DecrementBy1 = 0b00010,
+		DecrementBy2 = 0b00011,
+	};
+
+	int required_continuation() const {
+		if(!(format_ & 0x80)) return 0;
+		switch(format_ & 0b11111) {
+			using enum FormSuffix;
+			case Offset8bit:	case Offset8bitFromPC:	return 1;
+			case Offset16bit:	case Offset16bitFromPC:	return 2;
+			default: return 0;
+		}
+	}
+
+	void set_continuation(const uint16_t continuation) {
+		continuation_ = continuation;
+	}
+
+	// Evaluates the address implied by this indexed address, assuming all required continuation bytes have
+	// been provided.
+	//
+	// Will apply any automatic increment or decrement to the registers.
+	uint16_t address(Registers &registers) const {
+		const uint16_t base = [&] {
+			if(
+				(format_ & 0x80) &&
+				(
+					((format_ & 0b11111) == FormSuffix::Offset8bitFromPC) ||
+					((format_ & 0b11111) == FormSuffix::Offset16bitFromPC)
+				)
+			) {
+				return registers.reg<R16::PC>();
+			}
+
+			const int offset = [&] {
+				switch(format_ & 0b11111) {
+					default: return 0;
+					case DecrementBy2: return -2;
+					case DecrementBy1: return -1;
+					case IncrementBy1: return 1;
+					case IncrementBy2: return 2;
+				}
+			} ();
+
+			switch((format_ >> 5) & 3) {
+				case 0b00:	return registers.reg<R16::X>() += offset;
+				case 0b01:	return registers.reg<R16::Y>() += offset;
+				case 0b10:	return registers.reg<R16::U>() += offset;
+				case 0b11:	return registers.reg<R16::S>() += offset;
+				default: __builtin_unreachable();
+			}
+		} ();
+
+		// A high bit of 0 implies the low five bits are the offset.
+		if(!(format_ & 0x80)) {
+			// Shift sign bit up to bit 7 and convert to int8_t to effect it.
+			// Then shift back down to get the correct value.
+			return uint16_t(base + (int8_t(format_ << 3) >> 3));
+		}
+
+		switch(format_ & 0b11111) {
+			using enum FormSuffix;
+
+			default:	return base;
+
+			case Offset8bit:		return uint16_t(base + int8_t(continuation_));
+			case Offset16bit:		return uint16_t(base + continuation_);
+			case Offset8bitFromPC:	return uint16_t(registers.reg<R16::PC>() + int8_t(continuation_));
+			case Offset16bitFromPC:	return uint16_t(registers.reg<R16::PC>() + continuation_);
+
+			// TODO: verify that these are signed.
+//			case ARegisterOffset:	return uint16_t(base + int8_t(registers.reg<R8::A>()));	// TODO: enable once enum is disambiguated.
+			case BRegisterOffset:	return uint16_t(base + int8_t(registers.reg<R8::B>()));
+			case DRegisterOffset:	return base + registers.reg<R16::D>();
+		}
+
+		return base;
+	}
+
+private:
+	uint8_t format_;
+	uint16_t continuation_ = 0;
+};
+
 }

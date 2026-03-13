@@ -20,15 +20,26 @@ namespace InstructionSet::M6809 {
 enum class AddressingMode {
 	Illegal,
 
-	Inherent,
-	Immediate8,
-	Immediate16,
-	Direct,
-	Relative8,
-	Relative16,
-	Variant,
-	Indexed,
-	Extended,
+	Inherent,		// No operand.
+	Immediate8,		// 8-bit operand.
+	Immediate16,	// 16-bit operand.
+	Relative8,		// For branches; an 8-bit operand gives a signed offset from the PC.
+	Relative16,		// For branches; a 16-bit operand gives an offset from the PC.
+	Variant,		// Specialised 'addressing mode' that indicates an instruction map page change.
+
+	// TODO: the following probably need to split into read/write/modify alternatives.
+
+	Direct,			// An 8-bit operand provides the low byte of an in-memory address. The DPR provides the high.
+	Extended,		// Provides a full 16-bit address as an operand.
+
+	Indexed,		// A byte follows the instruction, specifying:
+					//
+					//	b7:	1 = indexed; 0 = 5-bit offset;
+					//	b6-b5: register select (00 = X, 01 = Y, 10 = U, 11 = S)
+					//	b4: 1 = indirect; 0 = not;
+					//	b0–3: sub-mode or 5-bit offset.
+					//
+					// One or two additional further bytes may then follow.
 
 	Max,
 };
