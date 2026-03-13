@@ -14,7 +14,7 @@
 #include "Storage/TargetPlatforms.hpp"
 
 #include <cstdint>
-#include <string>
+#include <string_view>
 
 namespace Storage::Tape {
 
@@ -28,7 +28,7 @@ public:
 
 		@throws ErrorNotCommodoreTAP if this file could not be opened and recognised as a valid Commodore-format TAP.
 	*/
-	CommodoreTAP(const std::string &file_name);
+	CommodoreTAP(std::string_view file_name);
 
 	enum {
 		ErrorNotCommodoreTAP
@@ -53,7 +53,7 @@ private:
 	};
 
 	struct Serialiser: public FormatSerialiser {
-		Serialiser(const std::string &file_name, Pulse initial, bool half_waves, bool updated_layout);
+		Serialiser(std::string_view file_name, Pulse initial, bool half_waves, bool updated_layout);
 
 	private:
 		bool is_at_end() const override;

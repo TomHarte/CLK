@@ -11,7 +11,7 @@
 #include "Storage/Disk/DiskImage/DiskImage.hpp"
 #include "Storage/FileHolder.hpp"
 
-#include <string>
+#include <string_view>
 
 namespace Storage::Disk {
 
@@ -20,7 +20,7 @@ namespace Storage::Disk {
 */
 class WOZ: public DiskImage {
 public:
-	WOZ(const std::string &file_name);
+	WOZ(std::string_view file_name);
 
 	// Implemented to satisfy @c DiskImage.
 	HeadPosition maximum_head_position() const;
@@ -29,7 +29,7 @@ public:
 	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
 	bool is_read_only() const;
 	bool tracks_differ(Track::Address, Track::Address) const;
-	bool represents(const std::string &) const;
+	bool represents(std::string_view) const;
 
 private:
 	mutable Storage::FileHolder file_;

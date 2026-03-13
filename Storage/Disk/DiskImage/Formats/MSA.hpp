@@ -11,6 +11,8 @@
 #include "Storage/Disk/DiskImage/DiskImage.hpp"
 #include "Storage/FileHolder.hpp"
 
+#include <cstdint>
+#include <string_view>
 #include <vector>
 
 namespace Storage::Disk {
@@ -21,14 +23,14 @@ namespace Storage::Disk {
 */
 class MSA final: public DiskImage {
 public:
-	MSA(const std::string &file_name);
+	MSA(std::string_view file_name);
 
 	// Implemented to satisfy @c DiskImage.
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 	bool is_read_only() const { return false; }
-	bool represents(const std::string &) const;
+	bool represents(std::string_view) const;
 
 private:
 	mutable FileHolder file_;

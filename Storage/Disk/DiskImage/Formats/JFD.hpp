@@ -10,19 +10,19 @@
 
 #include "Storage/Disk/DiskImage/DiskImage.hpp"
 
-#include <string>
+#include <string_view>
 #include <zlib.h>
 
 namespace Storage::Disk {
 
 class JFD: public DiskImage {
 public:
-	JFD(const std::string &file_name);
+	JFD(std::string_view file_name);
 
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
-	bool represents(const std::string &) const;
+	bool represents(std::string_view) const;
 
 private:
 	std::string file_name_;

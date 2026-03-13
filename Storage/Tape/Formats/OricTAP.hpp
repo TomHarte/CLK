@@ -12,7 +12,7 @@
 #include "Storage/FileHolder.hpp"
 
 #include <cstdint>
-#include <string>
+#include <string_view>
 
 namespace Storage::Tape {
 
@@ -26,7 +26,7 @@ public:
 
 		@throws ErrorNotOricTAP if this file could not be opened and recognised as a valid Oric-format TAP.
 	*/
-	OricTAP(const std::string &file_name);
+	OricTAP(std::string_view file_name);
 
 	enum {
 		ErrorNotOricTAP
@@ -36,7 +36,7 @@ private:
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
 	struct Serialiser: public FormatSerialiser {
-		Serialiser(const std::string &file_name);
+		Serialiser(std::string_view file_name);
 
 	private:
 		bool is_at_end() const override;

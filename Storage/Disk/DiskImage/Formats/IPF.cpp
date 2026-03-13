@@ -36,7 +36,7 @@ size_t block_size(Storage::FileHolder &file, const uint8_t header) {
 
 }
 
-IPF::IPF(const std::string &file_name) : file_(file_name) {
+IPF::IPF(const std::string_view file_name) : file_(file_name) {
 	std::map<uint32_t, Track::Address> tracks_by_data_key;
 
 	// For now, just build up a list of tracks that exist, noting the file position at which their data begins
@@ -438,6 +438,6 @@ void IPF::add_raw_data(std::vector<Storage::Disk::PCMSegment> &track, Time bit_l
 	segment.data.resize(num_bits);
 }
 
-bool IPF::represents(const std::string &name) const {
+bool IPF::represents(const std::string_view name) const {
 	return name == file_.name();
 }

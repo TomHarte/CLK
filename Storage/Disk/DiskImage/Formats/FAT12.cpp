@@ -12,7 +12,7 @@
 
 using namespace Storage::Disk;
 
-FAT12::FAT12(const std::string &file_name) :
+FAT12::FAT12(const std::string_view file_name) :
 	MFMSectorDump(file_name) {
 	// The only sanity check here is whether a sensible
 	// geometry is encoded in the first sector, or can be guessed.

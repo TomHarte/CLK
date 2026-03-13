@@ -48,7 +48,7 @@
 
 using namespace Storage::Tape;
 
-PRG::PRG(const std::string &file_name) : file_name_(file_name) {
+PRG::PRG(const std::string_view file_name) : file_name_(file_name) {
 	FileHolder file(file_name, FileMode::Read);
 
 	// There's really no way to validate other than that if this file is larger than 64kb,
@@ -67,7 +67,7 @@ std::unique_ptr<FormatSerialiser> PRG::format_serialiser() const {
 	return std::make_unique<Serialiser>(file_name_, load_address_, length_);
 }
 
-PRG::Serialiser::Serialiser(const std::string &file_name, uint16_t load_address, uint16_t length) :
+PRG::Serialiser::Serialiser(const std::string_view file_name, uint16_t load_address, uint16_t length) :
 	file_(file_name, FileMode::Read),
 	load_address_(load_address),
 	length_(length),

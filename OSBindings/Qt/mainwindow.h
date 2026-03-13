@@ -156,8 +156,8 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		KeyboardMapper keyMapper;
 
-		void register_led(const std::string &, uint8_t) override;
-		void set_led_status(const std::string &, bool) override;
+		void register_led(std::string_view, uint8_t) override;
+		void set_led_status(std::string_view, bool) override;
 
 		std::recursive_mutex ledStatusesLock;
 		std::map<std::string, bool> ledStatuses;

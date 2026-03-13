@@ -10,13 +10,13 @@
 
 #include "Storage/Cartridge/Cartridge.hpp"
 
-#include <string>
+#include <string_view>
 
 namespace Storage::Cartridge {
 
 class PRG : public Cartridge {
 public:
-	PRG(const std::string &file_name);
+	PRG(std::string_view file_name);
 
 	enum {
 		ErrorNotROM

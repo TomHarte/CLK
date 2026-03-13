@@ -11,6 +11,8 @@
 #include "Storage/Disk/DiskImage/DiskImage.hpp"
 #include "Storage/FileHolder.hpp"
 
+#include <string_view>
+
 namespace Storage::Disk {
 
 /*!
@@ -25,11 +27,11 @@ public:
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain a .STX format image.
 	*/
-	STX(const std::string &file_name);
+	STX(std::string_view file_name);
 
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
-	bool represents(const std::string &) const;
+	bool represents(std::string_view) const;
 
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 

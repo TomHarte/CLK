@@ -10,10 +10,12 @@
 
 #include "Analyser/Static/StaticAnalyser.hpp"
 
+#include <string_view>
+
 namespace Storage::State {
 
 struct SZX {
-	static std::unique_ptr<Analyser::Static::Target> load(const std::string &file_name);
+	static std::unique_ptr<Analyser::Static::Target> load(const std::string_view file_name);
 };
 
 }

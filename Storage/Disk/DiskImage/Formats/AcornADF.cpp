@@ -14,7 +14,7 @@
 
 using namespace Storage::Disk;
 
-AcornADF::AcornADF(const std::string &file_name) : MFMSectorDump(file_name) {
+AcornADF::AcornADF(const std::string_view file_name) : MFMSectorDump(file_name) {
 	// Check that the disk image contains a whole number of sector.
 	using sizeT = decltype(file_.stats().st_size);
 	const auto size = file_.stats().st_size;

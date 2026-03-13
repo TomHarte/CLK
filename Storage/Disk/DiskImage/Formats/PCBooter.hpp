@@ -20,7 +20,7 @@ namespace Storage::Disk {
 */
 class PCBooter: public MFMSectorDump {
 public:
-	PCBooter(const std::string &file_name);
+	PCBooter(std::string_view file_name);
 	HeadPosition maximum_head_position() const final;
 	int head_count() const final;
 

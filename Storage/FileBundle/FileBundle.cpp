@@ -13,9 +13,9 @@
 
 using namespace Storage::FileBundle;
 
-LocalFSFileBundle::LocalFSFileBundle(const std::string &to_contain) {
+LocalFSFileBundle::LocalFSFileBundle(const std::string_view to_contain) {
 	struct stat stats;
-	stat(to_contain.c_str(), &stats);
+	stat(std::string(to_contain).c_str(), &stats);
 
 	if(S_ISDIR(stats.st_mode)) {
 		set_base_path(to_contain);
@@ -41,7 +41,7 @@ std::optional<std::string> LocalFSFileBundle::base_path() const {
 	return base_path_;
 }
 
-void LocalFSFileBundle::set_base_path(const std::string &path) {
+void LocalFSFileBundle::set_base_path(const std::string_view path) {
 	base_path_ = path;
 	if(base_path_.back() != '/') {
 		base_path_ += '/';
@@ -52,16 +52,22 @@ void LocalFSFileBundle::set_permission_delegate(PermissionDelegate *const delega
 	permission_delegate_ = delegate;
 }
 
-Storage::FileHolder LocalFSFileBundle::open(const std::string &name, const Storage::FileMode mode) {
+Storage::FileHolder LocalFSFileBundle::open(const std::string_view name, const Storage::FileMode mode) {
+	std::string full_path = base_path_;
+	full_path += name;
+
 	if(permission_delegate_) {
-		permission_delegate_->validate_open(*this, base_path_ + name, mode);
+		permission_delegate_->validate_open(*this, full_path, mode);
 	}
-	return Storage::FileHolder(base_path_ + name, mode);
+	return Storage::FileHolder(full_path, mode);
 }
 
-bool LocalFSFileBundle::erase(const std::string &name) {
+bool LocalFSFileBundle::erase(const std::string_view name) {
+	std::string full_path = base_path_;
+	full_path += name;
+
 	if(permission_delegate_) {
-		permission_delegate_->validate_erase(*this, base_path_ + name);
+		permission_delegate_->validate_erase(*this, full_path);
 	}
-	return !remove((base_path_ + name).c_str());
+	return !remove(full_path.c_str());
 }

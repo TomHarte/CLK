@@ -10,7 +10,7 @@
 
 #include "Storage/Tape/Tape.hpp"
 
-#include <string>
+#include <string_view>
 #include <vector>
 #include <zlib.h>
 
@@ -31,7 +31,7 @@ public:
 
 		@throws ErrorNotCSW if this file could not be opened and recognised as a valid CSW file.
 	*/
-	CSW(const std::string &file_name);
+	CSW(std::string_view file_name);
 
 	/*!
 		Constructs a @c CSW containing content as specified. Does not throw.

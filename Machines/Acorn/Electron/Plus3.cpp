@@ -19,7 +19,7 @@ void Plus3::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
 	get_drive(drive).set_disk(disk);
 }
 
-const Storage::Disk::Disk *Plus3::disk(const std::string &name) {
+const Storage::Disk::Disk *Plus3::disk(const std::string_view name) {
 	const Storage::Disk::Disk *result = nullptr;
 	for_all_drives( [&](Storage::Disk::Drive &drive, size_t) {
 		const auto disk = drive.disk();
