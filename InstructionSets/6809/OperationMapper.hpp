@@ -27,8 +27,6 @@ enum class AddressingMode {
 	Relative16,		// For branches; a 16-bit operand gives an offset from the PC.
 	Variant,		// Specialised 'addressing mode' that indicates an instruction map page change.
 
-	// TODO: the following probably need to split into read/write/modify alternatives.
-
 	DirectRead,		// An 8-bit operand provides the low byte of an in-memory address. The DPR provides the high.
 	DirectWrite,
 	DirectModify,
@@ -50,6 +48,47 @@ enum class AddressingMode {
 
 	Max,
 };
+
+enum class SimpleAddressingMode {
+	Illegal,
+
+	Inherent,
+	Immediate,
+	Relative,
+	Variant,
+	Direct,
+	Extended,
+	Indexed,
+
+	Max,
+};
+constexpr SimpleAddressingMode simplify(const AddressingMode mode) {
+	switch(mode) {
+		using enum AddressingMode;
+
+		case Illegal:		return SimpleAddressingMode::Illegal;
+		case Inherent:		return SimpleAddressingMode::Inherent;
+		case Immediate8:
+		case Immediate16:	return SimpleAddressingMode::Immediate;
+		case Relative8:
+		case Relative16:	return SimpleAddressingMode::Relative;
+		case Variant:		return SimpleAddressingMode::Variant;
+		case DirectRead:
+		case DirectWrite:
+		case DirectModify:
+		case DirectLEA:		return SimpleAddressingMode::Direct;
+		case ExtendedRead:
+		case ExtendedWrite:
+		case ExtendedModify:
+		case ExtendedLEA:	return SimpleAddressingMode::Extended;
+		case IndexedRead:
+		case IndexedWrite:
+		case IndexedModify:
+		case IndexedLEA:	return SimpleAddressingMode::Indexed;
+
+		default: __builtin_unreachable();
+	}
+}
 
 enum class Condition {
 	A,	N,	HI,	LS,	CC,	CS,	NE,	EQ,
@@ -187,6 +226,8 @@ struct OperationReturner {
 	}
 };
 
+namespace {
+
 template <Operation operation, AddressingMode mode, typename SchedulerT>
 auto complete(SchedulerT &s) {
 	// To do:
@@ -227,6 +268,8 @@ auto complete(SchedulerT &s) {
 				default: __builtin_unreachable();
 			}
 	}
+	}
+
 }
 
 /*!
