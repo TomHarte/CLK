@@ -98,16 +98,28 @@ template <Page page> std::pair<Operation, AddressingMode> capture(const uint8_t 
 
 		const auto expected_length = [&] {
 			switch(decoded.second) {
-				case AddressingMode::Direct:		return 2;
-				case AddressingMode::Extended:		return 3;
-				case AddressingMode::Illegal:		return 1;
-				case AddressingMode::Inherent:		return 1;
-				case AddressingMode::Relative8:		return 2;
-				case AddressingMode::Relative16:	return 3;
-				case AddressingMode::Immediate8:	return 2;
-				case AddressingMode::Immediate16:	return 3;
-				case AddressingMode::Variant:		return 1;
-				case AddressingMode::Indexed:		return 2;
+				case AddressingMode::DirectRead:
+				case AddressingMode::DirectWrite:
+				case AddressingMode::DirectModify:
+				case AddressingMode::DirectLEA:			return 2;
+
+				case AddressingMode::ExtendedRead:
+				case AddressingMode::ExtendedWrite:
+				case AddressingMode::ExtendedModify:
+				case AddressingMode::ExtendedLEA:		return 3;
+
+				case AddressingMode::IndexedRead:
+				case AddressingMode::IndexedWrite:
+				case AddressingMode::IndexedModify:
+				case AddressingMode::IndexedLEA:		return 2;
+
+				case AddressingMode::Illegal:			return 1;
+				case AddressingMode::Inherent:			return 1;
+				case AddressingMode::Relative8:			return 2;
+				case AddressingMode::Relative16:		return 3;
+				case AddressingMode::Immediate8:		return 2;
+				case AddressingMode::Immediate16:		return 3;
+				case AddressingMode::Variant:			return 1;
 				default: __builtin_unreachable();
 			}
 		} () + bool(pair.first >> 8);
@@ -136,42 +148,42 @@ template <Page page> std::pair<Operation, AddressingMode> capture(const uint8_t 
 - (void)testMap {
 	// Spot tests only for now; will do for checking that code compiles and acts semi-reasonably, at least.
 	[self testOpcode:0x3a page:Page::Page0 isOperation:Operation::ABX addressingMode:AddressingMode::Inherent];
-	[self testOpcode:0xd9 page:Page::Page0 isOperation:Operation::ADCB addressingMode:AddressingMode::Direct];
-	[self testOpcode:0xab page:Page::Page0 isOperation:Operation::ADDA addressingMode:AddressingMode::Indexed];
-	[self testOpcode:0xf3 page:Page::Page0 isOperation:Operation::ADDD addressingMode:AddressingMode::Extended];
+	[self testOpcode:0xd9 page:Page::Page0 isOperation:Operation::ADCB addressingMode:AddressingMode::DirectRead];
+	[self testOpcode:0xab page:Page::Page0 isOperation:Operation::ADDA addressingMode:AddressingMode::IndexedRead];
+	[self testOpcode:0xf3 page:Page::Page0 isOperation:Operation::ADDD addressingMode:AddressingMode::ExtendedRead];
 	[self testOpcode:0xc4 page:Page::Page0 isOperation:Operation::ANDB addressingMode:AddressingMode::Immediate8];
 	[self testOpcode:0x1c page:Page::Page0 isOperation:Operation::ANDCC addressingMode:AddressingMode::Immediate8];
-	[self testOpcode:0x08 page:Page::Page0 isOperation:Operation::LSL addressingMode:AddressingMode::Direct];
+	[self testOpcode:0x08 page:Page::Page0 isOperation:Operation::LSL addressingMode:AddressingMode::DirectModify];
 	[self testOpcode:0x57 page:Page::Page0 isOperation:Operation::ASRB addressingMode:AddressingMode::Inherent];
 	[self testOpcode:0x24 page:Page::Page0 isOperation:Operation::BCC addressingMode:AddressingMode::Relative8];
-	[self testOpcode:0xa5 page:Page::Page0 isOperation:Operation::BITA addressingMode:AddressingMode::Indexed];
+	[self testOpcode:0xa5 page:Page::Page0 isOperation:Operation::BITA addressingMode:AddressingMode::IndexedRead];
 	[self testOpcode:0x20 page:Page::Page0 isOperation:Operation::BRA addressingMode:AddressingMode::Relative8];
 	[self testOpcode:0x8d page:Page::Page0 isOperation:Operation::BSR addressingMode:AddressingMode::Relative8];
 	[self testOpcode:0x5f page:Page::Page0 isOperation:Operation::CLRB addressingMode:AddressingMode::Inherent];
-	[self testOpcode:0x7f page:Page::Page0 isOperation:Operation::CLR addressingMode:AddressingMode::Extended];
+	[self testOpcode:0x7f page:Page::Page0 isOperation:Operation::CLR addressingMode:AddressingMode::ExtendedWrite];
 	[self testOpcode:0x81 page:Page::Page0 isOperation:Operation::CMPA addressingMode:AddressingMode::Immediate8];
-	[self testOpcode:0xa3 page:Page::Page1 isOperation:Operation::CMPD addressingMode:AddressingMode::Indexed];
-	[self testOpcode:0xa3 page:Page::Page2 isOperation:Operation::CMPU addressingMode:AddressingMode::Indexed];
+	[self testOpcode:0xa3 page:Page::Page1 isOperation:Operation::CMPD addressingMode:AddressingMode::IndexedRead];
+	[self testOpcode:0xa3 page:Page::Page2 isOperation:Operation::CMPU addressingMode:AddressingMode::IndexedRead];
 	[self testOpcode:0x53 page:Page::Page0 isOperation:Operation::COMB addressingMode:AddressingMode::Inherent];
-	[self testOpcode:0x73 page:Page::Page0 isOperation:Operation::COM addressingMode:AddressingMode::Extended];
+	[self testOpcode:0x73 page:Page::Page0 isOperation:Operation::COM addressingMode:AddressingMode::ExtendedModify];
 	[self testOpcode:0x3c page:Page::Page0 isOperation:Operation::CWAI addressingMode:AddressingMode::Immediate8];
 	[self testOpcode:0x19 page:Page::Page0 isOperation:Operation::DAA addressingMode:AddressingMode::Inherent];
 	[self testOpcode:0x4a page:Page::Page0 isOperation:Operation::DECA addressingMode:AddressingMode::Inherent];
-	[self testOpcode:0x0a page:Page::Page0 isOperation:Operation::DEC addressingMode:AddressingMode::Direct];
-	[self testOpcode:0xa8 page:Page::Page0 isOperation:Operation::EORA addressingMode:AddressingMode::Indexed];
-	[self testOpcode:0xf8 page:Page::Page0 isOperation:Operation::EORB addressingMode:AddressingMode::Extended];
+	[self testOpcode:0x0a page:Page::Page0 isOperation:Operation::DEC addressingMode:AddressingMode::DirectModify];
+	[self testOpcode:0xa8 page:Page::Page0 isOperation:Operation::EORA addressingMode:AddressingMode::IndexedRead];
+	[self testOpcode:0xf8 page:Page::Page0 isOperation:Operation::EORB addressingMode:AddressingMode::ExtendedRead];
 	[self testOpcode:0x4c page:Page::Page0 isOperation:Operation::INCA addressingMode:AddressingMode::Inherent];
-	[self testOpcode:0x0c page:Page::Page0 isOperation:Operation::INC addressingMode:AddressingMode::Direct];
-	[self testOpcode:0x6e page:Page::Page0 isOperation:Operation::JMP addressingMode:AddressingMode::Indexed];
-	[self testOpcode:0x9d page:Page::Page0 isOperation:Operation::JSR addressingMode:AddressingMode::Direct];
+	[self testOpcode:0x0c page:Page::Page0 isOperation:Operation::INC addressingMode:AddressingMode::DirectModify];
+	[self testOpcode:0x6e page:Page::Page0 isOperation:Operation::JMP addressingMode:AddressingMode::IndexedRead];
+	[self testOpcode:0x9d page:Page::Page0 isOperation:Operation::JSR addressingMode:AddressingMode::DirectRead];
 	[self testOpcode:0x24 page:Page::Page1 isOperation:Operation::LBCC addressingMode:AddressingMode::Relative16];
-	[self testOpcode:0xe6 page:Page::Page0 isOperation:Operation::LDB addressingMode:AddressingMode::Indexed];
+	[self testOpcode:0xe6 page:Page::Page0 isOperation:Operation::LDB addressingMode:AddressingMode::IndexedRead];
 	[self testOpcode:0x8e page:Page::Page1 isOperation:Operation::LDY addressingMode:AddressingMode::Immediate16];
-	[self testOpcode:0x32 page:Page::Page0 isOperation:Operation::LEAS addressingMode:AddressingMode::Indexed];
-	[self testOpcode:0x74 page:Page::Page0 isOperation:Operation::LSR addressingMode:AddressingMode::Extended];
+	[self testOpcode:0x32 page:Page::Page0 isOperation:Operation::LEAS addressingMode:AddressingMode::IndexedLEA];
+	[self testOpcode:0x74 page:Page::Page0 isOperation:Operation::LSR addressingMode:AddressingMode::ExtendedModify];
 	[self testOpcode:0x3d page:Page::Page0 isOperation:Operation::MUL addressingMode:AddressingMode::Inherent];
 	[self testOpcode:0x40 page:Page::Page0 isOperation:Operation::NEGA addressingMode:AddressingMode::Inherent];
-	[self testOpcode:0x00 page:Page::Page0 isOperation:Operation::NEG addressingMode:AddressingMode::Direct];
+	[self testOpcode:0x00 page:Page::Page0 isOperation:Operation::NEG addressingMode:AddressingMode::DirectModify];
 	[self testOpcode:0x12 page:Page::Page0 isOperation:Operation::NOP addressingMode:AddressingMode::Inherent];
 	[self testOpcode:0x8a page:Page::Page0 isOperation:Operation::ORA addressingMode:AddressingMode::Immediate8];
 	[self testOpcode:0x1a page:Page::Page0 isOperation:Operation::ORCC addressingMode:AddressingMode::Immediate8];
@@ -179,16 +191,16 @@ template <Page page> std::pair<Operation, AddressingMode> capture(const uint8_t 
 	[self testOpcode:0x36 page:Page::Page0 isOperation:Operation::PSHU addressingMode:AddressingMode::Immediate8];
 	[self testOpcode:0x37 page:Page::Page0 isOperation:Operation::PULU addressingMode:AddressingMode::Immediate8];
 	[self testOpcode:0x59 page:Page::Page0 isOperation:Operation::ROLB addressingMode:AddressingMode::Inherent];
-	[self testOpcode:0x69 page:Page::Page0 isOperation:Operation::ROL addressingMode:AddressingMode::Indexed];
-	[self testOpcode:0x76 page:Page::Page0 isOperation:Operation::ROR addressingMode:AddressingMode::Extended];
+	[self testOpcode:0x69 page:Page::Page0 isOperation:Operation::ROL addressingMode:AddressingMode::IndexedModify];
+	[self testOpcode:0x76 page:Page::Page0 isOperation:Operation::ROR addressingMode:AddressingMode::ExtendedModify];
 	[self testOpcode:0x3b page:Page::Page0 isOperation:Operation::RTI addressingMode:AddressingMode::Inherent];
 	[self testOpcode:0x39 page:Page::Page0 isOperation:Operation::RTS addressingMode:AddressingMode::Inherent];
 	[self testOpcode:0xc2 page:Page::Page0 isOperation:Operation::SBCB addressingMode:AddressingMode::Immediate8];
 	[self testOpcode:0x1d page:Page::Page0 isOperation:Operation::SEX addressingMode:AddressingMode::Inherent];
-	[self testOpcode:0xe7 page:Page::Page0 isOperation:Operation::STB addressingMode:AddressingMode::Indexed];
-	[self testOpcode:0xbf page:Page::Page1 isOperation:Operation::STY addressingMode:AddressingMode::Extended];
-	[self testOpcode:0xe0 page:Page::Page0 isOperation:Operation::SUBB addressingMode:AddressingMode::Indexed];
-	[self testOpcode:0x93 page:Page::Page0 isOperation:Operation::SUBD addressingMode:AddressingMode::Direct];
+	[self testOpcode:0xe7 page:Page::Page0 isOperation:Operation::STB addressingMode:AddressingMode::IndexedWrite];
+	[self testOpcode:0xbf page:Page::Page1 isOperation:Operation::STY addressingMode:AddressingMode::ExtendedWrite];
+	[self testOpcode:0xe0 page:Page::Page0 isOperation:Operation::SUBB addressingMode:AddressingMode::IndexedRead];
+	[self testOpcode:0x93 page:Page::Page0 isOperation:Operation::SUBD addressingMode:AddressingMode::DirectRead];
 	[self testOpcode:0x3f page:Page::Page0 isOperation:Operation::SWI addressingMode:AddressingMode::Inherent];
 	[self testOpcode:0x3f page:Page::Page1 isOperation:Operation::SWI2 addressingMode:AddressingMode::Inherent];
 	[self testOpcode:0x3f page:Page::Page2 isOperation:Operation::SWI3 addressingMode:AddressingMode::Inherent];
