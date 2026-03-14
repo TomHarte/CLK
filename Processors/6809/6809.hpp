@@ -326,23 +326,39 @@ struct Processor {
 
 			// MARK: - Direct addressing mode.
 
-			case access_program(DirectRead):
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.dp_high() | operand_.halves.low), operand_.halves.low);
+			case access_program(DirectRead8):
+				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.dp_high() | address_.halves.low), operand_.halves.low);
 				perform();
 				goto fetch_decode;
 
-			case access_program(DirectWrite):
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+			case access_program(DirectRead16):
+				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
+				address_.halves.high = registers_.reg<R8::DP>();
+				read(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
+				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
 				perform();
-				write(BusState::Normal, Literal(registers_.dp_high() | operand_.halves.low), operand_.halves.low);
 				goto fetch_decode;
 
-			case access_program(DirectModify):
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.dp_high() | operand_.halves.low), operand_.halves.low);
+			case access_program(DirectWrite8):
+				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
 				perform();
-				write(BusState::Normal, Literal(registers_.dp_high() | operand_.halves.low), operand_.halves.low);
+				write(BusState::Normal, Literal(registers_.dp_high() | address_.halves.low), operand_.halves.low);
+				goto fetch_decode;
+
+			case access_program(DirectWrite16):
+				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
+				address_.halves.high = registers_.reg<R8::DP>();
+				perform();
+				write(BusState::Normal, Literal(operand_.full), address_.halves.high, ++address_.full);
+				write(BusState::Normal, Literal(operand_.full), address_.halves.low);
+				goto fetch_decode;
+
+			case access_program(DirectModify8):
+				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.dp_high() | address_.halves.low), operand_.halves.low);
+				perform();
+				write(BusState::Normal, Literal(registers_.dp_high() | address_.halves.low), operand_.halves.low);
 				goto fetch_decode;
 
 			case access_program(DirectLEA):
@@ -353,32 +369,56 @@ struct Processor {
 
 			// MARK: - Extended addressing mode.
 
-			case access_program(ExtendedRead):
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
-				read(BusState::Normal, Literal(operand_.full), operand_.halves.low);
+			case access_program(ExtendedRead8):
+				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
+
+				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
+
 				perform();
 				goto fetch_decode;
 
-			case access_program(ExtendedWrite):
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
+			case access_program(ExtendedRead16):
+				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
+
+				read(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
+				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
+
 				perform();
-				write(BusState::Normal, Literal(operand_.full), operand_.halves.low);
 				goto fetch_decode;
 
-			case access_program(ExtendedModify):
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
+			case access_program(ExtendedWrite8):
+				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
 
-				read(BusState::Normal, Literal(operand_.full), operand_.halves.low);
 				perform();
-				write(BusState::Normal, Literal(operand_.full), operand_.halves.low);
+				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
+
+				goto fetch_decode;
+
+			case access_program(ExtendedWrite16):
+				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
+
+				perform();
+				write(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
+				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
+
+				goto fetch_decode;
+
+			case access_program(ExtendedModify8):
+				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
+
+				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
+				perform();
+				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
 				goto fetch_decode;
 
 			case access_program(ExtendedLEA):
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
 				perform();
 				goto fetch_decode;
 		}
@@ -423,6 +463,7 @@ private:
 	// Transient storage.
 	Data::Writeable target_;
 	RegisterPair16 operand_;
+	RegisterPair16 address_;
 };
 
 }

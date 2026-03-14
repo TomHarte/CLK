@@ -29,24 +29,37 @@ enum class AddressingMode {
 
 	// TODO: I think 16-bit variants of the Reads and Writes below are required, to capture e.g. LDU and STU.
 
-	DirectRead,		// An 8-bit operand provides the low byte of an in-memory address. The DPR provides the high.
-	DirectWrite,
-	DirectModify,
+	// Direct: an 8-bit operand provides the low byte of an in-memory address. The DPR provides the high.
+	// Further distinguished into 8 and 16 variants based on amount of data accessed from the address.
+	DirectRead8,
+	DirectRead16,
+	DirectWrite8,
+	DirectWrite16,
+	DirectModify8,
 	DirectLEA,
 
-	ExtendedRead,	// Provides a full 16-bit address as an operand.
-	ExtendedWrite,
-	ExtendedModify,
+	// Extended: provides a full 16-bit address as an operand.
+	// Distinguished 8/16 based on amount of data to read or write.
+	ExtendedRead8,
+	ExtendedRead16,
+	ExtendedWrite8,
+	ExtendedWrite16,
+	ExtendedModify8,
 	ExtendedLEA,
 
-	IndexedRead,	// A byte follows the instruction, specifying:
-	IndexedWrite,	//
-	IndexedModify,	//	b7:	1 = indexed; 0 = 5-bit offset;
-	IndexedLEA,		//	b6-b5: register select (00 = X, 01 = Y, 10 = U, 11 = S)
-					//	b4: 1 = indirect; 0 = not;
-					//	b0–3: sub-mode or 5-bit offset.
-					//
-					// One or two additional further bytes may then follow.
+	// Indexed: a byte follows the instruction, specifying:
+	//	b7:	1 = indexed; 0 = 5-bit offset;
+	//	b6-b5: register select (00 = X, 01 = Y, 10 = U, 11 = S)
+	//	b4: 1 = indirect; 0 = not;
+	//	b0–3: sub-mode or 5-bit offset.
+	//
+	// One or two additional further bytes may then follow.
+	IndexedRead8,
+	IndexedRead16,
+	IndexedWrite8,
+	IndexedWrite16,
+	IndexedModify8,
+	IndexedLEA,
 
 	Max,
 };
@@ -75,17 +88,23 @@ constexpr SimpleAddressingMode simplify(const AddressingMode mode) {
 		case Relative8:
 		case Relative16:	return SimpleAddressingMode::Relative;
 		case Variant:		return SimpleAddressingMode::Variant;
-		case DirectRead:
-		case DirectWrite:
-		case DirectModify:
+		case DirectRead8:
+		case DirectRead16:
+		case DirectWrite8:
+		case DirectWrite16:
+		case DirectModify8:
 		case DirectLEA:		return SimpleAddressingMode::Direct;
-		case ExtendedRead:
-		case ExtendedWrite:
-		case ExtendedModify:
+		case ExtendedRead8:
+		case ExtendedRead16:
+		case ExtendedWrite8:
+		case ExtendedWrite16:
+		case ExtendedModify8:
 		case ExtendedLEA:	return SimpleAddressingMode::Extended;
-		case IndexedRead:
-		case IndexedWrite:
-		case IndexedModify:
+		case IndexedRead8:
+		case IndexedRead16:
+		case IndexedWrite8:
+		case IndexedWrite16:
+		case IndexedModify8:
 		case IndexedLEA:	return SimpleAddressingMode::Indexed;
 
 		default: __builtin_unreachable();
@@ -237,36 +256,38 @@ auto complete(SchedulerT &s) {
 	//	(1) upgrade Immediate8 to Immediate16 where justified;
 	//	(2) commute [Direct/Extended/Indexed]Read to [Read/Write/Modify] as appropriate.
 
+	static constexpr bool is_16 = is_16bit<operation>();
+
 	switch(mode) {
 		using enum AddressingMode;
 
 		default:			return s.template schedule<operation, mode>();
-		case Immediate8:	return s.template schedule<operation, is_16bit<operation>() ? Immediate16 : Immediate8>();
+		case Immediate8:	return s.template schedule<operation, is_16 ? Immediate16 : Immediate8>();
 
-		case DirectRead:
+		case DirectRead8:
 			switch(access_type<operation>()) {
-				case AccessType::Read:		return s.template schedule<operation, DirectRead>();
+				case AccessType::Read:		return s.template schedule<operation, is_16 ? DirectRead8 : DirectRead16>();
 				case AccessType::None:		return s.template schedule<operation, DirectLEA>();
-				case AccessType::Write:		return s.template schedule<operation, DirectWrite>();
-				case AccessType::Modify:	return s.template schedule<operation, DirectModify>();
+				case AccessType::Write:		return s.template schedule<operation, is_16 ? DirectWrite8 : DirectWrite16>();
+				case AccessType::Modify:	return s.template schedule<operation, DirectModify8>();
 				default: __builtin_unreachable();
 			}
 
-		case ExtendedRead:
+		case ExtendedRead8:
 			switch(access_type<operation>()) {
-				case AccessType::Read:		return s.template schedule<operation, ExtendedRead>();
+				case AccessType::Read:		return s.template schedule<operation, is_16 ? ExtendedRead8 : ExtendedRead16>();
 				case AccessType::None:		return s.template schedule<operation, ExtendedLEA>();
-				case AccessType::Write:		return s.template schedule<operation, ExtendedWrite>();
-				case AccessType::Modify:	return s.template schedule<operation, ExtendedModify>();
+				case AccessType::Write:		return s.template schedule<operation, is_16? ExtendedWrite8 : ExtendedWrite16>();
+				case AccessType::Modify:	return s.template schedule<operation, ExtendedModify8>();
 				default: __builtin_unreachable();
 			}
 
-		case IndexedRead:
+		case IndexedRead8:
 			switch(access_type<operation>()) {
-				case AccessType::Read:		return s.template schedule<operation, IndexedRead>();
+				case AccessType::Read:		return s.template schedule<operation, is_16 ? IndexedRead8 : IndexedRead16>();
 				case AccessType::None:		return s.template schedule<operation, IndexedLEA>();
-				case AccessType::Write:		return s.template schedule<operation, IndexedWrite>();
-				case AccessType::Modify:	return s.template schedule<operation, IndexedModify>();
+				case AccessType::Write:		return s.template schedule<operation, is_16 ? IndexedWrite8 : IndexedWrite16>();
+				case AccessType::Modify:	return s.template schedule<operation, IndexedModify8>();
 				default: __builtin_unreachable();
 			}
 	}
@@ -306,7 +327,7 @@ auto OperationMapper<Page::Page0>::dispatch(SchedulerT &s) {
 	}
 
 	static constexpr AddressingMode modes[] = {
-		AM::Immediate8, AM::DirectRead, AM::IndexedRead, AM::ExtendedRead,
+		AM::Immediate8, AM::DirectRead8, AM::IndexedRead8, AM::ExtendedRead8,
 	};
 	static constexpr auto mode = modes[(i >> 4) & 3];
 
@@ -341,7 +362,7 @@ auto OperationMapper<Page::Page0>::dispatch(SchedulerT &s) {
 			static constexpr auto op = operations[lower];
 			switch(lower) {
 				case 0x0:	case 0x1:	case 0x2:	case 0x3:
-				return complete<op, AM::IndexedRead>(s);
+				return complete<op, AM::IndexedRead8>(s);
 
 				case 0x4:	case 0x5:	case 0x6:	case 0x7:	case 0xc:
 				return complete<op, AM::Immediate8>(s);
@@ -375,7 +396,7 @@ auto OperationMapper<Page::Page0>::dispatch(SchedulerT &s) {
 				O::LSL,		O::ROL,		O::DEC,		O::None,	O::INC,		O::TST,		O::JMP,		O::CLR,
 			};
 			static constexpr auto op = operations[lower];
-			return complete<op, op == O::None ? AM::Illegal : upper == 0 ? AM::DirectRead : mode>(s);
+			return complete<op, op == O::None ? AM::Illegal : upper == 0 ? AM::DirectRead8 : mode>(s);
 		}
 		case 0x8:	case 0x9:	case 0xa:	case 0xb: {
 			static constexpr Operation operations[] = {
@@ -403,7 +424,7 @@ auto OperationMapper<Page::Page1>::dispatch(SchedulerT &s) {
 	using O = Operation;
 
 	static constexpr AddressingMode modes[] = {
-		AM::Immediate8, AM::DirectRead, AM::IndexedRead, AM::ExtendedRead,
+		AM::Immediate8, AM::DirectRead8, AM::IndexedRead8, AM::ExtendedRead8,
 	};
 	static constexpr auto mode = modes[(i >> 4) & 3];
 
@@ -445,7 +466,7 @@ auto OperationMapper<Page::Page2>::dispatch(SchedulerT &s) {
 	using O = Operation;
 
 	static constexpr AddressingMode modes[] = {
-		AM::Immediate8, AM::DirectRead, AM::IndexedRead, AM::ExtendedRead,
+		AM::Immediate8, AM::DirectRead8, AM::IndexedRead8, AM::ExtendedRead8,
 	};
 	static constexpr auto mode = modes[(i >> 4) & 3];
 
