@@ -149,7 +149,9 @@ struct Processor {
 
 	void run_for(const Timescale duration) {
 		static constexpr auto FirstCounter = __COUNTER__;
-		#define restore_point()	(__COUNTER__ - FirstCounter + int(ResumePoint::Max) + int(AddressingMode::Max))
+		#define addressing_program(name)	int(ResumePoint::Max) + int(name)
+		#define access_program(name)		int(ResumePoint::Max) + int(AddressingMode::Max) + int(name)
+		#define restore_point()				(__COUNTER__ - FirstCounter + int(ResumePoint::Max) + int(AddressingMode::Max) + int(AccessType::Max))
 
 		#define join(a, b)			a##b
 		#define attach(a, b)		join(a, b)
@@ -215,12 +217,9 @@ struct Processor {
 			__VA_ARGS__;																						\
 		}
 
-		#define access_program(name)	int(ResumePoint::Max) + int(AddressingMode::name)
-
 		time_ += duration;
 
 		using Literal = Address::Literal;
-		using Operation = InstructionSet::M6809::Operation;
 
 		InstructionSet::M6809::OperationReturner op_returner;
 		InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page0> op_mapper0;
@@ -228,7 +227,7 @@ struct Processor {
 		InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page2> op_mapper2;
 
 		const auto perform = [&]() {
-			CPU::M6809::perform(operation_, registers_, operand_);
+			CPU::M6809::perform(operation_.operation, registers_, operand_);
 		};
 
 		uint8_t opcode = 0;
@@ -268,37 +267,31 @@ struct Processor {
 
 				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
 				{
-					const auto decoding = Reflection::dispatch(op_mapper0, opcode, op_returner);
-					operation_ = decoding.first;
-					addressing_mode_ = decoding.second;
-					resume_point_ = ResumePoint::Max + int(addressing_mode_);
+					operation_ = Reflection::dispatch(op_mapper0, opcode, op_returner);
+					resume_point_ = addressing_program(operation_.mode);
 					break;
 				}
 
 			fetch_decode_page1:
 				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
 				{
-					const auto decoding = Reflection::dispatch(op_mapper1, opcode, op_returner);
-					operation_ = decoding.first;
-					addressing_mode_ = decoding.second;
-					resume_point_ = ResumePoint::Max + int(addressing_mode_);
+					operation_ = Reflection::dispatch(op_mapper1, opcode, op_returner);
+					resume_point_ = addressing_program(operation_.mode);
 					break;
 				}
 
 			fetch_decode_page2:
 				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
 				{
-					const auto decoding = Reflection::dispatch(op_mapper2, opcode, op_returner);
-					operation_ = decoding.first;
-					addressing_mode_ = decoding.second;
-					resume_point_ = ResumePoint::Max + int(addressing_mode_);
+					operation_ = Reflection::dispatch(op_mapper2, opcode, op_returner);
+					resume_point_ = addressing_program(operation_.mode);
 					break;
 				}
 
 			// MARK: - Variant addressing mode.
 
-			case access_program(Variant):
-				if(operation_ == Operation::Page2) {
+			case addressing_program(AddressingMode::Variant):
+				if(operation_.operation == Operation::Page2) {
 					goto fetch_decode_page2;
 				} else {
 					goto fetch_decode_page1;
@@ -306,20 +299,20 @@ struct Processor {
 
 			// MARK: - Inherent addressing mode.
 
-			case access_program(Inherent):
+			case addressing_program(AddressingMode::Inherent):
 				perform();
 				goto fetch_decode;
 
 			// MARK: - Immediate and relative addressing modes.
 
-			case access_program(Relative8):
-			case access_program(Immediate8):
+			case addressing_program(AddressingMode::Relative8):
+			case addressing_program(AddressingMode::Immediate8):
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
 				perform();
 				goto fetch_decode;
 
-			case access_program(Relative16):
-			case access_program(Immediate16):
+			case addressing_program(AddressingMode::Relative16):
+			case addressing_program(AddressingMode::Immediate16):
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
 				perform();
@@ -327,78 +320,24 @@ struct Processor {
 
 			// MARK: - Direct addressing mode.
 
-			case access_program(DirectRead8):
+			case addressing_program(AddressingMode::Direct):
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
 				address_.halves.high = registers_.reg<R8::DP>();
-				goto read8;
-
-			case access_program(DirectRead16):
-				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-				address_.halves.high = registers_.reg<R8::DP>();
-				goto read16;
-
-			case access_program(DirectWrite8):
-				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-				address_.halves.high = registers_.reg<R8::DP>();
-				goto write8;
-
-			case access_program(DirectWrite16):
-				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-				address_.halves.high = registers_.reg<R8::DP>();
-				goto write16;
-
-			case access_program(DirectModify8):
-				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-				address_.halves.high = registers_.reg<R8::DP>();
-				goto modify8;
-
-			case access_program(DirectLEA):
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
-				operand_.halves.high = registers_.reg<R8::DP>();
-				perform();
-				goto fetch_decode;
+				resume_point_ = access_program(operation_.type);
+				break;
 
 			// MARK: - Extended addressing mode.
 
-			case access_program(ExtendedRead8):
+			case addressing_program(AddressingMode::Extended):
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-				goto read8;
+				resume_point_ = access_program(operation_.type);
+				break;
 
-			case access_program(ExtendedRead16):
-				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-				goto read16;
-
-			case access_program(ExtendedWrite8):
-				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-				goto write8;
-
-			case access_program(ExtendedWrite16):
-				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-				goto write16;
-
-			case access_program(ExtendedModify8):
-				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-				goto modify8;
-
-			case access_program(ExtendedLEA):
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
-				perform();
-				goto fetch_decode;
 
 			// MARK: - Indexed addressing mode.
 
-			case access_program(IndexedRead8):
-			case access_program(IndexedRead16):
-			case access_program(IndexedWrite8):
-			case access_program(IndexedWrite16):
-			case access_program(IndexedModify8):
-			case access_program(IndexedLEA):
+			case addressing_program(AddressingMode::Indexed):
 
 				//
 				// Determine target address.
@@ -431,43 +370,41 @@ struct Processor {
 				address_ = operand_;
 
 			complete_address:
-				if(addressing_mode_ == AddressingMode::IndexedLEA) {
-					perform();
-					goto fetch_decode;
-				}
+				resume_point_ = access_program(operation_.type);
+				break;
 
-				if(addressing_mode_ == AddressingMode::IndexedRead8) goto read8;
-				if(addressing_mode_ == AddressingMode::IndexedRead16) goto read16;
-				if(addressing_mode_ == AddressingMode::IndexedWrite8) goto write8;
-				if(addressing_mode_ == AddressingMode::IndexedWrite16) goto write16;
-				if(addressing_mode_ == AddressingMode::IndexedModify8) goto modify8;
 
 			//
 			// Access atoms.
 			//
-			read8:
+			case access_program(AccessType::LEA):
+				operand_.full = address_.full;
+				perform();
+				goto fetch_decode;
+
+			case access_program(AccessType::Read8):
 				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
 				perform();
 				goto fetch_decode;
 
-			read16:
+			case access_program(AccessType::Read16):
 				read(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
 				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
 				perform();
 				goto fetch_decode;
 
-			write8:
+			case access_program(AccessType::Write8):
 				perform();
 				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
 				goto fetch_decode;
 
-			write16:
+			case access_program(AccessType::Write16):
 				perform();
 				write(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
 				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
 				goto fetch_decode;
 
-			modify8:
+			case access_program(AccessType::Modify8):
 				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
 				perform();
 				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
@@ -494,11 +431,12 @@ private:
 		FetchDecode,
 		Max,
 	};
+	using Operation = InstructionSet::M6809::Operation;
 	using AddressingMode = InstructionSet::M6809::AddressingMode;
+	using AccessType = InstructionSet::M6809::AccessType;
 
 	int resume_point_ = ResumePoint::FetchDecode;
-	InstructionSet::M6809::Operation operation_;
-	AddressingMode addressing_mode_;
+	InstructionSet::M6809::OperationReturner::MetaOperation operation_;
 	Registers registers_;
 
 	enum Exceptions: uint8_t {
