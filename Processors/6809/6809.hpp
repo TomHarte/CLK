@@ -234,7 +234,6 @@ struct Processor {
 		uint8_t opcode = 0;
 		while(true) switch(resume_point_) {
 			default: {
-				[[maybe_unused]] const auto mode = AddressingMode(resume_point_ - ResumePoint::Max);
 				__builtin_unreachable();
 			}
 
@@ -271,8 +270,8 @@ struct Processor {
 				{
 					const auto decoding = Reflection::dispatch(op_mapper0, opcode, op_returner);
 					operation_ = decoding.first;
-					printf("Operation %d\n", operation_);
-					resume_point_ = ResumePoint::Max + int(decoding.second);
+					addressing_mode_ = decoding.second;
+					resume_point_ = ResumePoint::Max + int(addressing_mode_);
 					break;
 				}
 
@@ -281,7 +280,8 @@ struct Processor {
 				{
 					const auto decoding = Reflection::dispatch(op_mapper1, opcode, op_returner);
 					operation_ = decoding.first;
-					resume_point_ = ResumePoint::Max + int(decoding.second);
+					addressing_mode_ = decoding.second;
+					resume_point_ = ResumePoint::Max + int(addressing_mode_);
 					break;
 				}
 
@@ -290,7 +290,8 @@ struct Processor {
 				{
 					const auto decoding = Reflection::dispatch(op_mapper2, opcode, op_returner);
 					operation_ = decoding.first;
-					resume_point_ = ResumePoint::Max + int(decoding.second);
+					addressing_mode_ = decoding.second;
+					resume_point_ = ResumePoint::Max + int(addressing_mode_);
 					break;
 				}
 
@@ -328,38 +329,28 @@ struct Processor {
 
 			case access_program(DirectRead8):
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.dp_high() | address_.halves.low), operand_.halves.low);
-				perform();
-				goto fetch_decode;
+				address_.halves.high = registers_.reg<R8::DP>();
+				goto read8;
 
 			case access_program(DirectRead16):
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
 				address_.halves.high = registers_.reg<R8::DP>();
-				read(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
-				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
-				perform();
-				goto fetch_decode;
+				goto read16;
 
 			case access_program(DirectWrite8):
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-				perform();
-				write(BusState::Normal, Literal(registers_.dp_high() | address_.halves.low), operand_.halves.low);
-				goto fetch_decode;
+				address_.halves.high = registers_.reg<R8::DP>();
+				goto write8;
 
 			case access_program(DirectWrite16):
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
 				address_.halves.high = registers_.reg<R8::DP>();
-				perform();
-				write(BusState::Normal, Literal(operand_.full), address_.halves.high, ++address_.full);
-				write(BusState::Normal, Literal(operand_.full), address_.halves.low);
-				goto fetch_decode;
+				goto write16;
 
 			case access_program(DirectModify8):
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.dp_high() | address_.halves.low), operand_.halves.low);
-				perform();
-				write(BusState::Normal, Literal(registers_.dp_high() | address_.halves.low), operand_.halves.low);
-				goto fetch_decode;
+				address_.halves.high = registers_.reg<R8::DP>();
+				goto modify8;
 
 			case access_program(DirectLEA):
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
@@ -372,57 +363,116 @@ struct Processor {
 			case access_program(ExtendedRead8):
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-
-				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
-
-				perform();
-				goto fetch_decode;
+				goto read8;
 
 			case access_program(ExtendedRead16):
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-
-				read(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
-				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
-
-				perform();
-				goto fetch_decode;
+				goto read16;
 
 			case access_program(ExtendedWrite8):
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-
-				perform();
-				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
-
-				goto fetch_decode;
+				goto write8;
 
 			case access_program(ExtendedWrite16):
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-
-				perform();
-				write(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
-				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
-
-				goto fetch_decode;
+				goto write16;
 
 			case access_program(ExtendedModify8):
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
-
-				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
-				perform();
-				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
-				goto fetch_decode;
+				goto modify8;
 
 			case access_program(ExtendedLEA):
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
 				perform();
 				goto fetch_decode;
-		}
 
+			// MARK: - Indexed addressing mode.
+
+			case access_program(IndexedRead8):
+			case access_program(IndexedRead16):
+			case access_program(IndexedWrite8):
+			case access_program(IndexedWrite16):
+			case access_program(IndexedModify8):
+			case access_program(IndexedLEA):
+
+				//
+				// Determine target address.
+				//
+
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				indexer_ = IndexedAddressDecoder(operand_.halves.low);
+
+				if(!indexer_.required_continuation()) {
+					goto continue_indexed;
+				} else if(indexer_.required_continuation() == 1) {
+					operand_.halves.high = 0;
+					goto indexed_getlow;
+				}
+
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
+
+			indexed_getlow:
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				indexer_.set_continuation(operand_.full);
+
+			continue_indexed:
+				address_.full = indexer_.address(registers_);
+				if(!indexer_.indirect()) {
+					goto complete_address;
+				}
+
+				read(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
+				read(BusState::Normal, Literal(address_.full), operand_.halves.low, ++address_.full);
+				address_ = operand_;
+
+			complete_address:
+				if(addressing_mode_ == AddressingMode::IndexedLEA) {
+					perform();
+					goto fetch_decode;
+				}
+
+				if(addressing_mode_ == AddressingMode::IndexedRead8) goto read8;
+				if(addressing_mode_ == AddressingMode::IndexedRead16) goto read16;
+				if(addressing_mode_ == AddressingMode::IndexedWrite8) goto write8;
+				if(addressing_mode_ == AddressingMode::IndexedWrite16) goto write16;
+				if(addressing_mode_ == AddressingMode::IndexedModify8) goto modify8;
+
+			//
+			// Access atoms.
+			//
+			read8:
+				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
+				perform();
+				goto fetch_decode;
+
+			read16:
+				read(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
+				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
+				perform();
+				goto fetch_decode;
+
+			write8:
+				perform();
+				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
+				goto fetch_decode;
+
+			write16:
+				perform();
+				write(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
+				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
+				goto fetch_decode;
+
+			modify8:
+				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
+				perform();
+				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
+				goto fetch_decode;
+		}
 
 		#undef access_label
 		#undef attach
@@ -448,9 +498,7 @@ private:
 
 	int resume_point_ = ResumePoint::FetchDecode;
 	InstructionSet::M6809::Operation operation_;
-#ifndef NDEBUG
 	AddressingMode addressing_mode_;
-#endif
 	Registers registers_;
 
 	enum Exceptions: uint8_t {
@@ -464,6 +512,7 @@ private:
 	Data::Writeable target_;
 	RegisterPair16 operand_;
 	RegisterPair16 address_;
+	IndexedAddressDecoder indexer_;
 };
 
 }

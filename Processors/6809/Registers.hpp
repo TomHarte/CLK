@@ -207,7 +207,8 @@ struct Registers {
 };
 
 struct IndexedAddressDecoder {
-	IndexedAddressDecoder(const uint8_t format) : format_(format) {}
+	IndexedAddressDecoder() = default;
+	constexpr IndexedAddressDecoder(const uint8_t format) noexcept : format_(format) {}
 
 	enum FormSuffix: uint8_t {
 		Offset8bit = 0b1000,
