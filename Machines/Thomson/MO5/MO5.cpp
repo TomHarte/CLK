@@ -46,20 +46,25 @@ struct ConcreteMachine:
 		typename AddressT
 	>
 	Cycles perform(
-		[[maybe_unused]] const AddressT address,
-		[[maybe_unused]] CPU::M6809::data_t<read_write> value
+		const AddressT address,
+		CPU::M6809::data_t<read_write> value
 	) {
 		printf("%s %04x\n", CPU::M6809::is_read(read_write) ? "Read from" : "Write to", +address);
 
 		if constexpr (CPU::M6809::is_read(read_write)) {
 			if(address >= 0xc000) {
 				value = rom_[address - 0xc000];
-				printf("Read %02x\n", rom_[address - 0xc000]);
+				printf("ROM -> 0x%02x\n", rom_[address - 0xc000]);
 			} else {
-				value = 0xff;
-				printf("UNIMPLEMENTED. Read 0xff\n");
+				value = ram_[address];
+				printf("RAM -> 0xff\n", ram_[address]);
 			}
+		} else {
+			ram_[address] = value;
+			printf("RAM <- 0xff\n", value);
 		}
+
+		// TODO: the lower portion of memory can actually be paged, so the linear representation above isn't accurate.
 
 		return Cycles(0);
 	}
