@@ -246,8 +246,15 @@ auto complete(SchedulerT &s) {
 		}
 	} ();
 
+	const auto mapped_mode = [&] {
+		switch(mode) {
+			default: return mode;
 
-	return s.template schedule<operation, mode, type>();
+			case AddressingMode::Immediate8: return is_16 ? AddressingMode::Immediate16 : AddressingMode::Immediate8;
+		}
+	} ();
+
+	return s.template schedule<operation, mapped_mode, type>();
 }
 
 }

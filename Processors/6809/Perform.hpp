@@ -542,7 +542,7 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 
 		// Operation selection.
 		case Page1:	case Page2:
-		break;
+//		break;
 
 		default: __builtin_unreachable();
 	}
