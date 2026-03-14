@@ -206,6 +206,15 @@ struct Processor {
 			__VA_ARGS__;																							\
 		}
 
+		// TODO: non-MRDY version.
+		#define write(bus_state, addr, value, ...) {															\
+			time_ -= Cycles(1);																					\
+			time_ -= 																							\
+				bus_handler_.template perform<BusPhase::FullCycle, ReadWrite::Write, bus_state>(addr, target_);	\
+																												\
+			__VA_ARGS__;																						\
+		}
+
 		#define access_program(name)	int(ResumePoint::Max) + int(AddressingMode::name)
 
 		time_ += duration;
@@ -285,6 +294,8 @@ struct Processor {
 					break;
 				}
 
+			// MARK: - Variant addressing mode.
+
 			case access_program(Variant):
 				if(operation_ == Operation::Page2) {
 					goto fetch_decode_page2;
@@ -292,18 +303,82 @@ struct Processor {
 					goto fetch_decode_page1;
 				}
 
+			// MARK: - Inherent addressing mode.
+
 			case access_program(Inherent):
 				perform();
 				goto fetch_decode;
 
+			// MARK: - Immediate and relative addressing modes.
+
+			case access_program(Relative8):
 			case access_program(Immediate8):
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
 				perform();
 				goto fetch_decode;
 
+			case access_program(Relative16):
 			case access_program(Immediate16):
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				perform();
+				goto fetch_decode;
+
+			// MARK: - Direct addressing mode.
+
+			case access_program(DirectRead):
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.dp_high() | operand_.halves.low), operand_.halves.low);
+				perform();
+				goto fetch_decode;
+
+			case access_program(DirectWrite):
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				perform();
+				write(BusState::Normal, Literal(registers_.dp_high() | operand_.halves.low), operand_.halves.low);
+				goto fetch_decode;
+
+			case access_program(DirectModify):
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.dp_high() | operand_.halves.low), operand_.halves.low);
+				perform();
+				write(BusState::Normal, Literal(registers_.dp_high() | operand_.halves.low), operand_.halves.low);
+				goto fetch_decode;
+
+			case access_program(DirectLEA):
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				operand_.halves.high = registers_.reg<R8::DP>();
+				perform();
+				goto fetch_decode;
+
+			// MARK: - Extended addressing mode.
+
+			case access_program(ExtendedRead):
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
+				read(BusState::Normal, Literal(operand_.full), operand_.halves.low);
+				perform();
+				goto fetch_decode;
+
+			case access_program(ExtendedWrite):
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
+				perform();
+				write(BusState::Normal, Literal(operand_.full), operand_.halves.low);
+				goto fetch_decode;
+
+			case access_program(ExtendedModify):
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
+
+				read(BusState::Normal, Literal(operand_.full), operand_.halves.low);
+				perform();
+				write(BusState::Normal, Literal(operand_.full), operand_.halves.low);
+				goto fetch_decode;
+
+			case access_program(ExtendedLEA):
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
 				perform();
 				goto fetch_decode;
 		}

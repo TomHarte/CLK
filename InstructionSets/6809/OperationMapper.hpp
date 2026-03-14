@@ -27,6 +27,8 @@ enum class AddressingMode {
 	Relative16,		// For branches; a 16-bit operand gives an offset from the PC.
 	Variant,		// Specialised 'addressing mode' that indicates an instruction map page change.
 
+	// TODO: I think 16-bit variants of the Reads and Writes below are required, to capture e.g. LDU and STU.
+
 	DirectRead,		// An 8-bit operand provides the low byte of an in-memory address. The DPR provides the high.
 	DirectWrite,
 	DirectModify,

@@ -148,13 +148,13 @@ private:
 	bool entire_ = false;
 };
 
-enum R8 {
+enum class R8 {
 	A,
 	B,
 	CC,
 	DP,
 };
-enum R16 {
+enum class R16 {
 	D,
 	X,
 	Y,
@@ -198,6 +198,11 @@ struct Registers {
 			case R16::PC:	return pc.full;
 			default:	__builtin_unreachable();
 		}
+	}
+
+	/// @returns The value of DP as the high byte of an address.
+	uint16_t dp_high() const {
+		return uint16_t(dp << 8);	// TODO: worth precomputing?
 	}
 };
 
