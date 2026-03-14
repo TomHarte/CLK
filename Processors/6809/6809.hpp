@@ -268,6 +268,7 @@ struct Processor {
 				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
 				{
 					operation_ = Reflection::dispatch(op_mapper0, opcode, op_returner);
+					printf("Dispatch\n");
 					resume_point_ = addressing_program(operation_.mode);
 					break;
 				}
@@ -276,6 +277,7 @@ struct Processor {
 				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
 				{
 					operation_ = Reflection::dispatch(op_mapper1, opcode, op_returner);
+					printf("Dispatch\n");
 					resume_point_ = addressing_program(operation_.mode);
 					break;
 				}
@@ -284,6 +286,7 @@ struct Processor {
 				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
 				{
 					operation_ = Reflection::dispatch(op_mapper2, opcode, op_returner);
+					printf("Dispatch\n");
 					resume_point_ = addressing_program(operation_.mode);
 					break;
 				}
