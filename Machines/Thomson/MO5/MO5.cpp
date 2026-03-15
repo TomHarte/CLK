@@ -57,7 +57,7 @@ struct ConcreteMachine:
 				printf("ROM -> 0x%02x\n", rom_[address - 0xc000]);
 			} else {
 				value = ram_[address];
-				printf("RAM -> 0xff\n", ram_[address]);
+				printf("RAM -> 0x%02x\n", ram_[address]);
 			}
 		} else {
 			ram_[address] = value;

@@ -381,8 +381,13 @@ struct Processor {
 					case Operation::PULS:
 						goto pull;
 
+					case Operation::RTS:
+						goto rts;
+
 					default: __builtin_unreachable();
 				}
+
+			// MARK: - PULU/PULS.
 
 			pull:
 				stack_ = operation_.operation == Operation::PULU ? &registers_.reg<R16::U>(): &registers_.reg<R16::S>();
@@ -445,6 +450,14 @@ struct Processor {
 				registers_.reg<R16::PC>() = address_.full;
 				goto fetch_decode;
 
+			// MARK: - RTS.
+
+			rts:
+				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.high, ++registers_.reg<R16::S>());
+				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.low, ++registers_.reg<R16::S>());
+				registers_.reg<R16::PC>() = address_.full;
+				goto fetch_decode;
+
 			//
 			// Access atoms.
 			//
@@ -454,8 +467,10 @@ struct Processor {
 				goto fetch_decode;
 
 			case access_program(AccessType::JSR):
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.high, registers_.reg<R16::S>()++);
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.low, registers_.reg<R16::S>()++);
+				--registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.low);
+				--registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.high);
 				registers_.reg<R16::PC>() = address_.full;
 				goto fetch_decode;
 
