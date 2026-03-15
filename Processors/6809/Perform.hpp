@@ -508,9 +508,13 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case STB:	st<R8::B>(registers, byte);				break;
 
 		case LDD:	ld<R16::D>(registers, word);			break;
+		case LEAU:
 		case LDU:	ld<R16::U>(registers, word);			break;
+		case LEAX:
 		case LDX:	ld<R16::X>(registers, word);			break;
+		case LEAY:
 		case LDY:	ld<R16::Y>(registers, word);			break;
+		case LEAS:
 		case LDS:	ld<R16::S>(registers, word);			break;
 		case STD:	st<R16::D>(registers, word);			break;
 		case STU:	st<R16::U>(registers, word);			break;
@@ -528,14 +532,13 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case TSTB:	tst<R8::B>(registers);					break;
 		case TST:	tst(registers, byte);					break;
 
+		case JMP:	ld<R16::PC>(registers, word);			break;
+
 		// Flow control that requires stack access.
-		case JSR:	case BSR:	case LBSR:	case JMP:
+		case JSR:	case BSR:	case LBSR:
 		case RTI:	case RTS:
 		case SWI:	case SWI2:	case SWI3:
 		case SYNC:	case RESET:	case CWAI:
-
-		// Effective address calculation.
-		case LEAX:	case LEAY:	case LEAS:	case LEAU:
 
 		// Stack access.
 		case PSHS:	case PULS:	case PSHU:	case PULU:

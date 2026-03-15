@@ -38,6 +38,9 @@ enum class AddressingMode {
 	// One or two additional further bytes may then follow.
 	Indexed,
 
+	// Instructions with atypical bus activity; things that interact with the stacks.
+	Specialised,
+
 	Max,
 };
 
@@ -47,7 +50,8 @@ enum class AccessType {
 	Write8,
 	Write16,
 	Modify8,
-	LEA,
+	LEA,		// Covers both LEA[X/Y/S/U] and JMP, which is LEA to the PC.
+	JSR,
 
 	Max,
 };
@@ -70,6 +74,7 @@ constexpr SimpleAddressingMode simplify(const AddressingMode mode) {
 		using enum AddressingMode;
 
 		case Illegal:		return SimpleAddressingMode::Illegal;
+		case Specialised:
 		case Inherent:		return SimpleAddressingMode::Inherent;
 		case Immediate8:
 		case Immediate16:	return SimpleAddressingMode::Immediate;
@@ -328,14 +333,14 @@ auto OperationMapper<Page::Page0>::dispatch(SchedulerT &s) {
 				case 0x0:	case 0x1:	case 0x2:	case 0x3:
 				return complete<op, AM::Indexed>(s);
 
-				case 0x4:	case 0x5:	case 0x6:	case 0x7:	case 0xc:
-				return complete<op, AM::Immediate8>(s);
+				case 0x0a:	case 0x0d:	case 0x0e:
+				return complete<op, AM::Inherent>(s);
 
 				case 0x8:
 				return complete<op, AM::Illegal>(s);
 
 				default:
-				return complete<op, AM::Inherent>(s);
+				return complete<op, AM::Specialised>(s);
 			}
 		}
 		case 0x4: {
