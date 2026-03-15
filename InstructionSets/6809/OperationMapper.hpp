@@ -167,6 +167,7 @@ constexpr bool is_16bit() {
 		case CMPD:	case CMPY:	case LDY:	case STY:
 		case LDS:	case STS:
 		case CMPU:	case CMPS:
+		case JMP:
 			return true;
 
 		default: return false;
