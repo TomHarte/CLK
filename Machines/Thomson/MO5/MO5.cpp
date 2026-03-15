@@ -61,7 +61,7 @@ struct ConcreteMachine:
 			}
 		} else {
 			ram_[address] = value;
-			printf("RAM <- 0xff\n", value);
+			printf("RAM <- 0x%02x\n", value);
 		}
 
 		// TODO: the lower portion of memory can actually be paged, so the linear representation above isn't accurate.

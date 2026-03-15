@@ -181,7 +181,7 @@ constexpr AccessGenus access_genus() {
 	switch(operation) {
 		using enum Operation;
 
-		default:
+		default:	// LEA and JSR — both calculate an effective address but don't (within themselves) access it.
 			return AccessGenus::None;
 
 		// Actual reads.
@@ -191,7 +191,7 @@ constexpr AccessGenus access_genus() {
 		case LDB:	case SUBA:	case CMPA:	case SBCA:
 		case SUBD:	case ANDA:	case BITA:	case LDA:
 		case EORA:	case ADCA:	case ORA:	case ADDA:
-		case CMPX:	case JSR:	case LDX:	case BSR:
+		case CMPX:	case LDX:	case BSR:
 		case JMP:	case TST:
 		case CMPD:	case CMPS:	case CMPU:
 			return AccessGenus::Read;
@@ -244,7 +244,7 @@ auto complete(SchedulerT &s) {
 	static constexpr auto genus = access_genus<operation>();
 	static constexpr auto type = [&] {
 		switch(genus) {
-			default: return AccessType::LEA;
+			default: return operation == Operation::JSR ? AccessType::JSR : AccessType::LEA;
 			case AccessGenus::Read: return is_16 ? AccessType::Read16 : AccessType::Read8;
 			case AccessGenus::Write: return is_16 ? AccessType::Write16 : AccessType::Write8;
 			case AccessGenus::Modify: return AccessType::Modify8;
@@ -254,7 +254,6 @@ auto complete(SchedulerT &s) {
 	const auto mapped_mode = [&] {
 		switch(mode) {
 			default: return mode;
-
 			case AddressingMode::Immediate8: return is_16 ? AddressingMode::Immediate16 : AddressingMode::Immediate8;
 		}
 	} ();

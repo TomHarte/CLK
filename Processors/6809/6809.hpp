@@ -209,12 +209,11 @@ struct Processor {
 		}
 
 		// TODO: non-MRDY version.
-		#define write(bus_state, addr, value, ...) {															\
-			time_ -= Cycles(1);																					\
-			time_ -= 																							\
-				bus_handler_.template perform<BusPhase::FullCycle, ReadWrite::Write, bus_state>(addr, target_);	\
-																												\
-			__VA_ARGS__;																						\
+		#define write(bus_state, addr, value, ...) {																\
+			time_ -= Cycles(1);																						\
+			time_ -= bus_handler_.template perform<BusPhase::FullCycle, ReadWrite::Write, bus_state>(addr, value);	\
+																													\
+			__VA_ARGS__;																							\
 		}
 
 		time_ += duration;
@@ -452,6 +451,12 @@ struct Processor {
 			case access_program(AccessType::LEA):
 				operand_.full = address_.full;
 				perform();
+				goto fetch_decode;
+
+			case access_program(AccessType::JSR):
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.high, registers_.reg<R16::S>()++);
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.low, registers_.reg<R16::S>()++);
+				registers_.reg<R16::PC>() = address_.full;
 				goto fetch_decode;
 
 			case access_program(AccessType::Read8):
