@@ -49,19 +49,17 @@ struct ConcreteMachine:
 		const AddressT address,
 		CPU::M6809::data_t<read_write> value
 	) {
-		printf("%s %04x\n", CPU::M6809::is_read(read_write) ? "Read from" : "Write to", +address);
-
 		if constexpr (CPU::M6809::is_read(read_write)) {
 			if(address >= 0xc000) {
 				value = rom_[address - 0xc000];
-				printf("ROM -> 0x%02x\n", rom_[address - 0xc000]);
+				printf("%04x: ROM -> 0x%02x\n", +address, rom_[address - 0xc000]);
 			} else {
 				value = ram_[address];
-				printf("RAM -> 0x%02x\n", ram_[address]);
+				printf("%04x: RAM -> 0x%02x\n", +address, ram_[address]);
 			}
 		} else {
 			ram_[address] = value;
-			printf("RAM <- 0x%02x\n", value);
+			printf("%04x: RAM <- 0x%02x\n", +address, value);
 		}
 
 		// TODO: the lower portion of memory can actually be paged, so the linear representation above isn't accurate.
