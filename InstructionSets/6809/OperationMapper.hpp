@@ -182,7 +182,7 @@ constexpr AccessGenus access_genus() {
 	switch(operation) {
 		using enum Operation;
 
-		default:	// LEA and JSR — both calculate an effective address but don't (within themselves) access it.
+		default:	// LEA, JSR and JMP — all calculate an effective address but don't (within themselves) access it.
 			return AccessGenus::None;
 
 		// Actual reads.
@@ -193,7 +193,7 @@ constexpr AccessGenus access_genus() {
 		case SUBD:	case ANDA:	case BITA:	case LDA:
 		case EORA:	case ADCA:	case ORA:	case ADDA:
 		case CMPX:	case LDX:	case BSR:
-		case JMP:	case TST:
+		case TST:
 		case CMPD:	case CMPS:	case CMPU:
 			return AccessGenus::Read;
 

@@ -224,9 +224,11 @@ struct IndexedAddressDecoder {
 		DecrementBy1 = 0b0010,
 		DecrementBy2 = 0b0011,
 	};
+	static constexpr uint8_t ExtendedIndirect = 0x9f;
 
 	int required_continuation() const {
 		if(!(format_ & 0x80)) return 0;
+		if(format_ == ExtendedIndirect) return 2;
 		switch(format_ & 0b1111) {
 			using enum FormSuffix;
 			case Offset8bit:	case Offset8bitFromPC:	return 1;
@@ -244,6 +246,10 @@ struct IndexedAddressDecoder {
 	//
 	// Will apply any automatic increment or decrement to the registers.
 	uint16_t address(Registers &registers) const {
+		if(format_ == ExtendedIndirect) {
+			return continuation_;
+		}
+
 		const uint16_t base = [&] {
 			if(
 				(format_ & 0x80) &&
