@@ -50,6 +50,7 @@ struct ConcreteMachine:
 		CPU::M6809::data_t<read_write> value
 	) {
 		if constexpr (CPU::M6809::is_read(read_write)) {
+//			printf("X: %04x\n", m6809_.registers().x);
 			if(address >= 0xc000) {
 				value = rom_[address - 0xc000];
 				printf("%04x: ROM -> 0x%02x\n", +address, rom_[address - 0xc000]);

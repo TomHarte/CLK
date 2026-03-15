@@ -584,6 +584,10 @@ struct Processor {
 		#undef restore_point
 	}
 
+	Registers registers() {
+		return registers_;
+	}
+
 private:
 	Traits::BusHandlerT &bus_handler_;
 	Timescale time_;

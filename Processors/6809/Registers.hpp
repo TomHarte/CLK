@@ -219,10 +219,10 @@ struct IndexedAddressDecoder {
 		ARegisterOffset = 0b0110,
 		BRegisterOffset = 0b0101,
 		DRegisterOffset = 0b1011,
-		IncrementBy1 = 0b1011,
-		IncrementBy2 = 0b0001,
-		DecrementBy1 = 0b0010,
-		DecrementBy2 = 0b0011,
+		PostincrementBy1 = 0b1011,
+		PostincrementBy2 = 0b0001,
+		PredecrementBy1 = 0b0010,
+		PredecrementBy2 = 0b0011,
 	};
 	static constexpr uint8_t ExtendedIndirect = 0x9f;
 
@@ -261,22 +261,38 @@ struct IndexedAddressDecoder {
 				return registers.reg<R16::PC>();
 			}
 
-			const int offset = [&] {
-				switch(format_ & 0b1111) {
-					default: return 0;
-					case DecrementBy2: return -2;
-					case DecrementBy1: return -1;
-					case IncrementBy1: return 1;
-					case IncrementBy2: return 2;
+			auto reg = [&] () -> uint16_t & {
+				switch((format_ >> 5) & 3) {
+					case 0b00:	return registers.reg<R16::X>();
+					case 0b01:	return registers.reg<R16::Y>();
+					case 0b10:	return registers.reg<R16::U>();
+					case 0b11:	return registers.reg<R16::S>();
+					default: __builtin_unreachable();
 				}
-			} ();
+			};
 
-			switch((format_ >> 5) & 3) {
-				case 0b00:	return registers.reg<R16::X>() += offset;
-				case 0b01:	return registers.reg<R16::Y>() += offset;
-				case 0b10:	return registers.reg<R16::U>() += offset;
-				case 0b11:	return registers.reg<R16::S>() += offset;
-				default: __builtin_unreachable();
+			switch(format_ & 0b1111) {
+				default: return reg();
+
+				case PredecrementBy2:
+					reg() -= 2;
+					return reg();
+
+				case PredecrementBy1:
+					reg() -= 1;
+					return reg();
+
+				case PostincrementBy1: {
+					const uint16_t result = reg();
+					reg() += 1;
+					return result;
+				}
+
+				case PostincrementBy2: {
+					const uint16_t result = reg();
+					reg() += 2;
+					return result;
+				}
 			}
 		} ();
 
