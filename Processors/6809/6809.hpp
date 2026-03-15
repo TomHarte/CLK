@@ -306,12 +306,20 @@ struct Processor {
 			// MARK: - Immediate and relative addressing modes.
 
 			case addressing_program(AddressingMode::Relative8):
+				if(operation_.operation == Operation::BSR) {
+					goto bsr;
+				}
+				[[fallthrough]];
 			case addressing_program(AddressingMode::Immediate8):
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
 				perform();
 				goto fetch_decode;
 
 			case addressing_program(AddressingMode::Relative16):
+				if(operation_.operation == Operation::BSR) {
+					goto lbsr;
+				}
+				[[fallthrough]];
 			case addressing_program(AddressingMode::Immediate16):
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
@@ -466,7 +474,19 @@ struct Processor {
 				perform();
 				goto fetch_decode;
 
+			bsr:
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				address_.full = registers_.pc.full + int8_t(operand_.halves.low);
+				goto jsr;
+
+			lbsr:
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				address_.full = registers_.pc.full + operand_.full;
+				goto jsr;
+
 			case access_program(AccessType::JSR):
+			jsr:
 				--registers_.reg<R16::S>();
 				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.low);
 				--registers_.reg<R16::S>();
