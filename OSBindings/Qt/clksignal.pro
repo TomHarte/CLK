@@ -119,6 +119,7 @@ SOURCES += \
 	$$SRC/Machines/Sinclair/Keyboard/*.cpp \
 	$$SRC/Machines/Sinclair/ZX8081/*.cpp \
 	$$SRC/Machines/Sinclair/ZXSpectrum/*.cpp \
+	$$SRC/Machines/Thomson/MO5/*.cpp \
 \
 	$$SRC/Outputs/*.cpp \
 	$$SRC/Outputs/CRT/*.cpp \
@@ -264,6 +265,7 @@ HEADERS += \
 	$$SRC/Machines/Sinclair/Keyboard/*.hpp \
 	$$SRC/Machines/Sinclair/ZX8081/*.hpp \
 	$$SRC/Machines/Sinclair/ZXSpectrum/*.hpp \
+	$$SRC/Machines/Thomson/MO5/*.hpp \
 \
 	$$SRC/Numeric/*.hpp \
 \

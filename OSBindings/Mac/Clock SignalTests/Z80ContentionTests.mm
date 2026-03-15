@@ -141,7 +141,7 @@ struct CapturingZ80: public CPU::Z80::BusHandler {
 			break;
 
 			case CPU::Z80::PartialMachineCycle::Internal:
-				for(int c = 0; c < cycle.length.cycles().as<int>(); c++) {
+				for(int c = 0; c < cycle.length.reduce<Cycles>().as<int>(); c++) {
 					contentions_48k_.emplace_back();
 					contentions_48k_.back().address = *cycle.address;
 					contentions_48k_.back().length = 1;
