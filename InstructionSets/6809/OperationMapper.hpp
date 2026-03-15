@@ -332,7 +332,7 @@ auto OperationMapper<Page::Page0>::dispatch(SchedulerT &s) {
 				case 0x0:	case 0x1:	case 0x2:	case 0x3:
 				return complete<op, AM::Indexed>(s);
 
-				case 0x0a:	case 0x0d:	case 0x0e:
+				case 0x0a:	case 0x0d:
 				return complete<op, AM::Inherent>(s);
 
 				case 0x8:
