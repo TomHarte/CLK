@@ -240,6 +240,8 @@ struct Processor {
 			reset:
 				registers_.dp = 0;
 				exceptions_ &= ~(Exceptions::NMI | Exceptions::PowerOnReset);
+				registers_.cc.set<ConditionCode::IRQMask>(true);
+				registers_.cc.set<ConditionCode::FIRQMask>(true);
 
 				// TODO: spin here on HALT | DMA | BREQ.
 
@@ -392,6 +394,9 @@ struct Processor {
 					case Operation::RTS:
 						goto rts;
 
+					case Operation::SWI:	case Operation::SWI2:	case Operation::SWI3:
+						goto swi;
+
 					default: __builtin_unreachable();
 				}
 
@@ -458,13 +463,73 @@ struct Processor {
 				registers_.reg<R16::PC>() = address_.full;
 				goto fetch_decode;
 
-			// MARK: - RTS.
+			// MARK: - Stack-related control flow.
 
 			rts:
 				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.high, ++registers_.reg<R16::S>());
 				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.low, ++registers_.reg<R16::S>());
 				registers_.reg<R16::PC>() = address_.full;
 				goto fetch_decode;
+
+			bsr:
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				address_.full = uint16_t(registers_.pc.full + int8_t(operand_.halves.low));
+				goto jsr;
+
+			lbsr:
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				address_.full = registers_.pc.full + operand_.full;
+				goto jsr;
+
+			swi:
+				registers_.cc.set<ConditionCode::Entire>(true);
+
+				operand_ = registers_.reg<R16::PC>();
+				-- registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.low);
+				-- registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.high);
+
+				operand_ = registers_.reg<R16::U>();
+				-- registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.low);
+				-- registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.high);
+
+				operand_ = registers_.reg<R16::Y>();
+				-- registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.low);
+				-- registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.high);
+
+				operand_ = registers_.reg<R16::X>();
+				-- registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.low);
+				-- registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.high);
+
+				-- registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::DP>());
+				-- registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::B>());
+				-- registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::A>());
+				-- registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::CC>());
+
+				if(operation_.operation == Operation::SWI) {
+					registers_.cc.set<ConditionCode::IRQMask>(true);
+					registers_.cc.set<ConditionCode::FIRQMask>(true);
+					address_.full = 0xfffa;
+				} else {
+					address_.full = operation_.operation == Operation::SWI2 ? 0xfff4 : 0xfff2;
+				}
+
+				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.high, ++address_.full);
+				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.low, ++address_.full);
+				goto fetch_decode;
+
 
 			//
 			// Access atoms.
@@ -473,17 +538,6 @@ struct Processor {
 				operand_.full = address_.full;
 				perform();
 				goto fetch_decode;
-
-			bsr:
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
-				address_.full = registers_.pc.full + int8_t(operand_.halves.low);
-				goto jsr;
-
-			lbsr:
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
-				address_.full = registers_.pc.full + operand_.full;
-				goto jsr;
 
 			case access_program(AccessType::JSR):
 			jsr:

@@ -405,7 +405,7 @@ auto OperationMapper<Page::Page1>::dispatch(SchedulerT &s) {
 		return complete<operations[i - 0x21], AM::Relative16>(s);
 	} else switch(i) {
 		default:	return complete<O::None, AM::Illegal>(s);
-		case 0x3f:	return complete<O::SWI2, AM::Inherent>(s);
+		case 0x3f:	return complete<O::SWI2, AM::Specialised>(s);
 
 		case 0x83:	case 0x93:	case 0xa3:	case 0xb3:
 		return complete<O::CMPD, mode>(s);
@@ -441,7 +441,7 @@ auto OperationMapper<Page::Page2>::dispatch(SchedulerT &s) {
 
 	switch(i) {
 		default:	return complete<O::None, AM::Illegal>(s);
-		case 0x3f:	return complete<O::SWI3, AM::Inherent>(s);
+		case 0x3f:	return complete<O::SWI3, AM::Specialised>(s);
 
 		case 0x83:	case 0x93:	case 0xa3:	case 0xb3:
 		return complete<O::CMPU, mode>(s);
