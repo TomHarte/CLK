@@ -161,8 +161,8 @@ void sub(Registers &registers, const uint16_t operand) {
 inline void mul(Registers &registers) {
 	const uint16_t result = registers.reg<R8::A>() * registers.reg<R8::B>();
 	registers.reg<R16::D>() = result;
-	registers.cc.set<ConditionCode::Zero>(result);
-	registers.cc.set<ConditionCode::Carry>(result & 0x80);
+	registers.cc.set<ConditionCode::Zero>(!result);
+	registers.cc.set<ConditionCode::Carry>(result & 0x8000);
 }
 
 inline void daa(Registers &registers) {

@@ -149,6 +149,7 @@ struct M6809Traits {
 
 			case DAA:	return ~0x3;	// Don't test carry or overflow; mine are likely wrong.
 			case SEX:	return ~0x2;	// Docs say overflow unaffected; tests seem to reset it.
+			case MUL:	return ~0x8;	// Tests clear overflow. Docs say it's unaffected.
 		}
 	} ();
 
@@ -164,7 +165,6 @@ struct M6809Traits {
 		case 0x32:	// LEAS indirect.
 		case 0x33:	// LEAU indirect.
 
-		case 0x3d:	// MUL
 		case 0x3f:	// SWI
 		case 0x60:	// NEG indirect.
 		case 0x63:	// COM indirect.
