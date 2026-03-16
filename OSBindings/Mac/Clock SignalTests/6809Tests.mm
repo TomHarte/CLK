@@ -229,13 +229,11 @@ struct M6809Traits {
 		case 0xee:	// LDU indexed.
 		case 0xef:	// STD indexed.
 
-		case 0x109c:	// CMPY direct.
 		case 0x10a3:	// CMPD indexed.
 		case 0x10ac:	// CMPY indexed.
 		case 0x10ae:	// LDY indexed.
 		case 0x10af:	// STY indexed.
 
-		case 0x10bc:	// CMPY extended.
 		case 0x10ee:	// LDS indexed.
 		case 0x10ef:	// STS indexed.
 

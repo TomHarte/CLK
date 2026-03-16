@@ -194,7 +194,7 @@ constexpr AccessGenus access_genus() {
 		case EORA:	case ADCA:	case ORA:	case ADDA:
 		case CMPX:	case LDX:	case BSR:	case LDY:
 		case TST:	case LDS:
-		case CMPD:	case CMPS:	case CMPU:
+		case CMPD:	case CMPS:	case CMPU:	case CMPY:
 			return AccessGenus::Read;
 
 		case STB:	case STD:	case STU:	case STA:
