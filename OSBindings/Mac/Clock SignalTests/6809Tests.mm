@@ -86,6 +86,8 @@ struct M6809Traits {
 		return;
 	}
 
+//	if(opcode != 0x0e) return;
+
 	m6809_.set<CPU::M6809::Line::PowerOnReset>(false);
 	m6809_.run_for(1);
 

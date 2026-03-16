@@ -530,7 +530,7 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case TSTB:	tst<R8::B>(registers);					break;
 		case TST:	tst(registers, byte);					break;
 
-		case JMP:	ld<R16::PC>(registers, word);			break;
+		case JMP:	registers.pc.full = word;				break;
 
 		// Flow control that requires stack access.
 		case JSR:	case BSR:	case LBSR:
