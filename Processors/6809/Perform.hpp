@@ -236,8 +236,7 @@ void tst(Registers &registers) {
 // MARK: - Shifts and rolls.
 
 inline void lsl(Registers &registers, uint8_t &value) {
-	// TODO: value for H?
-	registers.cc.set<ConditionCode::Overflow>((value << 1) ^ value);
+	registers.cc.set<ConditionCode::Overflow>(((value << 1) ^ value) & 0x80);
 	registers.cc.set<ConditionCode::Carry>(value >> 7);
 	value <<= 1;
 	registers.cc.set_nz(value);
@@ -249,7 +248,6 @@ void lsl(Registers &registers) {
 }
 
 inline void asr(Registers &registers, uint8_t &value) {
-	// TODO: value for H?
 	registers.cc.set<ConditionCode::Carry>(value & 1);
 	value = (value >> 1) | (value & 0x80);
 	registers.cc.set_nz(value);
