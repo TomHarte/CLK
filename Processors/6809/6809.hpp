@@ -186,7 +186,7 @@ struct Processor {
 				time_ -= Cycles(1);																					\
 				time_ -= 																							\
 					bus_handler_.template perform<BusPhase::FullCycle, ReadWrite::Read, bus_state>(addr, target_);	\
-				goto local_label(label_prefix##SkipMRDY);															\
+				goto local_label(skipMRDY);															\
 			}																										\
 																													\
 			if constexpr (Traits::uses_mrdy) {																		\
@@ -218,16 +218,50 @@ struct Processor {
 					bus_handler_.template perform<BusPhase::PostMRDY, ReadWrite::Read, bus_state>(addr, target_);	\
 			}																										\
 																													\
-			local_label(label_prefix##SkipMRDY):																	\
+			local_label(skipMRDY):																	\
 			value = target_;																						\
 			__VA_ARGS__;																							\
 		}
 
-		// TODO: non-MRDY version.
 		#define write(bus_state, addr, value, ...) {																\
-			time_ -= Cycles(1);																						\
-			time_ -= bus_handler_.template perform<BusPhase::FullCycle, ReadWrite::Write, bus_state>(addr, value);	\
+			if constexpr (!Traits::uses_mrdy) {																		\
+				time_ -= Cycles(1);																					\
+				time_ -=																							\
+					bus_handler_.template perform<BusPhase::FullCycle, ReadWrite::Write, bus_state>(addr, value);	\
 																													\
+				goto local_label(skipMRDY);																			\
+			}																										\
+																													\
+			if constexpr (Traits::uses_mrdy) {																		\
+				time_ -= QuarterCycles(3);																			\
+				time_ -=																							\
+					bus_handler_.template perform<BusPhase::PreMRDY, ReadWrite::Write, bus_state>(addr, value);		\
+			}																										\
+																													\
+			static constexpr auto check_mrdy = restore_point();														\
+			[[fallthrough]];																						\
+			case check_mrdy:																						\
+			while(mrdy_) {																							\
+				check_pause(PausePrecision::BetweenBusActions, check_mrdy);											\
+				if constexpr (Traits::uses_mrdy) {																	\
+					time_ -= QuarterCycles(1);																		\
+					time_ -=																						\
+						bus_handler_.template perform<BusPhase::MRDY, ReadWrite::Write, bus_state>(addr, value);	\
+				}																									\
+			}																										\
+																													\
+			static constexpr auto post_mrdy = restore_point();														\
+			[[fallthrough]];																						\
+			case post_mrdy:																							\
+			check_pause(PausePrecision::BetweenBusActions, post_mrdy);												\
+																													\
+			if constexpr (Traits::uses_mrdy) {																		\
+				time_ -= QuarterCycles(1);																			\
+				time_ -=																							\
+					bus_handler_.template perform<BusPhase::PostMRDY, ReadWrite::Write, bus_state>(addr, value);	\
+			}																										\
+																													\
+			local_label(skipMRDY):																					\
 			__VA_ARGS__;																							\
 		}
 
