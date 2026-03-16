@@ -391,6 +391,10 @@ struct Processor {
 					case Operation::PULS:
 						goto pull;
 
+					case Operation::PSHU:
+					case Operation::PSHS:
+						goto push;
+
 					case Operation::RTS:
 						goto rts;
 
@@ -461,6 +465,69 @@ struct Processor {
 				read(BusState::Normal, Literal(*stack_), address_.halves.high, ++*stack_);
 				read(BusState::Normal, Literal(*stack_), address_.halves.low, ++*stack_);
 				registers_.reg<R16::PC>() = address_.full;
+				goto fetch_decode;
+
+			// MARK: - PHSH/PSHS.
+
+			push:
+				stack_ = operation_.operation == Operation::PSHU ? &registers_.reg<R16::U>(): &registers_.reg<R16::S>();
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+
+				if(!(operand_.halves.low & 0b1000'0000)) {
+					goto no_push_pc;
+				}
+				address_.full = registers_.reg<R16::PC>();
+				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.low);
+				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.high);
+
+			no_push_pc:
+				if(!(operand_.halves.low & 0b0100'0000)) {
+					goto no_push_s;
+				}
+				address_.full =
+					operation_.operation == Operation::PSHU ? registers_.reg<R16::S>() : registers_.reg<R16::U>();
+				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.low);
+				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.high);
+
+			no_push_s:
+				if(!(operand_.halves.low & 0b0010'0000)) {
+					goto no_push_y;
+				}
+				address_.full = registers_.reg<R16::Y>();
+				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.low);
+				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.high);
+
+			no_push_y:
+				if(!(operand_.halves.low & 0b0001'0000)) {
+					goto no_push_x;
+				}
+				address_.full = registers_.reg<R16::X>();
+				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.low);
+				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.high);
+
+			no_push_x:
+				if(!(operand_.halves.low & 0b000'1000)) {
+					goto no_push_dp;
+				}
+				(*stack_)--;	write(BusState::Normal, Literal(*stack_), registers_.reg<R8::DP>());
+
+			no_push_dp:
+				if(!(operand_.halves.low & 0b000'0100)) {
+					goto no_push_b;
+				}
+				(*stack_)--;	write(BusState::Normal, Literal(*stack_), registers_.reg<R8::B>());
+
+			no_push_b:
+				if(!(operand_.halves.low & 0b000'0010)) {
+					goto no_push_a;
+				}
+				(*stack_)--;	write(BusState::Normal, Literal(*stack_), registers_.reg<R8::A>());
+
+			no_push_a:
+				if(!(operand_.halves.low & 0b000'0001)) {
+					goto fetch_decode;
+				}
+				(*stack_)--;	write(BusState::Normal, Literal(*stack_), registers_.reg<R8::CC>());
 				goto fetch_decode;
 
 			// MARK: - Stack-related control flow.

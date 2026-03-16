@@ -211,15 +211,18 @@ struct IndexedAddressDecoder {
 	constexpr IndexedAddressDecoder(const uint8_t format) noexcept : format_(format) {}
 
 	enum FormSuffix: uint8_t {
-		Offset8bit = 0b1000,
-		Offset8bitFromPC = 0b1100,
-		Offset16bit = 0b1001,
-		Offset16bitFromPC = 0b1101,
 		NoOffset = 0b0100,
+
+		Offset8bit = 0b1000,
+		Offset16bit = 0b1001,
+		Offset8bitFromPC = 0b1100,
+		Offset16bitFromPC = 0b1101,
+
 		ARegisterOffset = 0b0110,
 		BRegisterOffset = 0b0101,
 		DRegisterOffset = 0b1011,
-		PostincrementBy1 = 0b1011,
+
+		PostincrementBy1 = 0b1000,
 		PostincrementBy2 = 0b0001,
 		PredecrementBy1 = 0b0010,
 		PredecrementBy2 = 0b0011,
