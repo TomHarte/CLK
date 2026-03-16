@@ -283,4 +283,18 @@ struct M6809Traits {
 	}
 }
 
+- (void)testIndexer {
+	using IndexedAddressDecoder = CPU::M6809::IndexedAddressDecoder;
+	IndexedAddressDecoder decoder;
+
+	decoder = IndexedAddressDecoder(0x00);
+	XCTAssertEqual(decoder.required_continuation(), 0);
+	for(int c = 0; c < 65536; c += 13) {
+		CPU::M6809::Registers regs;
+		regs.x = c;
+		XCTAssertEqual(decoder.address(regs), c);
+		XCTAssertEqual(regs.x, c + 1);
+	}
+}
+
 @end

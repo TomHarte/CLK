@@ -203,18 +203,13 @@ struct Registers {
 			default:	__builtin_unreachable();
 		}
 	}
-
-	/// @returns The value of DP as the high byte of an address.
-	uint16_t dp_high() const {
-		return uint16_t(dp << 8);	// TODO: worth precomputing?
-	}
 };
 
 struct IndexedAddressDecoder {
 	IndexedAddressDecoder() = default;
 	constexpr IndexedAddressDecoder(const uint8_t format) noexcept : format_(format) {}
 
-	enum FormSuffix: uint8_t {
+	enum class FormSuffix {
 		NoOffset = 0b0100,
 
 		Offset8bit = 0b1000,
@@ -226,17 +221,30 @@ struct IndexedAddressDecoder {
 		BRegisterOffset = 0b0101,
 		DRegisterOffset = 0b1011,
 
-		PostincrementBy1 = 0b1000,
+		PostincrementBy1 = 0b0000,
 		PostincrementBy2 = 0b0001,
 		PredecrementBy1 = 0b0010,
 		PredecrementBy2 = 0b0011,
 	};
 	static constexpr uint8_t ExtendedIndirect = 0x9f;
 
-	int required_continuation() const {
-		if(!(format_ & 0x80)) return 0;
+	constexpr FormSuffix suffix() const {
+		return FormSuffix(format_ & 0b1111);
+	}
+	constexpr bool is_5bit() const {
+		return !(format_ & 0xb1000'0000);
+	}
+	constexpr bool indirect() const {
+		return
+			suffix() != FormSuffix::PostincrementBy1 &&
+			suffix() != FormSuffix::PredecrementBy1 &&
+			(format_ & 0b1001'0000) == 0b1001'0000;
+	}
+
+	constexpr int required_continuation() const {
+		if(is_5bit()) return 0;
 		if(format_ == ExtendedIndirect) return 2;
-		switch(format_ & 0b1111) {
+		switch(suffix()) {
 			using enum FormSuffix;
 			case Offset8bit:	case Offset8bitFromPC:	return 1;
 			case Offset16bit:	case Offset16bitFromPC:	return 2;
@@ -257,32 +265,33 @@ struct IndexedAddressDecoder {
 			return continuation_;
 		}
 
+		const auto reg = [&] () -> uint16_t & {
+			switch((format_ >> 5) & 0b11) {
+				case 0b00:	return registers.reg<R16::X>();
+				case 0b01:	return registers.reg<R16::Y>();
+				case 0b10:	return registers.reg<R16::U>();
+				case 0b11:	return registers.reg<R16::S>();
+				default: __builtin_unreachable();
+			}
+		};
+
 		const uint16_t base = [&] {
+			if(is_5bit()) {
+				return reg();
+			}
+
 			if(
-				(format_ & 0x80) &&
+				!is_5bit() &&
 				(
-					((format_ & 0b1111) == FormSuffix::Offset8bitFromPC) ||
-					((format_ & 0b1111) == FormSuffix::Offset16bitFromPC)
+					(suffix() == FormSuffix::Offset8bitFromPC) ||
+					(suffix() == FormSuffix::Offset16bitFromPC)
 				)
 			) {
 				return registers.reg<R16::PC>();
 			}
 
-			auto reg = [&] () -> uint16_t & {
-				switch((format_ >> 5) & 3) {
-					case 0b00:	return registers.reg<R16::X>();
-					case 0b01:	return registers.reg<R16::Y>();
-					case 0b10:	return registers.reg<R16::U>();
-					case 0b11:	return registers.reg<R16::S>();
-					default: __builtin_unreachable();
-				}
-			};
-
-			if(!(format_ & 0x80)) {
-				return reg();
-			}
-
-			switch(format_ & 0b1111) {
+			switch(suffix()) {
+				using enum FormSuffix;
 				default: return reg();
 
 				case PredecrementBy2:
@@ -308,13 +317,13 @@ struct IndexedAddressDecoder {
 		} ();
 
 		// A high bit of 0 implies the low five bits are the offset.
-		if(!(format_ & 0x80)) {
+		if(is_5bit()) {
 			// Shift sign bit up to bit 7 and convert to int8_t to effect it.
 			// Then shift back down to get the correct value.
 			return uint16_t(base + (int8_t(format_ << 3) >> 3));
 		}
 
-		switch(format_ & 0b1111) {
+		switch(suffix()) {
 			using enum FormSuffix;
 
 			default:	return base;
@@ -330,10 +339,6 @@ struct IndexedAddressDecoder {
 		}
 
 		return base;
-	}
-
-	bool indirect() const {
-		return (format_ & 0x90) == 0x90;
 	}
 
 private:

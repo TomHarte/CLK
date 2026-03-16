@@ -315,7 +315,6 @@ struct Processor {
 					// TODO: test interrupts and more.
 				}
 
-//				printf("--- Fetch\n");
 				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
 				{
 					operation_ = Reflection::dispatch(op_mapper0, opcode, op_returner);
@@ -776,5 +775,4 @@ private:
 	IndexedAddressDecoder indexer_;
 	uint16_t *stack_ = nullptr;
 };
-
 }
