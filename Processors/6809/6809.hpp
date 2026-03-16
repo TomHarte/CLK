@@ -69,6 +69,8 @@ enum class Line {
 	IRQ,
 	FIRQ,
 	MRDY,	// Allows the bus to be stretched in 1/4 cycle increments (on a non-E 6809).
+	Reset,
+	PowerOnReset,
 };
 
 // Missing outputs:
@@ -113,6 +115,19 @@ enum class PausePrecision {
 
 template <typename Traits>
 struct Processor {
+	template <Line line>
+	void set(const bool value) {
+		const auto set_exception = [&](const Exceptions exception) {
+			exceptions_ = (exceptions_ & ~exception) | (value ? exception: 0);
+		};
+
+		switch(line) {
+			case Line::PowerOnReset:	set_exception(Exceptions::PowerOnReset);	break;
+			case Line::Reset: 			set_exception(Exceptions::Reset);			break;
+			case Line::NMI: 			set_exception(Exceptions::NMI);				break;
+		}
+	}
+
 	// Time getter.
 	using Timescale = std::conditional_t<Traits::uses_mrdy, QuarterCycles, Cycles>;
 	static constexpr Timescale duration([[maybe_unused]] const BusPhase phase) {
@@ -681,7 +696,7 @@ struct Processor {
 		#undef restore_point
 	}
 
-	Registers registers() {
+	Registers &registers() {
 		return registers_;
 	}
 
