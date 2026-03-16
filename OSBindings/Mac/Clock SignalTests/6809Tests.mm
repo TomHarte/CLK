@@ -286,29 +286,83 @@ struct M6809Traits {
 - (void)testIndexer {
 	using IndexedAddressDecoder = CPU::M6809::IndexedAddressDecoder;
 
-	const auto test_inc1 = [&] (const uint8_t code) {
+	CPU::M6809::Registers regs;
+	auto reg = [&](const uint8_t code) -> uint16_t & {
+		switch((code >> 5) & 0b11) {
+			case 0b00:	return regs.x;
+			case 0b01:	return regs.y;
+			case 0b10:	return regs.u;
+			case 0b11:	return regs.s;
+			default: __builtin_unreachable();
+		}
+	};
+
+	const auto test_inc = [&] (const uint8_t code, const int diff) {
 		IndexedAddressDecoder decoder(code);
 		XCTAssertEqual(decoder.required_continuation(), 0);
 
-		CPU::M6809::Registers regs;
-		auto &reg = [&]() -> uint16_t & {
-			switch((code >> 5) & 0b11) {
-				case 0b00:	return regs.x;
-				case 0b01:	return regs.y;
-				case 0b10:	return regs.u;
-				case 0b11:	return regs.s;
-				default: __builtin_unreachable();
-			}
-		} ();
-
 		for(int c = 0; c < 65536; c += 13) {
-			reg = c;
+			reg(code) = c;
 			XCTAssertEqual(decoder.address(regs), c);
-			XCTAssertEqual(reg, c + 1);
+			XCTAssertEqual(reg(code), uint16_t(c + diff));
 		}
 	};
-	test_inc1(0x80);	test_inc1(0x90);	test_inc1(0xa0);	test_inc1(0xb0);
-	test_inc1(0xc0);	test_inc1(0xd0);	test_inc1(0xe0);	test_inc1(0xf0);
+	test_inc(0x80, 1);	test_inc(0x90, 1);	test_inc(0xa0, 1);	test_inc(0xb0, 1);
+	test_inc(0xc0, 1);	test_inc(0xd0, 1);	test_inc(0xe0, 1);	test_inc(0xf0, 1);
+	test_inc(0x81, 2);	test_inc(0x91, 2);	test_inc(0xa1, 2);	test_inc(0xb1, 2);
+	test_inc(0xc1, 2);	test_inc(0xd1, 2);	test_inc(0xe1, 2);	test_inc(0xf1, 2);
+
+	const auto test_dec = [&] (const uint8_t code, const int diff) {
+		IndexedAddressDecoder decoder(code);
+		XCTAssertEqual(decoder.required_continuation(), 0);
+
+		for(int c = 0; c < 65536; c += 19) {
+			reg(code) = c;
+			XCTAssertEqual(decoder.address(regs), uint16_t(c - diff));
+			XCTAssertEqual(reg(code), uint16_t(c - diff));
+		}
+	};
+	test_dec(0x82, 1);	test_dec(0x92, 1);	test_dec(0xa2, 1);	test_dec(0xb2, 1);
+	test_dec(0xc2, 1);	test_dec(0xd2, 1);	test_dec(0xe2, 1);	test_dec(0xf2, 1);
+	test_dec(0x83, 2);	test_dec(0x93, 2);	test_dec(0xa3, 2);	test_dec(0xb3, 2);
+	test_dec(0xc3, 2);	test_dec(0xd3, 2);	test_dec(0xe3, 2);	test_dec(0xf3, 2);
+
+	const auto test_no_offset = [&] (const uint8_t code) {
+		IndexedAddressDecoder decoder(code);
+		XCTAssertEqual(decoder.required_continuation(), 0);
+
+		for(int c = 0; c < 65536; c += 23) {
+			reg(code) = c;
+			XCTAssertEqual(decoder.address(regs), c);
+			XCTAssertEqual(reg(code), c);
+		}
+	};
+	test_no_offset(0x84);	test_no_offset(0x94);	test_no_offset(0xa4);	test_no_offset(0xb4);
+	test_no_offset(0xc4);	test_no_offset(0xd4);	test_no_offset(0xe4);	test_no_offset(0xf4);
+
+	const auto test_reg_offset = [&] (const uint8_t code, uint8_t &offset) {
+		IndexedAddressDecoder decoder(code);
+		XCTAssertEqual(decoder.required_continuation(), 0);
+
+		for(int c = 0; c < 65536; c += 47) {
+			for(int i = 0; i < 256; i += 19) {
+				reg(code) = c;
+				offset = i;
+				XCTAssertEqual(decoder.address(regs), uint16_t(c + int8_t(i)));
+				XCTAssertEqual(reg(code), c);
+				XCTAssertEqual(offset, i);
+			}
+		}
+	};
+	using R8 = CPU::M6809::R8;
+	test_reg_offset(0x85, regs.reg<R8::B>());	test_reg_offset(0x95, regs.reg<R8::B>());
+	test_reg_offset(0xa5, regs.reg<R8::B>());	test_reg_offset(0xb5, regs.reg<R8::B>());
+	test_reg_offset(0xc5, regs.reg<R8::B>());	test_reg_offset(0xd5, regs.reg<R8::B>());
+	test_reg_offset(0xe5, regs.reg<R8::B>());	test_reg_offset(0xf5, regs.reg<R8::B>());
+	test_reg_offset(0x86, regs.reg<R8::A>());	test_reg_offset(0x96, regs.reg<R8::A>());
+	test_reg_offset(0xa6, regs.reg<R8::A>());	test_reg_offset(0xb6, regs.reg<R8::A>());
+	test_reg_offset(0xc6, regs.reg<R8::A>());	test_reg_offset(0xd6, regs.reg<R8::A>());
+	test_reg_offset(0xe6, regs.reg<R8::A>());	test_reg_offset(0xf6, regs.reg<R8::A>());
 }
 
 @end
