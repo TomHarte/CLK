@@ -86,7 +86,19 @@ struct M6809Traits {
 		return;
 	}
 
-//	if(opcode != 0x0e) return;
+	// Extended pages haven't been handled entirely properly in the underlying JSON.
+	if(opcode == 0x10 || opcode == 0x11) {
+		return;
+	}
+
+	// These are as yet unimplemented.
+	switch(decoded.operation) {
+		default: break;
+
+		using enum InstructionSet::M6809::Operation;
+		case CWAI:
+		case SYNC: return;
+	}
 
 	m6809_.set<CPU::M6809::Line::PowerOnReset>(false);
 	m6809_.run_for(1);

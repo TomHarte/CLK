@@ -340,7 +340,7 @@ struct Processor {
 				goto fetch_decode;
 
 			case addressing_program(AddressingMode::Relative16):
-				if(operation_.operation == Operation::BSR) {
+				if(operation_.operation == Operation::LBSR) {
 					goto lbsr;
 				}
 				[[fallthrough]];
