@@ -271,6 +271,10 @@ struct IndexedAddressDecoder {
 				}
 			};
 
+			if(!(format_ & 0x80)) {
+				return reg();
+			}
+
 			switch(format_ & 0b1111) {
 				default: return reg();
 
