@@ -281,7 +281,7 @@ struct Processor {
 					// TODO: test interrupts and more.
 				}
 
-				printf("--- Fetch\n");
+//				printf("--- Fetch\n");
 				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
 				{
 					operation_ = Reflection::dispatch(op_mapper0, opcode, op_returner);
@@ -304,6 +304,13 @@ struct Processor {
 					resume_point_ = addressing_program(operation_.mode);
 					break;
 				}
+
+			// MARK: - 'Invalid' addressing mode (i.e. invalid operation).
+
+			case addressing_program(AddressingMode::Illegal):
+				// TODO: probably coming here is a mistake; the broad strokes of 'illegal' don't cover different CPU
+				// response to different illegal operations.
+				goto fetch_decode;
 
 			// MARK: - Variant addressing mode.
 

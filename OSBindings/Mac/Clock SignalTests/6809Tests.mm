@@ -77,6 +77,15 @@ struct M6809Traits {
 		capturer.ram[[entry[0] intValue]] = [entry[1] intValue];
 	}
 
+	// Don't test illegal opcodes for now.
+	const auto opcode = capturer.ram[m6809_.registers().pc.full];
+	InstructionSet::M6809::OperationReturner catcher;
+	InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page0> mapper;
+	const auto decoded = Reflection::dispatch(mapper, opcode, catcher);
+	if(decoded.mode == InstructionSet::M6809::AddressingMode::Illegal) {
+		return;
+	}
+
 	m6809_.set<CPU::M6809::Line::PowerOnReset>(false);
 	m6809_.run_for(1);
 
@@ -90,6 +99,8 @@ struct M6809Traits {
 	XCTAssertEqual(m6809_.registers().u, [end[@"U"] intValue], @"%@", identifier);
 	XCTAssertEqual(m6809_.registers().x, [end[@"X"] intValue], @"%@", identifier);
 	XCTAssertEqual(m6809_.registers().y, [end[@"Y"] intValue], @"%@", identifier);
+
+	// TODO: verify RAM contents.
 }
 
 - (void)testCaptures {
@@ -98,7 +109,6 @@ struct M6809Traits {
 
 	for(NSDictionary *test in tests) {
 		[self testCase:test];
-		break;
 	}
 }
 
