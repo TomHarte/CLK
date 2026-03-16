@@ -100,6 +100,10 @@ struct M6809Traits {
 		case SYNC: return;
 	}
 
+	if(decoded.operation != InstructionSet::M6809::Operation::DAA) {
+		return;
+	}
+
 	m6809_.set<CPU::M6809::Line::PowerOnReset>(false);
 	m6809_.run_for(1);
 

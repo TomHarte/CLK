@@ -166,26 +166,29 @@ inline void mul(Registers &registers) {
 }
 
 inline void daa(Registers &registers) {
-	uint8_t high = registers.reg<R8::A>() >> 4;
-	uint8_t low = registers.reg<R8::A>() & 0x0f;
+	const uint8_t original = registers.reg<R8::A>();
+	uint8_t result = original;
+//	uint8_t low = original & 0x0f;
 
-	if(
-		registers.cc.get<ConditionCode::Carry>() ||
-		high > 9 ||
-		(high > 8 && low > 9)
-	) {
-		high += 6;
-	}
 	if(
 		registers.cc.get<ConditionCode::HalfCarry>() ||
-		low > 9
+		(result & 0x0f) > 9
 	) {
-		low += 6;
+		result += 0x06;
+	}
+	if(
+		registers.cc.get<ConditionCode::Carry>() ||
+		(result >> 4) > 9 ||
+		(original >> 4) > 9		// In case carry from above rolled the high digit over.
+	) {
+		result += 0x60;
 	}
 
-	const uint8_t result = uint8_t((high << 4) | (low & 0x0f));
+//	const uint8_t result = uint8_t((high << 4) | (low & 0x0f));
 	registers.cc.set_nz(result);
-	registers.cc.set<ConditionCode::Carry>(high >= 16);
+	registers.cc.set<ConditionCode::Carry>(result < original);
+	registers.cc.set<ConditionCode::Overflow>((original ^ result) & 0x80);
+	registers.reg<R8::A>() = result;
 }
 
 // MARK: - Logical.
