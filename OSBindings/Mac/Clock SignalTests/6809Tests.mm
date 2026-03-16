@@ -85,16 +85,21 @@ struct M6809Traits {
 	}
 
 	InstructionSet::M6809::OperationReturner catcher;
-	InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page0> mapper;
-	const auto decoded = Reflection::dispatch(mapper, opcode, catcher);
+	const auto decoded = [&] {
+		if(!(opcode >> 8)) {
+			InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page0> mapper;
+			return Reflection::dispatch(mapper, opcode, catcher);
+		} else if ((opcode >> 8) == 0x10) {
+			InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page1> mapper;
+			return Reflection::dispatch(mapper, opcode, catcher);
+		} else {
+			InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page2> mapper;
+			return Reflection::dispatch(mapper, opcode, catcher);
+		}
+	} ();
 	if(decoded.mode == InstructionSet::M6809::AddressingMode::Illegal) {
 		return;
 	}
-
-	// Extended pages haven't been handled entirely properly in the underlying JSON.
-//	if(opcode == 0x10 || opcode == 0x11) {
-//		return;
-//	}
 
 	// Tests to skip.
 	switch(decoded.operation) {
@@ -153,6 +158,12 @@ struct M6809Traits {
 
 			case SUBA: case SUBB: case CMPA: case CMPB: case SBCA: case SBCB:
 				return ~0x20;			// Half-carry is undefined, and the test set just doesn't try to set it.
+
+			case SWI:
+				return ~0x40;			// Documentation says FIRQ is set; test set doesn't do so.
+
+			case SWI2: case SWI3:
+				return ~(0x40 | 0x10);	// Documentation says IRQ and FIRQ are untouched; test set modifies IRQ.
 		}
 	} ();
 
@@ -167,8 +178,6 @@ struct M6809Traits {
 		case 0x31:	// LEAY indirect.
 		case 0x32:	// LEAS indirect.
 		case 0x33:	// LEAU indirect.
-
-		case 0x3f:	// SWI
 
 		case 0x60:	// NEG indexed.
 		case 0x63:	// COM indexed.
@@ -226,8 +235,6 @@ struct M6809Traits {
 		case 0x1023:	// LBLS
 		case 0x102f:	// LBLE
 
-		case 0x103f:	// SWI2
-
 		case 0x109c:	// CMPY direct.
 		case 0x109e:	// LDY direct.
 		case 0x10a3:	// CMPD indexed.
@@ -242,7 +249,6 @@ struct M6809Traits {
 		case 0x10ef:	// STS indirect.
 		case 0x10fe:	// LDS extnded.
 
-		case 0x113f:	// SWI3
 		case 0x11a3:	// CMPU indexed.
 		case 0x11ac:	// CMPS indexed.
 		return;
