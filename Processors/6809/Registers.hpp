@@ -232,7 +232,7 @@ struct IndexedAddressDecoder {
 		return FormSuffix(format_ & 0b1111);
 	}
 	constexpr bool is_5bit() const {
-		return !(format_ & 0xb1000'0000);
+		return !(format_ & 0b1000'0000);
 	}
 	constexpr bool indirect() const {
 		return
@@ -280,19 +280,13 @@ struct IndexedAddressDecoder {
 				return reg();
 			}
 
-			if(
-				!is_5bit() &&
-				(
-					(suffix() == FormSuffix::Offset8bitFromPC) ||
-					(suffix() == FormSuffix::Offset16bitFromPC)
-				)
-			) {
-				return registers.reg<R16::PC>();
-			}
-
 			switch(suffix()) {
 				using enum FormSuffix;
 				default: return reg();
+
+				case Offset8bitFromPC:
+				case Offset16bitFromPC:
+					return registers.reg<R16::PC>();
 
 				case PredecrementBy2:
 					reg() -= 2;

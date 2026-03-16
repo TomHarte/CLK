@@ -285,16 +285,30 @@ struct M6809Traits {
 
 - (void)testIndexer {
 	using IndexedAddressDecoder = CPU::M6809::IndexedAddressDecoder;
-	IndexedAddressDecoder decoder;
 
-	decoder = IndexedAddressDecoder(0x00);
-	XCTAssertEqual(decoder.required_continuation(), 0);
-	for(int c = 0; c < 65536; c += 13) {
+	const auto test_inc1 = [&] (const uint8_t code) {
+		IndexedAddressDecoder decoder(code);
+		XCTAssertEqual(decoder.required_continuation(), 0);
+
 		CPU::M6809::Registers regs;
-		regs.x = c;
-		XCTAssertEqual(decoder.address(regs), c);
-		XCTAssertEqual(regs.x, c + 1);
-	}
+		auto &reg = [&]() -> uint16_t & {
+			switch((code >> 5) & 0b11) {
+				case 0b00:	return regs.x;
+				case 0b01:	return regs.y;
+				case 0b10:	return regs.u;
+				case 0b11:	return regs.s;
+				default: __builtin_unreachable();
+			}
+		} ();
+
+		for(int c = 0; c < 65536; c += 13) {
+			reg = c;
+			XCTAssertEqual(decoder.address(regs), c);
+			XCTAssertEqual(reg, c + 1);
+		}
+	};
+	test_inc1(0x80);	test_inc1(0x90);	test_inc1(0xa0);	test_inc1(0xb0);
+	test_inc1(0xc0);	test_inc1(0xd0);	test_inc1(0xe0);	test_inc1(0xf0);
 }
 
 @end
