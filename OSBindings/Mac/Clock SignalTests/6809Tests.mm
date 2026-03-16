@@ -44,6 +44,12 @@ struct M6809Capture {
 
 		return Cycles(0);
 	}
+
+	bool verify(const uint16_t address, const uint8_t value) const {
+		const auto entry = ram.find(address);
+		if(entry == ram.end()) return false;
+		return entry->second == value;
+	}
 };
 
 struct M6809Traits {
@@ -260,7 +266,12 @@ struct M6809Traits {
 	XCTAssertEqual(m6809_.registers().x, [end[@"X"] intValue], @"%@", identifier);
 	XCTAssertEqual(m6809_.registers().y, [end[@"Y"] intValue], @"%@", identifier);
 
-	// TODO: verify RAM contents.
+	// The test set seems to write the original value as both initial and final. So don't test mdifies.
+	if(decoded.type != InstructionSet::M6809::AccessType::Modify8) {
+		for(NSArray *output in end[@"ram"]) {
+			XCTAssertTrue(capturer.verify([output[0] intValue], [output[1] intValue]), @"%@", identifier);
+		}
+	}
 }
 
 - (void)testCaptures {
