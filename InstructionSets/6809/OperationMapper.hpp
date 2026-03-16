@@ -192,8 +192,8 @@ constexpr AccessGenus access_genus() {
 		case LDB:	case SUBA:	case CMPA:	case SBCA:
 		case SUBD:	case ANDA:	case BITA:	case LDA:
 		case EORA:	case ADCA:	case ORA:	case ADDA:
-		case CMPX:	case LDX:	case BSR:
-		case TST:
+		case CMPX:	case LDX:	case BSR:	case LDY:
+		case TST:	case LDS:
 		case CMPD:	case CMPS:	case CMPU:
 			return AccessGenus::Read;
 

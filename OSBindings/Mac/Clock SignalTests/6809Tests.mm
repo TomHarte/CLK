@@ -168,6 +168,9 @@ struct M6809Traits {
 	} ();
 
 	//
+//	if(opcode != 0x109e) {
+//		return;
+//	}
 //	if(decoded.operation != InstructionSet::M6809::Operation::BLE) {
 //		return;
 //	}
@@ -227,18 +230,14 @@ struct M6809Traits {
 		case 0xef:	// STD indexed.
 
 		case 0x109c:	// CMPY direct.
-		case 0x109e:	// LDY direct.
 		case 0x10a3:	// CMPD indexed.
 		case 0x10ac:	// CMPY indexed.
 		case 0x10ae:	// LDY indexed.
 		case 0x10af:	// STY indexed.
 
 		case 0x10bc:	// CMPY extended.
-		case 0x10be:	// LDY extended.
-		case 0x10de:	// LDS direct.
 		case 0x10ee:	// LDS indexed.
-		case 0x10ef:	// STS indirect.
-		case 0x10fe:	// LDS extnded.
+		case 0x10ef:	// STS indexed.
 
 		case 0x11a3:	// CMPU indexed.
 		case 0x11ac:	// CMPS indexed.
