@@ -319,6 +319,15 @@ void ld(Registers &registers, const uint16_t operand) {
 }
 
 template <R16 r>
+void lea(Registers &registers, const uint16_t operand) {
+	registers.reg<r>() = operand;
+
+	if constexpr (r == R16::X || r == R16::Y) {
+		registers.cc.set<ConditionCode::Zero>(!operand);
+	}
+}
+
+template <R16 r>
 void st(Registers &registers, uint16_t &operand) {
 	operand = registers.reg<r>();
 	registers.cc.set_nz(operand);
@@ -506,14 +515,14 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 		case STA:	st<R8::A>(registers, byte);				break;
 		case STB:	st<R8::B>(registers, byte);				break;
 
+		case LEAU:	lea<R16::U>(registers, word);			break;
+		case LEAX:	lea<R16::X>(registers, word);			break;
+		case LEAY:	lea<R16::Y>(registers, word);			break;
+		case LEAS:	lea<R16::S>(registers, word);			break;
 		case LDD:	ld<R16::D>(registers, word);			break;
-		case LEAU:
 		case LDU:	ld<R16::U>(registers, word);			break;
-		case LEAX:
 		case LDX:	ld<R16::X>(registers, word);			break;
-		case LEAY:
 		case LDY:	ld<R16::Y>(registers, word);			break;
-		case LEAS:
 		case LDS:	ld<R16::S>(registers, word);			break;
 		case STD:	st<R16::D>(registers, word);			break;
 		case STU:	st<R16::U>(registers, word);			break;

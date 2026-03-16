@@ -109,6 +109,10 @@ struct M6809Traits {
 		case BLE:
 		case LBLE:	return;
 
+		// The test set doesn't branch if both Z and C are set. The documented test is to branch.
+		case BLS:
+		case LBLS:	return;
+
 		case EXG: case TFR: {
 			// The test suite supports only the operands listed below, treating the rest as NOPs.
 			const auto operand = capturer.ram[m6809_.registers().pc.full + 1];
@@ -144,6 +148,9 @@ struct M6809Traits {
 
 	//
 //	if(decoded.operation != InstructionSet::M6809::Operation::BLE) {
+//		return;
+//	}
+//	if(opcode != 0x30) {
 //		return;
 //	}
 
