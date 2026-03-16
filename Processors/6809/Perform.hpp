@@ -129,6 +129,7 @@ inline void addd(Registers &registers, const uint16_t operand) {
 	registers.cc.set_nz(result);
 	registers.cc.set<ConditionCode::Carry>(result < operand);
 	registers.cc.set_overflow(result, source, operand);
+	registers.reg<R16::D>() = result;
 }
 
 template <R8 r, bool with_carry, bool store_result>

@@ -174,10 +174,10 @@ struct M6809Traits {
 
 	// Known failures, for transient enabling and disabling:
 	switch(opcode) {
-		case 0x30:	// LEAX indirect.
-		case 0x31:	// LEAY indirect.
-		case 0x32:	// LEAS indirect.
-		case 0x33:	// LEAU indirect.
+		case 0x30:	// LEAX indexed.
+		case 0x31:	// LEAY indexed.
+		case 0x32:	// LEAS indexed.
+		case 0x33:	// LEAU indexed.
 
 		case 0x60:	// NEG indexed.
 		case 0x63:	// COM indexed.
@@ -209,10 +209,6 @@ struct M6809Traits {
 		case 0xae:	// LDX indexed.
 		case 0xaf:	// STX indexed.
 
-		case 0xc3:	// ADDD immediate.
-
-		case 0xd3:	// ADDD direct.
-
 		case 0xe0:	// SUBB indexed.
 		case 0xe1:	// CMPB indexed.
 		case 0xe2:	// SBCB indexed.
@@ -229,8 +225,6 @@ struct M6809Traits {
 		case 0xed:	// STD indexed.
 		case 0xee:	// LDU indexed.
 		case 0xef:	// STD indexed.
-
-		case 0xf3:	// ADDD extended.
 
 		case 0x1023:	// LBLS
 		case 0x102f:	// LBLE
