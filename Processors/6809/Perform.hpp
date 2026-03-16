@@ -168,7 +168,6 @@ inline void mul(Registers &registers) {
 inline void daa(Registers &registers) {
 	const uint8_t original = registers.reg<R8::A>();
 	uint8_t result = original;
-//	uint8_t low = original & 0x0f;
 
 	if(
 		registers.cc.get<ConditionCode::HalfCarry>() ||
@@ -184,7 +183,6 @@ inline void daa(Registers &registers) {
 		result += 0x60;
 	}
 
-//	const uint8_t result = uint8_t((high << 4) | (low & 0x0f));
 	registers.cc.set_nz(result);
 	registers.cc.set<ConditionCode::Carry>(result < original);
 	registers.cc.set<ConditionCode::Overflow>((original ^ result) & 0x80);
