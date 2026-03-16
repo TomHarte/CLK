@@ -170,22 +170,18 @@ struct M6809Traits {
 
 		case 0x3f:	// SWI
 
-		case 0x60:	// NEG indirect.
-		case 0x63:	// COM indirect.
-		case 0x64:	// LSR indirect.
-		case 0x66:	// ROR indirect.
-		case 0x67:	// ASR indirect.
-		case 0x68:	// ASL indirect.
-		case 0x69:	// ROL indirect.
-		case 0x6a:	// DEC indirect.
-		case 0x6c:	// INC indirect.
-		case 0x6d:	// TST indirect.
-		case 0x6e:	// JMP indirect.
-		case 0x6f:	// CLR indirect.
-
-		case 0x8c:	// CMPX immediate.
-
-		case 0x9c:	// CMPX direct.
+		case 0x60:	// NEG indexed.
+		case 0x63:	// COM indexed.
+		case 0x64:	// LSR indexed.
+		case 0x66:	// ROR indexed.
+		case 0x67:	// ASR indexed.
+		case 0x68:	// ASL indexed.
+		case 0x69:	// ROL indexed.
+		case 0x6a:	// DEC indexed.
+		case 0x6c:	// INC indexed.
+		case 0x6d:	// TST indexed.
+		case 0x6e:	// JMP indexed.
+		case 0x6f:	// CLR indexed.
 
 		case 0xa0:	// SUBA indexed.
 		case 0xa1:	// CMPA indexed.
@@ -203,8 +199,6 @@ struct M6809Traits {
 		case 0xad:	// JSR indexed.
 		case 0xae:	// LDX indexed.
 		case 0xaf:	// STX indexed.
-
-		case 0xbc:	// CMPX extended.
 
 		case 0xc3:	// ADDD immediate.
 
@@ -234,9 +228,6 @@ struct M6809Traits {
 
 		case 0x103f:	// SWI2
 
-		case 0x1083:	// CMPD extended.
-		case 0x108c:	// CMPY extended.
-		case 0x1093:	// CMPD direct.
 		case 0x109c:	// CMPY direct.
 		case 0x109e:	// LDY direct.
 		case 0x10a3:	// CMPD indexed.
@@ -244,7 +235,6 @@ struct M6809Traits {
 		case 0x10ae:	// LDY indexed.
 		case 0x10af:	// STY indexed.
 
-		case 0x10b3:	// CMPD extended.
 		case 0x10bc:	// CMPY extended.
 		case 0x10be:	// LDY extended.
 		case 0x10de:	// LDS direct.
@@ -253,14 +243,8 @@ struct M6809Traits {
 		case 0x10fe:	// LDS extnded.
 
 		case 0x113f:	// SWI3
-		case 0x1183:	// CMPU extended.
-		case 0x118c:	// CMPS extended.
-		case 0x1193:	// CMPU direct.
-		case 0x119c:	// CMPS direct.
-		case 0x11a3:	// CMPU indirect.
-		case 0x11ac:	// CMPS indirect.
-		case 0x11b3:	// CMPU immediate.
-		case 0x11bc:	// CMPS immediate.
+		case 0x11a3:	// CMPU indexed.
+		case 0x11ac:	// CMPS indexed.
 		return;
 	}
 
