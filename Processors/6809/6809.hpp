@@ -398,6 +398,9 @@ struct Processor {
 					case Operation::RTS:
 						goto rts;
 
+					case Operation::RTI:
+						goto rti;
+
 					case Operation::SWI:	case Operation::SWI2:	case Operation::SWI3:
 						goto swi;
 
@@ -531,6 +534,33 @@ struct Processor {
 				goto fetch_decode;
 
 			// MARK: - Stack-related control flow.
+
+			rti:
+				read(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.cc, ++registers_.reg<R16::S>());
+				if(!registers_.cc.get<ConditionCode::Entire>()) {
+					goto rti_not_entire;
+				}
+
+				read(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::A>(), ++registers_.reg<R16::S>());
+				read(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::B>(), ++registers_.reg<R16::S>());
+				read(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::DP>(), ++registers_.reg<R16::S>());
+
+				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.high, ++registers_.reg<R16::S>());
+				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.low, ++registers_.reg<R16::S>());
+				registers_.reg<R16::X>() = address_.full;
+
+				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.high, ++registers_.reg<R16::S>());
+				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.low, ++registers_.reg<R16::S>());
+				registers_.reg<R16::Y>() = address_.full;
+
+				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.high, ++registers_.reg<R16::S>());
+				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.low, ++registers_.reg<R16::S>());
+				registers_.reg<R16::U>() = address_.full;
+
+			rti_not_entire:
+				read(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.high, ++registers_.reg<R16::S>());
+				read(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.low, ++registers_.reg<R16::S>());
+				goto fetch_decode;
 
 			rts:
 				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.high, ++registers_.reg<R16::S>());
