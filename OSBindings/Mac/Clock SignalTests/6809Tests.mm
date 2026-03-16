@@ -183,10 +183,8 @@ struct M6809Traits {
 		case 0x6e:	// JMP indirect.
 		case 0x6f:	// CLR indirect.
 
-		case 0x89:	// ADCA immediate.
 		case 0x8c:	// CMPX immediate.
 
-		case 0x99:	// ADCA direct.
 		case 0x9c:	// CMPX direct.
 
 		case 0xa0:	// SUBA indexed.
@@ -206,14 +204,11 @@ struct M6809Traits {
 		case 0xae:	// LDX indexed.
 		case 0xaf:	// STX indexed.
 
-		case 0xb9:	// ADCA extended.
 		case 0xbc:	// CMPX extended.
 
 		case 0xc3:	// ADDD immediate.
-		case 0xc9:	// ADCB immediate.
 
 		case 0xd3:	// ADDD direct.
-		case 0xd9:	// ADCB immediate.
 
 		case 0xe0:	// SUBB indexed.
 		case 0xe1:	// CMPB indexed.
@@ -233,7 +228,6 @@ struct M6809Traits {
 		case 0xef:	// STD indexed.
 
 		case 0xf3:	// ADDD extended.
-		case 0xf9:	// ADCB extended.
 
 		case 0x1023:	// LBLS
 		case 0x102f:	// LBLE
