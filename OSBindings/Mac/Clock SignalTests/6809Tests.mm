@@ -150,6 +150,9 @@ struct M6809Traits {
 			case DAA:	return ~0x3;	// Don't test carry or overflow; mine are likely wrong.
 			case SEX:	return ~0x2;	// Docs say overflow unaffected; tests seem to reset it.
 			case MUL:	return ~0x8;	// Tests clear overflow. Docs say it's unaffected.
+
+			case SUBA: case SUBB: case CMPA: case CMPB: case SBCA: case SBCB:
+				return ~0x20;			// Half-carry is undefined, and the test set just doesn't try to set it.
 		}
 	} ();
 
@@ -166,6 +169,7 @@ struct M6809Traits {
 		case 0x33:	// LEAU indirect.
 
 		case 0x3f:	// SWI
+
 		case 0x60:	// NEG indirect.
 		case 0x63:	// COM indirect.
 		case 0x64:	// LSR indirect.
@@ -179,17 +183,9 @@ struct M6809Traits {
 		case 0x6e:	// JMP indirect.
 		case 0x6f:	// CLR indirect.
 
-		case 0x80:	// SUBA immediate.
-		case 0x81:	// CMPA immediate.
-		case 0x82:	// SBCA immediate.
-		case 0x83:	// SUBD immediate.
 		case 0x89:	// ADCA immediate.
 		case 0x8c:	// CMPX immediate.
 
-		case 0x90:	// SUBA direct.
-		case 0x91:	// CMPA direct.
-		case 0x92:	// SBCA direct
-		case 0x93:	// SUBD direct
 		case 0x99:	// ADCA direct.
 		case 0x9c:	// CMPX direct.
 
@@ -210,22 +206,12 @@ struct M6809Traits {
 		case 0xae:	// LDX indexed.
 		case 0xaf:	// STX indexed.
 
-		case 0xb0:	// SUBA extended.
-		case 0xb1:	// CMPA extended.
-		case 0xb2:	// SBCA extended.
-		case 0xb3:	// SUBD extended.
 		case 0xb9:	// ADCA extended.
 		case 0xbc:	// CMPX extended.
 
-		case 0xc0:	// SUBB immediate.
-		case 0xc1:	// CMPB immediate.
-		case 0xc2:	// SBCB immediate.
 		case 0xc3:	// ADDD immediate.
 		case 0xc9:	// ADCB immediate.
 
-		case 0xd0:	// SUBB direct.
-		case 0xd1:	// CMPB direct.
-		case 0xd2:	// SBCB direct.
 		case 0xd3:	// ADDD direct.
 		case 0xd9:	// ADCB immediate.
 
@@ -246,9 +232,6 @@ struct M6809Traits {
 		case 0xee:	// LDU indexed.
 		case 0xef:	// STD indexed.
 
-		case 0xf0:	// SUBB extended.
-		case 0xf1:	// CMPB extended.
-		case 0xf2:	// SBCB extended.
 		case 0xf3:	// ADDD extended.
 		case 0xf9:	// ADCB extended.
 

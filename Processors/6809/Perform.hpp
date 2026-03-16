@@ -137,10 +137,11 @@ void sub(Registers &registers, const uint8_t operand) {
 	const uint8_t result = source - operand - (with_carry ? registers.cc.carry() : 0);
 
 	registers.cc.set_nz(result);
-	registers.cc.set_overflow(result, uint8_t(~source), operand);
-	registers.cc.set<ConditionCode::Carry>(result > source);
+	registers.cc.set_overflow(result, source, uint8_t(~operand));
+	registers.cc.set<ConditionCode::Carry>(result > source || (with_carry && registers.cc.carry() && result >= source));
 
-	const uint8_t half = (source & 0xf) - (operand & 0xf) - (with_carry ? registers.cc.carry() : 0);
+	// Half carry is formally undefined after a subtract. This is a guess.
+	const uint8_t half = (source & 0xf) + (~operand & 0xf) + (with_carry ? (1 ^ registers.cc.carry()) : 0);
 	registers.cc.set<ConditionCode::HalfCarry>(half & 0x10);
 
 	if constexpr (store_result) registers.reg<r>() = result;
@@ -152,7 +153,7 @@ void sub(Registers &registers, const uint16_t operand) {
 	const uint16_t result = source - operand;
 
 	registers.cc.set_nz(result);
-	registers.cc.set_overflow(result, uint16_t(~source), operand);
+	registers.cc.set_overflow(result, source, uint16_t(~operand));
 	registers.cc.set<ConditionCode::Carry>(result > source);
 
 	if constexpr (store_result) registers.reg<r>() = result;
