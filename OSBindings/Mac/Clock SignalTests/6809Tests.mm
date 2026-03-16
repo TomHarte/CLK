@@ -226,9 +226,6 @@ struct M6809Traits {
 		case 0xee:	// LDU indexed.
 		case 0xef:	// STD indexed.
 
-		case 0x1023:	// LBLS
-		case 0x102f:	// LBLE
-
 		case 0x109c:	// CMPY direct.
 		case 0x109e:	// LDY direct.
 		case 0x10a3:	// CMPD indexed.
