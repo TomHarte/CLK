@@ -85,7 +85,7 @@ inline void abx(Registers &registers) {
 
 inline void neg(Registers &registers, uint8_t &value) {
 	registers.cc.set<ConditionCode::Overflow>(value == 0x80);
-	registers.cc.set<ConditionCode::Carry>(!value);
+	registers.cc.set<ConditionCode::Carry>(value);
 	value = -value;
 	registers.cc.set_nz(value);
 }
