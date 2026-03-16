@@ -8,7 +8,9 @@
 
 #pragma once
 
+#include <cassert>
 #include <cstdint>
+
 #include "Numeric/RegisterSizes.hpp"
 #include "InstructionSets/6809/OperationMapper.hpp"
 
@@ -68,6 +70,8 @@ struct ConditionCodeRegister {
 		zero_ = !(rhs & ConditionCode::Zero);
 		overflow_ = uint8_t((rhs & ConditionCode::Overflow) << 6);
 		carry_ = rhs & ConditionCode::Carry;
+
+		assert(uint8_t(*this) == rhs);
 		return rhs;
 	}
 
