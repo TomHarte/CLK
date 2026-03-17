@@ -10,6 +10,7 @@
 #import <XCTest/XCTest.h>
 
 #include "Processors/6809/6809.hpp"
+#include "NSData+dataWithContentsOfGZippedFile.h"
 
 #include <unordered_map>
 
@@ -17,7 +18,7 @@ namespace {
 
 // This is a proto-single-step-tests file; I don't yet know the full veracity of its
 // source and it doesn't include bus activity.
-NSString *const testFile = @"/Users/thomasharte/Scratch/6809tests.json";
+NSString *const testFile = @"/Users/thomasharte/Scratch/6809tests.json.gz";
 
 struct M6809Capture {
 	std::unordered_map<uint16_t, uint8_t> ram;
@@ -32,14 +33,16 @@ struct M6809Capture {
 		const AddressT address,
 		CPU::M6809::data_t<read_write> value
 	) {
-		if constexpr (CPU::M6809::is_read(read_write)) {
-			const auto entry = ram.find(address);
-			if(entry == ram.end()) {
-				throw -1;
+		if constexpr (read_write != CPU::M6809::ReadWrite::NoData) {
+			if constexpr (CPU::M6809::is_read(read_write)) {
+				const auto entry = ram.find(address);
+				if(entry == ram.end()) {
+					throw -1;
+				}
+				value = entry->second;
+			} else {
+				ram[address] = value;
 			}
-			value = entry->second;
-		} else {
-			ram[address] = value;
 		}
 
 		return Cycles(0);
@@ -114,7 +117,8 @@ struct M6809Traits {
 
 		// Unimplemented by me.
 		case CWAI:
-		case SYNC: return;
+//		case SYNC:
+			return;
 
 		// Considered invalid by the test set.
 		case RESET: return;
@@ -257,7 +261,7 @@ struct M6809Traits {
 }
 
 - (void)testCaptures {
-	NSData *data = [NSData dataWithContentsOfFile:testFile];
+	NSData *data = [NSData dataWithContentsOfGZippedFile:testFile];
 	NSArray *tests = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
 
 	for(NSDictionary *test in tests) {
