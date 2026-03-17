@@ -309,7 +309,7 @@ auto OperationMapper<Page::Page0>::dispatch(SchedulerT &s) {
 				O::None,	O::DAA,		O::ORCC,	O::None,	O::ANDCC,	O::SEX,		O::EXG,		O::TFR,
 			};
 			static constexpr AddressingMode specific_modes[] = {
-				AM::Variant,	AM::Variant,	AM::Inherent,	AM::Inherent,
+				AM::Variant,	AM::Variant,	AM::Inherent,	AM::Specialised,
 				AM::Illegal,	AM::Illegal,	AM::Relative16,	AM::Relative16,
 				AM::Illegal,	AM::Inherent,	AM::Immediate8,	AM::Illegal,
 				AM::Immediate8,	AM::Inherent,	AM::Immediate8,	AM::Immediate8,

@@ -314,6 +314,11 @@ struct Processor {
 				registers_.cc.set<ConditionCode::FIRQMask>(true);
 
 			reset_spin:
+			case ResumePoint::ResetSpin:
+				if(time_ <= 0) {
+					resume_point_ = ResumePoint::ResetSpin;
+					return;
+				}
 				if(exceptions_ & (Exception::Halt | Exception::DMABusReq | Exception::Reset)) {
 					inactive_bus();
 					goto reset_spin;
@@ -524,6 +529,9 @@ struct Processor {
 					case Operation::SWI3:
 					case Operation::RESET:
 						goto swi_reset_nmi_irq;
+
+					case Operation::SYNC:
+						goto sync;
 
 					default: __builtin_unreachable();
 				}
@@ -765,6 +773,30 @@ struct Processor {
 				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.low, ++address_.full);
 				goto fetch_decode;
 
+			sync:
+			case ResumePoint::Sync:
+				// Always consider taking a break here, regardless of selected pause precision; otherwise there's
+				// a risk of never exiting.
+				if(time_ <= 0) {
+					resume_point_ = ResumePoint::Sync;
+					return;
+				}
+
+				if(!(exceptions_ & (Exception::NMI | Exception::IRQ | Exception::FIRQ))) {
+					time_ -= Cycles(1);
+					time_ -=
+						bus_handler_.template perform<
+							BusPhase::FullCycle,
+							ReadWrite::NoData,
+							BusState::SyncAcknowledge
+						>(Address::Fixed<0xffff>(), Data::NoValue());
+
+					goto sync;
+				}
+
+				// TODO: understand the requirement that an interrupt be signalled for at least 3 cycles.
+
+				goto fetch_decode;
 
 			//
 			// Access atoms.
@@ -829,6 +861,8 @@ private:
 
 	enum ResumePoint {
 		FetchDecode,
+		ResetSpin,
+		Sync,
 		Max,
 	};
 	using Operation = InstructionSet::M6809::Operation;
