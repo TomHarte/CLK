@@ -1241,6 +1241,7 @@
 		4BF0BC69297108D600CCA2B5 /* MemorySlotHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF0BC67297108D100CCA2B5 /* MemorySlotHandler.cpp */; };
 		4BF0BC712973318E00CCA2B5 /* RP5C01.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF0BC6F2973318E00CCA2B5 /* RP5C01.cpp */; };
 		4BF0BC722973318E00CCA2B5 /* RP5C01.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF0BC6F2973318E00CCA2B5 /* RP5C01.cpp */; };
+		4BF2FD962F69C0A400FB4A0C /* 6809tests.json.gz in Resources */ = {isa = PBXBuildFile; fileRef = 4BF2FD942F69C0A400FB4A0C /* 6809tests.json.gz */; };
 		4BF437EE209D0F7E008CBD6B /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */; };
 		4BF437EF209D0F7E008CBD6B /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */; };
 		4BF64D672F33D27B001EB900 /* LineOutputShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF64D662F33D27B001EB900 /* LineOutputShader.cpp */; };
@@ -2589,6 +2590,7 @@
 		4BF0BC702973318E00CCA2B5 /* RP5C01.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = RP5C01.hpp; sourceTree = "<group>"; };
 		4BF0BC732982E54700CCA2B5 /* YamahaCommands.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = YamahaCommands.hpp; sourceTree = "<group>"; };
 		4BF0BC742982E6D300CCA2B5 /* AccessEnums.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AccessEnums.hpp; sourceTree = "<group>"; };
+		4BF2FD942F69C0A400FB4A0C /* 6809tests.json.gz */ = {isa = PBXFileReference; lastKnownFileType = archive.gzip; path = 6809tests.json.gz; sourceTree = "<group>"; };
 		4BF40A5525424C770033EA39 /* LanguageCardSwitches.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LanguageCardSwitches.hpp; sourceTree = "<group>"; };
 		4BF40A5A254263140033EA39 /* AuxiliaryMemorySwitches.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AuxiliaryMemorySwitches.hpp; sourceTree = "<group>"; };
 		4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SegmentParser.cpp; sourceTree = "<group>"; };
@@ -2997,6 +2999,7 @@
 				4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */,
 				4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */,
 				4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */,
+				4BF2FD952F69C0A400FB4A0C /* 6809 Tests */,
 				4B8DF5212550D91400F3433C /* emudev.de krom traces */,
 				4B2530F2244E6773007980BF /* FM Synthesis */,
 				4BBF49B41ED2881600AB3669 /* FUSE */,
@@ -5735,6 +5738,14 @@
 			path = RP5C01;
 			sourceTree = "<group>";
 		};
+		4BF2FD952F69C0A400FB4A0C /* 6809 Tests */ = {
+			isa = PBXGroup;
+			children = (
+				4BF2FD942F69C0A400FB4A0C /* 6809tests.json.gz */,
+			);
+			path = "6809 Tests";
+			sourceTree = "<group>";
+		};
 		4BF660691F281573002CB053 /* ClockReceiver */ = {
 			isa = PBXGroup;
 			children = (
@@ -6200,6 +6211,7 @@
 				4BB2998E1B587D8400A49093 /* lsra in Resources */,
 				4BB2995E1B587D8400A49093 /* incz in Resources */,
 				4BB0CAB227E51D2A00672A88 /* dingusdev PowerPC tests in Resources */,
+				4BF2FD962F69C0A400FB4A0C /* 6809tests.json.gz in Resources */,
 				4BB299791B587D8400A49093 /* ldaiy in Resources */,
 				4BB299A31B587D8400A49093 /* oraiy in Resources */,
 				4B8DF68E2550D91700F3433C /* CPUORA.sfc in Resources */,

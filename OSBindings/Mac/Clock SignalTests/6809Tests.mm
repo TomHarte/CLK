@@ -16,10 +16,6 @@
 
 namespace {
 
-// This is a proto-single-step-tests file; I don't yet know the full veracity of its
-// source and it doesn't include bus activity.
-NSString *const testFile = @"/Users/thomasharte/Scratch/6809tests.json.gz";
-
 struct M6809Capture {
 	std::unordered_map<uint16_t, uint8_t> ram;
 
@@ -117,7 +113,6 @@ struct M6809Traits {
 
 		// Unimplemented by me.
 		case CWAI:
-//		case SYNC:
 			return;
 
 		// Considered invalid by the test set.
@@ -219,7 +214,12 @@ struct M6809Traits {
 }
 
 - (void)testCaptures {
-	NSData *data = [NSData dataWithContentsOfGZippedFile:testFile];
+	NSData *const data =
+		[NSData dataWithContentsOfGZippedFile:
+			[[NSBundle bundleForClass:[self class]]
+				pathForResource:@"6809tests"
+				ofType:@"json.gz"]
+		];
 	NSArray *tests = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
 
 	for(NSDictionary *test in tests) {
