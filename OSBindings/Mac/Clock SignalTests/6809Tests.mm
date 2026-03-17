@@ -181,74 +181,54 @@ struct M6809Traits {
 //		return;
 //	}
 
-	// Known failures, for transient enabling and disabling:
-	switch(opcode) {
-		case 0x30:	// LEAX indexed.
-		case 0x31:	// LEAY indexed.
-		case 0x32:	// LEAS indexed.
-		case 0x33:	// LEAU indexed.
+	NSString *identifier = test[@"name"];
 
-		case 0x60:	// NEG indexed.
-		case 0x63:	// COM indexed.
-		case 0x64:	// LSR indexed.
-		case 0x66:	// ROR indexed.
-		case 0x67:	// ASR indexed.
-		case 0x68:	// ASL indexed.
-		case 0x69:	// ROL indexed.
-		case 0x6a:	// DEC indexed.
-		case 0x6c:	// INC indexed.
-		case 0x6d:	// TST indexed.
-		case 0x6e:	// JMP indexed.
-		case 0x6f:	// CLR indexed.
+	// Tests that look fishy.
+	NSSet *const strangers = [NSSet setWithArray:@[
+		// JSRs that don't put anything on the stack (?). Probably inadvertently self-modifying.
+		@"00ad 61",
+		@"00ad 605",
+		@"00ad 632",
 
-		case 0xa0:	// SUBA indexed.
-		case 0xa1:	// CMPA indexed.
-		case 0xa2:	// SBCA indexed.
-		case 0xa3:	// SUBD indexed.
-		case 0xa4:	// ANDA indexed.
-		case 0xa5:	// BITA indexed.
-		case 0xa6:	// LDA indexed.
-		case 0xa7:	// STA indexed.
-		case 0xa8:	// EORA indexed.
-		case 0xa9:	// ADCA indexed.
-		case 0xaa:	// ORA indexed.
-		case 0xab:	// ADDA indexed.
-		case 0xac:	// CMPX indexed.
-		case 0xad:	// JSR indexed.
-		case 0xae:	// LDX indexed.
-		case 0xaf:	// STX indexed.
+		// STU that overwrites its operand, confusing the test data capture.
+		@"00ef 921",
 
-		case 0xe0:	// SUBB indexed.
-		case 0xe1:	// CMPB indexed.
-		case 0xe2:	// SBCB indexed.
-		case 0xe3:	// ADDD indexed.
-		case 0xe4:	// ANDB indexed.
-		case 0xe5:	// BITB indexed.
-		case 0xe6:	// LDB indexed.
-		case 0xe7:	// STB indexed.
-		case 0xe8:	// EORB indexed.
-		case 0xe9:	// ADCB indexed.
-		case 0xea:	// ORB indexed.
-		case 0xeb:	// ADDB indexed.
-		case 0xec:	// LDD indexed.
-		case 0xed:	// STD indexed.
-		case 0xee:	// LDU indexed.
-		case 0xef:	// STD indexed.
-
-		case 0x10a3:	// CMPD indexed.
-		case 0x10ac:	// CMPY indexed.
-		case 0x10ae:	// LDY indexed.
-		case 0x10af:	// STY indexed.
-
-		case 0x10ee:	// LDS indexed.
-		case 0x10ef:	// STS indexed.
-
-		case 0x11a3:	// CMPU indexed.
-		case 0x11ac:	// CMPS indexed.
+		// Self-modifying STYs, also falling victim to test case implementation.
+		@"10af 199",
+		@"10af 718",
+	]];
+	if([strangers containsObject:identifier]) {
 		return;
 	}
 
-	NSString *identifier = test[@"name"];
+	// Indexed modes: check second byte for something the test set considers a well-defined mode.
+	if(decoded.mode == InstructionSet::M6809::AddressingMode::Indexed) {
+		const uint8_t postbyte = capturer.ram[pc++];
+		if(postbyte & 0x80) {
+			switch(postbyte & 0x9f) {
+				case 0x87:	case 0x8a:	case 0x8e:	case 0x8f:	case 0x90:
+				case 0x92:	case 0x97:	case 0x9a:	case 0x9e:
+					return;
+
+				default:
+				break;
+//				case 0x7:
+//				case 0xa:
+//				case 0xe:
+//				case 0xf:	// TODO.
+//					if(postbyte & 0x80) {
+//						return;
+//					}
+//				break;
+
+//				case 0xf:
+//					if(postbyte != 0x9f) return;
+//					printf("%0x\n", postbyte);
+//				break;
+			}
+		}
+	}
+
 	try {
 		m6809_.set<CPU::M6809::Line::PowerOnReset>(false);
 		m6809_.run_for(1);
@@ -363,6 +343,107 @@ struct M6809Traits {
 	test_reg_offset(0xa6, regs.reg<R8::A>());	test_reg_offset(0xb6, regs.reg<R8::A>());
 	test_reg_offset(0xc6, regs.reg<R8::A>());	test_reg_offset(0xd6, regs.reg<R8::A>());
 	test_reg_offset(0xe6, regs.reg<R8::A>());	test_reg_offset(0xf6, regs.reg<R8::A>());
+
+	/* I don't know what a suffix of 7 does. */
+
+	const auto test_byte_offset = [&] (const uint8_t code) {
+		IndexedAddressDecoder decoder(code);
+		XCTAssertEqual(decoder.required_continuation(), 1);
+
+		for(int c = 0; c < 65536; c += 73) {
+			for(int i = 0; i < 256; i += 26) {
+				reg(code) = c;
+				decoder.set_continuation(i);
+				XCTAssertEqual(decoder.address(regs), uint16_t(c + int8_t(i)));
+				XCTAssertEqual(reg(code), c);
+			}
+		}
+	};
+	test_byte_offset(0x88);	test_byte_offset(0x98);	test_byte_offset(0xa8);	test_byte_offset(0xb8);
+	test_byte_offset(0xc8);	test_byte_offset(0xd8);	test_byte_offset(0xe8);	test_byte_offset(0xf8);
+
+	const auto test_word_offset = [&] (const uint8_t code) {
+		IndexedAddressDecoder decoder(code);
+		XCTAssertEqual(decoder.required_continuation(), 2);
+
+		for(int c = 0; c < 65536; c += 73) {
+			for(int i = 0; i < 655376; i += 149) {
+				reg(code) = c;
+				decoder.set_continuation(i);
+				XCTAssertEqual(decoder.address(regs), uint16_t(c + i));
+				XCTAssertEqual(reg(code), c);
+			}
+		}
+	};
+	test_word_offset(0x89);	test_word_offset(0x99);	test_word_offset(0xa9);	test_word_offset(0xb9);
+	test_word_offset(0xc9);	test_word_offset(0xd9);	test_word_offset(0xe9);	test_word_offset(0xf9);
+
+	/* I also don't know what a suffix of A does. */
+
+	const auto test_d_offset = [&] (const uint8_t code) {
+		IndexedAddressDecoder decoder(code);
+		XCTAssertEqual(decoder.required_continuation(), 0);
+
+		for(int c = 0; c < 65536; c += 87) {
+			for(int i = 0; i < 65536; i += 99) {
+				reg(code) = c;
+				regs.d.full = i;
+
+				XCTAssertEqual(decoder.address(regs), uint16_t(c + i));
+
+				XCTAssertEqual(reg(code), c);
+				XCTAssertEqual(regs.d.full, i);
+			}
+		}
+	};
+	test_d_offset(0x8b);	test_d_offset(0x9b);	test_d_offset(0xab);	test_d_offset(0xbb);
+	test_d_offset(0xcb);	test_d_offset(0xdb);	test_d_offset(0xeb);	test_d_offset(0xfb);
+
+	const auto test_byte_offset_pc = [&] (const uint8_t code) {
+		IndexedAddressDecoder decoder(code);
+		XCTAssertEqual(decoder.required_continuation(), 1);
+
+		for(int c = 0; c < 65536; c += 73) {
+			for(int i = 0; i < 256; i += 26) {
+				regs.pc.full = c;
+				decoder.set_continuation(i);
+				XCTAssertEqual(decoder.address(regs), uint16_t(regs.pc.full + int8_t(i)));
+				XCTAssertEqual(regs.pc.full, c);
+			}
+		}
+	};
+	test_byte_offset_pc(0x8c);	test_byte_offset_pc(0x9c);	test_byte_offset_pc(0xac);	test_byte_offset_pc(0xbc);
+	test_byte_offset_pc(0xcc);	test_byte_offset_pc(0xdc);	test_byte_offset_pc(0xec);	test_byte_offset_pc(0xfc);
+
+	const auto test_word_offset_pc = [&] (const uint8_t code) {
+		IndexedAddressDecoder decoder(code);
+		XCTAssertEqual(decoder.required_continuation(), 2);
+
+		for(int c = 0; c < 65536; c += 73) {
+			for(int i = 0; i < 655376; i += 149) {
+				regs.pc.full = c;
+				decoder.set_continuation(i);
+				XCTAssertEqual(decoder.address(regs), uint16_t(regs.pc.full + i));
+				XCTAssertEqual(regs.pc.full, c);
+			}
+		}
+	};
+	test_word_offset_pc(0x8d);	test_word_offset_pc(0x9d);	test_word_offset_pc(0xad);	test_word_offset_pc(0xbd);
+	test_word_offset_pc(0xcd);	test_word_offset_pc(0xdd);	test_word_offset_pc(0xed);	test_word_offset_pc(0xfd);
+
+	/* Also omitted: E. */
+
+	const auto test_extended = [&] (const uint8_t code) {
+		IndexedAddressDecoder decoder(code);
+		XCTAssertEqual(decoder.required_continuation(), 2);
+
+		for(int c = 0; c < 65536; c += 73) {
+			decoder.set_continuation(c);
+			XCTAssertEqual(decoder.address(regs), c);
+		}
+	};
+	test_extended(0x8f);	test_extended(0x9f);	test_extended(0xaf);	test_extended(0xbf);
+	test_extended(0xcf);	test_extended(0xdf);	test_extended(0xef);	test_extended(0xff);
 }
 
 @end

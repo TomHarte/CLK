@@ -211,6 +211,7 @@ struct IndexedAddressDecoder {
 
 	enum class FormSuffix {
 		NoOffset = 0b0100,
+		Extended = 0b1111,
 
 		Offset8bit = 0b1000,
 		Offset16bit = 0b1001,
@@ -226,7 +227,6 @@ struct IndexedAddressDecoder {
 		PredecrementBy1 = 0b0010,
 		PredecrementBy2 = 0b0011,
 	};
-	static constexpr uint8_t ExtendedIndirect = 0x9f;
 
 	constexpr FormSuffix suffix() const {
 		return FormSuffix(format_ & 0b1111);
@@ -243,11 +243,15 @@ struct IndexedAddressDecoder {
 
 	constexpr int required_continuation() const {
 		if(is_5bit()) return 0;
-		if(format_ == ExtendedIndirect) return 2;
 		switch(suffix()) {
 			using enum FormSuffix;
-			case Offset8bit:	case Offset8bitFromPC:	return 1;
-			case Offset16bit:	case Offset16bitFromPC:	return 2;
+			case Offset8bit:
+			case Offset8bitFromPC:	return 1;
+
+			case Offset16bit:
+			case Offset16bitFromPC:
+			case Extended: return 2;
+
 			default: return 0;
 		}
 	}
@@ -261,10 +265,6 @@ struct IndexedAddressDecoder {
 	//
 	// Will apply any automatic increment or decrement to the registers.
 	uint16_t address(Registers &registers) const {
-		if(format_ == ExtendedIndirect) {
-			return continuation_;
-		}
-
 		const auto reg = [&] () -> uint16_t & {
 			switch((format_ >> 5) & 0b11) {
 				case 0b00:	return registers.reg<R16::X>();
@@ -275,7 +275,7 @@ struct IndexedAddressDecoder {
 			}
 		};
 
-		const uint16_t base = [&] {
+		const uint16_t base = [&]() -> uint16_t {
 			if(is_5bit()) {
 				return reg();
 			}
@@ -283,6 +283,9 @@ struct IndexedAddressDecoder {
 			switch(suffix()) {
 				using enum FormSuffix;
 				default: return reg();
+
+				case Extended:
+					return 0;
 
 				case Offset8bitFromPC:
 				case Offset16bitFromPC:
@@ -330,6 +333,8 @@ struct IndexedAddressDecoder {
 			case ARegisterOffset:	return uint16_t(base + int8_t(registers.reg<R8::A>()));
 			case BRegisterOffset:	return uint16_t(base + int8_t(registers.reg<R8::B>()));
 			case DRegisterOffset:	return base + registers.reg<R16::D>();
+
+			case Extended:			return continuation_;
 		}
 
 		return base;
