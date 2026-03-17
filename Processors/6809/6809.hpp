@@ -340,14 +340,7 @@ struct Processor {
 				-- registers_.reg<R16::S>();
 				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::CC>());
 
-				registers_.cc.set<ConditionCode::IRQMask>(true);
-				registers_.cc.set<ConditionCode::FIRQMask>(true);
-
-				address_.full = 0xfff6;
-				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.high, ++address_.full);
-				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.low, ++address_.full);
-
-				goto fetch_decode;
+				goto interrupt_dispatch;
 
 			// MARK: - Fetch/decode.
 
@@ -518,20 +511,16 @@ struct Processor {
 					case Operation::PSHS:
 						goto push;
 
-					case Operation::RTS:
-						goto rts;
-
-					case Operation::RTI:
-						goto rti;
+					case Operation::SYNC:	goto sync;
+					case Operation::CWAI:	goto cwai;
+					case Operation::RTS:	goto rts;
+					case Operation::RTI:	goto rti;
 
 					case Operation::SWI:
 					case Operation::SWI2:
 					case Operation::SWI3:
 					case Operation::RESET:
 						goto swi_reset_nmi_irq;
-
-					case Operation::SYNC:
-						goto sync;
 
 					default: __builtin_unreachable();
 				}
@@ -708,6 +697,36 @@ struct Processor {
 				address_.full = registers_.pc.full + operand_.full;
 				goto jsr;
 
+			case ResumePoint::CWAISpin:
+			finish_cwai:
+				if(time_ <= 0) {
+					resume_point_ = ResumePoint::CWAISpin;
+					return;
+				}
+
+				if(
+					exceptions_ & Exception::NMI ||
+					(exceptions_ & Exception::FIRQ && !registers_.cc.get<ConditionCode::FIRQMask>()) ||
+					(exceptions_ & Exception::IRQ && !registers_.cc.get<ConditionCode::IRQMask>())
+				) {
+					goto interrupt_dispatch;
+				}
+
+				time_ -= Cycles(1);
+				time_ -=
+					bus_handler_.template perform<
+						BusPhase::FullCycle,
+						ReadWrite::NoData,
+						BusState::Normal
+					>(Address::Fixed<0xffff>(), Data::NoValue());
+
+				goto finish_cwai;
+
+			cwai:
+				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				CPU::M6809::perform(Operation::ANDCC, registers_, operand_);
+				/* Fallthrough. */
+
 			swi_reset_nmi_irq:
 				if(operation_.operation != Operation::RESET) {
 					registers_.cc.set<ConditionCode::Entire>(true);
@@ -746,18 +765,22 @@ struct Processor {
 				-- registers_.reg<R16::S>();
 				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::CC>());
 
-				if(operation_.operation != Operation::SWI2 && operation_.operation != Operation::SWI2) {
-					registers_.cc.set<ConditionCode::IRQMask>(true);
-					registers_.cc.set<ConditionCode::FIRQMask>(true);
+				if(operation_.operation == Operation::CWAI) {
+					goto finish_cwai;
 				}
 
+			interrupt_dispatch:
 				address_.full = [&]() -> uint16_t {
 					if(exceptions_ & Exception::NMI) {
 						exceptions_ &= ~Exception::NMI;
 						return 0xfffc;
 					}
 
-					if(exceptions_ & Exception::IRQ) {
+					if(exceptions_ & Exception::FIRQ && !registers_.cc.get<ConditionCode::FIRQMask>()) {
+						return  0xfff6;
+					}
+
+					if(exceptions_ & Exception::IRQ && !registers_.cc.get<ConditionCode::IRQMask>()) {
 						return 0xfff8;
 					}
 
@@ -768,6 +791,11 @@ struct Processor {
 						default: __builtin_unreachable();
 					}
 				} ();
+
+				if(operation_.operation != Operation::SWI2 && operation_.operation != Operation::SWI3) {
+					registers_.cc.set<ConditionCode::IRQMask>(true);
+					registers_.cc.set<ConditionCode::FIRQMask>(true);
+				}
 
 				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.high, ++address_.full);
 				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.low, ++address_.full);
@@ -862,6 +890,7 @@ private:
 	enum ResumePoint {
 		FetchDecode,
 		ResetSpin,
+		CWAISpin,
 		Sync,
 		Max,
 	};

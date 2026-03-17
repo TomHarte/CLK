@@ -111,12 +111,11 @@ struct M6809Traits {
 		using enum InstructionSet::M6809::Operation;
 		default: break;
 
-		// Unimplemented by me.
-		case CWAI:
-			return;
-
 		// Considered invalid by the test set.
 		case RESET: return;
+
+		// The test set terminates prior to putting anything on the stack; my code doesn't.
+		case CWAI:	return;
 
 		// Test set uses the test that either exactly one of NZC is set, or they all are. That's four possibilities.
 		//
