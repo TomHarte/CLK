@@ -456,7 +456,10 @@ struct Processor {
 					case Operation::RTI:
 						goto rti;
 
-					case Operation::SWI:	case Operation::SWI2:	case Operation::SWI3:
+					case Operation::SWI:
+					case Operation::SWI2:
+					case Operation::SWI3:
+					case Operation::RESET:
 						goto swi;
 
 					default: __builtin_unreachable();
@@ -635,7 +638,9 @@ struct Processor {
 				goto jsr;
 
 			swi:
-				registers_.cc.set<ConditionCode::Entire>(true);
+				if(operation_.operation != Operation::RESET) {
+					registers_.cc.set<ConditionCode::Entire>(true);
+				}
 
 				operand_ = registers_.reg<R16::PC>();
 				-- registers_.reg<R16::S>();
@@ -674,6 +679,8 @@ struct Processor {
 					registers_.cc.set<ConditionCode::IRQMask>(true);
 					registers_.cc.set<ConditionCode::FIRQMask>(true);
 					address_.full = 0xfffa;
+				} else if(operation_.operation == Operation::RESET) {
+					address_.full = 0xfffe;
 				} else {
 					address_.full = operation_.operation == Operation::SWI2 ? 0xfff4 : 0xfff2;
 				}
