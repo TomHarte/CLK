@@ -102,7 +102,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 
 		#if !DEBUG
 		// Remove options that are not yet fully working, except in debug builds.
-		for hidden in ["appleiigs"] {
+		for hidden in ["appleiigs", "thomsonmo"] {
 			let tabIndex = machineSelector.indexOfTabViewItem(withIdentifier: hidden)
 			machineSelector.removeTabViewItem(machineSelector.tabViewItem(at: tabIndex))
 		}
