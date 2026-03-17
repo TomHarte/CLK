@@ -179,34 +179,6 @@ struct M6809Traits {
 		}
 	} ();
 
-	//
-//	if(opcode != 0x109e) {
-//		return;
-//	}
-//	if(decoded.operation != InstructionSet::M6809::Operation::BLE) {
-//		return;
-//	}
-
-	NSString *identifier = test[@"name"];
-
-	// Tests that look fishy.
-	NSSet *const strangers = [NSSet setWithArray:@[
-		// JSRs that don't put anything on the stack (?). Probably inadvertently self-modifying.
-		@"00ad 61",
-		@"00ad 605",
-		@"00ad 632",
-
-		// STU that overwrites its operand, confusing the test data capture.
-		@"00ef 921",
-
-		// Self-modifying STYs, also falling victim to test case implementation.
-		@"10af 199",
-		@"10af 718",
-	]];
-	if([strangers containsObject:identifier]) {
-		return;
-	}
-
 	// Indexed modes: check second byte for something the test set considers a well-defined mode.
 	if(decoded.mode == InstructionSet::M6809::AddressingMode::Indexed) {
 		const uint8_t postbyte = capturer.ram[pc++];
@@ -218,23 +190,11 @@ struct M6809Traits {
 
 				default:
 				break;
-//				case 0x7:
-//				case 0xa:
-//				case 0xe:
-//				case 0xf:	// TODO.
-//					if(postbyte & 0x80) {
-//						return;
-//					}
-//				break;
-
-//				case 0xf:
-//					if(postbyte != 0x9f) return;
-//					printf("%0x\n", postbyte);
-//				break;
 			}
 		}
 	}
 
+	NSString *identifier = test[@"name"];
 	try {
 		m6809_.set<CPU::M6809::Line::PowerOnReset>(false);
 		m6809_.run_for(1);
@@ -253,10 +213,8 @@ struct M6809Traits {
 	XCTAssertEqual(m6809_.registers().y, [end[@"Y"] intValue], @"%@", identifier);
 
 	// The test set seems to write the original value as both initial and final. So don't test mdifies.
-	if(decoded.type != InstructionSet::M6809::AccessType::Modify8) {
-		for(NSArray *output in end[@"ram"]) {
-			XCTAssertTrue(capturer.verify([output[0] intValue], [output[1] intValue]), @"%@", identifier);
-		}
+	for(NSArray *output in end[@"ram"]) {
+		XCTAssertTrue(capturer.verify([output[0] intValue], [output[1] intValue]), @"%@", identifier);
 	}
 }
 
