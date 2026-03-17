@@ -49,21 +49,20 @@ struct ConcreteMachine:
 		const AddressT address,
 		CPU::M6809::data_t<read_write> value
 	) {
-		if constexpr (CPU::M6809::is_read(read_write)) {
-//			printf("X: %04x\n", m6809_.registers().x);
-			if(address >= 0xc000) {
-				value = rom_[address - 0xc000];
-//				printf("%04x: ROM -> 0x%02x [S: %04x]\n", +address, rom_[address - 0xc000], m6809_.registers().s);
+		if constexpr (read_write != CPU::M6809::ReadWrite::NoData) {
+			if constexpr (CPU::M6809::is_read(read_write)) {
+				if(address >= 0xc000) {
+					value = rom_[address - 0xc000];
+				} else {
+					value = ram_[address];
+				}
 			} else {
-				value = ram_[address];
-//				printf("%04x: RAM -> 0x%02x [S: %04x]\n", +address, ram_[address], m6809_.registers().s);
+				ram_[address] = value;
+				printf("%04x: RAM <- 0x%02x [S: %04x]\n", +address, value, m6809_.registers().s);
 			}
-		} else {
-			ram_[address] = value;
-			printf("%04x: RAM <- 0x%02x [S: %04x]\n", +address, value, m6809_.registers().s);
 		}
 
-		// TODO: the lower portion of memory can actually be paged, so the linear representation above isn't accurate.
+		// TODO: the lowest 8kb of memory can actually be paged, so the linear representation above isn't accurate.
 
 		return Cycles(0);
 	}

@@ -33,10 +33,9 @@ enum class BusState {
 };
 
 enum class ReadWrite {
+	NoData,
 	Read,
-	ReadLast,	// Read with LIC high.
 	Write,
-	WriteLast	// Write with LIC high.,
 };
 constexpr bool is_read(const ReadWrite read_write) {
 	return read_write < ReadWrite::Write;
@@ -45,7 +44,9 @@ constexpr bool is_write(const ReadWrite read_write) {
 	return read_write >= ReadWrite::Write;
 }
 constexpr Bus::Data::AccessType access_type(const ReadWrite read_write) {
-	if(is_read(read_write)) {
+	if(read_write == ReadWrite::NoData) {
+		return Bus::Data::AccessType::NoData;
+	} else if(is_read(read_write)) {
 		return Bus::Data::AccessType::Read;
 	} else {
 		return Bus::Data::AccessType::Write;
@@ -71,6 +72,11 @@ enum class Line {
 	MRDY,	// Allows the bus to be stretched in 1/4 cycle increments (on a non-E 6809).
 	Reset,
 	PowerOnReset,
+};
+
+enum class LIC {
+	Active,
+	Inactive,
 };
 
 // Missing outputs:
@@ -125,6 +131,11 @@ struct Processor {
 			case Line::PowerOnReset:	set_exception(Exceptions::PowerOnReset);	break;
 			case Line::Reset: 			set_exception(Exceptions::Reset);			break;
 			case Line::NMI: 			set_exception(Exceptions::NMI);				break;
+			case Line::IRQ: 			set_exception(Exceptions::IRQ);				break;
+			case Line::FIRQ: 			set_exception(Exceptions::FIRQ);			break;
+			case Line::MRDY:			mrdy_ = value;								break;
+			case Line::Halt:			set_exception(Exceptions::Halt);			break;
+			case Line::DMABusReq:		dmabreq_ = value;							break;
 		}
 	}
 
@@ -301,6 +312,15 @@ struct Processor {
 
 			// MARK: - Fetch/decode.
 
+			halt:
+				time_ -= Cycles(1);
+				time_ -=
+					bus_handler_.template perform<
+						BusPhase::FullCycle,
+						ReadWrite::NoData,
+						BusState::HaltOrBusGrantAcknowledge
+					>(Address::Fixed<0xffff>(), Data::NoValue());
+
 			fetch_decode:
 			case ResumePoint::FetchDecode:
 				if(time_ <= 0) {
@@ -309,9 +329,14 @@ struct Processor {
 				}
 
 				if(exceptions_) {
+					if(exceptions_ & Exceptions::Halt) {
+						goto halt;
+					}
+
 					if(exceptions_ & (Exceptions::PowerOnReset | Exceptions::Reset)) {
 						goto reset;
 					}
+
 					// TODO: test interrupts and more.
 				}
 
@@ -752,9 +777,7 @@ private:
 	Timescale time_;
 
 	bool mrdy_ = false;
-	bool halt_ = false;
-	bool dma_ = false;
-	bool breq_ = false;
+	bool dmabreq_ = false;
 
 	enum ResumePoint {
 		FetchDecode,
@@ -772,6 +795,9 @@ private:
 		Reset			= 1 << 0,
 		PowerOnReset	= 1 << 1,
 		NMI				= 1 << 2,
+		IRQ				= 1 << 3,
+		FIRQ			= 1 << 4,
+		Halt			= 1 << 5,
 	};
 	uint8_t exceptions_ = Exceptions::PowerOnReset;
 
