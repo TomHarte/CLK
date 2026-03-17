@@ -123,19 +123,20 @@ template <typename Traits>
 struct Processor {
 	template <Line line>
 	void set(const bool value) {
-		const auto set_exception = [&](const Exceptions exception) {
+		const auto set_exception = [&](const Exception exception) {
 			exceptions_ = (exceptions_ & ~exception) | (value ? exception: 0);
 		};
 
+		// As below, NMI is edge triggered whereas all the rest are level-triggered.
 		switch(line) {
-			case Line::PowerOnReset:	set_exception(Exceptions::PowerOnReset);	break;
-			case Line::Reset: 			set_exception(Exceptions::Reset);			break;
-			case Line::NMI: 			set_exception(Exceptions::NMI);				break;
-			case Line::IRQ: 			set_exception(Exceptions::IRQ);				break;
-			case Line::FIRQ: 			set_exception(Exceptions::FIRQ);			break;
+			case Line::PowerOnReset:	set_exception(Exception::PowerOnReset);		break;
+			case Line::Reset: 			set_exception(Exception::Reset);			break;
+			case Line::NMI: 			if(value) exceptions_ |= Exception::NMI;	break;
+			case Line::IRQ: 			set_exception(Exception::IRQ);				break;
+			case Line::FIRQ: 			set_exception(Exception::FIRQ);				break;
 			case Line::MRDY:			mrdy_ = value;								break;
-			case Line::Halt:			set_exception(Exceptions::Halt);			break;
-			case Line::DMABusReq:		dmabreq_ = value;							break;
+			case Line::Halt:			set_exception(Exception::Halt);				break;
+			case Line::DMABusReq:		set_exception(Exception::DMABusReq);		break;
 		}
 	}
 
@@ -276,6 +277,15 @@ struct Processor {
 			__VA_ARGS__;																							\
 		}
 
+		#define inactive_bus()										\
+			time_ -= Cycles(1);										\
+			time_ -=												\
+				bus_handler_.template perform<						\
+					BusPhase::FullCycle,							\
+					ReadWrite::NoData,								\
+					BusState::HaltOrBusGrantAcknowledge				\
+				>(Address::Fixed<0xffff>(), Data::NoValue());
+
 		time_ += duration;
 
 		using Literal = Address::Literal;
@@ -299,27 +309,45 @@ struct Processor {
 
 			reset:
 				registers_.dp = 0;
-				exceptions_ &= ~(Exceptions::NMI | Exceptions::PowerOnReset);
+				exceptions_ &= ~(Exception::NMI | Exception::PowerOnReset);
 				registers_.cc.set<ConditionCode::IRQMask>(true);
 				registers_.cc.set<ConditionCode::FIRQMask>(true);
 
-				// TODO: spin here on HALT | DMA | BREQ.
+			reset_spin:
+				if(exceptions_ & (Exception::Halt | Exception::DMABusReq | Exception::Reset)) {
+					inactive_bus();
+					goto reset_spin;
+				}
 
 				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<0xfffe>(), registers_.pc.halves.high);
 				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<0xffff>(), registers_.pc.halves.low);
 
 				goto fetch_decode;
 
+			firq:
+				registers_.cc.set<ConditionCode::Entire>(false);
+
+				operand_ = registers_.reg<R16::PC>();
+				-- registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.low);
+				-- registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.high);
+				-- registers_.reg<R16::S>();
+				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::CC>());
+
+				registers_.cc.set<ConditionCode::IRQMask>(true);
+				registers_.cc.set<ConditionCode::FIRQMask>(true);
+
+				address_.full = 0xfff6;
+				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.high, ++address_.full);
+				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.low, ++address_.full);
+
+				goto fetch_decode;
+
 			// MARK: - Fetch/decode.
 
 			halt:
-				time_ -= Cycles(1);
-				time_ -=
-					bus_handler_.template perform<
-						BusPhase::FullCycle,
-						ReadWrite::NoData,
-						BusState::HaltOrBusGrantAcknowledge
-					>(Address::Fixed<0xffff>(), Data::NoValue());
+				inactive_bus();
 
 			fetch_decode:
 			case ResumePoint::FetchDecode:
@@ -329,15 +357,25 @@ struct Processor {
 				}
 
 				if(exceptions_) {
-					if(exceptions_ & Exceptions::Halt) {
+					if(exceptions_ & Exception::Halt) {
 						goto halt;
 					}
 
-					if(exceptions_ & (Exceptions::PowerOnReset | Exceptions::Reset)) {
+					if(exceptions_ & (Exception::PowerOnReset | Exception::Reset)) {
 						goto reset;
 					}
 
-					// TODO: test interrupts and more.
+					if(exceptions_ & Exception::NMI) {
+						goto swi_reset_nmi_irq;
+					}
+
+					if(exceptions_ & Exception::FIRQ && !registers_.cc.get<ConditionCode::FIRQMask>()) {
+						goto firq;
+					}
+
+					if(exceptions_ & Exception::IRQ && !registers_.cc.get<ConditionCode::IRQMask>()) {
+						goto swi_reset_nmi_irq;
+					}
 				}
 
 				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
@@ -485,7 +523,7 @@ struct Processor {
 					case Operation::SWI2:
 					case Operation::SWI3:
 					case Operation::RESET:
-						goto swi;
+						goto swi_reset_nmi_irq;
 
 					default: __builtin_unreachable();
 				}
@@ -662,7 +700,7 @@ struct Processor {
 				address_.full = registers_.pc.full + operand_.full;
 				goto jsr;
 
-			swi:
+			swi_reset_nmi_irq:
 				if(operation_.operation != Operation::RESET) {
 					registers_.cc.set<ConditionCode::Entire>(true);
 				}
@@ -700,15 +738,28 @@ struct Processor {
 				-- registers_.reg<R16::S>();
 				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::CC>());
 
-				if(operation_.operation == Operation::SWI) {
+				if(operation_.operation != Operation::SWI2 && operation_.operation != Operation::SWI2) {
 					registers_.cc.set<ConditionCode::IRQMask>(true);
 					registers_.cc.set<ConditionCode::FIRQMask>(true);
-					address_.full = 0xfffa;
-				} else if(operation_.operation == Operation::RESET) {
-					address_.full = 0xfffe;
-				} else {
-					address_.full = operation_.operation == Operation::SWI2 ? 0xfff4 : 0xfff2;
 				}
+
+				address_.full = [&]() -> uint16_t {
+					if(exceptions_ & Exception::NMI) {
+						exceptions_ &= ~Exception::NMI;
+						return 0xfffc;
+					}
+
+					if(exceptions_ & Exception::IRQ) {
+						return 0xfff8;
+					}
+
+					switch(operation_.operation) {
+						case Operation::SWI:	return 0xfffa;
+						case Operation::SWI2:	return 0xfff4;
+						case Operation::SWI3:	return 0xfff2;
+						default: __builtin_unreachable();
+					}
+				} ();
 
 				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.high, ++address_.full);
 				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.low, ++address_.full);
@@ -776,9 +827,6 @@ private:
 	Traits::BusHandlerT &bus_handler_;
 	Timescale time_;
 
-	bool mrdy_ = false;
-	bool dmabreq_ = false;
-
 	enum ResumePoint {
 		FetchDecode,
 		Max,
@@ -791,15 +839,17 @@ private:
 	InstructionSet::M6809::OperationReturner::MetaOperation operation_;
 	Registers registers_;
 
-	enum Exceptions: uint8_t {
+	enum Exception: uint8_t {
 		Reset			= 1 << 0,
 		PowerOnReset	= 1 << 1,
 		NMI				= 1 << 2,
 		IRQ				= 1 << 3,
 		FIRQ			= 1 << 4,
 		Halt			= 1 << 5,
+		DMABusReq		= 1 << 6,		// TODO: implement.
 	};
-	uint8_t exceptions_ = Exceptions::PowerOnReset;
+	uint8_t exceptions_ = Exception::PowerOnReset;
+	bool mrdy_ = false;
 
 	// Transient storage.
 	Data::Writeable target_;
