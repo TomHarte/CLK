@@ -785,10 +785,12 @@ struct M6809Traits {
 	// Omitted entirely: LEAS, LEAU, LEAX, LEAY that come only in indexed mode. Maybe use those as the indexed test?
 
 	// MARK: - JMP
+
 	test({0x0e, 0x00}, {RW::Read, RW::Read, RW::NoData});	// Direct.
 	test({0x7e, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData});	// Extended.
 
 	// MARK: - JSR
+
 	// Direct.
 	test({0x9d, 0x00}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::Write, RW::Write});
 	// Extended.
@@ -850,6 +852,13 @@ struct M6809Traits {
 		sequence(0x2e);	// LBGT
 	}
 
+	// MARK: - BSR, LBSR, LBRA.
+
+	test({0x8d, 0x00, 0x00}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::Write, RW::Write});	// BSR
+	test(
+		{0x17, 0x00, 0x00},
+		{RW::Read, RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::Write, RW::Write}
+	);		// LBSR
 	test({0x16, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::NoData});		// LBRA
 }
 

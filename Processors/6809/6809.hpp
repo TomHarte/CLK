@@ -735,12 +735,14 @@ struct Processor {
 			bsr:
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
 				address_.full = uint16_t(registers_.pc.full + int8_t(operand_.halves.low));
+				internal_cycle();
 				goto jsr;
 
 			lbsr:
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
 				address_.full = registers_.pc.full + operand_.full;
+				internal_cycles(2);
 				goto jsr;
 
 			case ResumePoint::CWAISpin:
