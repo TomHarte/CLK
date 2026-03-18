@@ -424,6 +424,7 @@ struct M6809Traits {
 		m6809.registers().u = 0x8000;
 		m6809.registers().s = 0x8000;
 		m6809.registers().dp = 0x80;
+		m6809.registers().cc = 0x00;
 
 		// Seed opcode, catching something to print later in case of error.
 		uint16_t pc = 0;
@@ -792,6 +793,64 @@ struct M6809Traits {
 	test({0x9d, 0x00}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::Write, RW::Write});
 	// Extended.
 	test({0xbd, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::Write, RW::Write});
+
+	// MARK: - BCC, BCS, BEQ, BGE, BGT, BHI, BHS, BLE, BLO, BLS, BLT, BMI, BNE, BPL, BRA, BRN, BVC, BVS
+
+	{
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00}, {RW::Read, RW::Read, RW::NoData});
+		};
+
+		sequence(0x20);	// BRA
+		sequence(0x21);	// BRN
+		sequence(0x22);	// BHI
+		sequence(0x23);	// BLS
+		sequence(0x24);	// BCC / BHS
+		sequence(0x25);	// BCS / BLO
+		sequence(0x26);	// BNE
+		sequence(0x27);	// BEQ
+		sequence(0x28);	// BVC
+		sequence(0x29);	// BVS
+		sequence(0x2a);	// BPL
+		sequence(0x2b);	// BMI
+		sequence(0x2c);	// BGE
+		sequence(0x2d);	// BLT
+		sequence(0x2e);	// BGT
+		sequence(0x2f);	// BLE
+	}
+
+	// MARK: - LBCC, LBCS, LBEQ, LBGE, LBGT, LBHI, LBHS, LBLE, LBLO, LBLS, LBLT, LBMI, LBNE, LBPL, LBRA, LBRN, LBVC, LBVS
+
+	{	// Untaken.
+		const auto sequence = [&](const uint8_t opcode) {
+			test({0x10, opcode, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::Read, RW::NoData});
+		};
+
+		sequence(0x21);	// LBRN
+		sequence(0x23);	// LBLS
+		sequence(0x25);	// LBCS / LBLO
+		sequence(0x27);	// LBEQ
+		sequence(0x29);	// LBVS
+		sequence(0x2b);	// LBMI
+		sequence(0x2d);	// LBLT
+		sequence(0x2f);	// LBLE
+	}
+
+	{	// Taken.
+		const auto sequence = [&](const uint8_t opcode) {
+			test({0x10, opcode, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::Read, RW::NoData, RW::NoData});
+		};
+
+		sequence(0x22);	// LBHI
+		sequence(0x24);	// LBCC / LBHS
+		sequence(0x26);	// LBNE
+		sequence(0x28);	// LBVC
+		sequence(0x2a);	// LBPL
+		sequence(0x2c);	// LBGE
+		sequence(0x2e);	// LBGT
+	}
+
+	test({0x16, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::NoData});		// LBRA
 }
 
 @end
