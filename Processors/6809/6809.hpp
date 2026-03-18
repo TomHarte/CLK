@@ -286,27 +286,30 @@ struct Processor {
 					BusState::HaltOrBusGrantAcknowledge				\
 				>(Address::Fixed<0xffff>(), Data::NoValue());
 
-		#define perform_operation() { 															\
-			perform_cost_ = CPU::M6809::perform(operation_.operation, registers_, operand_);	\
-																								\
-			static constexpr auto perform_spin = restore_point();								\
-			local_label(performSpin):															\
-			case perform_spin:																	\
-			if(perform_cost_ == 0) goto local_label(finishPerform);								\
-																								\
-			check_pause(PausePrecision::BetweenBusActions, perform_spin);						\
-			time_ -= Cycles(1);																	\
-			time_ -=																			\
-				bus_handler_.template perform<													\
-					BusPhase::FullCycle,														\
-					ReadWrite::NoData,															\
-					BusState::Normal															\
-				>(Address::Fixed<0xffff>(), Data::NoValue());									\
-			goto local_label(performSpin);														\
-																								\
-			local_label(finishPerform):	(void)0;												\
+		#define internal_cycles(n) { 										\
+			perform_cost_ = n;												\
+																			\
+			static constexpr auto perform_spin = restore_point();			\
+			local_label(performSpin):										\
+			case perform_spin:												\
+			if(perform_cost_ == 0) goto local_label(finishPerform);			\
+																			\
+			check_pause(PausePrecision::BetweenBusActions, perform_spin);	\
+			time_ -= Cycles(1);												\
+			time_ -=														\
+				bus_handler_.template perform<								\
+					BusPhase::FullCycle,									\
+					ReadWrite::NoData,										\
+					BusState::Normal										\
+				>(Address::Fixed<0xffff>(), Data::NoValue());				\
+			goto local_label(performSpin);									\
+																			\
+			local_label(finishPerform):	(void)0;							\
 		}
 
+		// TODO: internal_cycle could be handled more efficiently.
+		#define internal_cycle() internal_cycles(1)
+		#define perform_operation() internal_cycles(CPU::M6809::perform(operation_.operation, registers_, operand_))
 
 		time_ += duration;
 
@@ -467,6 +470,7 @@ struct Processor {
 			case addressing_program(AddressingMode::Direct):
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
 				address_.halves.high = registers_.reg<R8::DP>();
+				internal_cycle();
 				resume_point_ = access_program(operation_.type);
 				break;
 
@@ -476,11 +480,13 @@ struct Processor {
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
 				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
 				resume_point_ = access_program(operation_.type);
+				internal_cycle();
 				break;
 
 
 			// MARK: - Indexed addressing mode.
 
+			// TODO: internal cycles.
 			case addressing_program(AddressingMode::Indexed):
 
 				//
@@ -549,6 +555,8 @@ struct Processor {
 				stack_ = operation_.operation == Operation::PULU ? &registers_.reg<R16::U>(): &registers_.reg<R16::S>();
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
 
+				internal_cycles(2);
+
 				if(!(operand_.halves.low & 0b0000'0001)) {
 					goto no_pull_cc;
 				}
@@ -611,6 +619,8 @@ struct Processor {
 			push:
 				stack_ = operation_.operation == Operation::PSHU ? &registers_.reg<R16::U>(): &registers_.reg<R16::S>();
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+
+				internal_cycles(3);
 
 				if(!(operand_.halves.low & 0b1000'0000)) {
 					goto no_push_pc;
@@ -886,6 +896,7 @@ struct Processor {
 			case access_program(AccessType::Modify8):
 				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
 				perform_operation();
+				internal_cycle();
 				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
 				goto fetch_decode;
 		}

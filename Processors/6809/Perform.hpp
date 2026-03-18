@@ -381,9 +381,9 @@ inline void sex(Registers &registers) {
 
 template <InstructionSet::M6809::Condition condition, std::unsigned_integral OperandT>
 requires (sizeof(OperandT) <= 2)
-void bra(Registers &registers, const OperandT operand) {
+bool bra(Registers &registers, const OperandT operand) {
 	if(!registers.cc.test<condition>()) {
-		return;
+		return false;
 	}
 
 	if constexpr (sizeof(OperandT) == 2) {
@@ -391,6 +391,7 @@ void bra(Registers &registers, const OperandT operand) {
 	} else {
 		registers.reg<R16::PC>() += int8_t(operand);
 	}
+	return true;
 }
 
 // MARK: - Dispatch.
@@ -411,143 +412,143 @@ inline Cycles perform(const InstructionSet::M6809::Operation operation, Register
 		using enum InstructionSet::M6809::Operation;
 
 		case None:
-		case NOP: break;
+		case NOP: return 0;
 
-		case ABX:	abx(registers);						break;
+		case ABX:	abx(registers);								return 1;
 
-		case ADCA:	add<R8::A, true>(registers, byte);	break;
-		case ADCB:	add<R8::B, true>(registers, byte);	break;
-		case ADDA:	add<R8::A, false>(registers, byte);	break;
-		case ADDB:	add<R8::B, false>(registers, byte);	break;
-		case ADDD:	addd(registers, word);				break;
+		case ADCA:	add<R8::A, true>(registers, byte);			return 0;
+		case ADCB:	add<R8::B, true>(registers, byte);			return 0;
+		case ADDA:	add<R8::A, false>(registers, byte);			return 0;
+		case ADDB:	add<R8::B, false>(registers, byte);			return 0;
+		case SBCA:	sub<R8::A, true, true>(registers, byte);	return 0;
+		case SBCB:	sub<R8::B, true, true>(registers, byte);	return 0;
+		case SUBA:	sub<R8::A, false, true>(registers, byte);	return 0;
+		case SUBB:	sub<R8::B, false, true>(registers, byte);	return 0;
+		case CMPA:	sub<R8::A, false, false>(registers, byte);	return 0;
+		case CMPB:	sub<R8::B, false, false>(registers, byte);	return 0;
 
-		case SBCA:	sub<R8::A, true, true>(registers, byte);	break;
-		case SBCB:	sub<R8::B, true, true>(registers, byte);	break;
-		case SUBA:	sub<R8::A, false, true>(registers, byte);	break;
-		case SUBB:	sub<R8::B, false, true>(registers, byte);	break;
-		case CMPA:	sub<R8::A, false, false>(registers, byte);	break;
-		case CMPB:	sub<R8::B, false, false>(registers, byte);	break;
+		case ADDD:	addd(registers, word);					return 1;
+		case SUBD:	sub<R16::D, true>(registers, word);		return 1;
+		case CMPX:	sub<R16::X, false>(registers, word);	return 1;
+		case CMPD:	sub<R16::D, false>(registers, word);	return 1;
+		case CMPY:	sub<R16::Y, false>(registers, word);	return 1;
+		case CMPU:	sub<R16::U, false>(registers, word);	return 1;
+		case CMPS:	sub<R16::S, false>(registers, word);	return 1;
 
-		case SUBD:	sub<R16::D, true>(registers, word);		break;
-		case CMPX:	sub<R16::X, false>(registers, word);	break;
-		case CMPD:	sub<R16::D, false>(registers, word);	break;
-		case CMPY:	sub<R16::Y, false>(registers, word);	break;
-		case CMPU:	sub<R16::U, false>(registers, word);	break;
-		case CMPS:	sub<R16::S, false>(registers, word);	break;
+		case DAA:	daa(registers);							return 0;
 
-		case DAA:	daa(registers);							break;
+		case ANDA:	and_<R8::A>(registers, byte);			return 0;
+		case ANDB:	and_<R8::B>(registers, byte);			return 0;
+		case ORA:	or_<R8::A>(registers, byte);			return 0;
+		case ORB:	or_<R8::B>(registers, byte);			return 0;
+		case EORA:	eor_<R8::A>(registers, byte);			return 0;
+		case EORB:	eor_<R8::B>(registers, byte);			return 0;
 
-		case ANDA:	and_<R8::A>(registers, byte);			break;
-		case ANDB:	and_<R8::B>(registers, byte);			break;
-		case ANDCC:	and_<R8::CC>(registers, byte);			break;
-		case ORA:	or_<R8::A>(registers, byte);			break;
-		case ORB:	or_<R8::B>(registers, byte);			break;
-		case ORCC:	or_<R8::CC>(registers, byte);			break;
-		case EORA:	eor_<R8::A>(registers, byte);			break;
-		case EORB:	eor_<R8::B>(registers, byte);			break;
+		case ANDCC:	and_<R8::CC>(registers, byte);			return 1;
+		case ORCC:	or_<R8::CC>(registers, byte);			return 1;
 
-		case INCA:	inc<R8::A>(registers);					break;
-		case INCB:	inc<R8::B>(registers);					break;
-		case INC:	inc(registers, byte);					break;
-		case DECA:	dec<R8::A>(registers);					break;
-		case DECB:	dec<R8::B>(registers);					break;
-		case DEC:	dec(registers, byte);					break;
+		case INCA:	inc<R8::A>(registers);					return 0;
+		case INCB:	inc<R8::B>(registers);					return 0;
+		case INC:	inc(registers, byte);					return 0;
+		case DECA:	dec<R8::A>(registers);					return 0;
+		case DECB:	dec<R8::B>(registers);					return 0;
+		case DEC:	dec(registers, byte);					return 0;
 
-		case NEGA:	neg<R8::A>(registers);					break;
-		case NEGB:	neg<R8::B>(registers);					break;
-		case NEG:	neg(registers, byte);					break;
-		case COMA:	com<R8::A>(registers);					break;
-		case COMB:	com<R8::B>(registers);					break;
-		case COM:	com(registers, byte);					break;
+		case NEGA:	neg<R8::A>(registers);					return 0;
+		case NEGB:	neg<R8::B>(registers);					return 0;
+		case NEG:	neg(registers, byte);					return 0;
+		case COMA:	com<R8::A>(registers);					return 0;
+		case COMB:	com<R8::B>(registers);					return 0;
+		case COM:	com(registers, byte);					return 0;
 
-		case ASRA:	asr<R8::A>(registers);					break;
-		case ASRB:	asr<R8::B>(registers);					break;
-		case ASR:	asr(registers, byte);					break;
-		case LSLA:	lsl<R8::A>(registers);					break;
-		case LSLB:	lsl<R8::B>(registers);					break;
-		case LSL:	lsl(registers, byte);					break;
-		case LSRA:	lsr<R8::A>(registers);					break;
-		case LSRB:	lsr<R8::B>(registers);					break;
-		case LSR:	lsr(registers, byte);					break;
-		case ROLA:	rol<R8::A>(registers);					break;
-		case ROLB:	rol<R8::B>(registers);					break;
-		case ROL:	rol(registers, byte);					break;
-		case RORA:	ror<R8::A>(registers);					break;
-		case RORB:	ror<R8::B>(registers);					break;
-		case ROR:	ror(registers, byte);					break;
+		case ASRA:	asr<R8::A>(registers);					return 0;
+		case ASRB:	asr<R8::B>(registers);					return 0;
+		case ASR:	asr(registers, byte);					return 0;
+		case LSLA:	lsl<R8::A>(registers);					return 0;
+		case LSLB:	lsl<R8::B>(registers);					return 0;
+		case LSL:	lsl(registers, byte);					return 0;
+		case LSRA:	lsr<R8::A>(registers);					return 0;
+		case LSRB:	lsr<R8::B>(registers);					return 0;
+		case LSR:	lsr(registers, byte);					return 0;
+		case ROLA:	rol<R8::A>(registers);					return 0;
+		case ROLB:	rol<R8::B>(registers);					return 0;
+		case ROL:	rol(registers, byte);					return 0;
+		case RORA:	ror<R8::A>(registers);					return 0;
+		case RORB:	ror<R8::B>(registers);					return 0;
+		case ROR:	ror(registers, byte);					return 0;
 
-		case BCC:	bra<Condition::CC>(registers, byte);	break;
-		case BCS:	bra<Condition::CS>(registers, byte);	break;
-		case BEQ:	bra<Condition::EQ>(registers, byte);	break;
-		case BGE:	bra<Condition::GE>(registers, byte);	break;
-		case BGT:	bra<Condition::GT>(registers, byte);	break;
-		case BHI:	bra<Condition::HI>(registers, byte);	break;
-		case BLE:	bra<Condition::LE>(registers, byte);	break;
-		case BLS:	bra<Condition::LS>(registers, byte);	break;
-		case BLT:	bra<Condition::LT>(registers, byte);	break;
-		case BMI:	bra<Condition::MI>(registers, byte);	break;
-		case BNE:	bra<Condition::NE>(registers, byte);	break;
-		case BPL:	bra<Condition::PL>(registers, byte);	break;
-		case BRA:	bra<Condition::A>(registers, byte);		break;
-		case BRN:	bra<Condition::N>(registers, byte);		break;
-		case BVC:	bra<Condition::VC>(registers, byte);	break;
-		case BVS:	bra<Condition::VS>(registers, byte);	break;
+		case BCC:	bra<Condition::CC>(registers, byte);	return 0;
+		case BCS:	bra<Condition::CS>(registers, byte);	return 0;
+		case BEQ:	bra<Condition::EQ>(registers, byte);	return 0;
+		case BGE:	bra<Condition::GE>(registers, byte);	return 0;
+		case BGT:	bra<Condition::GT>(registers, byte);	return 0;
+		case BHI:	bra<Condition::HI>(registers, byte);	return 0;
+		case BLE:	bra<Condition::LE>(registers, byte);	return 0;
+		case BLS:	bra<Condition::LS>(registers, byte);	return 0;
+		case BLT:	bra<Condition::LT>(registers, byte);	return 0;
+		case BMI:	bra<Condition::MI>(registers, byte);	return 0;
+		case BNE:	bra<Condition::NE>(registers, byte);	return 0;
+		case BPL:	bra<Condition::PL>(registers, byte);	return 0;
+		case BRA:	bra<Condition::A>(registers, byte);		return 0;
+		case BRN:	bra<Condition::N>(registers, byte);		return 0;
+		case BVC:	bra<Condition::VC>(registers, byte);	return 0;
+		case BVS:	bra<Condition::VS>(registers, byte);	return 0;
 
-		case BITA:	bit<R8::A>(registers, byte);			break;
-		case BITB:	bit<R8::B>(registers, byte);			break;
+		case BITA:	bit<R8::A>(registers, byte);			return 0;
+		case BITB:	bit<R8::B>(registers, byte);			return 0;
 
-		case CLRA:	clr<R8::A>(registers);					break;
-		case CLRB:	clr<R8::B>(registers);					break;
-		case CLR:	clr(registers, byte);					break;
+		case CLRA:	clr<R8::A>(registers);					return 0;
+		case CLRB:	clr<R8::B>(registers);					return 0;
+		case CLR:	clr(registers, byte);					return 0;
 
-		case LBCC:	bra<Condition::CC>(registers, word);	break;
-		case LBCS:	bra<Condition::CS>(registers, word);	break;
-		case LBEQ:	bra<Condition::EQ>(registers, word);	break;
-		case LBGE:	bra<Condition::GE>(registers, word);	break;
-		case LBGT:	bra<Condition::GT>(registers, word);	break;
-		case LBHI:	bra<Condition::HI>(registers, word);	break;
-		case LBLE:	bra<Condition::LE>(registers, word);	break;
-		case LBLS:	bra<Condition::LS>(registers, word);	break;
-		case LBLT:	bra<Condition::LT>(registers, word);	break;
-		case LBMI:	bra<Condition::MI>(registers, word);	break;
-		case LBNE:	bra<Condition::NE>(registers, word);	break;
-		case LBPL:	bra<Condition::PL>(registers, word);	break;
-		case LBRA:	bra<Condition::A>(registers, word);		break;
-		case LBRN:	bra<Condition::N>(registers, word);		break;
-		case LBVC:	bra<Condition::VC>(registers, word);	break;
-		case LBVS:	bra<Condition::VS>(registers, word);	break;
+		case LBCC:	return bra<Condition::CC>(registers, word) ? 1 : 0;
+		case LBCS:	return bra<Condition::CS>(registers, word) ? 1 : 0;
+		case LBEQ:	return bra<Condition::EQ>(registers, word) ? 1 : 0;
+		case LBGE:	return bra<Condition::GE>(registers, word) ? 1 : 0;
+		case LBGT:	return bra<Condition::GT>(registers, word) ? 1 : 0;
+		case LBHI:	return bra<Condition::HI>(registers, word) ? 1 : 0;
+		case LBLE:	return bra<Condition::LE>(registers, word) ? 1 : 0;
+		case LBLS:	return bra<Condition::LS>(registers, word) ? 1 : 0;
+		case LBLT:	return bra<Condition::LT>(registers, word) ? 1 : 0;
+		case LBMI:	return bra<Condition::MI>(registers, word) ? 1 : 0;
+		case LBNE:	return bra<Condition::NE>(registers, word) ? 1 : 0;
+		case LBPL:	return bra<Condition::PL>(registers, word) ? 1 : 0;
+		case LBRA:	return bra<Condition::A>(registers, word) ? 1 : 0;
+		case LBRN:	return bra<Condition::N>(registers, word) ? 1 : 0;
+		case LBVC:	return bra<Condition::VC>(registers, word) ? 1 : 0;
+		case LBVS:	return bra<Condition::VS>(registers, word) ? 1 : 0;
 
-		case LDA:	ld<R8::A>(registers, byte);				break;
-		case LDB:	ld<R8::B>(registers, byte);				break;
-		case STA:	st<R8::A>(registers, byte);				break;
-		case STB:	st<R8::B>(registers, byte);				break;
+		case LDA:	ld<R8::A>(registers, byte);				return 0;
+		case LDB:	ld<R8::B>(registers, byte);				return 0;
+		case STA:	st<R8::A>(registers, byte);				return 0;
+		case STB:	st<R8::B>(registers, byte);				return 0;
+		case LDD:	ld<R16::D>(registers, word);			return 0;
+		case LDU:	ld<R16::U>(registers, word);			return 0;
+		case LDX:	ld<R16::X>(registers, word);			return 0;
+		case LDY:	ld<R16::Y>(registers, word);			return 0;
+		case LDS:	ld<R16::S>(registers, word);			return 0;
+		case STD:	st<R16::D>(registers, word);			return 0;
+		case STU:	st<R16::U>(registers, word);			return 0;
+		case STX:	st<R16::X>(registers, word);			return 0;
+		case STY:	st<R16::Y>(registers, word);			return 0;
+		case STS:	st<R16::S>(registers, word);			return 0;
 
-		case LEAU:	lea<R16::U>(registers, word);			break;
-		case LEAX:	lea<R16::X>(registers, word);			break;
-		case LEAY:	lea<R16::Y>(registers, word);			break;
-		case LEAS:	lea<R16::S>(registers, word);			break;
-		case LDD:	ld<R16::D>(registers, word);			break;
-		case LDU:	ld<R16::U>(registers, word);			break;
-		case LDX:	ld<R16::X>(registers, word);			break;
-		case LDY:	ld<R16::Y>(registers, word);			break;
-		case LDS:	ld<R16::S>(registers, word);			break;
-		case STD:	st<R16::D>(registers, word);			break;
-		case STU:	st<R16::U>(registers, word);			break;
-		case STX:	st<R16::X>(registers, word);			break;
-		case STY:	st<R16::Y>(registers, word);			break;
-		case STS:	st<R16::S>(registers, word);			break;
+		case LEAU:	lea<R16::U>(registers, word);			return 1;
+		case LEAX:	lea<R16::X>(registers, word);			return 1;
+		case LEAY:	lea<R16::Y>(registers, word);			return 1;
+		case LEAS:	lea<R16::S>(registers, word);			return 1;
 
-		case MUL:	mul(registers);							break;
+		case MUL:	mul(registers);							return 9;	// Per 6809cyc.txt; might need more research.
 
 		case TFR:	tfr(registers, byte);					return 4;
 		case EXG:	exg(registers, byte);					return 6;
 
-		case SEX:	sex(registers);							break;
-		case TSTA:	tst<R8::A>(registers);					break;
-		case TSTB:	tst<R8::B>(registers);					break;
-		case TST:	tst(registers, byte);					break;
+		case SEX:	sex(registers);							return 0;
+		case TSTA:	tst<R8::A>(registers);					return 0;
+		case TSTB:	tst<R8::B>(registers);					return 0;
+		case TST:	tst(registers, byte);					return 2;	// Weird, but seemingly true (?)
 
-		case JMP:	registers.pc.full = word;				break;
+		case JMP:	registers.pc.full = word;				return 1;
 
 		// Flow control that requires stack access.
 		case JSR:	case BSR:	case LBSR:
@@ -564,8 +565,6 @@ inline Cycles perform(const InstructionSet::M6809::Operation operation, Register
 
 		default: __builtin_unreachable();
 	}
-
-	return 0;
 }
 
 }
