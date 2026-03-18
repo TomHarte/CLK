@@ -293,6 +293,7 @@ struct Processor {
 			local_label(performSpin):										\
 			case perform_spin:												\
 			if(perform_cost_ == 0) goto local_label(finishPerform);			\
+			--perform_cost_;												\
 																			\
 			check_pause(PausePrecision::BetweenBusActions, perform_spin);	\
 			time_ -= Cycles(1);												\

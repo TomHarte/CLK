@@ -70,24 +70,24 @@ struct M6809Traits {
 
 - (void)testCase:(NSDictionary *)test {
 	M6809Capture capturer;
-	CPU::M6809::Processor<M6809Traits> m6809_(capturer);
+	CPU::M6809::Processor<M6809Traits> m6809(capturer);
 
 	NSDictionary *const initial = test[@"initial"];
-	m6809_.registers().cc = [initial[@"CC"] intValue];
-	m6809_.registers().d.full = [initial[@"D"] intValue];
-	m6809_.registers().dp = [initial[@"DP"] intValue];
-	m6809_.registers().pc.full = [initial[@"PC"] intValue];
-	m6809_.registers().s = [initial[@"S"] intValue];
-	m6809_.registers().u = [initial[@"U"] intValue];
-	m6809_.registers().x = [initial[@"X"] intValue];
-	m6809_.registers().y = [initial[@"Y"] intValue];
+	m6809.registers().cc = [initial[@"CC"] intValue];
+	m6809.registers().d.full = [initial[@"D"] intValue];
+	m6809.registers().dp = [initial[@"DP"] intValue];
+	m6809.registers().pc.full = [initial[@"PC"] intValue];
+	m6809.registers().s = [initial[@"S"] intValue];
+	m6809.registers().u = [initial[@"U"] intValue];
+	m6809.registers().x = [initial[@"X"] intValue];
+	m6809.registers().y = [initial[@"Y"] intValue];
 
 	for(NSArray *entry in initial[@"ram"]) {
 		capturer.ram[[entry[0] intValue]] = [entry[1] intValue];
 	}
 
 	// Don't test illegal opcodes for now.
-	uint16_t pc = m6809_.registers().pc.full;
+	uint16_t pc = m6809.registers().pc.full;
 	uint16_t opcode = capturer.ram[pc++];
 	if(opcode == 0x10 || opcode == 0x11) {
 		opcode = (opcode << 8) | capturer.ram[pc++];
@@ -194,21 +194,21 @@ struct M6809Traits {
 
 	NSString *identifier = test[@"name"];
 	try {
-		m6809_.set<CPU::M6809::Line::PowerOnReset>(false);
-		m6809_.run_for(1);
+		m6809.set<CPU::M6809::Line::PowerOnReset>(false);
+		m6809.run_for(1);
 	} catch(...) {
 		XCTAssert(false, @"Inexplicable memory access: %@", identifier);
 	}
 
 	NSDictionary *const end = test[@"final"];
-	XCTAssertEqual(uint8_t(m6809_.registers().cc) & cc_mask, [end[@"CC"] intValue] & cc_mask, @"%@", identifier);
-	XCTAssertEqual(m6809_.registers().d.full, [end[@"D"] intValue], @"%@", identifier);
-	XCTAssertEqual(m6809_.registers().dp, [end[@"DP"] intValue], @"%@", identifier);
-	XCTAssertEqual(m6809_.registers().pc.full, [end[@"PC"] intValue], @"%@", identifier);
-	XCTAssertEqual(m6809_.registers().s, [end[@"S"] intValue], @"%@", identifier);
-	XCTAssertEqual(m6809_.registers().u, [end[@"U"] intValue], @"%@", identifier);
-	XCTAssertEqual(m6809_.registers().x, [end[@"X"] intValue], @"%@", identifier);
-	XCTAssertEqual(m6809_.registers().y, [end[@"Y"] intValue], @"%@", identifier);
+	XCTAssertEqual(uint8_t(m6809.registers().cc) & cc_mask, [end[@"CC"] intValue] & cc_mask, @"%@", identifier);
+	XCTAssertEqual(m6809.registers().d.full, [end[@"D"] intValue], @"%@", identifier);
+	XCTAssertEqual(m6809.registers().dp, [end[@"DP"] intValue], @"%@", identifier);
+	XCTAssertEqual(m6809.registers().pc.full, [end[@"PC"] intValue], @"%@", identifier);
+	XCTAssertEqual(m6809.registers().s, [end[@"S"] intValue], @"%@", identifier);
+	XCTAssertEqual(m6809.registers().u, [end[@"U"] intValue], @"%@", identifier);
+	XCTAssertEqual(m6809.registers().x, [end[@"X"] intValue], @"%@", identifier);
+	XCTAssertEqual(m6809.registers().y, [end[@"Y"] intValue], @"%@", identifier);
 
 	// The test set seems to write the original value as both initial and final. So don't test mdifies.
 	for(NSArray *output in end[@"ram"]) {
@@ -413,20 +413,42 @@ struct M6809Traits {
 	test_extended(0xcf);	test_extended(0xdf);	test_extended(0xef);	test_extended(0xff);
 }
 
-//- (void)testBusPatterns {
-//	const auto test = [&](const uint16_t opcode) -> M6809Capture {
-//		M6809Capture capturer;
-//		CPU::M6809::Processor<M6809Traits> m6809_(capturer);
-//
-//		return capturer;
-//	};
-//
+- (void)testBusPatterns {
+	using RW = CPU::M6809::ReadWrite;
+
+	const auto test = [&](const uint16_t opcode, const uint16_t post, std::initializer_list<RW> expected) {
+		M6809Capture capturer;
+		CPU::M6809::Processor<M6809Traits> m6809(capturer);
+
+		m6809.registers().pc = 0;
+		uint16_t pc = 0;
+		if(opcode >> 8) {
+			capturer.ram[pc++] = opcode >> 8;
+		}
+		capturer.ram[pc++] = opcode;
+		if(post >> 8) {
+			capturer.ram[pc++] = post >> 8;
+		}
+		capturer.ram[pc++] = post;
+
+		m6809.set<CPU::M6809::Line::PowerOnReset>(false);
+		m6809.run_for(1);
+
+		XCTAssert(
+			std::equal(capturer.cycles.begin(), capturer.cycles.end(), expected.begin(), expected.end()),
+			"Opcode %04x", opcode
+		);
+	};
+
+	// EXG.
+	test(0x1e, 0, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData});
+
 //	const auto test_exg = [&] {
-//		M6809Capture capturer;
+//		const auto cycles =
 //		CPU::M6809::Processor<M6809Traits> m6809_(capturer);
 //
 //	};
-//
-//}
+
+}
 
 @end
