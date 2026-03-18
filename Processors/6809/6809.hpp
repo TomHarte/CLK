@@ -286,6 +286,28 @@ struct Processor {
 					BusState::HaltOrBusGrantAcknowledge				\
 				>(Address::Fixed<0xffff>(), Data::NoValue());
 
+		#define perform_operation() { 															\
+			perform_cost_ = CPU::M6809::perform(operation_.operation, registers_, operand_);	\
+																								\
+			static constexpr auto perform_spin = restore_point();								\
+			local_label(performSpin):															\
+			case perform_spin:																	\
+			if(perform_cost_ == 0) goto local_label(finishPerform);								\
+																								\
+			check_pause(PausePrecision::BetweenBusActions, perform_spin);						\
+			time_ -= Cycles(1);																	\
+			time_ -=																			\
+				bus_handler_.template perform<													\
+					BusPhase::FullCycle,														\
+					ReadWrite::NoData,															\
+					BusState::Normal															\
+				>(Address::Fixed<0xffff>(), Data::NoValue());									\
+			goto local_label(performSpin);														\
+																								\
+			local_label(finishPerform):	(void)0;												\
+		}
+
+
 		time_ += duration;
 
 		using Literal = Address::Literal;
@@ -294,10 +316,6 @@ struct Processor {
 		InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page0> op_mapper0;
 		InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page1> op_mapper1;
 		InstructionSet::M6809::OperationMapper<InstructionSet::M6809::Page::Page2> op_mapper2;
-
-		const auto perform = [&]() {
-			CPU::M6809::perform(operation_.operation, registers_, operand_);
-		};
 
 		uint8_t opcode = 0;
 		while(true) switch(resume_point_) {
@@ -418,7 +436,7 @@ struct Processor {
 			// MARK: - Inherent addressing mode.
 
 			case addressing_program(AddressingMode::Inherent):
-				perform();
+				perform_operation();
 				goto fetch_decode;
 
 			// MARK: - Immediate and relative addressing modes.
@@ -430,7 +448,7 @@ struct Processor {
 				[[fallthrough]];
 			case addressing_program(AddressingMode::Immediate8):
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
-				perform();
+				perform_operation();
 				goto fetch_decode;
 
 			case addressing_program(AddressingMode::Relative16):
@@ -441,7 +459,7 @@ struct Processor {
 			case addressing_program(AddressingMode::Immediate16):
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
-				perform();
+				perform_operation();
 				goto fetch_decode;
 
 			// MARK: - Direct addressing mode.
@@ -831,7 +849,7 @@ struct Processor {
 			//
 			case access_program(AccessType::LEA):
 				operand_.full = address_.full;
-				perform();
+				perform_operation();
 				goto fetch_decode;
 
 			case access_program(AccessType::JSR):
@@ -845,29 +863,29 @@ struct Processor {
 
 			case access_program(AccessType::Read8):
 				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
-				perform();
+				perform_operation();
 				goto fetch_decode;
 
 			case access_program(AccessType::Read16):
 				read(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
 				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
-				perform();
+				perform_operation();
 				goto fetch_decode;
 
 			case access_program(AccessType::Write8):
-				perform();
+				perform_operation();
 				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
 				goto fetch_decode;
 
 			case access_program(AccessType::Write16):
-				perform();
+				perform_operation();
 				write(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
 				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
 				goto fetch_decode;
 
 			case access_program(AccessType::Modify8):
 				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
-				perform();
+				perform_operation();
 				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
 				goto fetch_decode;
 		}
@@ -901,6 +919,7 @@ private:
 	int resume_point_ = ResumePoint::FetchDecode;
 	InstructionSet::M6809::OperationReturner::MetaOperation operation_;
 	Registers registers_;
+	Cycles perform_cost_;
 
 	enum Exception: uint8_t {
 		Reset			= 1 << 0,

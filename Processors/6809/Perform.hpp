@@ -10,6 +10,7 @@
 
 #include "Registers.hpp"
 #include "InstructionSets/6809/OperationMapper.hpp"
+#include "ClockReceiver/ClockReceiver.hpp"
 
 namespace CPU::M6809 {
 namespace Implementation {
@@ -397,7 +398,11 @@ void bra(Registers &registers, const OperandT operand) {
 /// Performs anything that doesn't involve calculating an effective address, manipulating the stack or affecting the ongoing flow of operation,
 /// i.e. the subset of instructions that can be rationalised as not touching memory or having any knowledge of the instruction stream once
 /// an appropriately-sized operand has been fetched.
-inline void perform(const InstructionSet::M6809::Operation operation, Registers &registers, RegisterPair16 &operand) {
+///
+/// @returns The number of cycles spent in execution of this operation, abstract of the addressing mode in use. So EXG takes eight cycles,
+/// of which the first two are the stuff of immediate addressing — fetching an opcode then fetching a post byte. So this function would return 6,
+/// to indicate that processing the EXG additionally took six cycles.
+inline Cycles perform(const InstructionSet::M6809::Operation operation, Registers &registers, RegisterPair16 &operand) {
 	auto &byte = operand.halves.low;
 	auto &word = operand.full;
 
@@ -534,8 +539,8 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 
 		case MUL:	mul(registers);							break;
 
-		case TFR:	tfr(registers, byte);					break;
-		case EXG:	exg(registers, byte);					break;
+		case TFR:	tfr(registers, byte);					return 4;
+		case EXG:	exg(registers, byte);					return 6;
 
 		case SEX:	sex(registers);							break;
 		case TSTA:	tst<R8::A>(registers);					break;
@@ -559,6 +564,8 @@ inline void perform(const InstructionSet::M6809::Operation operation, Registers 
 
 		default: __builtin_unreachable();
 	}
+
+	return 0;
 }
 
 }

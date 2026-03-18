@@ -13,11 +13,13 @@
 #include "NSData+dataWithContentsOfGZippedFile.h"
 
 #include <unordered_map>
+#include <vector>
 
 namespace {
 
 struct M6809Capture {
 	std::unordered_map<uint16_t, uint8_t> ram;
+	std::vector<CPU::M6809::ReadWrite> cycles;
 
 	template <
 		CPU::M6809::BusPhase bus_phase,
@@ -29,6 +31,8 @@ struct M6809Capture {
 		const AddressT address,
 		CPU::M6809::data_t<read_write> value
 	) {
+		cycles.push_back(read_write);
+
 		if constexpr (read_write != CPU::M6809::ReadWrite::NoData) {
 			if constexpr (CPU::M6809::is_read(read_write)) {
 				const auto entry = ram.find(address);
@@ -408,5 +412,21 @@ struct M6809Traits {
 	test_extended(0x8f);	test_extended(0x9f);	test_extended(0xaf);	test_extended(0xbf);
 	test_extended(0xcf);	test_extended(0xdf);	test_extended(0xef);	test_extended(0xff);
 }
+
+//- (void)testBusPatterns {
+//	const auto test = [&](const uint16_t opcode) -> M6809Capture {
+//		M6809Capture capturer;
+//		CPU::M6809::Processor<M6809Traits> m6809_(capturer);
+//
+//		return capturer;
+//	};
+//
+//	const auto test_exg = [&] {
+//		M6809Capture capturer;
+//		CPU::M6809::Processor<M6809Traits> m6809_(capturer);
+//
+//	};
+//
+//}
 
 @end
