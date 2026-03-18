@@ -606,6 +606,78 @@ struct M6809Traits {
 	}
 
 	// TODO: indexed, 0xa7 and 0xe7.
+
+	// MARK: - ADDD, CMPX, SUBD.
+
+	{	/* Immediate. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData});
+		};
+		sequence(0xc3);	// ADDD
+		sequence(0x8c);	// CMPX
+		sequence(0x83);	// SUBD
+	}
+
+	{	/* Direct. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00}, {RW::Read, RW::Read, RW::NoData, RW::Read, RW::Read, RW::NoData});
+		};
+		sequence(0xd3);	// ADDD
+		sequence(0x9c);	// CMPX
+		sequence(0x93);	// SUBD
+	}
+
+	{	/* Extended. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read, RW::Read, RW::NoData});
+		};
+		sequence(0xf3);	// ADDD
+		sequence(0xbc);	// CMPX
+		sequence(0xb3);	// SUBD
+	}
+
+	// TODO: indexed, 0xe3, etc
+
+	// MARK: - CMPY, CMPD, CMPS, CMPU
+
+	{	/* Immediate. */
+		const auto sequence = [&](const uint16_t opcode) {
+			test(
+				{uint8_t(opcode >> 8), uint8_t(opcode), 0x00, 0x00},
+				{RW::Read, RW::Read, RW::Read, RW::Read, RW::NoData}
+			);
+		};
+		sequence(0x108c);	// CMPY
+		sequence(0x1083);	// CMPD
+		sequence(0x118c);	// CMPS
+		sequence(0x1183);	// CMPU
+	}
+
+	{	/* Direct. */
+		const auto sequence = [&](const uint16_t opcode) {
+			test(
+				{uint8_t(opcode >> 8), uint8_t(opcode), 0x00},
+				{RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read, RW::Read, RW::NoData}
+			);
+		};
+		sequence(0x109c);	// CMPY
+		sequence(0x1093);	// CMPD
+		sequence(0x119c);	// CMPS
+		sequence(0x1193);	// CMPU
+	}
+
+	{	/* Extended. */
+		const auto sequence = [&](const uint16_t opcode) {
+			test(
+				{uint8_t(opcode >> 8), uint8_t(opcode), 0x00, 0x00},
+				{RW::Read, RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read, RW::Read, RW::NoData}
+			);
+		};
+		sequence(0x10bc);	// CMPY
+		sequence(0x10b3);	// CMPD
+		sequence(0x11bc);	// CMPS
+		sequence(0x11b3);	// CMPU
+	}
 }
 
 @end
