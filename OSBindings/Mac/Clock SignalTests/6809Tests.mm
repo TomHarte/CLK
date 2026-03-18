@@ -416,21 +416,30 @@ struct M6809Traits {
 - (void)testBusPatterns {
 	using RW = CPU::M6809::ReadWrite;
 
-	const auto test = [&](const uint16_t opcode, const uint16_t post, std::initializer_list<RW> expected) {
+	const auto test = [&](std::initializer_list<uint8_t> operation, std::initializer_list<RW> expected) {
 		M6809Capture capturer;
 		CPU::M6809::Processor<M6809Traits> m6809(capturer);
 
 		m6809.registers().pc = 0;
-		uint16_t pc = 0;
-		if(opcode >> 8) {
-			capturer.ram[pc++] = opcode >> 8;
-		}
-		capturer.ram[pc++] = opcode;
-		if(post >> 8) {
-			capturer.ram[pc++] = post >> 8;
-		}
-		capturer.ram[pc++] = post;
+		m6809.registers().u = 0x8000;
+		m6809.registers().s = 0x8000;
 
+		// Seed opcode, catching something to print later in case of error.
+		uint16_t pc = 0;
+		uint16_t opcode = 0;
+		for(uint8_t byte: operation) {
+			if(!pc || (pc == 1 && (opcode == 0x10 || opcode == 0x11))) {
+				opcode = (opcode << 8) | byte;
+			}
+			capturer.ram[pc++] = byte;
+		}
+
+		// Seed some stack data.
+		for(int c = 0; c < 30; c++) {
+			capturer.ram[0x8000 + c] = c;
+		}
+
+		// Executre and test.
 		m6809.set<CPU::M6809::Line::PowerOnReset>(false);
 		m6809.run_for(1);
 
@@ -440,15 +449,21 @@ struct M6809Traits {
 		);
 	};
 
+
 	// EXG.
-	test(0x1e, 0, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData});
+	test({0x1e, 0xff}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData});
+	// TFR.
+	test({0x1f, 0xff}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::NoData});
 
-//	const auto test_exg = [&] {
-//		const auto cycles =
-//		CPU::M6809::Processor<M6809Traits> m6809_(capturer);
-//
-//	};
+	// PSHs.
+	test({0x34, 0}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData});
+	test({0x34, 0x80}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::Write, RW::Write});
+	test({0x36, 0x41}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::Write, RW::Write, RW::Write});
 
+	// PULs.
+	test({0x35, 0}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData});
+	test({0x37, 0x02}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::Read, RW::NoData});
+	test({0x37, 0x41}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::Read, RW::Read, RW::Read, RW::NoData});
 }
 
 @end

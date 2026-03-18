@@ -608,11 +608,14 @@ struct Processor {
 			no_pull_s:
 
 				if(!(operand_.halves.low & 0b1000'0000)) {
-					goto fetch_decode;
+					goto end_pull;
 				}
 				read(BusState::Normal, Literal(*stack_), address_.halves.high, ++*stack_);
 				read(BusState::Normal, Literal(*stack_), address_.halves.low, ++*stack_);
 				registers_.reg<R16::PC>() = address_.full;
+
+			end_pull:
+				internal_cycle();
 				goto fetch_decode;
 
 			// MARK: - PHSH/PSHS.
@@ -621,7 +624,19 @@ struct Processor {
 				stack_ = operation_.operation == Operation::PSHU ? &registers_.reg<R16::U>(): &registers_.reg<R16::S>();
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
 
-				internal_cycles(3);
+				internal_cycles(2);
+
+				// The final internal cycle exposes the stack address.
+				static constexpr auto final_push = restore_point();
+				[[fallthrough]]; case final_push:
+				check_pause(PausePrecision::BetweenBusActions, final_push);
+				time_ -= Cycles(1);
+				time_ -=
+					bus_handler_.template perform<
+						BusPhase::FullCycle,
+						ReadWrite::NoData,
+						BusState::Normal
+					>(Address::Literal(*stack_), Data::NoValue());
 
 				if(!(operand_.halves.low & 0b1000'0000)) {
 					goto no_push_pc;
