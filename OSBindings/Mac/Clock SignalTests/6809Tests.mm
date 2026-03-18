@@ -466,34 +466,146 @@ struct M6809Traits {
 	test({0x37, 0x02}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::Read, RW::NoData});
 	test({0x37, 0x41}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::Read, RW::Read, RW::Read, RW::NoData});
 
-	const auto test_modify_direct = [&](const uint8_t opcode) {
-		test({opcode, 0x00}, {RW::Read, RW::Read, RW::NoData, RW::Read, RW::NoData, RW::Write});
-	};
-	test_modify_direct(0x00);	// NEG.
-	test_modify_direct(0x03);	// COM.
-	test_modify_direct(0x06);	// ROR.
-	test_modify_direct(0x07);	// ASR.
-	test_modify_direct(0x08);	// ASL.
-	test_modify_direct(0x09);	// ROL.
-	test_modify_direct(0x0a);	// INC.
-	test_modify_direct(0x0c);	// DEC.
-	test_modify_direct(0x0f);	// CLR.		(Confirmed: it really is read-modify-write.)
+	// TST direct, extended. TODO: indexed.
+	test({0x0d, 0x00}, {RW::Read, RW::Read, RW::NoData, RW::Read, RW::NoData, RW::NoData});
+	test({0x7d, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read, RW::NoData, RW::NoData});
 
-	const auto test_modify_extended = [&](const uint8_t opcode) {
-		test({opcode, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read, RW::NoData, RW::Write});
-	};
-	test_modify_extended(0x70);	// NEG.
-	test_modify_extended(0x73);	// COM.
-	test_modify_extended(0x76);	// ROR.
-	test_modify_extended(0x77);	// ASR.
-	test_modify_extended(0x78);	// ASL.
-	test_modify_extended(0x79);	// ROL.
-	test_modify_extended(0x7a);	// INC.
-	test_modify_extended(0x7c);	// DEC.
-	test_modify_extended(0x7f);	// CLR.		(Confirmed: it really is read-modify-write.)
+	// ANDCC, ORCC.
+	test({0x1a, 0}, {RW::Read, RW::Read, RW::NoData});
+	test({0x1c, 0}, {RW::Read, RW::Read, RW::NoData});
 
-	// TODO: indexed, in various ways. High nibble 0x6.
+	{	/* Direct. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00}, {RW::Read, RW::Read, RW::NoData, RW::Read, RW::NoData, RW::Write});
+		};
+		sequence(0x00);	// NEG.
+		sequence(0x03);	// COM.
+		sequence(0x06);	// ROR.
+		sequence(0x07);	// ASR.
+		sequence(0x08);	// ASL.
+		sequence(0x09);	// ROL.
+		sequence(0x0a);	// INC.
+		sequence(0x0c);	// DEC.
+		sequence(0x0f);	// CLR.		(Confirmed: it really is read-modify-write.)
+	}
 
+	{	/* Extended. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read, RW::NoData, RW::Write});
+		};
+		sequence(0x70);	// NEG.
+		sequence(0x73);	// COM.
+		sequence(0x76);	// ROR.
+		sequence(0x77);	// ASR.
+		sequence(0x78);	// ASL.
+		sequence(0x79);	// ROL.
+		sequence(0x7a);	// INC.
+		sequence(0x7c);	// DEC.
+		sequence(0x7f);	// CLR.		(Confirmed: it really is read-modify-write.)
+	}
+
+	// TODO: indexed modifies. High nibble 0x6.
+
+	{	/* Immediate. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00}, {RW::Read, RW::Read});
+		};
+		sequence(0x80);	// SUBA
+		sequence(0x81);	// CMPA
+		sequence(0x82);	// SBCA
+		sequence(0x84);	// ANDA
+		sequence(0x85);	// BITA
+		sequence(0x86);	// LDA
+		sequence(0x88);	// EORA
+		sequence(0x89);	// ADCA
+		sequence(0x8a);	// ORA
+		sequence(0x8b);	// ADDA
+
+		sequence(0xc0);	// SUBB
+		sequence(0xc1);	// CMPB
+		sequence(0xc2);	// SBCB
+		sequence(0xc4);	// ANDB
+		sequence(0xc5);	// BITB
+		sequence(0xc6);	// LDB
+		sequence(0xc8);	// EORB
+		sequence(0xc9);	// ADCB
+		sequence(0xca);	// ORB
+		sequence(0xcb);	// ADDB
+	}
+
+	{	/* Direct. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00}, {RW::Read, RW::Read, RW::NoData, RW::Read});
+		};
+		sequence(0x90);	// SUBA
+		sequence(0x91);	// CMPA
+		sequence(0x92);	// SBCA
+		sequence(0x94);	// ANDA
+		sequence(0x95);	// BITA
+		sequence(0x96);	// LDA
+		sequence(0x98);	// EORA
+		sequence(0x99);	// ADCA
+		sequence(0x9a);	// ORA
+		sequence(0x9b);	// ADDA
+
+		sequence(0xd0);	// SUBB
+		sequence(0xd1);	// CMPB
+		sequence(0xd2);	// SBCB
+		sequence(0xd4);	// ANDB
+		sequence(0xd5);	// BITB
+		sequence(0xd6);	// LDB
+		sequence(0xd8);	// EORB
+		sequence(0xd9);	// ADCB
+		sequence(0xda);	// ORB
+		sequence(0xdb);	// ADDB
+	}
+
+	{	/* Extended. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read});
+		};
+		sequence(0xb0);	// SUBA
+		sequence(0xb1);	// CMPA
+		sequence(0xb2);	// SBCA
+		sequence(0xb4);	// ANDA
+		sequence(0xb5);	// BITA
+		sequence(0xb6);	// LDA
+		sequence(0xb8);	// EORA
+		sequence(0xb9);	// ADCA
+		sequence(0xba);	// ORA
+		sequence(0xbb);	// ADDA
+
+		sequence(0xf0);	// SUBB
+		sequence(0xf1);	// CMPB
+		sequence(0xf2);	// SBCB
+		sequence(0xf4);	// ANDB
+		sequence(0xf5);	// BITB
+		sequence(0xf6);	// LDB
+		sequence(0xf8);	// EORB
+		sequence(0xf9);	// ADCB
+		sequence(0xfa);	// ORB
+		sequence(0xfb);	// ADDB
+	}
+
+	// TODO: indexeds, at 0xa and 0xe.
+
+	{	/* Direct. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00}, {RW::Read, RW::Read, RW::NoData, RW::Write});
+		};
+		sequence(0x97);	// STA
+		sequence(0xd7);	// STB
+	}
+
+	{	/* Extended. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::Write});
+		};
+		sequence(0xb7);	// STA
+		sequence(0xf7);	// STB
+	}
+
+	// TODO: indexed, 0xa7 and 0xe7.
 }
 
 @end
