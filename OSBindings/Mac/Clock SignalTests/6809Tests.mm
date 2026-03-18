@@ -450,7 +450,6 @@ struct M6809Traits {
 		);
 	};
 
-
 	// EXG.
 	test({0x1e, 0xff}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData});
 	// TFR.
@@ -473,6 +472,8 @@ struct M6809Traits {
 	// ANDCC, ORCC.
 	test({0x1a, 0}, {RW::Read, RW::Read, RW::NoData});
 	test({0x1c, 0}, {RW::Read, RW::Read, RW::NoData});
+
+	// MARK: - NEG, COM, ROR, ASR, ASL, ROL, INC, DEC, CLR.
 
 	{	/* Direct. */
 		const auto sequence = [&](const uint8_t opcode) {
@@ -505,6 +506,8 @@ struct M6809Traits {
 	}
 
 	// TODO: indexed modifies. High nibble 0x6.
+
+	// MARK: - [SUB, CMP, SBC, AND, BIT, LD, EOR, ADC, OR, ADD][A, B]
 
 	{	/* Immediate. */
 		const auto sequence = [&](const uint8_t opcode) {
@@ -588,6 +591,8 @@ struct M6809Traits {
 	}
 
 	// TODO: indexeds, at 0xa and 0xe.
+
+	// MARK: - STA, STB.
 
 	{	/* Direct. */
 		const auto sequence = [&](const uint8_t opcode) {
@@ -678,6 +683,115 @@ struct M6809Traits {
 		sequence(0x11bc);	// CMPS
 		sequence(0x11b3);	// CMPU
 	}
+
+	// MARK: - LDD, LDU, LDX
+
+	{	/* Immediate. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read});
+		};
+		sequence(0xcc);	// LDD
+		sequence(0xce);	// LDU
+		sequence(0x8e);	// LDX
+	}
+
+	{	/* Direct. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00}, {RW::Read, RW::Read, RW::NoData, RW::Read, RW::Read});
+		};
+		sequence(0xdc);	// LDD
+		sequence(0xde);	// LDU
+		sequence(0x9e);	// LDX
+	}
+
+	// Omitted: indexed 0xec, 0xee, 0xae
+
+	{	/* Extended. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read, RW::Read});
+		};
+		sequence(0xfc);	// LDD
+		sequence(0xfe);	// LDU
+		sequence(0xbe);	// LDX
+	}
+
+	// MARK: - LDS, LDY
+
+	{	/* Immediate. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({0x10, opcode, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::Read});
+		};
+		sequence(0xce);	// LDS
+		sequence(0x8e);	// LDY
+	}
+
+	{	/* Direct. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({0x10, opcode, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read, RW::Read});
+		};
+		sequence(0xde);	// LDS
+		sequence(0x9e);	// LDY
+	}
+
+	// Omitted: indexed 0xec, 0xee, 0xae
+
+	{	/* Extended. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({0x10, opcode, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read, RW::Read});
+		};
+		sequence(0xfe);	// LDS
+		sequence(0xbe);	// LDY
+	}
+
+	// MARK: - STD, STU, STX
+
+	{	/* Direct. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00}, {RW::Read, RW::Read, RW::NoData, RW::Write, RW::Write});
+		};
+		sequence(0xdd);	// STX
+		sequence(0xdf);	// STU
+		sequence(0x9f);	// STX
+	}
+
+	{	/* Extended. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::Write, RW::Write});
+		};
+		sequence(0xfd);	// STX
+		sequence(0xff);	// STU
+		sequence(0xbf);	// STX
+	}
+
+	// MARK: - STS, STY
+
+	{	/* Direct. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({0x10, opcode, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::Write, RW::Write});
+		};
+		sequence(0xdf);	// STS
+		sequence(0x9f);	// STY
+	}
+
+	{	/* Extended. */
+		const auto sequence = [&](const uint8_t opcode) {
+			test({0x10, opcode, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::Read, RW::NoData, RW::Write, RW::Write});
+		};
+		sequence(0xff);	// STS
+		sequence(0xbf);	// STY
+	}
+
+	// Omitted entirely: LEAS, LEAU, LEAX, LEAY that come only in indexed mode. Maybe use those as the indexed test?
+
+	// MARK: - JMP
+	test({0x0e, 0x00}, {RW::Read, RW::Read, RW::NoData});	// Direct.
+	test({0x7e, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData});	// Extended.
+
+	// MARK: - JSR
+	// Direct.
+	test({0x9d, 0x00}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::Write, RW::Write});
+	// Extended.
+	test({0xbd, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::Write, RW::Write});
 }
 
 @end

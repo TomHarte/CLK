@@ -548,7 +548,7 @@ inline Cycles perform(const InstructionSet::M6809::Operation operation, Register
 		case TSTB:	tst<R8::B>(registers);					return 0;
 		case TST:	tst(registers, byte);					return 2;	// Weird, but seemingly true (?)
 
-		case JMP:	registers.pc.full = word;				return 1;
+		case JMP:	registers.pc.full = word;				return 0;
 
 		// Flow control that requires stack access.
 		case JSR:	case BSR:	case LBSR:

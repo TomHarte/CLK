@@ -308,9 +308,22 @@ struct Processor {
 			local_label(finishPerform):	(void)0;							\
 		}
 
-		// TODO: internal_cycle could be handled more efficiently.
-		#define internal_cycle() internal_cycles(1)
 		#define perform_operation() internal_cycles(CPU::M6809::perform(operation_.operation, registers_, operand_))
+
+		#define addressed_internal_cycle(address) {					\
+			static constexpr auto access = restore_point();			\
+			[[fallthrough]]; case access:							\
+			check_pause(PausePrecision::BetweenBusActions, access);	\
+			time_ -= Cycles(1);										\
+			time_ -=												\
+				bus_handler_.template perform<						\
+					BusPhase::FullCycle,							\
+					ReadWrite::NoData,								\
+					BusState::Normal								\
+				>(address, Data::NoValue());						\
+		}
+
+		#define internal_cycle() addressed_internal_cycle(Address::Fixed<0xffff>())
 
 		time_ += duration;
 
@@ -625,18 +638,7 @@ struct Processor {
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
 
 				internal_cycles(2);
-
-				// The final internal cycle exposes the stack address.
-				static constexpr auto final_push = restore_point();
-				[[fallthrough]]; case final_push:
-				check_pause(PausePrecision::BetweenBusActions, final_push);
-				time_ -= Cycles(1);
-				time_ -=
-					bus_handler_.template perform<
-						BusPhase::FullCycle,
-						ReadWrite::NoData,
-						BusState::Normal
-					>(Address::Literal(*stack_), Data::NoValue());
+				addressed_internal_cycle(Address::Literal(*stack_));
 
 				if(!(operand_.halves.low & 0b1000'0000)) {
 					goto no_push_pc;
@@ -880,6 +882,9 @@ struct Processor {
 
 			case access_program(AccessType::JSR):
 			jsr:
+				addressed_internal_cycle(Address::Literal(address_.full));
+				internal_cycle();
+
 				--registers_.reg<R16::S>();
 				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.low);
 				--registers_.reg<R16::S>();
