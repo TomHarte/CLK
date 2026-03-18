@@ -423,6 +423,7 @@ struct M6809Traits {
 		m6809.registers().pc = 0;
 		m6809.registers().u = 0x8000;
 		m6809.registers().s = 0x8000;
+		m6809.registers().dp = 0x80;
 
 		// Seed opcode, catching something to print later in case of error.
 		uint16_t pc = 0;
@@ -434,7 +435,7 @@ struct M6809Traits {
 			capturer.ram[pc++] = byte;
 		}
 
-		// Seed some stack data.
+		// Seed some data.
 		for(int c = 0; c < 30; c++) {
 			capturer.ram[0x8000 + c] = c;
 		}
@@ -464,6 +465,35 @@ struct M6809Traits {
 	test({0x35, 0}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData});
 	test({0x37, 0x02}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::Read, RW::NoData});
 	test({0x37, 0x41}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::Read, RW::Read, RW::Read, RW::NoData});
+
+	const auto test_modify_direct = [&](const uint8_t opcode) {
+		test({opcode, 0x00}, {RW::Read, RW::Read, RW::NoData, RW::Read, RW::NoData, RW::Write});
+	};
+	test_modify_direct(0x00);	// NEG.
+	test_modify_direct(0x03);	// COM.
+	test_modify_direct(0x06);	// ROR.
+	test_modify_direct(0x07);	// ASR.
+	test_modify_direct(0x08);	// ASL.
+	test_modify_direct(0x09);	// ROL.
+	test_modify_direct(0x0a);	// INC.
+	test_modify_direct(0x0c);	// DEC.
+	test_modify_direct(0x0f);	// CLR.		(Confirmed: it really is read-modify-write.)
+
+	const auto test_modify_extended = [&](const uint8_t opcode) {
+		test({opcode, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read, RW::NoData, RW::Write});
+	};
+	test_modify_extended(0x70);	// NEG.
+	test_modify_extended(0x73);	// COM.
+	test_modify_extended(0x76);	// ROR.
+	test_modify_extended(0x77);	// ASR.
+	test_modify_extended(0x78);	// ASL.
+	test_modify_extended(0x79);	// ROL.
+	test_modify_extended(0x7a);	// INC.
+	test_modify_extended(0x7c);	// DEC.
+	test_modify_extended(0x7f);	// CLR.		(Confirmed: it really is read-modify-write.)
+
+	// TODO: indexed, in various ways. High nibble 0x6.
+
 }
 
 @end

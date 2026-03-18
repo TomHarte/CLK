@@ -198,8 +198,7 @@ constexpr AccessGenus access_genus() {
 			return AccessGenus::Read;
 
 		case STB:	case STD:	case STU:	case STA:
-		case STX:	case CLR:	case CLRB:	case STY:
-		case STS:
+		case STX:	case STY:	case STS:
 			return AccessGenus::Write;
 
 		case NEG:	case COM:	case LSR:	case ROR:
@@ -209,6 +208,7 @@ constexpr AccessGenus access_genus() {
 		case DECA:	case INCA:	case CLRA:	case NEGB:
 		case COMB:	case LSRB:	case RORB:	case ASRB:
 		case LSLB:	case ROLB:	case DECB:	case INCB:
+		case CLR:	case CLRB:
 			return AccessGenus::Modify;
 	}
 }
