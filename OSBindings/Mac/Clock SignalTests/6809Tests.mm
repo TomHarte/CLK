@@ -12,6 +12,7 @@
 #include "Processors/6809/6809.hpp"
 #include "NSData+dataWithContentsOfGZippedFile.h"
 
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -416,7 +417,12 @@ struct M6809Traits {
 - (void)testBusPatterns {
 	using RW = CPU::M6809::ReadWrite;
 
-	const auto test = [&](std::initializer_list<uint8_t> operation, std::initializer_list<RW> expected, bool e = false) {
+	const auto test = [&](
+		std::initializer_list<uint8_t> operation,
+		std::initializer_list<RW> expected,
+		bool e = false,
+		std::optional<CPU::M6809::Line> exception = {}
+	) {
 		M6809Capture capturer;
 		CPU::M6809::Processor<M6809Traits> m6809(capturer);
 
@@ -448,6 +454,14 @@ struct M6809Traits {
 
 		// Execute and test.
 		m6809.set<CPU::M6809::Line::PowerOnReset>(false);
+		if(exception.has_value()) {
+			switch(*exception) {
+				default: break;
+				case CPU::M6809::Line::FIRQ:	m6809.set<CPU::M6809::Line::FIRQ>(true);	break;
+				case CPU::M6809::Line::IRQ:		m6809.set<CPU::M6809::Line::IRQ>(true);		break;
+				case CPU::M6809::Line::NMI:		m6809.set<CPU::M6809::Line::NMI>(true);		break;
+			}
+		}
 		m6809.run_for(1);
 
 		XCTAssert(
@@ -987,6 +1001,43 @@ struct M6809Traits {
 		{
 			RW::Read, RW::NoData
 		}
+	);
+
+	// MARK: - FIRQ, IRQ, NMI.
+
+	test(
+		{},
+		{
+			RW::NoData,	RW::NoData, RW::NoData,
+			RW::Write, RW::Write, RW::Write, RW::Write,
+			RW::Write, RW::Write, RW::Write, RW::Write,
+			RW::Write, RW::Write, RW::Write, RW::Write,
+			RW::NoData, RW::Read, RW::Read, RW::NoData,
+		},
+		false,
+		CPU::M6809::Line::IRQ
+	);
+	test(
+		{},
+		{
+			RW::NoData,	RW::NoData, RW::NoData,
+			RW::Write, RW::Write, RW::Write, RW::Write,
+			RW::Write, RW::Write, RW::Write, RW::Write,
+			RW::Write, RW::Write, RW::Write, RW::Write,
+			RW::NoData, RW::Read, RW::Read, RW::NoData,
+		},
+		false,
+		CPU::M6809::Line::NMI
+	);
+	test(
+		{},
+		{
+			RW::NoData,	RW::NoData, RW::NoData,
+			RW::Write, RW::Write, RW::Write,
+			RW::NoData, RW::Read, RW::Read, RW::NoData,
+		},
+		false,
+		CPU::M6809::Line::FIRQ
 	);
 }
 

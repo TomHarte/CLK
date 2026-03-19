@@ -349,22 +349,30 @@ struct Processor {
 				registers_.cc.set<ConditionCode::FIRQMask>(true);
 
 			reset_spin:
-			case ResumePoint::ResetSpin:
+			[[fallthrough]]; case ResumePoint::ResetSpin:
 				if(time_ <= 0) {
 					resume_point_ = ResumePoint::ResetSpin;
 					return;
 				}
+				addressed_internal_cycle(Address::Fixed<0xfffe>())
 				if(exceptions_ & (Exception::Halt | Exception::DMABusReq | Exception::Reset)) {
-					inactive_bus();
 					goto reset_spin;
 				}
+
+				addressed_internal_cycle(Address::Fixed<0xfffe>())
+				addressed_internal_cycle(Address::Fixed<0xfffe>())
+				addressed_internal_cycle(Address::Fixed<0xfffe>())
 
 				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<0xfffe>(), registers_.pc.halves.high);
 				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<0xffff>(), registers_.pc.halves.low);
 
+				internal_cycle();
+
 				goto fetch_decode;
 
 			firq:
+				internal_cycles(3);
+
 				registers_.cc.set<ConditionCode::Entire>(false);
 
 				operand_ = registers_.reg<R16::PC>();
@@ -782,7 +790,13 @@ struct Processor {
 
 			swi_reset:
 				addressed_internal_cycle(Address::Literal(registers_.pc.full));
+				goto exception;
+
 			nmi_irq:
+				internal_cycles(2);
+				goto exception;
+
+			exception:
 				internal_cycle();
 				if(operation_.operation != Operation::RESET) {
 					registers_.cc.set<ConditionCode::Entire>(true);
@@ -825,8 +839,6 @@ struct Processor {
 					goto finish_cwai;
 				}
 
-				internal_cycle();
-
 			interrupt_dispatch:
 				address_.full = [&]() -> uint16_t {
 					if(exceptions_ & Exception::NMI) {
@@ -856,6 +868,7 @@ struct Processor {
 					registers_.cc.set<ConditionCode::FIRQMask>(true);
 				}
 
+				internal_cycle();
 				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.high, ++address_.full);
 				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.low, ++address_.full);
 				internal_cycle();
