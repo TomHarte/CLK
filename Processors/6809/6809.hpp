@@ -291,6 +291,7 @@ struct Processor {
 																			\
 			static constexpr auto perform_spin = restore_point();			\
 			local_label(performSpin):										\
+			[[fallthrough]];												\
 			case perform_spin:												\
 			if(perform_cost_ == 0) goto local_label(finishPerform);			\
 			--perform_cost_;												\
@@ -391,6 +392,7 @@ struct Processor {
 				inactive_bus();
 
 			fetch_decode:
+			[[fallthrough]];
 			case ResumePoint::FetchDecode:
 				if(time_ <= 0) {
 					resume_point_ = ResumePoint::FetchDecode;
@@ -420,27 +422,21 @@ struct Processor {
 				}
 
 				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
-				{
-					operation_ = Reflection::dispatch(op_mapper0, opcode, op_returner);
-					resume_point_ = addressing_program(operation_.mode);
-					break;
-				}
+				operation_ = Reflection::dispatch(op_mapper0, opcode, op_returner);
+				resume_point_ = addressing_program(operation_.mode);
+				break;
 
 			fetch_decode_page1:
 				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
-				{
-					operation_ = Reflection::dispatch(op_mapper1, opcode, op_returner);
-					resume_point_ = addressing_program(operation_.mode);
-					break;
-				}
+				operation_ = Reflection::dispatch(op_mapper1, opcode, op_returner);
+				resume_point_ = addressing_program(operation_.mode);
+				break;
 
 			fetch_decode_page2:
 				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
-				{
-					operation_ = Reflection::dispatch(op_mapper2, opcode, op_returner);
-					resume_point_ = addressing_program(operation_.mode);
-					break;
-				}
+				operation_ = Reflection::dispatch(op_mapper2, opcode, op_returner);
+				resume_point_ = addressing_program(operation_.mode);
+				break;
 
 			// MARK: - 'Invalid' addressing mode (i.e. invalid operation).
 
