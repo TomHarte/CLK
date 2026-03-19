@@ -210,6 +210,8 @@ typedef int Kilobytes;
 
 - (instancetype)initWithSpectrumModel:(CSMachineSpectrumModel)model;
 
+- (instancetype)initWithThomsonMO:(int)unused;
+
 - (instancetype)initWithVic20Region:(CSMachineVic20Region)region
 	memorySize:(Kilobytes)memorySize
 	hasC1540:(BOOL)hasC1540;

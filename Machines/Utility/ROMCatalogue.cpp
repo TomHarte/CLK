@@ -1018,6 +1018,26 @@ const std::vector<Description> &Description::all_roms() {
 		},
 
 	//
+	// Thomson MO and TO machines.
+	//
+		{
+			ThomasonMO5v1,
+			"Thomson",
+			"the Thomson MO5 ROM, version 1",
+			"mo5-v1.0.rom",
+			16_kb,
+			0xf62d2f3au
+		},
+		{
+			ThomasonMO5v11,
+			"Thomson",
+			"the Thomson MO5 ROM, version 1.1",
+			"mo5-v1.1.rom",
+			16_kb,
+			0x237c60bfu
+		},
+
+	//
 	// Vic-20.
 	//
 		{

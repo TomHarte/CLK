@@ -102,7 +102,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 
 		#if !DEBUG
 		// Remove options that are not yet fully working, except in debug builds.
-		for hidden in ["appleiigs"] {
+		for hidden in ["appleiigs", "thomsonmo"] {
 			let tabIndex = machineSelector.indexOfTabViewItem(withIdentifier: hidden)
 			machineSelector.removeTabViewItem(machineSelector.tabViewItem(at: tabIndex))
 		}
@@ -515,6 +515,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 				}
 
 				return CSStaticAnalyser(spectrumModel: model)
+
+			case "thomsonmo":
+				return CSStaticAnalyser(thomsonMO: 1)
 
 			case "vic20":
 				let memorySize = Kilobytes(vic20MemorySizeButton.selectedTag())
