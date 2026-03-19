@@ -11,6 +11,7 @@
 #include "Sizes.hpp"
 
 #include <concepts>
+#include <compare>
 
 namespace Numeric {
 
