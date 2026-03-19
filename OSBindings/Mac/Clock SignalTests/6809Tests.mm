@@ -416,7 +416,7 @@ struct M6809Traits {
 - (void)testBusPatterns {
 	using RW = CPU::M6809::ReadWrite;
 
-	const auto test = [&](std::initializer_list<uint8_t> operation, std::initializer_list<RW> expected) {
+	const auto test = [&](std::initializer_list<uint8_t> operation, std::initializer_list<RW> expected, bool e = false) {
 		M6809Capture capturer;
 		CPU::M6809::Processor<M6809Traits> m6809(capturer);
 
@@ -438,7 +438,7 @@ struct M6809Traits {
 
 		// Seed some data.
 		for(int c = 0; c < 30; c++) {
-			capturer.ram[0x8000 + c] = c;
+			capturer.ram[0x8000 + c] = c ^ (e ? 0x80 : 0x00);
 		}
 
 		// Executre and test.
@@ -907,6 +907,23 @@ struct M6809Traits {
 		}
 	);	// MUL
 
+	// MARK: - RTS, RTI.
+
+	test({0x39}, {RW::Read, RW::NoData, RW::Read, RW::Read, RW::NoData});	// RTS
+
+	// RTI; E unset.
+	test({0x3b}, {RW::Read, RW::NoData, RW::Read, RW::Read, RW::Read, RW::NoData});
+
+	// RTI; E set.
+	test(
+		{0x3b},
+		{
+			RW::Read, RW::NoData, RW::Read, RW::Read, RW::Read,
+			RW::Read, RW::Read, RW::Read, RW::Read, RW::Read,
+			RW::Read, RW::Read, RW::Read, RW::Read, RW::NoData
+		},
+		true
+	);
 }
 
 @end

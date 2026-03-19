@@ -453,8 +453,8 @@ struct Processor {
 			// MARK: - Inherent addressing mode.
 
 			case addressing_program(AddressingMode::Inherent):
-				perform_operation();
 				addressed_internal_cycle(Address::Literal(registers_.pc.full));
+				perform_operation();
 				goto fetch_decode;
 
 			// MARK: - Immediate and relative addressing modes.
@@ -701,6 +701,7 @@ struct Processor {
 			// MARK: - Stack-related control flow.
 
 			rti:
+				addressed_internal_cycle(Address::Literal(registers_.pc.full));
 				read(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.cc, ++registers_.reg<R16::S>());
 				if(!registers_.cc.get<ConditionCode::Entire>()) {
 					goto rti_not_entire;
@@ -725,12 +726,15 @@ struct Processor {
 			rti_not_entire:
 				read(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.high, ++registers_.reg<R16::S>());
 				read(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.low, ++registers_.reg<R16::S>());
+				internal_cycle();
 				goto fetch_decode;
 
 			rts:
+				addressed_internal_cycle(Address::Literal(registers_.pc.full));
 				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.high, ++registers_.reg<R16::S>());
 				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.low, ++registers_.reg<R16::S>());
 				registers_.reg<R16::PC>() = address_.full;
+				internal_cycle();
 				goto fetch_decode;
 
 			bsr:
