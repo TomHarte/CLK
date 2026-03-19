@@ -950,11 +950,20 @@ struct Processor {
 				goto fetch_decode;
 		}
 
-		#undef access_label
-		#undef attach
-		#undef join
-		#undef access
+		#undef addressing_program
+		#undef access_program
 		#undef restore_point
+		#undef join
+		#undef attach
+		#undef local_label
+		#undef access_label
+		#undef check_pause
+		#undef read
+		#undef write
+		#undef inactive_bus
+		#undef internal_cycles
+		#undef perform_operation
+		#undef addressed_internal_cycle
 	}
 
 	Registers &registers() {
