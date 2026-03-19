@@ -454,6 +454,7 @@ struct Processor {
 
 			case addressing_program(AddressingMode::Inherent):
 				perform_operation();
+				addressed_internal_cycle(Address::Literal(registers_.pc.full));
 				goto fetch_decode;
 
 			// MARK: - Immediate and relative addressing modes.

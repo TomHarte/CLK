@@ -860,6 +860,53 @@ struct M6809Traits {
 		{RW::Read, RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::Write, RW::Write}
 	);		// LBSR
 	test({0x16, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::NoData});		// LBRA
+
+	// MARK: - Single-byte inherents.
+
+	{
+		const auto sequence = [&](const uint8_t opcode) {
+			test({opcode}, {RW::Read, RW::NoData});
+		};
+
+		sequence(0x48);	// ASLA
+		sequence(0x58);	// ASLB
+		sequence(0x47);	// ASRA
+		sequence(0x57);	// ASRB
+		sequence(0x4f);	// CLRA
+		sequence(0x5f);	// CLRB
+		sequence(0x43);	// COMA
+		sequence(0x53);	// COMB
+		sequence(0x4a);	// DECA
+		sequence(0x5a);	// DECB
+		sequence(0x4c);	// INCA
+		sequence(0x5c);	// INCB
+		sequence(0x44);	// LSRA
+		sequence(0x54);	// LSRB
+		sequence(0x40);	// NEGA
+		sequence(0x50);	// NEGB
+		sequence(0x49);	// ROLA
+		sequence(0x59);	// ROLB
+		sequence(0x46);	// RORA
+		sequence(0x56);	// RORB
+		sequence(0x4d);	// TSTA
+		sequence(0x5d);	// TSTB
+
+		sequence(0x19);	// DAA
+		sequence(0x12);	// NOP
+		sequence(0x1d);	// SEX
+	}
+
+	// MARK: - ABX, MUL.
+
+	test({0x3a}, {RW::Read, RW::NoData, RW::NoData});	// ABX
+	test(
+		{0x3d},
+		{
+			RW::Read, RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData,
+			RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData
+		}
+	);	// MUL
+
 }
 
 @end
