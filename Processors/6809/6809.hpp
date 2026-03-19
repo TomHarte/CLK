@@ -399,7 +399,7 @@ struct Processor {
 					}
 
 					if(exceptions_ & Exception::NMI) {
-						goto swi_reset_nmi_irq;
+						goto nmi_irq;
 					}
 
 					if(exceptions_ & Exception::FIRQ && !registers_.cc.get<ConditionCode::FIRQMask>()) {
@@ -407,7 +407,7 @@ struct Processor {
 					}
 
 					if(exceptions_ & Exception::IRQ && !registers_.cc.get<ConditionCode::IRQMask>()) {
-						goto swi_reset_nmi_irq;
+						goto nmi_irq;
 					}
 				}
 
@@ -559,7 +559,7 @@ struct Processor {
 					case Operation::SWI2:
 					case Operation::SWI3:
 					case Operation::RESET:
-						goto swi_reset_nmi_irq;
+						goto swi_reset;
 
 					default: __builtin_unreachable();
 				}
@@ -780,7 +780,10 @@ struct Processor {
 				CPU::M6809::perform(Operation::ANDCC, registers_, operand_);
 				/* Fallthrough. */
 
-			swi_reset_nmi_irq:
+			swi_reset:
+				addressed_internal_cycle(Address::Literal(registers_.pc.full));
+			nmi_irq:
+				internal_cycle();
 				if(operation_.operation != Operation::RESET) {
 					registers_.cc.set<ConditionCode::Entire>(true);
 				}
@@ -841,6 +844,7 @@ struct Processor {
 						case Operation::SWI:	return 0xfffa;
 						case Operation::SWI2:	return 0xfff4;
 						case Operation::SWI3:	return 0xfff2;
+						case Operation::RESET:	return 0xfffe;
 						default: __builtin_unreachable();
 					}
 				} ();
@@ -850,8 +854,10 @@ struct Processor {
 					registers_.cc.set<ConditionCode::FIRQMask>(true);
 				}
 
+				internal_cycle();
 				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.high, ++address_.full);
 				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.low, ++address_.full);
+				internal_cycle();
 				goto fetch_decode;
 
 			sync:

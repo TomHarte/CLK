@@ -436,12 +436,17 @@ struct M6809Traits {
 			capturer.ram[pc++] = byte;
 		}
 
-		// Seed some data.
+		// Seed a stack.
 		for(int c = 0; c < 30; c++) {
 			capturer.ram[0x8000 + c] = c ^ (e ? 0x80 : 0x00);
 		}
 
-		// Executre and test.
+		// Set up vectors.
+		for(int c = 0; c < 16; c++) {
+			capturer.ram[0xffff - c] = 0x00;
+		}
+
+		// Execute and test.
 		m6809.set<CPU::M6809::Line::PowerOnReset>(false);
 		m6809.run_for(1);
 
@@ -924,6 +929,44 @@ struct M6809Traits {
 		},
 		true
 	);
+
+	// MARK: - SWI, SWI2, SWI3, RESET.
+
+	{
+		const auto sequence = [&](const uint8_t opcode) {
+			test(
+				{opcode},
+				{
+					RW::Read, RW::NoData, RW::NoData,
+					RW::Write, RW::Write, RW::Write, RW::Write,
+					RW::Write, RW::Write, RW::Write, RW::Write,
+					RW::Write, RW::Write, RW::Write, RW::Write,
+					RW::NoData, RW::Read, RW::Read, RW::NoData,
+				}
+			);
+		};
+
+		sequence(0x3f);		// SWI
+		sequence(0x3e);		// RESET
+	}
+
+	{
+		const auto sequence = [&](const uint16_t opcode) {
+			test(
+				{ uint8_t(opcode >> 8), uint8_t(opcode) },
+				{
+					RW::Read, RW::Read, RW::NoData, RW::NoData,
+					RW::Write, RW::Write, RW::Write, RW::Write,
+					RW::Write, RW::Write, RW::Write, RW::Write,
+					RW::Write, RW::Write, RW::Write, RW::Write,
+					RW::NoData, RW::Read, RW::Read, RW::NoData,
+				}
+			);
+		};
+
+		sequence(0x103f);		// SWI2
+		sequence(0x113f);		// SWI3
+	}
 }
 
 @end
