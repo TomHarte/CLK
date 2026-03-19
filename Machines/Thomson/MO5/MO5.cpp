@@ -113,6 +113,25 @@ private:
 	}
 
 	Motorola::MC6821::MC6821<int> system_pia_;
+		// TODO:
+		//
+		//	Port A:
+		//		b0 = lower 8kb RAM paging;
+		//		b1–4: border colour;
+		//		b4: light pen button
+		//		b6: tape output
+		//		b7: tape input [and 0 = no tape; 1 = tape present]
+		//
+		//	Port B:
+		//		b0 = 1-bit sound output;
+		//		b1–3 = keyboard column;
+		//		b4–6: keyboard line;
+		//		b7: status of key at that position.
+		//
+		//	CA1: lightpen input (IRQA -> FIRQ)
+		//	CA2: drive motor control
+		//	CB1: 50Hz interrupt (IRQB -> IRQ)
+		//	CB2: genlock enable, maybe?
 
 	// MARK: - ScanProducer.
 
