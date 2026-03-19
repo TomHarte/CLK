@@ -10,9 +10,19 @@
 
 #include "Machines/MachineTypes.hpp"
 #include "Processors/6809/6809.hpp"
+#include "Components/6821/6821.hpp"
 
 using namespace Thomson::MO5;
 
+// Video timing, as far as auto-translate lets me figure it out:
+//
+//	64 cycles/line;
+//	56 lines post signalled vsync, then 200 of video, then 56 more, for 312 total.
+//
+// Start of vsync is connected to CPU IRQ.
+//
+// Within a line: ??? Who knows ???
+//
 namespace {
 
 struct ConcreteMachine:
@@ -33,6 +43,8 @@ struct ConcreteMachine:
 
 		const auto &rom = roms.find(ROM::Name::ThomasonMO5v11)->second;
 		std::copy_n(rom.begin(), rom.size(), rom_.begin());
+
+		page_lower(false);
 	}
 
 	void run_for(const Cycles cycles) final {
@@ -49,20 +61,37 @@ struct ConcreteMachine:
 		const AddressT address,
 		CPU::M6809::data_t<read_write> value
 	) {
-		if constexpr (read_write != CPU::M6809::ReadWrite::NoData) {
-			if constexpr (CPU::M6809::is_read(read_write)) {
-				if(address >= 0xc000) {
-					value = rom_[address - 0xc000];
-				} else {
-					value = ram_[address];
+		if constexpr (read_write == CPU::M6809::ReadWrite::NoData) {
+			return Cycles(0);
+		} else {
+			if(address >= 0xa7c0 && address < 0xa800) {
+				switch(address) {
+					case 0xa7c0:	case 0xa7c1:	case 0xa7c2:	case 0xa7c3:
+						if constexpr (CPU::M6809::is_read(read_write)) {
+							value = system_pia_.read(+address);
+						} else {
+							system_pia_.write(+address, value);
+						}
+					break;
 				}
 			} else {
-				ram_[address] = value;
-				printf("%04x: RAM <- 0x%02x [S: %04x]\n", +address, value, m6809_.registers().s);
+				if constexpr (CPU::M6809::is_read(read_write)) {
+					if(address < 0x2000) {
+						value = start_pointer_[address];
+					} else if(address >= 0xc000) {
+						value = rom_[address - 0xc000];
+					} else {
+						value = ram_[address];
+					}
+				} else {
+					if(address < 0x2000) {
+						start_pointer_[address] = value;
+					} else {
+						ram_[address] = value;
+					}
+				}
 			}
 		}
-
-		// TODO: the lowest 8kb of memory can actually be paged, so the linear representation above isn't accurate.
 
 		return Cycles(0);
 	}
@@ -75,8 +104,15 @@ private:
 	};
 	CPU::M6809::Processor<M6809Traits> m6809_;
 
-	std::array<uint8_t, 0xf000 + 0x2000> ram_;
+	std::array<uint8_t, 0x10000 + 0x2000> ram_;
 	std::array<uint8_t, 0x4000> rom_;
+	uint8_t *start_pointer_ = nullptr;
+
+	void page_lower(const bool attributes) {
+		start_pointer_ = &ram_[attributes ? 0 : 0xf000];
+	}
+
+	Motorola::MC6821::MC6821<int> system_pia_;
 
 	// MARK: - ScanProducer.
 
