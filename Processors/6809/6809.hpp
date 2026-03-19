@@ -825,6 +825,8 @@ struct Processor {
 					goto finish_cwai;
 				}
 
+				internal_cycle();
+
 			interrupt_dispatch:
 				address_.full = [&]() -> uint16_t {
 					if(exceptions_ & Exception::NMI) {
@@ -854,14 +856,14 @@ struct Processor {
 					registers_.cc.set<ConditionCode::FIRQMask>(true);
 				}
 
-				internal_cycle();
 				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.high, ++address_.full);
 				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.low, ++address_.full);
 				internal_cycle();
 				goto fetch_decode;
 
 			sync:
-			case ResumePoint::Sync:
+				addressed_internal_cycle(Address::Literal(registers_.pc.full));
+			[[fallthrough]]; case ResumePoint::Sync:
 				// Always consider taking a break here, regardless of selected pause precision; otherwise there's
 				// a risk of never exiting.
 				if(time_ <= 0) {
@@ -869,19 +871,17 @@ struct Processor {
 					return;
 				}
 
-				if(!(exceptions_ & (Exception::NMI | Exception::IRQ | Exception::FIRQ))) {
-					time_ -= Cycles(1);
-					time_ -=
-						bus_handler_.template perform<
-							BusPhase::FullCycle,
-							ReadWrite::NoData,
-							BusState::SyncAcknowledge
-						>(Address::Fixed<0xffff>(), Data::NoValue());
+				time_ -= Cycles(1);
+				time_ -=
+					bus_handler_.template perform<
+						BusPhase::FullCycle,
+						ReadWrite::NoData,
+						BusState::SyncAcknowledge
+					>(Address::Fixed<0xffff>(), Data::NoValue());
 
+				if(!(exceptions_ & (Exception::NMI | Exception::IRQ | Exception::FIRQ))) {
 					goto sync;
 				}
-
-				// TODO: understand the requirement that an interrupt be signalled for at least 3 cycles.
 
 				goto fetch_decode;
 

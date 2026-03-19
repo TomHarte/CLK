@@ -967,6 +967,27 @@ struct M6809Traits {
 		sequence(0x103f);		// SWI2
 		sequence(0x113f);		// SWI3
 	}
+
+	// MARK: - CWAI, SYNC.
+
+	// CWAI.
+	test(
+		{0x3c, 0xff},
+		{
+			RW::Read, RW::Read, RW::NoData, RW::NoData,
+			RW::Write, RW::Write, RW::Write, RW::Write,
+			RW::Write, RW::Write, RW::Write, RW::Write,
+			RW::Write, RW::Write, RW::Write, RW::Write,
+		}
+	);
+
+	// SYNC
+	test(
+		{0x13},
+		{
+			RW::Read, RW::NoData
+		}
+	);
 }
 
 @end
