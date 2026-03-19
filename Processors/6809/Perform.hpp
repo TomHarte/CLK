@@ -533,10 +533,10 @@ inline Cycles perform(const InstructionSet::M6809::Operation operation, Register
 		case STY:	st<R16::Y>(registers, word);			return 0;
 		case STS:	st<R16::S>(registers, word);			return 0;
 
-		case LEAU:	lea<R16::U>(registers, word);			return 1;
-		case LEAX:	lea<R16::X>(registers, word);			return 1;
-		case LEAY:	lea<R16::Y>(registers, word);			return 1;
-		case LEAS:	lea<R16::S>(registers, word);			return 1;
+		case LEAU:	lea<R16::U>(registers, word);			return 0;
+		case LEAX:	lea<R16::X>(registers, word);			return 0;
+		case LEAY:	lea<R16::Y>(registers, word);			return 0;
+		case LEAS:	lea<R16::S>(registers, word);			return 0;
 
 		case MUL:	mul(registers);							return 9;	// Per 6809cyc.txt; might need more research.
 

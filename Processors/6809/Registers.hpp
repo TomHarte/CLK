@@ -340,6 +340,37 @@ struct IndexedAddressDecoder {
 		return base;
 	}
 
+	/// @returns The number of cycles spent internally calculating the effective address.
+	int address_cost() const {
+		if(is_5bit()) {
+			return 1;
+		}
+		switch(suffix()) {
+			using enum FormSuffix;
+			case NoOffset:			return 0;
+
+			case Offset8bit:		return 1;
+			case Offset16bit:		return 3;
+
+			case ARegisterOffset:	return 1;
+			case BRegisterOffset:	return 1;
+			case DRegisterOffset:	return 4;
+
+			case PostincrementBy1:	return 2;
+			case PredecrementBy1:	return 2;
+
+			case PostincrementBy2:	return 3;
+			case PredecrementBy2:	return 3;
+
+			case Offset8bitFromPC:	return 1;
+			case Offset16bitFromPC:	return 4;
+
+			case Extended:			return 1;
+
+			default:__builtin_unreachable();
+		}
+	}
+
 private:
 	uint8_t format_;
 	uint16_t continuation_ = 0;

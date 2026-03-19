@@ -520,7 +520,7 @@ struct Processor {
 				indexer_ = IndexedAddressDecoder(operand_.halves.low);
 
 				if(!indexer_.required_continuation()) {
-					goto continue_indexed;
+					goto no_continuation;
 				} else if(indexer_.required_continuation() == 1) {
 					operand_.halves.high = 0;
 					goto indexed_getlow;
@@ -531,8 +531,13 @@ struct Processor {
 			indexed_getlow:
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
 				indexer_.set_continuation(operand_.full);
+				goto continue_indexed;
+
+			no_continuation:
+				addressed_internal_cycle(Address::Literal(registers_.pc.full));
 
 			continue_indexed:
+				internal_cycles(indexer_.address_cost());
 				address_.full = indexer_.address(registers_);
 				if(!indexer_.indirect()) {
 					goto complete_address;
@@ -540,6 +545,7 @@ struct Processor {
 
 				read(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
 				read(BusState::Normal, Literal(address_.full), operand_.halves.low, ++address_.full);
+				internal_cycle();
 				address_ = operand_;
 
 			complete_address:

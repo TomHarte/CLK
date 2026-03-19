@@ -1,10 +1,8 @@
 //
-//  68000BCDTests.m
+//  6809Tests.m
 //  Clock SignalTests
 //
-//  Created by Thomas Harte on 29/06/2019.
-//
-//  Largely ported from the tests of the Portable 68k Emulator.
+//  Created by Thomas Harte on 04/03/2026.
 //
 
 #import <XCTest/XCTest.h>
@@ -429,6 +427,8 @@ struct M6809Traits {
 		m6809.registers().pc = 0;
 		m6809.registers().u = 0x8000;
 		m6809.registers().s = 0x8000;
+		m6809.registers().x = 0x8002;
+		m6809.registers().d.full = 0;
 		m6809.registers().dp = 0x80;
 		m6809.registers().cc = 0x00;
 
@@ -1038,6 +1038,182 @@ struct M6809Traits {
 		},
 		false,
 		CPU::M6809::Line::FIRQ
+	);
+
+	// MARK: - LEAS (and indexed addressing).
+
+	static constexpr uint8_t RegX 				= 0b0000'0000;
+
+	static constexpr uint8_t Offset5bit			= 0b0000'0000;
+	static constexpr uint8_t NoOffset			= 0b1000'0100;
+	static constexpr uint8_t Offset8bit			= 0b1000'1000;
+	static constexpr uint8_t Offset16bit		= 0b1000'1001;
+	static constexpr uint8_t PCOffset8bit		= 0b1000'1100;
+	static constexpr uint8_t PCOffset16bit		= 0b1000'1101;
+	static constexpr uint8_t ARegisterOffset	= 0b1000'0110;
+	static constexpr uint8_t BRegisterOffset	= 0b1000'0101;
+	static constexpr uint8_t DRegisterOffset	= 0b1000'1011;
+	static constexpr uint8_t PreDec1			= 0b1000'0010;
+	static constexpr uint8_t PreDec2			= 0b1000'0011;
+	static constexpr uint8_t PostInc1			= 0b1000'0000;
+	static constexpr uint8_t PostInc2			= 0b1000'0001;
+	static constexpr uint8_t Extended			= 0b1000'1111;
+
+	static constexpr uint8_t Indirect 			= 0b0001'0000;
+
+	test(
+		{0x32, NoOffset | RegX},						// ,R
+		{
+			RW::Read, RW::Read, RW::NoData
+		}
+	);
+
+	test(
+		{0x32, NoOffset | RegX | Indirect},				// [,R]
+		{
+			RW::Read, RW::Read, RW::NoData, RW::Read, RW::Read, RW::NoData
+		}
+	);
+
+	test(
+		{0x32, Offset5bit | RegX},						// [5n,R]
+		{
+			RW::Read, RW::Read, RW::NoData, RW::NoData
+		}
+	);
+
+	test(
+		{0x32, Offset8bit | RegX, 0x00},				// 8n,R
+		{
+			RW::Read, RW::Read, RW::Read, RW::NoData
+		}
+	);
+
+	test(
+		{0x32, Offset8bit | RegX | Indirect, 0x00},		// [8n,R]
+		{
+			RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read, RW::Read, RW::NoData,
+		}
+	);
+
+	test(
+		{0x32, Offset16bit | RegX, 0x00, 0x00},		// 16n,R
+		{
+			RW::Read, RW::Read,
+			RW::Read, RW::Read,
+			RW::NoData, RW::NoData, RW::NoData,
+		}
+	);
+
+	test(
+		{0x32, ARegisterOffset | RegX},		// A,R
+		{
+			RW::Read, RW::Read,
+			RW::NoData, RW::NoData,
+		}
+	);
+
+	test(
+		{0x32, BRegisterOffset | RegX | Indirect},	// [B,R]
+		{
+			RW::Read, RW::Read,
+			RW::NoData, RW::NoData,
+			RW::Read, RW::Read, RW::NoData,
+		}
+	);
+
+	// NB: for the two D-register offsets, 6809cyc.txt thinks addresses are generated from
+	// future PC addresses (and, implicitly, that the PC then regresses afterwards). I'm incredulous.
+
+	test(
+		{0x32, DRegisterOffset | RegX},		// D,R
+		{
+			RW::Read, RW::Read,
+			RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData,
+		}
+	);
+
+	test(
+		{0x32, DRegisterOffset | RegX | Indirect},	// [D,R]
+		{
+			RW::Read, RW::Read,
+			RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData,
+			RW::Read, RW::Read, RW::NoData,
+		}
+	);
+
+	test(
+		{0x32, PostInc1 | RegX},	// R+
+		{
+			RW::Read, RW::Read,
+			RW::NoData, RW::NoData, RW::NoData,
+		}
+	);
+
+	test(
+		{0x32, PreDec1 | RegX},	// -R
+		{
+			RW::Read, RW::Read,
+			RW::NoData, RW::NoData, RW::NoData,
+		}
+	);
+
+	test(
+		{0x32, PostInc2 | RegX},	// R++
+		{
+			RW::Read, RW::Read,
+			RW::NoData, RW::NoData, RW::NoData, RW::NoData,
+		}
+	);
+
+	test(
+		{0x32, PreDec2 | RegX | Indirect},	// [--R]
+		{
+			RW::Read, RW::Read,
+			RW::NoData, RW::NoData, RW::NoData, RW::NoData,
+			RW::Read, RW::Read, RW::NoData,
+		}
+	);
+
+	test(
+		{0x32, PCOffset8bit | RegX, 0x00},	// 8n, PC
+		{
+			RW::Read, RW::Read, RW::Read, RW::NoData,
+		}
+	);
+
+	test(
+		{0x32, PCOffset8bit | RegX | Indirect, 0x00, 0x00, 0x00},	// [8n, PC]
+		{
+			RW::Read, RW::Read, RW::Read, RW::NoData,
+			RW::Read, RW::Read, RW::NoData,
+		}
+	);
+
+	test(
+		{0x32, PCOffset16bit | RegX, 0x00, 0x00},	// 16n, PC
+		{
+			RW::Read, RW::Read, RW::Read, RW::Read,
+			RW::NoData, RW::NoData, RW::NoData, RW::NoData,
+		}
+	);
+
+	test(
+		{0x32, PCOffset16bit | RegX | Indirect, 0x00, 0x00, 0x00, 0x00},	// [16n, PC]
+		{
+			RW::Read, RW::Read, RW::Read, RW::Read,
+			RW::NoData, RW::NoData, RW::NoData, RW::NoData,
+			RW::Read, RW::Read, RW::NoData,
+		}
+	);
+
+	test(
+		{0x32, Extended | RegX | Indirect, 0x00, 0x00},	// [addr]
+		{
+			RW::Read, RW::Read,
+			RW::Read, RW::Read, RW::NoData,
+			RW::Read, RW::Read, RW::NoData,
+		}
 	);
 }
 
