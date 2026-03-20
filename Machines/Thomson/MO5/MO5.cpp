@@ -69,7 +69,7 @@ struct ConcreteMachine:
 		CPU::M6809::data_t<read_write> value
 	) {
 		if(video_ += m6809_.duration(bus_phase)) {
-			system_pia_.set<Motorola::MC6821::Control::CB2>(video_.last_valid()->irq());
+			system_pia_.set<Motorola::MC6821::Control::CB1>(video_.last_valid()->irq());
 		}
 
 		if constexpr (read_write == CPU::M6809::ReadWrite::NoData) {

@@ -37,8 +37,9 @@ public:
 
 		if constexpr (address & RS0Mask) {
 			ports_[port].control = value;
+			update_interrupts();
 		} else {
-			if(ports_[port].control & Control::DataVisible) {
+			if(ports_[port].control & Flag::DataVisible) {
 				ports_[port].data = value;
 			} else {
 				ports_[port].direction = value;
@@ -58,7 +59,9 @@ public:
 		if constexpr(address & 1) {
 			return ports_[port].control;
 		} else {
-			if(ports_[port].control & Control::DataVisible) {
+			if(ports_[port].control & Flag::DataVisible) {
+				ports_[port].control &= ~(IRQA | IRQB);
+				update_interrupts();
 				return ports_[port].input(port_handler_.template input<Port(port)>());
 			} else {
 				return ports_[port].direction;
@@ -74,30 +77,64 @@ public:
 
 	template <Control control>
 	void set(const bool value) {
-		// TODO:
-		//
-		//	(1) is this control an input (CA1 and CA2 always, CB1 and CB2 configurable)?
-		//	(2) if so, does this change set one of the interrupt outputs?
-
-		// Forward everything to the port handler.
+		// Reject anything that isn't a change.
+		static constexpr int input = int(control);
+		if(inputs_[input] == value) {
+			return;
+		}
+		inputs_[input] = value;
 		port_handler_.template observe<control>(value);
+
+		static constexpr bool is_irqb = control == Control::CB2 || control == Control::CA2;
+		static constexpr int port = control == Control::CB2 || control == Control::CB1;
+
+		// Reject any set to CB2 if it's in output mode.
+		if constexpr (is_irqb) {
+			if(ports_[port].control & Flag::C2IsOutput) {
+				return;
+			}
+		}
+
+		// Test whether change was in the triggering direction; if so update control bit and check for change
+		// to interrupt output.
+		static constexpr int direction = is_irqb ? IRQBDirection : IRQADirection;
+		if(value != bool(ports_[port].control & direction)) {
+			ports_[port].control |= is_irqb ? Flag::IRQB : Flag::IRQA;
+			update_interrupts();
+		}
 	}
 
 private:
 	PortHandlerT &port_handler_;
+	bool inputs_[4]{};
 
-	enum Control: uint8_t {
+	enum Flag: uint8_t {
 		IRQA			= 0b1000'0000,
 		IRQB			= 0b0100'0000,
-		CA2				= 0b0011'1000,
+		C2				= 0b0011'1000,
 		DataVisible		= 0b0000'0100,
-		CA1				= 0b0000'0011,
+		C1				= 0b0000'0011,
+
+		C2IsOutput		= 0b0010'0000,
+
+		IRQADirection	= 0b0000'0010,
+		EnableIRQA		= 0b0000'0001,
+
+		IRQBDirection	= 0b0001'0000,
+		EnableIRQB		= 0b0000'1000,
 	};
 
 	struct {
 		uint8_t control = 0;
 		uint8_t data = 0;
 		uint8_t direction = 0;	// Per bit: 0 = input; 1 = output.
+
+		bool irqa() const {
+			return (control & (IRQA | EnableIRQA)) == (IRQA | EnableIRQA);
+		}
+		bool irqb() const {
+			return (control & (IRQB | EnableIRQB | C2IsOutput)) == (IRQB | EnableIRQB);
+		}
 
 		uint8_t output() const {
 			return data | ~direction;
@@ -115,6 +152,21 @@ private:
 		const uint8_t output = ports_[index].output();
 		ports_[index].previous_output = output;
 		port_handler_.template output<port>(output);
+	}
+
+	bool irqa_ = false, irqb_ = false;
+	void update_interrupts() {
+		const bool irqa = ports_[0].irqa() || ports_[1].irqa();
+		const bool irqb = ports_[0].irqb() || ports_[1].irqb();
+
+		if(irqa_ != irqa) {
+			irqa_ = irqa;
+			port_handler_.template set<IRQ::A>(irqa);
+		}
+		if(irqb_ != irqb) {
+			irqb_ = irqb;
+			port_handler_.template set<IRQ::B>(irqb);
+		}
 	}
 };
 
