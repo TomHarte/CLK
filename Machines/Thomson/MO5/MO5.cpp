@@ -52,6 +52,19 @@ struct ConcreteMachine:
 	}
 
 	template <
+		int address,
+		CPU::M6809::ReadWrite read_write,
+		typename ComponentT
+	>
+	static void access(ComponentT &component, CPU::M6809::data_t<read_write> value) {
+		if constexpr (CPU::M6809::is_read(read_write)) {
+			value = component.template read<address>();
+		} else {
+			component.template write<address>(value);
+		}
+	}
+
+	template <
 		CPU::M6809::BusPhase bus_phase,
 		CPU::M6809::ReadWrite read_write,
 		CPU::M6809::BusState bus_state,
@@ -66,13 +79,10 @@ struct ConcreteMachine:
 		} else {
 			if(address >= 0xa7c0 && address < 0xa800) {
 				switch(address) {
-					case 0xa7c0:	case 0xa7c1:	case 0xa7c2:	case 0xa7c3:
-						if constexpr (CPU::M6809::is_read(read_write)) {
-							value = system_pia_.read(+address);
-						} else {
-							system_pia_.write(+address, value);
-						}
-					break;
+					case 0xa7c0:	access<0xa7c0, read_write>(system_pia_, value);		break;
+					case 0xa7c1:	access<0xa7c1, read_write>(system_pia_, value);		break;
+					case 0xa7c2:	access<0xa7c2, read_write>(system_pia_, value);		break;
+					case 0xa7c3:	access<0xa7c3, read_write>(system_pia_, value);		break;
 				}
 			} else {
 				if constexpr (CPU::M6809::is_read(read_write)) {
