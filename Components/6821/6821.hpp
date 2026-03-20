@@ -74,8 +74,13 @@ public:
 
 	template <Control control>
 	void set(const bool value) {
-		// TODO.
-		(void)value;
+		// TODO:
+		//
+		//	(1) is this control an input (CA1 and CA2 always, CB1 and CB2 configurable)?
+		//	(2) if so, does this change set one of the interrupt outputs?
+
+		// Forward everything to the port handler.
+		port_handler_.template observe<control>(value);
 	}
 
 private:

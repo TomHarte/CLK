@@ -168,7 +168,7 @@ private:
 		}
 
 		template <Motorola::MC6821::IRQ irq>
-		void set_interrupt(const bool active) {
+		void set(const bool active) {
 			if constexpr (irq == Motorola::MC6821::IRQ::A) {
 				machine_.m6809_.set<CPU::M6809::Line::FIRQ>(active);
 			}
@@ -176,6 +176,12 @@ private:
 			if constexpr (irq == Motorola::MC6821::IRQ::B) {
 				machine_.m6809_.set<CPU::M6809::Line::IRQ>(active);
 			}
+		}
+
+		template <Motorola::MC6821::Control control>
+		void observe(const bool value) {
+			// TODO: CA2 is drive motor control, so catch that.
+			(void)value;
 		}
 
 		// TODO:
