@@ -11,14 +11,21 @@
 
 namespace Motorola::MC6821 {
 
-template <typename BusHandlerT>
+enum class Port {
+	A = 0,
+	B = 1,
+};
+
+template <typename PortHandlerT, int RS0Mask = 1, int RS1Mask = 2>
 class MC6821 {
 public:
+	MC6821(PortHandlerT &port_handler) : port_handler_(port_handler) {}
+
 	template <int address>
 	void write(const uint8_t value) {
-		static constexpr int port = (address >> 1) & 1;
+		static constexpr int port = bool(address & RS1Mask);
 
-		if constexpr (address & 1) {
+		if constexpr (address & RS0Mask) {
 			ports_[port].control = value;
 		} else {
 			if(ports_[port].control & Control::DataVisible) {
@@ -26,7 +33,19 @@ public:
 			} else {
 				ports_[port].direction = value;
 			}
+			port_handler_.template output<Port(port)>(
+				ports_[port].data | (~ports_[port].direction)
+			);
 		}
+
+//		if(!port) {
+			printf("[%04x %d [%d]]: %d: %02x; c:%02x d:%02x dir:%02x; output: %02x\n",
+				uint16_t(address), port, bool(ports_[port].control & Control::DataVisible),
+				bool(address & RS0Mask), value,
+				ports_[port].control, ports_[port].data, ports_[port].direction,
+				uint8_t(ports_[port].data | (~ports_[port].direction))
+			);
+//		}
 	}
 
 	template <int address>
@@ -38,7 +57,7 @@ public:
 			if(ports_[port].control & Control::DataVisible) {
 				return
 					(ports_[port].data & ports_[port].direction) |
-					(ports_[port].input & ~ports_[port].direction);
+					(port_handler_.template input<Port(port)>() & ~ports_[port].direction);
 			} else {
 				return ports_[port].direction;
 			}
@@ -47,6 +66,8 @@ public:
 	}
 
 private:
+	PortHandlerT &port_handler_;
+
 	enum Control: uint8_t {
 		IRQA			= 0b1000'0000,
 		IRQB			= 0b0100'0000,
@@ -55,11 +76,10 @@ private:
 		CA1				= 0b0000'0011,
 	};
 
-	struct Port {
-		uint8_t control;
-		uint8_t data;
-		uint8_t direction;
-		uint8_t input = 0xff;
+	struct {
+		uint8_t control = 0;
+		uint8_t data = 0;
+		uint8_t direction = 0;	// Per bit: 0 = input; 1 = output.
 	} ports_[2];
 };
 

@@ -31,7 +31,9 @@ struct ConcreteMachine:
 	public Machine
 {
 	ConcreteMachine(const Analyser::Static::Target &, const ROMMachine::ROMFetcher &rom_fetcher) :
-		m6809_(*this)
+		m6809_(*this),
+		system_pia_port_handler_(*this),
+		system_pia_(system_pia_port_handler_)
 	{
 		set_clock_rate(1'000'000);
 
@@ -122,26 +124,60 @@ private:
 		start_pointer_ = &ram_[attributes ? 0 : 0xf000];
 	}
 
-	Motorola::MC6821::MC6821<int> system_pia_;
+	friend struct SystemPIAPortHandler;
+	struct SystemPIAPortHandler {
+		SystemPIAPortHandler(ConcreteMachine &machine) : machine_(machine) {}
+
+		template <Motorola::MC6821::Port port>
+		uint8_t input() {
+			if constexpr (port == Motorola::MC6821::Port::A) {
+				//	Port A inputs:
+				//		b7: tape input [and 0 = no tape; 1 = tape present]
+				return 0xff;
+			}
+
+			if constexpr (port == Motorola::MC6821::Port::B) {
+				//	Port B inputs:
+				//		b7: status of key at that position.
+				return 0xff;
+			}
+
+			__builtin_unreachable();
+		}
+
+		template <Motorola::MC6821::Port port>
+		void output(const uint8_t value) {
+			if constexpr (port == Motorola::MC6821::Port::A) {
+				machine_.page_lower(value & 1);
+
+				//	Port A outputs:
+				//		b0 = lower 8kb RAM paging;
+				//		b1–4: border colour;
+				//		b4: light pen button
+				//		b6: tape output
+			}
+
+			if constexpr (port == Motorola::MC6821::Port::B) {
+				// Port B outputs:
+				//		b0 = 1-bit sound output;
+				//		b1–3 = keyboard column;
+				//		b4–6: keyboard line;
+			}
+		}
+
 		// TODO:
-		//
-		//	Port A:
-		//		b0 = lower 8kb RAM paging;
-		//		b1–4: border colour;
-		//		b4: light pen button
-		//		b6: tape output
-		//		b7: tape input [and 0 = no tape; 1 = tape present]
-		//
-		//	Port B:
-		//		b0 = 1-bit sound output;
-		//		b1–3 = keyboard column;
-		//		b4–6: keyboard line;
-		//		b7: status of key at that position.
 		//
 		//	CA1: lightpen input (IRQA -> FIRQ)
 		//	CA2: drive motor control
 		//	CB1: 50Hz interrupt (IRQB -> IRQ)
 		//	CB2: genlock enable, maybe?
+
+	private:
+		ConcreteMachine &machine_;
+
+	};
+	SystemPIAPortHandler system_pia_port_handler_;
+	Motorola::MC6821::MC6821<SystemPIAPortHandler> system_pia_;
 
 	// MARK: - ScanProducer.
 
