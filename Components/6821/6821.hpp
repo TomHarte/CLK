@@ -16,6 +16,11 @@ enum class Port {
 	B = 1,
 };
 
+enum class IRQ {
+	A,
+	B,
+};
+
 template <typename PortHandlerT, int RS0Mask = 1, int RS1Mask = 2>
 class MC6821 {
 public:

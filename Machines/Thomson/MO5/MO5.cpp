@@ -165,12 +165,23 @@ private:
 			}
 		}
 
+		template <Motorola::MC6821::IRQ irq>
+		void set_interrupt(const bool active) {
+			if constexpr (irq == Motorola::MC6821::IRQ::A) {
+				machine_.m6809_.set<CPU::M6809::Line::FIRQ>(active);
+			}
+
+			if constexpr (irq == Motorola::MC6821::IRQ::B) {
+				machine_.m6809_.set<CPU::M6809::Line::IRQ>(active);
+			}
+		}
+
 		// TODO:
 		//
-		//	CA1: lightpen input (IRQA -> FIRQ)
+		//	CA1: lightpen input
 		//	CA2: drive motor control
-		//	CB1: 50Hz interrupt (IRQB -> IRQ)
-		//	CB2: genlock enable, maybe?
+		//	CB1: 50Hz interrupt
+		//	CB2: genlock enable, maybe? Video "encrustation".
 
 	private:
 		ConcreteMachine &machine_;
