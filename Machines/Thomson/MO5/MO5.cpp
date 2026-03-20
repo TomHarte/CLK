@@ -132,6 +132,7 @@ private:
 		uint8_t input() {
 			if constexpr (port == Motorola::MC6821::Port::A) {
 				//	Port A inputs:
+				//		b4: light pen button
 				//		b7: tape input [and 0 = no tape; 1 = tape present]
 				return 0xff;
 			}
@@ -153,7 +154,6 @@ private:
 				//	Port A outputs:
 				//		b0 = lower 8kb RAM paging;
 				//		b1–4: border colour;
-				//		b4: light pen button
 				//		b6: tape output
 			}
 
@@ -177,7 +177,7 @@ private:
 
 	};
 	SystemPIAPortHandler system_pia_port_handler_;
-	Motorola::MC6821::MC6821<SystemPIAPortHandler> system_pia_;
+	Motorola::MC6821::MC6821<SystemPIAPortHandler, 2, 1> system_pia_;
 
 	// MARK: - ScanProducer.
 

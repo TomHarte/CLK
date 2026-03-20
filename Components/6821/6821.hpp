@@ -33,19 +33,13 @@ public:
 			} else {
 				ports_[port].direction = value;
 			}
-			port_handler_.template output<Port(port)>(
-				ports_[port].data | (~ports_[port].direction)
-			);
-		}
 
-//		if(!port) {
-			printf("[%04x %d [%d]]: %d: %02x; c:%02x d:%02x dir:%02x; output: %02x\n",
-				uint16_t(address), port, bool(ports_[port].control & Control::DataVisible),
-				bool(address & RS0Mask), value,
-				ports_[port].control, ports_[port].data, ports_[port].direction,
-				uint8_t(ports_[port].data | (~ports_[port].direction))
-			);
-//		}
+			const uint8_t output = ports_[port].data | (~ports_[port].direction);
+			if(output != ports_[port].previous_output) {
+				ports_[port].previous_output = output;
+				port_handler_.template output<Port(port)>(output);
+			}
+		}
 	}
 
 	template <int address>
@@ -80,6 +74,8 @@ private:
 		uint8_t control = 0;
 		uint8_t data = 0;
 		uint8_t direction = 0;	// Per bit: 0 = input; 1 = output.
+
+		uint8_t previous_output = 0x00;
 	} ports_[2];
 };
 
