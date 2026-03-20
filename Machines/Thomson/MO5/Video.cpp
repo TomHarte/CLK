@@ -8,6 +8,8 @@
 
 #include "Video.hpp"
 
+#include <bit>
+
 using namespace Thomson::MO5;
 
 namespace {
@@ -22,14 +24,31 @@ namespace {
 // Within a line: ??? Who knows ???
 //
 
-static constexpr int CyclesPerLine = 64;
+constexpr int CyclesPerLine = 64;
 
-static constexpr int TotalPixelLines = 200;
-static constexpr int TotalLines = 312;
-static constexpr int VerticalSyncLine = 256;
+constexpr int TotalPixelLines = 200;
+constexpr int TotalLines = 312;
+constexpr int VerticalSyncLine = 256;
 
-static constexpr int IRQCycle = 256 * CyclesPerLine;
-static constexpr int FrameLength = TotalLines * CyclesPerLine;
+constexpr int IRQCycle = 256 * CyclesPerLine;
+constexpr int IRQLength = 8;
+
+constexpr int FrameLength = TotalLines * CyclesPerLine;
+
+constexpr uint16_t rgb(const uint16_t code) {
+#ifdef TARGET_RT_BIG_ENDIAN
+	return code;
+#else
+	return std::rotl(code, 8);
+#endif
+}
+
+// Per https://pulkomandy.tk/wiki/doku.php?id=documentations:devices:gate.arrays#video_generation
+constexpr uint16_t palette[] = {
+	rgb(0x000),	rgb(0xf55),	rgb(0x0f0),	rgb(0xff0),	rgb(0x55f),	rgb(0xf0f),	rgb(0x5ff),	rgb(0xfff),
+	rgb(0xaaa),	rgb(0xfaa),	rgb(0xafa),	rgb(0xffa),	rgb(0x5af),	rgb(0xfaf),	rgb(0xaff),	rgb(0xfa5),
+};
+
 }
 
 Video::Video(const uint8_t *const pixels, const uint8_t *const attributes) :
@@ -60,39 +79,46 @@ void Video::run_for(const Cycles cycles) {
 		}
 
 		for(int line = start; line < end; line++) {
-			if(line >= VerticalSyncLine && line < VerticalSyncLine * 3) {
+			if(line >= VerticalSyncLine && line < VerticalSyncLine + 3) {
 				crt_.output_sync(CyclesPerLine);
 				continue;
 			}
 
 			if(line >= TotalPixelLines) {
 				crt_.output_sync(4);
-				crt_.output_blank(60);
+				crt_.output_level(60, border_);
 				continue;
 			}
 
 			crt_.output_sync(4);
-			crt_.output_blank(10);
+			crt_.output_level(10, border_);
 
 			output_ = reinterpret_cast<uint16_t *>(crt_.begin_data(320));
 			if(output_) {
 				for(int x = 0; x < 40; x++) {
-					const uint8_t pixels = pixels_[source_address_++];
+					const uint8_t pixels = pixels_[source_address_];
+					const uint8_t attributes = attributes_[source_address_];
+					++source_address_;
 
-					output_[0] = (pixels & 0x80) ? 0xffff : 0x0000;
-					output_[1] = (pixels & 0x40) ? 0xffff : 0x0000;
-					output_[2] = (pixels & 0x20) ? 0xffff : 0x0000;
-					output_[3] = (pixels & 0x10) ? 0xffff : 0x0000;
-					output_[4] = (pixels & 0x08) ? 0xffff : 0x0000;
-					output_[5] = (pixels & 0x04) ? 0xffff : 0x0000;
-					output_[6] = (pixels & 0x02) ? 0xffff : 0x0000;
-					output_[7] = (pixels & 0x01) ? 0xffff : 0x0000;
+					const uint16_t colours[] = {
+						palette[attributes & 0xf],
+						palette[attributes >> 4],
+					};
+
+					output_[0] = colours[(pixels >> 7) & 1];
+					output_[1] = colours[(pixels >> 6) & 1];
+					output_[2] = colours[(pixels >> 5) & 1];
+					output_[3] = colours[(pixels >> 4) & 1];
+					output_[4] = colours[(pixels >> 3) & 1];
+					output_[5] = colours[(pixels >> 2) & 1];
+					output_[6] = colours[(pixels >> 1) & 1];
+					output_[7] = colours[(pixels >> 0) & 1];
 					output_ += 8;
 				}
 			}
 
 			crt_.output_data(40, 320);
-			crt_.output_blank(10);
+			crt_.output_level(10, border_);
 		}
 
 		// HACK! Assuming the above proceeded in lines, adjust for number of cycles consumed.
@@ -104,4 +130,20 @@ void Video::run_for(const Cycles cycles) {
 			source_address_ = 0;
 		}
 	}
+}
+
+Cycles Video::next_sequence_point() const {
+	// Pulse the interrupt output for 8 cycles, arbitrarily. TODO: what's the real number?
+	if(position_ < IRQCycle) return IRQCycle - position_;
+	if(position_ < IRQCycle + IRQLength) return IRQCycle + IRQLength - position_;
+	return FrameLength - position_ + IRQCycle;
+}
+
+bool Video::irq() const {
+	return position_ >= IRQCycle && position_ < (IRQCycle + IRQLength);
+}
+
+void Video::set_border_colour(const uint8_t colour) {
+	// TODO: bits possibly need a swizzle?
+	border_ = palette[colour & 0xf];
 }

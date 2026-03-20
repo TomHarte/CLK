@@ -21,6 +21,11 @@ enum class IRQ {
 	B,
 };
 
+enum class Control {
+	CA1,	CA2,
+	CB1,	CB2,
+};
+
 template <typename PortHandlerT, int RS0Mask = 1, int RS1Mask = 2>
 class MC6821 {
 public:
@@ -65,6 +70,12 @@ public:
 	void refresh() const {
 		refresh<Port::A>();
 		refresh<Port::B>();
+	}
+
+	template <Control control>
+	void set(const bool value) {
+		// TODO.
+		(void)value;
 	}
 
 private:

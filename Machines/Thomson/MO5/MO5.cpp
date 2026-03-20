@@ -68,7 +68,9 @@ struct ConcreteMachine:
 		const AddressT address,
 		CPU::M6809::data_t<read_write> value
 	) {
-		video_ += m6809_.duration(bus_phase);
+		if(video_ += m6809_.duration(bus_phase)) {
+			system_pia_.set<Motorola::MC6821::Control::CB2>(video_.last_valid()->irq());
+		}
 
 		if constexpr (read_write == CPU::M6809::ReadWrite::NoData) {
 			return Cycles(0);
@@ -149,6 +151,7 @@ private:
 		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::A) {
 				machine_.page_lower(value & 1);
+				machine_.video_->set_border_colour((value >> 1) & 0xf);
 
 				//	Port A outputs:
 				//		b0 = lower 8kb RAM paging;

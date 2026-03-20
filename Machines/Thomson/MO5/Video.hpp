@@ -18,6 +18,10 @@ struct Video {
 public:
 	Video(const uint8_t *pixels, const uint8_t *attributes);
 	void run_for(Cycles);
+	Cycles next_sequence_point() const;
+
+	void set_border_colour(uint8_t);
+	bool irq() const;
 
 	// MARK: - Standard boilerplate.
 
@@ -44,6 +48,7 @@ private:
 	int position_ = 0;
 
 	uint16_t source_address_ = 0;
+	uint16_t border_ = 0;
 	uint16_t *output_ = nullptr;
 };
 
