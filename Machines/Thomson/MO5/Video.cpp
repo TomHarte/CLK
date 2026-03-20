@@ -10,6 +10,8 @@
 
 using namespace Thomson::MO5;
 
+namespace {
+
 // Video timing, as far as auto-translate lets me figure it out:
 //
 //	64 cycles/line;
@@ -19,6 +21,22 @@ using namespace Thomson::MO5;
 //
 // Within a line: ??? Who knows ???
 //
+
+static constexpr int CyclesPerLine = 64;
+}
+
+Video::Video(const uint8_t *const pixels, const uint8_t *const attributes) :
+	pixels_(pixels), attributes_(attributes),
+	crt_(
+		CyclesPerLine,
+		1,
+		Outputs::Display::Type::SECAM,
+		Outputs::Display::InputDataType::Red4Green4Blue4
+	) {
+//	crt_.set_fixed_framing([&] {
+//		run_for(Cycles(10'000));
+//	});
+}
 
 void Video::run_for(const Cycles cycles) {
 

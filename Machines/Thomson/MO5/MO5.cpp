@@ -28,7 +28,8 @@ struct ConcreteMachine:
 	ConcreteMachine(const Analyser::Static::Target &, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6809_(*this),
 		system_pia_port_handler_(*this),
-		system_pia_(system_pia_port_handler_)
+		system_pia_(system_pia_port_handler_),
+		video_(video_page(false), video_page(true))
 	{
 		set_clock_rate(1'000'000);
 
@@ -114,8 +115,12 @@ private:
 	std::array<uint8_t, 0x4000> rom_;
 	uint8_t *start_pointer_ = nullptr;
 
+	uint8_t *video_page(const bool attributes) {
+		return &ram_[attributes ? 0 : 0x1'0000];
+	}
+
 	void page_lower(const bool attributes) {
-		start_pointer_ = &ram_[attributes ? 0 : 0xf000];
+		start_pointer_ = video_page(attributes);
 	}
 
 	friend struct SystemPIAPortHandler;
@@ -188,11 +193,12 @@ private:
 
 	// MARK: - ScanProducer.
 
-	void set_scan_target(Outputs::Display::ScanTarget *) final {
+	void set_scan_target(Outputs::Display::ScanTarget *const target) final {
+		video_->set_scan_target(target);
 	}
 
-	Outputs::Display::ScanStatus get_scan_status() const final {
-		return Outputs::Display::ScanStatus();
+	Outputs::Display::ScanStatus get_scaled_scan_status() const final {
+		return video_.last_valid()->get_scaled_scan_status();
 	}
 
 	// MARK: - TimedMachine.

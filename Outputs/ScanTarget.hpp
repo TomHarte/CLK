@@ -19,6 +19,7 @@ namespace Outputs::Display {
 
 enum class Type {
 	PAL50,
+	SECAM = PAL50,	// Not correct as to composite colour, but correct as to timing.
 	PAL60,
 	NTSC60
 };

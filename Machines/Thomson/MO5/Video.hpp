@@ -10,12 +10,40 @@
 #define Video_hpp
 
 #include "ClockReceiver/ClockReceiver.hpp"
+#include "Outputs/CRT/CRT.hpp"
 
 namespace Thomson::MO5 {
 
 struct Video {
 public:
+	Video(const uint8_t *pixels, const uint8_t *attributes);
 	void run_for(Cycles);
+
+	// MARK: - Standard boilerplate.
+
+	void set_scan_target(Outputs::Display::ScanTarget *const target) {
+		crt_.set_scan_target(target);
+	}
+
+	Outputs::Display::ScanStatus get_scaled_scan_status() const {
+		return crt_.get_scaled_scan_status();
+	}
+
+	void set_display_type(const Outputs::Display::DisplayType display_type) {
+		crt_.set_display_type(display_type);
+	}
+
+	Outputs::Display::DisplayType get_display_type() const {
+		return crt_.get_display_type();
+	}
+
+private:
+	const uint8_t *pixels_ = nullptr;
+	const uint8_t *attributes_ = nullptr;
+	Outputs::CRT::CRT crt_;
+	int line_ = 0;
+	int column_ = 0;
+
 };
 
 }
