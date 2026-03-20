@@ -8,21 +8,16 @@
 
 #include "MO5.hpp"
 
+#include "Video.hpp"
+
 #include "Machines/MachineTypes.hpp"
 #include "Processors/6809/6809.hpp"
 #include "Components/6821/6821.hpp"
+#include "ClockReceiver/JustInTime.hpp"
+
 
 using namespace Thomson::MO5;
 
-// Video timing, as far as auto-translate lets me figure it out:
-//
-//	64 cycles/line;
-//	56 lines post signalled vsync, then 200 of video, then 56 more, for 312 total.
-//
-// Start of vsync is connected to CPU IRQ.
-//
-// Within a line: ??? Who knows ???
-//
 namespace {
 
 struct ConcreteMachine:
@@ -49,10 +44,6 @@ struct ConcreteMachine:
 		system_pia_.refresh();
 	}
 
-	void run_for(const Cycles cycles) final {
-		m6809_.run_for(cycles);
-	}
-
 	template <
 		int address,
 		CPU::M6809::ReadWrite read_write,
@@ -76,6 +67,8 @@ struct ConcreteMachine:
 		const AddressT address,
 		CPU::M6809::data_t<read_write> value
 	) {
+		video_ += m6809_.duration(bus_phase);
+
 		if constexpr (read_write == CPU::M6809::ReadWrite::NoData) {
 			return Cycles(0);
 		} else {
@@ -97,6 +90,7 @@ struct ConcreteMachine:
 					}
 				} else {
 					if(address < 0x2000) {
+						if(address < 40*200) video_.flush();
 						start_pointer_[address] = value;
 					} else {
 						ram_[address] = value;
@@ -190,6 +184,8 @@ private:
 	SystemPIAPortHandler system_pia_port_handler_;
 	Motorola::MC6821::MC6821<SystemPIAPortHandler, 2, 1> system_pia_;
 
+	JustInTimeActor<Video, Cycles> video_;
+
 	// MARK: - ScanProducer.
 
 	void set_scan_target(Outputs::Display::ScanTarget *) final {
@@ -197,6 +193,17 @@ private:
 
 	Outputs::Display::ScanStatus get_scan_status() const final {
 		return Outputs::Display::ScanStatus();
+	}
+
+	// MARK: - TimedMachine.
+
+	void run_for(const Cycles cycles) final {
+		m6809_.run_for(cycles);
+	}
+	void flush_output(int outputs) final {
+		if(outputs & Output::Video) {
+			video_.flush();
+		}
 	}
 };
 
