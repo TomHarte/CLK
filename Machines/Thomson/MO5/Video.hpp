@@ -41,9 +41,10 @@ private:
 	const uint8_t *pixels_ = nullptr;
 	const uint8_t *attributes_ = nullptr;
 	Outputs::CRT::CRT crt_;
-	int line_ = 0;
-	int column_ = 0;
+	int position_ = 0;
 
+	uint16_t source_address_ = 0;
+	uint16_t *output_ = nullptr;
 };
 
 }

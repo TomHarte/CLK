@@ -29,7 +29,7 @@ struct ConcreteMachine:
 		m6809_(*this),
 		system_pia_port_handler_(*this),
 		system_pia_(system_pia_port_handler_),
-		video_(video_page(false), video_page(true))
+		video_(video_page(true), video_page(false))
 	{
 		set_clock_rate(1'000'000);
 
@@ -115,12 +115,12 @@ private:
 	std::array<uint8_t, 0x4000> rom_;
 	uint8_t *start_pointer_ = nullptr;
 
-	uint8_t *video_page(const bool attributes) {
-		return &ram_[attributes ? 0 : 0x1'0000];
+	uint8_t *video_page(const bool pixels) {
+		return &ram_[pixels ? 0 : 0x1'0000];
 	}
 
-	void page_lower(const bool attributes) {
-		start_pointer_ = video_page(attributes);
+	void page_lower(const bool pixels) {
+		start_pointer_ = video_page(pixels);
 	}
 
 	friend struct SystemPIAPortHandler;
