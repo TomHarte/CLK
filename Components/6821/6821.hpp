@@ -34,7 +34,7 @@ public:
 				ports_[port].direction = value;
 			}
 
-			const uint8_t output = ports_[port].data | (~ports_[port].direction);
+			const uint8_t output = ports_[port].output();
 			if(output != ports_[port].previous_output) {
 				ports_[port].previous_output = output;
 				port_handler_.template output<Port(port)>(output);
@@ -49,14 +49,17 @@ public:
 			return ports_[port].control;
 		} else {
 			if(ports_[port].control & Control::DataVisible) {
-				return
-					(ports_[port].data & ports_[port].direction) |
-					(port_handler_.template input<Port(port)>() & ~ports_[port].direction);
+				return ports_[port].input(port_handler_.template input<Port(port)>());
 			} else {
 				return ports_[port].direction;
 			}
 		}
 		return 0;
+	}
+
+	void refresh() const {
+		refresh<Port::A>();
+		refresh<Port::B>();
 	}
 
 private:
@@ -75,8 +78,23 @@ private:
 		uint8_t data = 0;
 		uint8_t direction = 0;	// Per bit: 0 = input; 1 = output.
 
-		uint8_t previous_output = 0x00;
+		uint8_t output() const {
+			return data | ~direction;
+		}
+		uint8_t input(const uint8_t bus) const {
+			return (data & direction) | (bus & ~direction);
+		}
+		mutable uint8_t previous_output = 0x00;
 	} ports_[2];
+
+	template <Port port>
+	void refresh() const {
+		static constexpr auto index = int(port);
+
+		const uint8_t output = ports_[index].output();
+		ports_[index].previous_output = output;
+		port_handler_.template output<port>(output);
+	}
 };
 
 };

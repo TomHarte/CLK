@@ -46,7 +46,7 @@ struct ConcreteMachine:
 		const auto &rom = roms.find(ROM::Name::ThomasonMO5v11)->second;
 		std::copy_n(rom.begin(), rom.size(), rom_.begin());
 
-		page_lower(false);
+		system_pia_.refresh();
 	}
 
 	void run_for(const Cycles cycles) final {
