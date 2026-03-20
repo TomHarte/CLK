@@ -37,7 +37,6 @@ public:
 
 		if constexpr (address & RS0Mask) {
 			ports_[port].control = value;
-			update_interrupts();
 		} else {
 			if(ports_[port].control & Flag::DataVisible) {
 				ports_[port].data = value;
@@ -60,9 +59,10 @@ public:
 			return ports_[port].control;
 		} else {
 			if(ports_[port].control & Flag::DataVisible) {
-				ports_[port].control &= ~(IRQA | IRQB);
+				const uint8_t result = ports_[port].input(port_handler_.template input<Port(port)>());
+				ports_[port].clear_irq();
 				update_interrupts();
-				return ports_[port].input(port_handler_.template input<Port(port)>());
+				return result;
 			} else {
 				return ports_[port].direction;
 			}
@@ -85,11 +85,11 @@ public:
 		inputs_[input] = value;
 		port_handler_.template observe<control>(value);
 
-		static constexpr bool is_irqb = control == Control::CB2 || control == Control::CA2;
-		static constexpr int port = control == Control::CB2 || control == Control::CB1;
+		static constexpr bool is_irq2 = control == Control::CB2 || control == Control::CA2;	// 0 = IRQ1; 1 = IRQ2.
+		static constexpr int port = control == Control::CB2 || control == Control::CB1;		// 0 = port A; 1 = port B.
 
 		// Reject any set to CB2 if it's in output mode.
-		if constexpr (is_irqb) {
+		if constexpr (is_irq2) {
 			if(ports_[port].control & Flag::C2IsOutput) {
 				return;
 			}
@@ -97,9 +97,9 @@ public:
 
 		// Test whether change was in the triggering direction; if so update control bit and check for change
 		// to interrupt output.
-		static constexpr int direction = is_irqb ? IRQBDirection : IRQADirection;
+		static constexpr int direction = is_irq2 ? IRQ2Direction : IRQ1Direction;
 		if(value != bool(ports_[port].control & direction)) {
-			ports_[port].control |= is_irqb ? Flag::IRQB : Flag::IRQA;
+			ports_[port].template apply_irq<is_irq2 ? Flag::IRQ2 : Flag::IRQ1>();
 			update_interrupts();
 		}
 	}
@@ -109,19 +109,16 @@ private:
 	bool inputs_[4]{};
 
 	enum Flag: uint8_t {
-		IRQA			= 0b1000'0000,
-		IRQB			= 0b0100'0000,
-		C2				= 0b0011'1000,
 		DataVisible		= 0b0000'0100,
-		C1				= 0b0000'0011,
-
 		C2IsOutput		= 0b0010'0000,
 
-		IRQADirection	= 0b0000'0010,
-		EnableIRQA		= 0b0000'0001,
+		IRQ1			= 0b1000'0000,
+		IRQ1Direction	= 0b0000'0010,
+		EnableIRQ1		= 0b0000'0001,
 
-		IRQBDirection	= 0b0001'0000,
-		EnableIRQB		= 0b0000'1000,
+		IRQ2			= 0b0100'0000,
+		IRQ2Direction	= 0b0001'0000,
+		EnableIRQ2		= 0b0000'1000,
 	};
 
 	struct {
@@ -129,20 +126,32 @@ private:
 		uint8_t data = 0;
 		uint8_t direction = 0;	// Per bit: 0 = input; 1 = output.
 
-		bool irqa() const {
-			return (control & (IRQA | EnableIRQA)) == (IRQA | EnableIRQA);
-		}
-		bool irqb() const {
-			return (control & (IRQB | EnableIRQB | C2IsOutput)) == (IRQB | EnableIRQB);
+		template <uint8_t mask>
+		void apply_irq() {
+			control |= mask;
+			irq_ |=
+				(mask == IRQ1 && control & EnableIRQ1) ||
+				(mask == IRQ2 && ((control & (EnableIRQ2 | C2IsOutput)) == EnableIRQ2));
 		}
 
+		void clear_irq() {
+			irq_ = false;
+			control &= ~(IRQ1 | IRQ2);
+		}
+
+		bool irq() const {
+			return irq_;
+		}
+
+		mutable uint8_t previous_output = 0x00;
 		uint8_t output() const {
 			return data | ~direction;
 		}
 		uint8_t input(const uint8_t bus) const {
 			return (data & direction) | (bus & ~direction);
 		}
-		mutable uint8_t previous_output = 0x00;
+	private:
+		bool irq_ = false;
 	} ports_[2];
 
 	template <Port port>
@@ -156,8 +165,8 @@ private:
 
 	bool irqa_ = false, irqb_ = false;
 	void update_interrupts() {
-		const bool irqa = ports_[0].irqa() || ports_[1].irqa();
-		const bool irqb = ports_[0].irqb() || ports_[1].irqb();
+		const bool irqa = ports_[0].irq();
+		const bool irqb = ports_[1].irq();
 
 		if(irqa_ != irqa) {
 			irqa_ = irqa;

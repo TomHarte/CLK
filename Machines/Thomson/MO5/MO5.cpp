@@ -160,6 +160,7 @@ private:
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
+				printf("Keyboard scan: %d\n", (value >> 1) & 0x3f);
 				// Port B outputs:
 				//		b0 = 1-bit sound output;
 				//		b1–3 = keyboard column;

@@ -861,6 +861,8 @@ struct Processor {
 						case Operation::SWI2:	return 0xfff4;
 						case Operation::SWI3:	return 0xfff2;
 						case Operation::RESET:	return 0xfffe;
+
+						// TODO: below is incorrect assuming that spurious interrupts can occur.
 						default: __builtin_unreachable();
 					}
 				} ();
