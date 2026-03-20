@@ -36,7 +36,8 @@ public:
 		static constexpr int port = bool(address & RS1Mask);
 
 		if constexpr (address & RS0Mask) {
-			ports_[port].control = value;
+			static constexpr auto IRQMask = IRQ1 | IRQ2;
+			ports_[port].control = (ports_[port].control & IRQMask) | (value & ~IRQMask);
 		} else {
 			if(ports_[port].control & Flag::DataVisible) {
 				ports_[port].data = value;
@@ -56,18 +57,17 @@ public:
 	uint8_t read() {
 		static constexpr int port = (address >> 1) & 1;
 		if constexpr(address & 1) {
-			return ports_[port].control;
+			const auto result = ports_[port].control;
+			ports_[port].clear_irq();
+			update_interrupts();
+			return result;
 		} else {
 			if(ports_[port].control & Flag::DataVisible) {
-				const uint8_t result = ports_[port].input(port_handler_.template input<Port(port)>());
-				ports_[port].clear_irq();
-				update_interrupts();
-				return result;
+				return ports_[port].input(port_handler_.template input<Port(port)>());
 			} else {
 				return ports_[port].direction;
 			}
 		}
-		return 0;
 	}
 
 	void refresh() const {
@@ -99,7 +99,7 @@ public:
 		// to interrupt output.
 		static constexpr int direction = is_irq2 ? IRQ2Direction : IRQ1Direction;
 		if(value != bool(ports_[port].control & direction)) {
-			ports_[port].template apply_irq<is_irq2 ? Flag::IRQ2 : Flag::IRQ1>();
+			ports_[port].apply_irq(is_irq2 ? Flag::IRQ2 : Flag::IRQ1);
 			update_interrupts();
 		}
 	}
@@ -126,21 +126,24 @@ private:
 		uint8_t data = 0;
 		uint8_t direction = 0;	// Per bit: 0 = input; 1 = output.
 
-		template <uint8_t mask>
-		void apply_irq() {
+		void apply_irq(const uint8_t mask) {
 			control |= mask;
-			irq_ |=
-				(mask == IRQ1 && control & EnableIRQ1) ||
-				(mask == IRQ2 && ((control & (EnableIRQ2 | C2IsOutput)) == EnableIRQ2));
 		}
 
 		void clear_irq() {
-			irq_ = false;
 			control &= ~(IRQ1 | IRQ2);
 		}
 
 		bool irq() const {
-			return irq_;
+			static constexpr auto IRQ1Value = EnableIRQ1 | IRQ1;
+			static constexpr auto IRQ1Mask = IRQ1Value;
+
+			static constexpr auto IRQ2Value = EnableIRQ2 | IRQ2;
+			static constexpr auto IRQ2Mask = IRQ2Value | C2IsOutput;
+
+			return
+				((control & IRQ1Mask) == IRQ1Value) ||
+				((control & IRQ2Mask) == IRQ2Value);
 		}
 
 		mutable uint8_t previous_output = 0x00;
@@ -150,8 +153,6 @@ private:
 		uint8_t input(const uint8_t bus) const {
 			return (data & direction) | (bus & ~direction);
 		}
-	private:
-		bool irq_ = false;
 	} ports_[2];
 
 	template <Port port>

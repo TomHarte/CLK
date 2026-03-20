@@ -400,6 +400,9 @@ struct Processor {
 				}
 
 				if(exceptions_) {
+					// Avoid potential accidental detection of SWIs on the interrupt paths.
+					operation_.operation = Operation::None;
+
 					if(exceptions_ & Exception::Halt) {
 						goto halt;
 					}
@@ -795,7 +798,7 @@ struct Processor {
 				goto exception;
 
 			nmi_irq:
-				internal_cycles(2);
+				internal_cycles(2);	// TODO: is this when interrupts are acknowledged?
 				goto exception;
 
 			exception:

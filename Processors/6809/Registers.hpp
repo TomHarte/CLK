@@ -347,6 +347,7 @@ struct IndexedAddressDecoder {
 		}
 		switch(suffix()) {
 			using enum FormSuffix;
+			default:	// For invalid suffixes.
 			case NoOffset:			return 0;
 
 			case Offset8bit:		return 1;
@@ -366,8 +367,6 @@ struct IndexedAddressDecoder {
 			case Offset16bitFromPC:	return 4;
 
 			case Extended:			return 1;
-
-			default:__builtin_unreachable();
 		}
 	}
 
