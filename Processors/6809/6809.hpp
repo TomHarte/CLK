@@ -744,11 +744,7 @@ struct Processor {
 
 			rts:
 				addressed_internal_cycle(Address::Literal(registers_.pc.full));
-				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.high, ++registers_.reg<R16::S>());
-				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.low, ++registers_.reg<R16::S>());
-				registers_.reg<R16::PC>() = address_.full;
-				internal_cycle();
-				goto fetch_decode;
+				goto rti_not_entire;
 
 			bsr:
 				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
