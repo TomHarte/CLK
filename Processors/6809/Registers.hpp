@@ -130,13 +130,13 @@ struct ConditionCodeRegister {
 			case NE: return	!get<ConditionCode::Zero>();
 			case EQ: return	get<ConditionCode::Zero>();
 
-			case LT: return	get<ConditionCode::Negative>() != get<ConditionCode::Overflow>();
-			case LE: return	get<ConditionCode::Zero>() || test<InstructionSet::M6809::Condition::LT>();
 			case LS: return	get<ConditionCode::Zero>() || get<ConditionCode::Carry>();
+			case LE: return	get<ConditionCode::Zero>() || test<InstructionSet::M6809::Condition::LT>();
+			case LT: return	get<ConditionCode::Negative>() != get<ConditionCode::Overflow>();
 
-			case GE: return get<ConditionCode::Negative>() == get<ConditionCode::Overflow>();
-			case GT: return !get<ConditionCode::Zero>() && test<InstructionSet::M6809::Condition::GE>();
-			case HI: return !get<ConditionCode::Zero>() && !get<ConditionCode::Carry>();
+			case GE: return !test<InstructionSet::M6809::Condition::LT>();
+			case GT: return !test<InstructionSet::M6809::Condition::LE>();
+			case HI: return !test<InstructionSet::M6809::Condition::LS>();
 		}
 		return false;
 	}
