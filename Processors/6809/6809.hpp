@@ -198,7 +198,7 @@ struct Processor {
 				time_ -= Cycles(1);																					\
 				time_ -= 																							\
 					bus_handler_.template perform<BusPhase::FullCycle, ReadWrite::Read, bus_state>(addr, target_);	\
-				goto local_label(skipMRDY);															\
+				goto local_label(skipMRDY);																			\
 			}																										\
 																													\
 			if constexpr (Traits::uses_mrdy) {																		\
@@ -794,7 +794,7 @@ struct Processor {
 				goto exception;
 
 			nmi_irq:
-				internal_cycles(2);	// TODO: is this when interrupts are acknowledged?
+				internal_cycles(2);
 				goto exception;
 
 			exception:
@@ -872,8 +872,18 @@ struct Processor {
 				}
 
 				internal_cycle();
-				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.high, ++address_.full);
-				read(BusState::Normal, Literal(address_.full), registers_.pc.halves.low, ++address_.full);
+				read(
+					BusState::InterruptOrResetAcknowledge,
+					Literal(address_.full),
+					registers_.pc.halves.high,
+					++address_.full
+				);
+				read(
+					BusState::InterruptOrResetAcknowledge,
+					Literal(address_.full),
+					registers_.pc.halves.low,
+					++address_.full
+				);
 				internal_cycle();
 				goto fetch_decode;
 
