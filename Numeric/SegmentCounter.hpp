@@ -24,13 +24,11 @@ struct DividingAccumulator {
 		while(count > 0) {
 			const int segment = position_ / SegmentLength;
 			const int begin = position_ % SegmentLength;
-
 			const int length = std::min(SegmentLength - begin, count);
-			const int end = std::min(SegmentLength, begin + length);
+
+			advance(segment, begin, begin + length);
+
 			count -= length;
-
-			advance(segment, begin, end);
-
 			position_ += length;
 			if(position_ == SegmentLength * Segments) {
 				position_ = 0;
