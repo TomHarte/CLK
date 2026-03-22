@@ -6,6 +6,8 @@
 //  Copyright © 2026 Thomas Harte. All rights reserved.
 //
 
+#include <algorithm>
+
 namespace Numeric {
 
 /*!
