@@ -50,6 +50,10 @@ private:
 	uint16_t source_address_ = 0;
 	uint16_t border_ = 0;
 	uint16_t *output_ = nullptr;
+
+	void vsync_line(int, int);
+	void border_line(int, int);
+	void pixel_line(int, int);
 };
 
 }

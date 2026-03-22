@@ -49,6 +49,16 @@ constexpr uint16_t palette[] = {
 	rgb(0xaaa),	rgb(0xfaa),	rgb(0xafa),	rgb(0xffa),	rgb(0x5af),	rgb(0xfaf),	rgb(0xaff),	rgb(0xfa5),
 };
 
+/// Calculates the overlap, if any, between [begin, end] and [RangeBegin, RangeEnd] and calls FuncT with a begin and end if the range is non-zero.
+template <const int RangeBegin, const int RangeEnd, typename FuncT>
+void clamp(const int begin, const int end, const FuncT &&function) {
+	const int range_begin = std::max(begin, RangeBegin);
+	const int range_end = std::min(end, RangeEnd);
+	if(range_end > range_begin) {
+		function(range_begin, range_end);
+	}
+}
+
 }
 
 Video::Video(const uint8_t *const pixels, const uint8_t *const attributes) :
@@ -68,74 +78,103 @@ Video::Video(const uint8_t *const pixels, const uint8_t *const attributes) :
 void Video::run_for(const Cycles cycles) {
 	int to_run = cycles.as<int>();
 
-	// HACK! Go line by line.
 	while(to_run) {
-		// HACK! Coarse counting block: work out number of lines to process.
-		const int start = position_ / CyclesPerLine;
-		const int end = std::min((position_ + to_run) / CyclesPerLine, TotalLines);
-		if(start == end) {
-			position_ += to_run;
-			break;
-		}
+		const int line = position_ / CyclesPerLine;
+		const int start_column = position_ % CyclesPerLine;
 
-		for(int line = start; line < end; line++) {
-			if(line >= VerticalSyncLine && line < VerticalSyncLine + 3) {
-				crt_.output_sync(CyclesPerLine);
-				continue;
-			}
+		const int in_line = std::min(CyclesPerLine - start_column, to_run);
+		const int end_column = std::min(CyclesPerLine, start_column + in_line);
+		to_run -= in_line;
 
-			if(line >= TotalPixelLines) {
-				crt_.output_sync(4);
-				crt_.output_level(60, border_);
-				continue;
-			}
-
-			crt_.output_sync(4);
-			crt_.output_level(10, border_);
-
-			output_ = reinterpret_cast<uint16_t *>(crt_.begin_data(320));
-			if(output_) {
-				for(int x = 0; x < 40; x++) {
-					const uint8_t pixels = pixels_[source_address_];
-					const uint8_t attributes = attributes_[source_address_];
-					++source_address_;
-
-					const uint16_t colours[] = {
-						palette[attributes & 0xf],
-						palette[attributes >> 4],
-					};
-
-					output_[0] = colours[(pixels >> 7) & 1];
-					output_[1] = colours[(pixels >> 6) & 1];
-					output_[2] = colours[(pixels >> 5) & 1];
-					output_[3] = colours[(pixels >> 4) & 1];
-					output_[4] = colours[(pixels >> 3) & 1];
-					output_[5] = colours[(pixels >> 2) & 1];
-					output_[6] = colours[(pixels >> 1) & 1];
-					output_[7] = colours[(pixels >> 0) & 1];
-					output_ += 8;
-				}
-			} else {
-				source_address_ += 40;
-			}
-
-			crt_.output_data(40, 320);
-			crt_.output_level(10, border_);
-		}
-
-		// HACK! Assuming the above proceeded in lines, adjust for number of cycles consumed.
-		const int did_run = (CyclesPerLine - (position_ % CyclesPerLine)) + ((end - start) - 1) * CyclesPerLine;
-		to_run -= did_run;
-		position_ += did_run;
 		if(position_ == FrameLength) {
 			position_ = 0;
 			source_address_ = 0;
 		}
+		position_ += in_line;
+
+		if(line >= VerticalSyncLine && line < VerticalSyncLine + 3) {
+			vsync_line(start_column, end_column);
+		} else if(line >= TotalPixelLines) {
+			border_line(start_column, end_column);
+		} else {
+			pixel_line(start_column, end_column);
+		}
 	}
 }
 
+void Video::vsync_line(const int line_begin, const int line_end) {
+	crt_.output_sync(line_end - line_begin);
+}
+
+void Video::border_line(const int line_begin, const int line_end) {
+	static constexpr int EndOfSync = 4;
+	clamp<0, EndOfSync>(line_begin, line_end, [&](const int begin, const int end) {
+		crt_.output_sync(end - begin);
+	});
+	clamp<EndOfSync, CyclesPerLine>(line_begin, line_end, [&](const int begin, const int end) {
+		crt_.output_level(end - begin, border_);
+	});
+}
+
+void Video::pixel_line(const int line_begin, const int line_end) {
+	// Layout: [sync][border][pixels][border].
+	static constexpr int EndOfSync = 4;
+	static constexpr int EndOfLeftBorder = 14;
+	static constexpr int EndOfPixels = 54;
+
+	clamp<0, EndOfSync>(line_begin, line_end, [&](const int begin, const int end) {
+		crt_.output_sync(end - begin);
+	});
+	clamp<EndOfSync, EndOfLeftBorder>(line_begin, line_end, [&](const int begin, const int end) {
+		crt_.output_level(end - begin, border_);
+	});
+	clamp<EndOfLeftBorder, EndOfPixels>(line_begin, line_end, [&](const int begin, const int end) {
+		if(begin == EndOfLeftBorder) {
+			output_ = reinterpret_cast<uint16_t *>(crt_.begin_data(320));
+		}
+
+		if(output_) {
+			for(int c = begin; c < end; c++) {
+				const uint8_t pixels = pixels_[source_address_];
+				const uint8_t attributes = attributes_[source_address_];
+				++source_address_;
+
+				const uint16_t colours[] = {
+					palette[attributes & 0xf],
+					palette[attributes >> 4],
+				};
+
+				output_[0] = colours[(pixels >> 7) & 1];
+				output_[1] = colours[(pixels >> 6) & 1];
+				output_[2] = colours[(pixels >> 5) & 1];
+				output_[3] = colours[(pixels >> 4) & 1];
+				output_[4] = colours[(pixels >> 3) & 1];
+				output_[5] = colours[(pixels >> 2) & 1];
+				output_[6] = colours[(pixels >> 1) & 1];
+				output_[7] = colours[(pixels >> 0) & 1];
+				output_ += 8;
+			}
+		} else {
+			source_address_ += end - begin;
+		}
+
+		if(end == EndOfPixels) {
+			crt_.output_data(40, 320);
+			output_ = nullptr;
+		}
+	});
+	clamp<EndOfPixels, CyclesPerLine>(line_begin, line_end, [&](const int begin, const int end) {
+		crt_.output_level(end - begin, border_);
+	});
+}
+
 Cycles Video::next_sequence_point() const {
-	// Pulse the interrupt output for 8 cycles, arbitrarily. TODO: what's the real number?
+	// Pulse the interrupt output for 8 cycles, arbitrarily. The real number seems to be undocumented, and it
+	// doesn't actually make much concrete difference in concrete terms because this is fed into edge-detection via
+	// the PIA. Knowing the real number would only fix the case where the detected transition is switched to
+	// trailing-edge during the pulse, which probably doesn't happen in any real software.
+	//
+	// Would be nice to know the real number though.
 	if(position_ < IRQCycle) return IRQCycle - position_;
 	if(position_ < IRQCycle + IRQLength) return IRQCycle + IRQLength - position_;
 	return FrameLength - position_ + IRQCycle;
@@ -146,6 +185,5 @@ bool Video::irq() const {
 }
 
 void Video::set_border_colour(const uint8_t colour) {
-	// TODO: bits possibly need a swizzle?
 	border_ = palette[colour & 0xf];
 }
