@@ -151,7 +151,13 @@ private:
 		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::A) {
 				machine_.page_lower(value & 1);
-				machine_.video_->set_border_colour((value >> 1) & 0xf);
+				machine_.video_->set_border_colour(6);
+//				machine_.video_->set_border_colour((value >> 1) & 0xf);
+				printf("Border: %d\n", (value >> 1) & 0xf);
+
+				if(((value >> 1) & 0xf) == 9) {
+					printf("");
+				}
 
 				//	Port A outputs:
 				//		b0 = lower 8kb RAM paging;

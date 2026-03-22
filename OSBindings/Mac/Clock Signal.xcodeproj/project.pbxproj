@@ -2381,6 +2381,7 @@
 		4BBB77DC2867EBB300D335A1 /* IIgs Memory Map */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "IIgs Memory Map"; sourceTree = "<group>"; };
 		4BBC7DBF2F6D94E500E71794 /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
 		4BBC7DC02F6D94E500E71794 /* Video.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Video.cpp; sourceTree = "<group>"; };
+		4BBC7DC42F70507B00E71794 /* SegmentCounter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SegmentCounter.hpp; sourceTree = "<group>"; };
 		4BBC951C1F368D83008F4C34 /* i8272.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = i8272.cpp; sourceTree = "<group>"; };
 		4BBC951D1F368D83008F4C34 /* i8272.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = i8272.hpp; sourceTree = "<group>"; };
 		4BBF49AE1ED2880200AB3669 /* FUSETests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FUSETests.swift; sourceTree = "<group>"; };
@@ -3886,6 +3887,7 @@
 				4BFEA2F12682A90200EBF94C /* Sizes.hpp */,
 				4BD9713A2BFD7E7100C907AA /* StringSimilarity.hpp */,
 				4B0329202D0A78DC00C51EB5 /* UpperBound.hpp */,
+				4BBC7DC42F70507B00E71794 /* SegmentCounter.hpp */,
 			);
 			name = Numeric;
 			path = ../../Numeric;
