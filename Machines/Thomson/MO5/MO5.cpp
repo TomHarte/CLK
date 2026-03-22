@@ -81,6 +81,14 @@ struct ConcreteMachine:
 					case 0xa7c1:	access<0xa7c1, read_write>(system_pia_, value);		break;
 					case 0xa7c2:	access<0xa7c2, read_write>(system_pia_, value);		break;
 					case 0xa7c3:	access<0xa7c3, read_write>(system_pia_, value);		break;
+					default:
+						if constexpr (CPU::M6809::is_read(read_write)) {
+							value = 0xff;
+							printf("Unhandled read at %04x\n", +address);
+						} else {
+							printf("Unhandled write: %02x -> %04x\n", +value, +address);
+						}
+					break;
 				}
 			} else {
 				if constexpr (CPU::M6809::is_read(read_write)) {
