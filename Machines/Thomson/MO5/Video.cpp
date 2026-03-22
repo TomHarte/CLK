@@ -45,8 +45,6 @@ Video::Video(const uint8_t *const pixels, const uint8_t *const attributes) :
 }
 
 void Video::run_for(const Cycles cycles) {
-	int to_run = cycles.as<int>();
-
 	position_.advance(
 		cycles.as<int>(),
 		[&] (const int line, const int begin, const int end) {
