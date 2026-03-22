@@ -149,14 +149,8 @@ private:
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
 				//	Port B inputs:
-				//		b7: status of key at that position.
-//				printf("Key read\n");
-				if(key_ == 27) {
-					return 0x80;
-				} else {
-					return 0x00;
-				}
-//				return (key_ == 23) ? 0x80 : 0x00;
+				//		b7: status of key at that position.	[0 = pressed?]
+				return 0x80;
 			}
 
 			__builtin_unreachable();
@@ -176,7 +170,6 @@ private:
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
 				key_ = (value >> 1) & 0b111'111;
-//				printf("Key: %d\n", key_);
 				// Port B outputs:
 				//		b0 = 1-bit sound output;
 				//		b1–3 = keyboard column;

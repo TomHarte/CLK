@@ -55,8 +55,8 @@ public:
 
 	template <int address>
 	uint8_t read() {
-		static constexpr int port = (address >> 1) & 1;
-		if constexpr(address & 1) {
+		static constexpr int port = bool(address & RS1Mask);
+		if constexpr(address & RS0Mask) {
 			const auto result = ports_[port].control;
 			ports_[port].clear_irq();
 			update_interrupts();
