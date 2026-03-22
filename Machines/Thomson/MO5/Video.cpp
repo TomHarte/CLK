@@ -23,12 +23,17 @@ namespace {
 //
 // Within a line: ??? Who knows ???
 //
+// Have rationalised as 4 cycles of sync and the rest as appropriate colours. Via IRQCycle the interrupt can be placed
+// arbitrarily within the frame so I think any implementation within a line is valid as long as I place the interrupt
+// appropriately. TODO: where is the interrupt placed?
+//
 
 constexpr int CyclesPerLine = 64;
 
 constexpr int TotalPixelLines = 200;
 constexpr int TotalLines = 312;
 constexpr int VerticalSyncLine = 256;
+constexpr int VerticalSyncLength = 3;
 
 constexpr int IRQCycle = 256 * CyclesPerLine;
 constexpr int IRQLength = 8;
@@ -92,7 +97,7 @@ void Video::run_for(const Cycles cycles) {
 		}
 		position_ += in_line;
 
-		if(line >= VerticalSyncLine && line < VerticalSyncLine + 3) {
+		if(line >= VerticalSyncLine && line < VerticalSyncLine + VerticalSyncLength) {
 			vsync_line(start_column, end_column);
 		} else if(line >= TotalPixelLines) {
 			border_line(start_column, end_column);
