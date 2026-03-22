@@ -79,6 +79,16 @@ enum class LIC {
 	Inactive,
 };
 
+enum Vector: uint16_t {
+	SWI3 = 0xfff2,
+	SWI2 = 0xfff4,
+	FIRQ = 0xfff6,
+	IRQ = 0xfff8,
+	SWI = 0xfffa,
+	NMI = 0xfffc,
+	Reset = 0xfffe,
+};
+
 // Missing outputs:
 //
 //	AVMA — advanced VMA, i.e. bus will be accessed in the next cycle.
@@ -355,17 +365,17 @@ struct Processor {
 					resume_point_ = ResumePoint::ResetSpin;
 					return;
 				}
-				addressed_internal_cycle(Address::Fixed<0xfffe>())
+				addressed_internal_cycle(Address::Fixed<Vector::Reset>())
 				if(exceptions_ & (Exception::Halt | Exception::DMABusReq | Exception::Reset)) {
 					goto reset_spin;
 				}
 
-				addressed_internal_cycle(Address::Fixed<0xfffe>())
-				addressed_internal_cycle(Address::Fixed<0xfffe>())
-				addressed_internal_cycle(Address::Fixed<0xfffe>())
+				addressed_internal_cycle(Address::Fixed<Vector::Reset>())
+				addressed_internal_cycle(Address::Fixed<Vector::Reset>())
+				addressed_internal_cycle(Address::Fixed<Vector::Reset>())
 
-				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<0xfffe>(), registers_.pc.halves.high);
-				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<0xffff>(), registers_.pc.halves.low);
+				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<Vector::Reset>(), registers_.pc.halves.high);
+				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<Vector::Reset + 1>(), registers_.pc.halves.low);
 
 				internal_cycle();
 
@@ -384,6 +394,7 @@ struct Processor {
 				-- registers_.reg<R16::S>();
 				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::CC>());
 
+				address_.full = Vector::FIRQ;
 				goto interrupt_dispatch;
 
 			// MARK: - Fetch/decode.
@@ -408,18 +419,23 @@ struct Processor {
 					}
 
 					if(exceptions_ & (Exception::PowerOnReset | Exception::Reset)) {
+						address_ = Vector::Reset;
 						goto reset;
 					}
 
 					if(exceptions_ & Exception::NMI) {
+						address_ = Vector::NMI;
+						exceptions_ &= ~Exception::NMI;
 						goto nmi_irq;
 					}
 
 					if(exceptions_ & Exception::FIRQ && !registers_.cc.get<ConditionCode::FIRQMask>()) {
+						address_ = Vector::FIRQ;
 						goto firq;
 					}
 
 					if(exceptions_ & Exception::IRQ && !registers_.cc.get<ConditionCode::IRQMask>()) {
+						address_ = Vector::IRQ;
 						goto nmi_irq;
 					}
 				}
@@ -569,10 +585,20 @@ struct Processor {
 					case Operation::RTI:	goto rti;
 
 					case Operation::SWI:
+						address_ = Vector::SWI;
+					goto swi_reset;
+
 					case Operation::SWI2:
+						address_ = Vector::SWI2;
+					goto swi_reset;
+
 					case Operation::SWI3:
+						address_.full = Vector::SWI3;
+					goto swi_reset;
+
 					case Operation::RESET:
-						goto swi_reset;
+						address_.full = Vector::Reset;
+					goto swi_reset;
 
 					default: __builtin_unreachable();
 				}
@@ -766,11 +792,18 @@ struct Processor {
 					return;
 				}
 
-				if(
-					exceptions_ & Exception::NMI ||
-					(exceptions_ & Exception::FIRQ && !registers_.cc.get<ConditionCode::FIRQMask>()) ||
-					(exceptions_ & Exception::IRQ && !registers_.cc.get<ConditionCode::IRQMask>())
-				) {
+				if(exceptions_ & Exception::NMI) {
+					address_ = Vector::NMI;
+					goto interrupt_dispatch;
+				}
+
+				if(exceptions_ & Exception::FIRQ && !registers_.cc.get<ConditionCode::FIRQMask>()) {
+					address_ = Vector::FIRQ;
+					goto interrupt_dispatch;
+				}
+
+				if(exceptions_ & Exception::IRQ && !registers_.cc.get<ConditionCode::IRQMask>()) {
+					address_ = Vector::IRQ;
 					goto interrupt_dispatch;
 				}
 
@@ -841,31 +874,6 @@ struct Processor {
 				}
 
 			interrupt_dispatch:
-				address_.full = [&]() -> uint16_t {
-					if(exceptions_ & Exception::NMI) {
-						exceptions_ &= ~Exception::NMI;
-						return 0xfffc;
-					}
-
-					if(exceptions_ & Exception::FIRQ && !registers_.cc.get<ConditionCode::FIRQMask>()) {
-						return  0xfff6;
-					}
-
-					if(exceptions_ & Exception::IRQ && !registers_.cc.get<ConditionCode::IRQMask>()) {
-						return 0xfff8;
-					}
-
-					switch(operation_.operation) {
-						case Operation::SWI:	return 0xfffa;
-						case Operation::SWI2:	return 0xfff4;
-						case Operation::SWI3:	return 0xfff2;
-						case Operation::RESET:	return 0xfffe;
-
-						// TODO: below is incorrect assuming that spurious interrupts can occur.
-						default: __builtin_unreachable();
-					}
-				} ();
-
 				if(operation_.operation != Operation::SWI2 && operation_.operation != Operation::SWI3) {
 					registers_.cc.set<ConditionCode::IRQMask>(true);
 					registers_.cc.set<ConditionCode::FIRQMask>(true);
