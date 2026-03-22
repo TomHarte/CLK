@@ -11,10 +11,10 @@
 #include "Video.hpp"
 
 #include "Machines/MachineTypes.hpp"
+#include "Machines/Utility/MemoryFuzzer.hpp"
 #include "Processors/6809/6809.hpp"
 #include "Components/6821/6821.hpp"
 #include "ClockReceiver/JustInTime.hpp"
-
 
 using namespace Thomson::MO5;
 
@@ -42,6 +42,7 @@ struct ConcreteMachine:
 		const auto &rom = roms.find(ROM::Name::ThomasonMO5v11)->second;
 		std::copy_n(rom.begin(), rom.size(), rom_.begin());
 
+		Memory::Fuzz(ram_);
 		system_pia_.refresh();
 	}
 
