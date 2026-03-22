@@ -115,6 +115,8 @@ void Video::run_for(const Cycles cycles) {
 					output_[7] = colours[(pixels >> 0) & 1];
 					output_ += 8;
 				}
+			} else {
+				source_address_ += 40;
 			}
 
 			crt_.output_data(40, 320);
