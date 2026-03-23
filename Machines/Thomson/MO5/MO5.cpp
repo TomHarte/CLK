@@ -219,7 +219,7 @@ private:
 		template <Motorola::MC6821::Control control>
 		void observe(const bool value) {
 			if constexpr (control == Motorola::MC6821::Control::CA2) {
-				machine_.tape_player_.set_motor_control(value);
+				machine_.tape_player_.set_motor_control(!value);
 			}
 		}
 

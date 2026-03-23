@@ -40,6 +40,16 @@ public:
 		if constexpr (address & RS0Mask) {
 			static constexpr auto IRQMask = IRQ1 | IRQ2;
 			ports_[port].control = (ports_[port].control & IRQMask) | (value & ~IRQMask);
+
+			if(ports_[port].control & Flag::C2IsOutput) {
+				if(ports_[port].control & Flag::C2OutputNotStrobe) {
+					port_handler_.template observe<port ? Control::CB2 : Control::CA2>(
+						bool(ports_[port].control & Flag::C2NonStrobeOutput)
+					);
+				} else {
+					printf("UNIMPLEMENTED: strobed output\n");
+				}
+			}
 		} else {
 			if(ports_[port].control & Flag::DataVisible) {
 				ports_[port].data = value;
@@ -85,17 +95,17 @@ public:
 			return;
 		}
 		inputs_[input] = value;
-		port_handler_.template observe<control>(value);
 
 		static constexpr bool is_irq2 = control == Control::CB2 || control == Control::CA2;	// 0 = IRQ1; 1 = IRQ2.
 		static constexpr int port = control == Control::CB2 || control == Control::CB1;		// 0 = port A; 1 = port B.
 
-		// Reject any set to CB2 if it's in output mode.
+		// Reject any set to C[A/B]2 if it's in output mode.
 		if constexpr (is_irq2) {
 			if(ports_[port].control & Flag::C2IsOutput) {
 				return;
 			}
 		}
+		port_handler_.template observe<control>(value);
 
 		// Test whether change was in the triggering direction; if so update control bit and check for change
 		// to interrupt output.
@@ -111,16 +121,20 @@ private:
 	bool inputs_[4]{};
 
 	enum Flag: uint8_t {
-		DataVisible		= 0b0000'0100,
-		C2IsOutput		= 0b0010'0000,
+		DataVisible			= 0b0000'0100,
+		C2IsOutput			= 0b0010'0000,
 
-		IRQ1			= 0b1000'0000,
-		IRQ1Direction	= 0b0000'0010,
-		EnableIRQ1		= 0b0000'0001,
+		C2OutputNotStrobe	= 0b0001'0000,
+		C2StrobeERestore	= 0b0000'1000,
+		C2NonStrobeOutput	= 0b0000'1000,
 
-		IRQ2			= 0b0100'0000,
-		IRQ2Direction	= 0b0001'0000,
-		EnableIRQ2		= 0b0000'1000,
+		IRQ1				= 0b1000'0000,
+		IRQ1Direction		= 0b0000'0010,
+		EnableIRQ1			= 0b0000'0001,
+
+		IRQ2				= 0b0100'0000,
+		IRQ2Direction		= 0b0001'0000,
+		EnableIRQ2			= 0b0000'1000,
 	};
 
 	struct {
