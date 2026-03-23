@@ -122,16 +122,28 @@ struct M6809Traits {
 
 		// Test set uses the test that either exactly one of NZC is set, or they all are. That's four possibilities.
 		//
-		// Documented test is N != C, or Z. That's six possibilities (four with Z set; two more with Z unset but the
+		// Documented test is N != V, or Z. That's six possibilities (four with Z set; two more with Z unset but the
 		// other two not matching).
 		//
-		// Hence it's seems true that the test set isn't right on this. Or the documented test isn't.
+		// Not even both being dependent on the same flags, it's clear that the test set and documentation diverge.
 		case BLE:
-		case LBLE:	return;
+		case LBLE:
+		return;
 
 		// The test set doesn't branch if both Z and C are set. The documented test is to branch.
 		case BLS:
-		case LBLS:	return;
+		case LBLS:
+			if(
+				m6809.registers().cc.get<CPU::M6809::ConditionCode::Zero>() &&
+				m6809.registers().cc.get<CPU::M6809::ConditionCode::Carry>()
+			) {
+				return;
+			}
+		break;
+
+		// The test set implements CLR as a write operation. It's actually a modify.
+		case CLR:
+		return;
 
 		case EXG: case TFR: {
 			// The test suite supports only the operands listed below, treating the rest as NOPs.

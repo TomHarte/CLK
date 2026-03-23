@@ -130,13 +130,13 @@ struct ConditionCodeRegister {
 			case NE: return	!get<ConditionCode::Zero>();
 			case EQ: return	get<ConditionCode::Zero>();
 
-			case LE: return	get<ConditionCode::Zero>() || test<InstructionSet::M6809::Condition::LT>();
 			case LS: return	get<ConditionCode::Zero>() || get<ConditionCode::Carry>();
+			case LE: return	get<ConditionCode::Zero>() || test<InstructionSet::M6809::Condition::LT>();
 			case LT: return	get<ConditionCode::Negative>() != get<ConditionCode::Overflow>();
 
-			case HI: return !get<ConditionCode::Zero>() && !get<ConditionCode::Carry>();
-			case GE: return get<ConditionCode::Negative>() == get<ConditionCode::Overflow>();
-			case GT: return !get<ConditionCode::Zero>() && test<InstructionSet::M6809::Condition::GE>();
+			case GE: return !test<InstructionSet::M6809::Condition::LT>();
+			case GT: return !test<InstructionSet::M6809::Condition::LE>();
+			case HI: return !test<InstructionSet::M6809::Condition::LS>();
 		}
 		return false;
 	}
@@ -347,6 +347,7 @@ struct IndexedAddressDecoder {
 		}
 		switch(suffix()) {
 			using enum FormSuffix;
+			default:	// For invalid suffixes.
 			case NoOffset:			return 0;
 
 			case Offset8bit:		return 1;
@@ -366,8 +367,6 @@ struct IndexedAddressDecoder {
 			case Offset16bitFromPC:	return 4;
 
 			case Extended:			return 1;
-
-			default:__builtin_unreachable();
 		}
 	}
 
