@@ -48,24 +48,23 @@ bool K7::Serialiser::is_at_end() const {
 void K7::Serialiser::reset() {
 	bit_ = BitsPerByte;
 	file_.seek(0, Whence::SET);
+	current_pulse_.type = Pulse::High;
 }
 
 Pulse K7::Serialiser::next_pulse() {
-	if(bit_ == BitsPerByte) {
+	if(bit_ == BitsPerByte && current_pulse_.type == Pulse::High) {
 		if(file_.eof()) {
 			current_pulse_.length = Time(1);
-			current_pulse_.type = Pulse::High;
 			return current_pulse_;
 		}
 
 		bit_ = 0;
 		byte_ = file_.get();
-		current_pulse_.type = Pulse::High;
 		current_pulse_.length.clock_rate = 31'500;
 	}
 
-	static const int ZeroLength = 7;
-	static const int OneLength = 5;
+	static constexpr int ZeroLength = 7;
+	static constexpr int OneLength = 5;
 
 	current_pulse_.type = current_pulse_.type == Pulse::High ? Pulse::Low : Pulse::High;
 	if(current_pulse_.type == Pulse::Low) {
