@@ -52,6 +52,10 @@ void K7::Serialiser::reset() {
 }
 
 Pulse K7::Serialiser::next_pulse() {
+	static constexpr int ZeroLength = 7;
+	static constexpr int OneLength = 5;
+	static constexpr int LengthDenominator = 31'500;
+
 	if(bit_ == BitsPerByte && current_pulse_.type == Pulse::High) {
 		if(file_.eof()) {
 			current_pulse_.length = Time(1);
@@ -60,11 +64,8 @@ Pulse K7::Serialiser::next_pulse() {
 
 		bit_ = 0;
 		byte_ = file_.get();
-		current_pulse_.length.clock_rate = 31'500;
+		current_pulse_.length.clock_rate = LengthDenominator;
 	}
-
-	static constexpr int ZeroLength = 7;
-	static constexpr int OneLength = 5;
 
 	current_pulse_.type = current_pulse_.type == Pulse::High ? Pulse::Low : Pulse::High;
 	if(current_pulse_.type == Pulse::Low) {
