@@ -42,6 +42,7 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 			case N:		return 0x00;		case M:		return 0x1a;
 
 			case FullStop:	return 0x10;
+			case Comma:		return 0x08;
 			case Hyphen:	return 0x26;
 			case Equals:	return 0x2e;	// +
 
