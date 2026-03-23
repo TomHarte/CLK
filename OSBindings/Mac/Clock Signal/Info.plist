@@ -855,6 +855,7 @@
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
+				<string>k5</string>
 				<string>k7</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
