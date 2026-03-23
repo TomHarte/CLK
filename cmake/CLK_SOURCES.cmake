@@ -35,6 +35,7 @@ set(CLK_SOURCES
 	Analyser/Static/Oric/Tape.cpp
 	Analyser/Static/PCCompatible/StaticAnalyser.cpp
 	Analyser/Static/Sega/StaticAnalyser.cpp
+	Analyser/Static/Thomson/StaticAnalyser.cpp
 	Analyser/Static/StaticAnalyser.cpp
 	Analyser/Static/ZX8081/StaticAnalyser.cpp
 	Analyser/Static/ZXSpectrum/StaticAnalyser.cpp
@@ -253,6 +254,7 @@ set(CLK_SOURCES
 	Storage/Tape/Formats/CAS.cpp
 	Storage/Tape/Formats/CSW.cpp
 	Storage/Tape/Formats/CommodoreTAP.cpp
+	Storage/Tape/Formats/K7.cpp
 	Storage/Tape/Formats/OricTAP.cpp
 	Storage/Tape/Formats/TZX.cpp
 	Storage/Tape/Formats/TapePRG.cpp

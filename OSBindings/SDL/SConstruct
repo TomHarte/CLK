@@ -40,6 +40,7 @@ SOURCES += glob.glob('../../Analyser/Static/MSX/*.cpp')
 SOURCES += glob.glob('../../Analyser/Static/Oric/*.cpp')
 SOURCES += glob.glob('../../Analyser/Static/PCCompatible/*.cpp')
 SOURCES += glob.glob('../../Analyser/Static/Sega/*.cpp')
+SOURCES += glob.glob('../../Analyser/Static/Thomson/*.cpp')
 SOURCES += glob.glob('../../Analyser/Static/ZX8081/*.cpp')
 SOURCES += glob.glob('../../Analyser/Static/ZXSpectrum/*.cpp')
 

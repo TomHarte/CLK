@@ -44,10 +44,11 @@ enum Type: IntType {
 	PCCompatible	=	bit(20),
 	Plus4			=	bit(21),
 	Sega			=	bit(22),
-	Vic20			=	bit(23),
-	ZX80			=	bit(24),
-	ZX81			=	bit(25),
-	ZXSpectrum		=	bit(26),
+	Thomson			=	bit(23),
+	Vic20			=	bit(24),
+	ZX80			=	bit(25),
+	ZX81			=	bit(26),
+	ZXSpectrum		=	bit(27),
 
 	Acorn			=	AcornAtom | AcornElectron | BBCMaster | BBCModelA | BBCModelB | Archimedes,
 	Commodore8bit	=	C64 | Plus4 | Vic20,
@@ -56,7 +57,7 @@ enum Type: IntType {
 
 	AllCartridge	=	Atari2600 | AcornElectron | Coleco | MSX,
 	AllDisk			=	Acorn | Commodore | AmstradCPC | C64 | Oric | MSX | ZXSpectrum | Macintosh | AtariST | DiskII | PCCompatible | FAT12,
-	AllTape			=	Acorn | AmstradCPC | Commodore8bit | Oric | ZX8081 | MSX | ZXSpectrum,
+	AllTape			=	Acorn | AmstradCPC | Commodore8bit | Oric | ZX8081 | MSX | ZXSpectrum | Thomson,
 
 	All				=	~IntType(0),
 };

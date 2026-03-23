@@ -33,6 +33,7 @@
 #include "Analyser/Static/Oric/StaticAnalyser.hpp"
 #include "Analyser/Static/PCCompatible/StaticAnalyser.hpp"
 #include "Analyser/Static/Sega/StaticAnalyser.hpp"
+#include "Analyser/Static/Thomson/StaticAnalyser.hpp"
 #include "Analyser/Static/ZX8081/StaticAnalyser.hpp"
 #include "Analyser/Static/ZXSpectrum/StaticAnalyser.hpp"
 
@@ -83,6 +84,7 @@
 #include "Storage/Tape/Formats/CAS.hpp"
 #include "Storage/Tape/Formats/CommodoreTAP.hpp"
 #include "Storage/Tape/Formats/CSW.hpp"
+#include "Storage/Tape/Formats/K7.hpp"
 #include "Storage/Tape/Formats/OricTAP.hpp"
 #include "Storage/Tape/Formats/TapePRG.hpp"
 #include "Storage/Tape/Formats/TapeUEF.hpp"
@@ -266,6 +268,8 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::JFD>>(TargetPlatform::Archimedes, "jfd");
 
+	accumulator.try_standard<Tape::K7>(TargetPlatform::Thomson, "k7");
+
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::MOOF>>(TargetPlatform::Macintosh, "moof");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::MSA>>(TargetPlatform::AtariST, "msa");
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::MSX, "mx2");
@@ -393,6 +397,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	append(TargetPlatform::Oric, Oric::GetTargets);
 	append(TargetPlatform::PCCompatible, PCCompatible::GetTargets);
 	append(TargetPlatform::Sega, Sega::GetTargets);
+	append(TargetPlatform::Thomson, Thomson::GetTargets);
 	append(TargetPlatform::ZX8081, ZX8081::GetTargets);
 	append(TargetPlatform::ZXSpectrum, ZXSpectrum::GetTargets);
 
