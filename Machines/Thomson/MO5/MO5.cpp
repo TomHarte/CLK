@@ -16,11 +16,14 @@
 #include "Components/6821/6821.hpp"
 #include "ClockReceiver/JustInTime.hpp"
 
+#include "Keyboard.hpp"
+
 using namespace Thomson::MO5;
 
 namespace {
 
 struct ConcreteMachine:
+	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
 	public Machine
@@ -150,7 +153,7 @@ private:
 			if constexpr (port == Motorola::MC6821::Port::B) {
 				//	Port B inputs:
 				//		b7: status of key at that position.	[0 = pressed?]
-				return 0x80;
+				return key_states_[key_] ? 0x00 : 0x80;
 			}
 
 			__builtin_unreachable();
@@ -201,9 +204,18 @@ private:
 		//	CB1: 50Hz interrupt
 		//	CB2: genlock enable, maybe? Video "encrustation".
 
+		void clear_all_keys() {
+			std::fill(std::begin(key_states_), std::end(key_states_), false);
+		}
+
+		void set_key_state(const uint16_t key, const bool is_pressed) {
+			key_states_[key] = is_pressed;
+		}
+
 	private:
 		ConcreteMachine &machine_;
 		uint8_t key_ = 0;
+		bool key_states_[0x40]{};
 	};
 	SystemPIAPortHandler system_pia_port_handler_;
 	Motorola::MC6821::MC6821<SystemPIAPortHandler, 2, 1> system_pia_;
@@ -229,6 +241,21 @@ private:
 		if(outputs & Output::Video) {
 			video_.flush();
 		}
+	}
+
+	// MARK: - MappedKeyboardMachine.
+
+	MO5::KeyboardMapper keyboard_mapper_;
+	KeyboardMapper *get_keyboard_mapper() final {
+		return &keyboard_mapper_;
+	}
+
+	void set_key_state(const uint16_t key, const bool is_pressed) final {
+		system_pia_port_handler_.set_key_state(key, is_pressed);
+	}
+
+	void clear_all_keys() final {
+		system_pia_port_handler_.clear_all_keys();
 	}
 };
 

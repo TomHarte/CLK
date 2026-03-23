@@ -2382,6 +2382,7 @@
 		4BBC7DBF2F6D94E500E71794 /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
 		4BBC7DC02F6D94E500E71794 /* Video.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Video.cpp; sourceTree = "<group>"; };
 		4BBC7DC42F70507B00E71794 /* SegmentCounter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SegmentCounter.hpp; sourceTree = "<group>"; };
+		4BBC7DC52F70BAFB00E71794 /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
 		4BBC951C1F368D83008F4C34 /* i8272.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = i8272.cpp; sourceTree = "<group>"; };
 		4BBC951D1F368D83008F4C34 /* i8272.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = i8272.hpp; sourceTree = "<group>"; };
 		4BBF49AE1ED2880200AB3669 /* FUSETests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FUSETests.swift; sourceTree = "<group>"; };
@@ -5342,6 +5343,7 @@
 			children = (
 				4BCA6FA92F589C0C000B9537 /* MO5.cpp */,
 				4BBC7DC02F6D94E500E71794 /* Video.cpp */,
+				4BBC7DC52F70BAFB00E71794 /* Keyboard.hpp */,
 				4BCA6FA82F589C0C000B9537 /* MO5.hpp */,
 				4BBC7DBF2F6D94E500E71794 /* Video.hpp */,
 			);
