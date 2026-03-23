@@ -16,6 +16,10 @@
 #include "Components/6821/6821.hpp"
 #include "ClockReceiver/JustInTime.hpp"
 
+#include "Components/AudioToggle/AudioToggle.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/Speaker/Implementation/BufferSource.hpp"
+
 #include "Keyboard.hpp"
 
 using namespace Thomson::MO5;
@@ -23,6 +27,7 @@ using namespace Thomson::MO5;
 namespace {
 
 struct ConcreteMachine:
+	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
@@ -32,9 +37,12 @@ struct ConcreteMachine:
 		m6809_(*this),
 		system_pia_port_handler_(*this),
 		system_pia_(system_pia_port_handler_),
-		video_(video_page(true), video_page(false))
+		video_(video_page(true), video_page(false)),
+		audio_toggle_(audio_queue_),
+		speaker_(audio_toggle_)
 	{
 		set_clock_rate(1'000'000);
+		speaker_.set_input_rate(1'000'000.0f);
 
 		const auto request = ROM::Request(ROM::Name::ThomasonMO5v11);
 		auto roms = rom_fetcher(request);
@@ -47,6 +55,10 @@ struct ConcreteMachine:
 
 		Memory::Fuzz(ram_);
 		system_pia_.refresh();
+	}
+
+	~ConcreteMachine() {
+		audio_queue_.lock_flush();
 	}
 
 	template <
@@ -75,6 +87,7 @@ struct ConcreteMachine:
 		if(video_ += m6809_.duration(bus_phase)) {
 			system_pia_.set<Motorola::MC6821::Control::CB1>(video_.last_valid()->irq());
 		}
+		time_since_audio_update_ += m6809_.duration(bus_phase);
 
 		if constexpr (read_write == CPU::M6809::ReadWrite::NoData) {
 			return Cycles(0);
@@ -162,21 +175,22 @@ private:
 		template <Motorola::MC6821::Port port>
 		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::A) {
-				machine_.page_lower(value & 1);
-				machine_.video_->set_border_colour((value >> 1) & 0xf);
-
 				//	Port A outputs:
 				//		b0 = lower 8kb RAM paging;
 				//		b1–4: border colour;
 				//		b6: tape output
+				machine_.page_lower(value & 1);
+				machine_.video_->set_border_colour((value >> 1) & 0xf);
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
-				key_ = (value >> 1) & 0b111'111;
 				// Port B outputs:
 				//		b0 = 1-bit sound output;
 				//		b1–3 = keyboard column;
 				//		b4–6: keyboard line;
+				key_ = (value >> 1) & 0b111'111;
+				machine_.update_audio();
+				machine_.audio_toggle_.set_output(value & 1);
 			}
 		}
 
@@ -222,6 +236,22 @@ private:
 
 	JustInTimeActor<Video, Cycles> video_;
 
+	// MARK: - AudioProducer.
+
+	Concurrency::AsyncTaskQueue<false> audio_queue_;
+	Audio::Toggle audio_toggle_;
+	Outputs::Speaker::PullLowpass<Audio::Toggle> speaker_;
+
+	Cycles time_since_audio_update_;
+	void update_audio() {
+		const auto cycles = time_since_audio_update_.flush();
+		speaker_.run_for(audio_queue_, cycles);
+	}
+
+	Outputs::Speaker::Speaker *get_speaker() override {
+		return &speaker_;
+	}
+
 	// MARK: - ScanProducer.
 
 	void set_scan_target(Outputs::Display::ScanTarget *const target) final {
@@ -240,6 +270,10 @@ private:
 	void flush_output(int outputs) final {
 		if(outputs & Output::Video) {
 			video_.flush();
+		}
+		if(outputs & Output::Audio) {
+			update_audio();
+			audio_queue_.perform();
 		}
 	}
 
