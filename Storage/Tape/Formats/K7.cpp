@@ -25,10 +25,12 @@ static constexpr int BitsPerByte = 11;
 		LSB...MSB:	byte content
 		1 1:		stop bits.
 
-	Each bit is a single square wave — low, then high — of idealised duration:
+	Each bit is composed of square waves — low, then high — of idealised duration:
 
-		7 / 31500ths of a second: 0 bit
-		5 / 31500ths of a second: 1 bit
+		7 / 31500ths of a second, 5 times over: 0 bit
+		5 / 31500ths of a second, 7 times over: 1 bit
+
+	So baud rate is 31500 / (5 * 7) = 900.
 */
 
 K7::K7(const std::string &file_name) : file_name_(file_name) {}
@@ -41,51 +43,45 @@ K7::Serialiser::Serialiser(const std::string &name) : file_(name, FileMode::Read
 	bit_ = BitsPerByte;
 }
 
-bool K7::Serialiser::is_at_end() const {
-	return bit_ == BitsPerByte && file_.eof();
-}
-
 void K7::Serialiser::reset() {
-	bit_ = BitsPerByte;
 	file_.seek(0, Whence::SET);
-	current_pulse_.type = Pulse::High;
 }
 
-Pulse K7::Serialiser::next_pulse() {
-	static constexpr int ZeroLength = 7;
-	static constexpr int OneLength = 5;
-	static constexpr int LengthDenominator = 31'500;
-
-	if(bit_ == BitsPerByte && current_pulse_.type == Pulse::High) {
-		if(file_.eof()) {
-			current_pulse_.length = Time(1);
-			return current_pulse_;
-		}
-
-		bit_ = 0;
-		byte_ = file_.get();
-		current_pulse_.length.clock_rate = LengthDenominator;
+void K7::Serialiser::push_next_pulses() {
+	if(file_.eof()) {
+		set_is_at_end(true);
+		return;
 	}
 
-	current_pulse_.type = current_pulse_.type == Pulse::High ? Pulse::Low : Pulse::High;
-	if(current_pulse_.type == Pulse::Low) {
-		switch(bit_) {
-			case 0:
-				current_pulse_.length.length = ZeroLength;
-			break;
-			case 9:
-			case 10:
-				current_pulse_.length.length = OneLength;
-			break;
+	static constexpr int LengthDenominator = 31'500 * 2;
 
-			default:
-				current_pulse_.length.length = (byte_ & 1) ? OneLength : ZeroLength;
-				byte_ >>= 1;
-			break;
+	static constexpr auto ZeroLength = Time(7, LengthDenominator);
+	static constexpr int ZeroRepetitions = 5;
+
+	static constexpr auto OneLength = Time(5, LengthDenominator);
+	static constexpr int OneRepetitions = 7;
+
+	byte_ = file_.get();
+
+	const auto post = [&](const bool bit) {
+		if(bit) {
+			for(int c = 0; c < ZeroRepetitions; c++) {
+				emplace_back(Pulse::Low, ZeroLength);
+				emplace_back(Pulse::High, ZeroLength);
+			}
+		} else {
+			for(int c = 0; c < OneRepetitions; c++) {
+				emplace_back(Pulse::Low, OneLength);
+				emplace_back(Pulse::High, OneLength);
+			}
 		}
-	} else {
-		++bit_;
-	}
+	};
 
-	return current_pulse_;
+	post(0);
+	for(int c = 0; c < 8; c++) {
+		post(byte_ & 1);
+		byte_ >>= 1;
+	}
+	post(1);
+	post(1);
 }

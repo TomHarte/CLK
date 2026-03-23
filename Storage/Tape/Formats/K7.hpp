@@ -10,6 +10,7 @@
 
 #include "Storage/Tape/Tape.hpp"
 #include "Storage/FileHolder.hpp"
+#include "Storage/Tape/PulseQueuedTape.hpp"
 
 #include <memory>
 #include <string>
@@ -26,19 +27,18 @@ public:
 private:
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
-	struct Serialiser: public FormatSerialiser {
+	struct Serialiser: public PulseQueuedSerialiser {
 		Serialiser(const std::string &);
 
 	private:
-		// implemented to satisfy @c FormatSerialiser
-		bool is_at_end() const override;
+		void push_next_pulses() override;
 		void reset() override;
-		Pulse next_pulse() override;
 
 		Storage::FileHolder file_;
 		Pulse current_pulse_;
 		uint8_t byte_;
 		int bit_ = 0;
+		int repetitions_ = 0;
 	};
 	std::string file_name_;
 };
