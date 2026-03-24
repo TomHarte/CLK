@@ -61,27 +61,28 @@ void K7::Serialiser::push_next_pulses() {
 	static constexpr auto OneLength = Time(5, LengthDenominator);
 	static constexpr int OneRepetitions = 7;
 
-	byte_ = file_.get();
-
 	const auto post = [&](const bool bit) {
+		const auto output = [&](const Time length, const int repetitions) {
+			for(int c = 0; c < repetitions; c++) {
+				emplace_back(Pulse::Low, length);
+				emplace_back(Pulse::High, length);
+			}
+		};
 		if(bit) {
-			for(int c = 0; c < ZeroRepetitions; c++) {
-				emplace_back(Pulse::Low, ZeroLength);
-				emplace_back(Pulse::High, ZeroLength);
-			}
+			output(OneLength, OneRepetitions);
 		} else {
-			for(int c = 0; c < OneRepetitions; c++) {
-				emplace_back(Pulse::Low, OneLength);
-				emplace_back(Pulse::High, OneLength);
-			}
+			output(ZeroLength, ZeroRepetitions);
 		}
 	};
 
 	post(0);
+
+	byte_ = file_.get();
 	for(int c = 0; c < 8; c++) {
 		post(byte_ & 1);
 		byte_ >>= 1;
 	}
+
 	post(1);
 	post(1);
 }
