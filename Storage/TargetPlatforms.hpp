@@ -58,8 +58,8 @@ enum Type: IntType {
 
 	AllCartridge	=	Atari2600 | AcornElectron | Coleco | MSX,
 	AllDisk			=	Acorn | Commodore | AmstradCPC | C64 | Oric | MSX | ZXSpectrum | Macintosh | AtariST | DiskII | PCCompatible | FAT12,
-	AllTape			=	Acorn | AmstradCPC | Commodore8bit | Oric | ZX8081 | MSX | ZXSpectrum /* | ThomsonMO | ThomsonTO */,
-												// ThomsonMO and ThomsonTO awaiting proper analysers.
+	AllTape			=	Acorn | AmstradCPC | Commodore8bit | Oric | ZX8081 | MSX | ZXSpectrum | ThomsonMO | ThomsonTO,
+
 	All				=	~IntType(0),
 };
 
