@@ -70,7 +70,7 @@ std::optional<Block> Parser::block(Storage::Tape::TapeSerialiser &serialiser) {
 
 	const auto length = byte(serialiser);
 	if(!length) return std::nullopt;
-	result.data.resize(*length);
+	result.data.resize(*length - 2);	// Length includes: (i) itself; and (ii) the checksum.
 
 	uint8_t checksum = 0;
 	for(auto &target: result.data) {

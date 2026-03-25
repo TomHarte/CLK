@@ -2385,6 +2385,7 @@
 		4BBC7DC72F7182CC00E71794 /* K7.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = K7.cpp; sourceTree = "<group>"; };
 		4BBC7DD02F7186D600E71794 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BBC7DD12F7186D600E71794 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
+		4BBC7DD62F74826000E71794 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4BBC951C1F368D83008F4C34 /* i8272.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = i8272.cpp; sourceTree = "<group>"; };
 		4BBC951D1F368D83008F4C34 /* i8272.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = i8272.hpp; sourceTree = "<group>"; };
 		4BBF49AE1ED2880200AB3669 /* FUSETests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FUSETests.swift; sourceTree = "<group>"; };
@@ -5128,6 +5129,7 @@
 			children = (
 				4BBC7DD12F7186D600E71794 /* StaticAnalyser.cpp */,
 				4BBC7DD02F7186D600E71794 /* StaticAnalyser.hpp */,
+				4BBC7DD62F74826000E71794 /* Target.hpp */,
 			);
 			path = Thomson;
 			sourceTree = "<group>";
