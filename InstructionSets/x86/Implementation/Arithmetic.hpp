@@ -387,7 +387,7 @@ void neg(
 		IntT(-destination))
 	);
 
-	destination = -destination;
+	destination = IntT(-destination);
 
 	context.flags.template set_from<Flag::Carry>(destination);
 	context.flags.template set_from<Flag::Overflow>(destination == Numeric::top_bit<IntT>());

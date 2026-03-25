@@ -87,7 +87,7 @@ inline void abx(Registers &registers) {
 inline void neg(Registers &registers, uint8_t &value) {
 	registers.cc.set<ConditionCode::Overflow>(value == 0x80);
 	registers.cc.set<ConditionCode::Carry>(value);
-	value = -value;
+	value = uint8_t(-value);
 	registers.cc.set_nz(value);
 }
 
@@ -97,7 +97,7 @@ void neg(Registers &registers) {
 }
 
 inline void com(Registers &registers, uint8_t &value) {
-	value = ~value;
+	value = uint8_t(~value);
 	registers.cc.set_nz(value);
 	registers.cc.set<ConditionCode::Overflow>(false);
 	registers.cc.set<ConditionCode::Carry>(true);
@@ -422,6 +422,7 @@ Cycles perform(
 
 		case NOP:
 			nop_handler();
+			[[fallthrough]];
 		case None:
 		return 0;
 

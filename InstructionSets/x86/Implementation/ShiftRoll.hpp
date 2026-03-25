@@ -328,7 +328,7 @@ void sar(
 	} else {
 		const auto mask = IntT(1 << (count - 1));
 		context.flags.template set_from<Flag::Carry>(destination & mask);
-		destination = (destination >> count) | (sign ? ~(IntT(~0) >> count) : 0);
+		destination = IntT((destination >> count) | (sign ? ~(IntT(~0) >> count) : 0));
 	}
 	context.flags.template set_from<Flag::Overflow>(0);
 	context.flags.template set_from<IntT, Flag::Sign, Flag::Zero, Flag::ParityOdd>(destination);

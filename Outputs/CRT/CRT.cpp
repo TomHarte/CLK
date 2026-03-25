@@ -103,7 +103,7 @@ void CRT::set_new_timing(
 	std::lock_guard guard(scan_target_lock_);
 	scan_target_->set_modals(scan_target_modals_);
 
-	const float stability_threshold = 1.0f / scan_target_modals_.expected_vertical_lines;
+	const float stability_threshold = 1.0f / float(scan_target_modals_.expected_vertical_lines);
 	rect_accumulator_.set_stability_threshold(stability_threshold);
 }
 
@@ -749,7 +749,7 @@ Outputs::Display::Rect CRT::get_rect_for_area(
 	const float start_y =
 		float(first_line_after_sync * horizontal_period - vertical_retrace_period) /
 		float(vertical_scan_period);
-	const float height = float(number_of_lines * horizontal_period) / vertical_scan_period;
+	const float height = float(number_of_lines * horizontal_period) / float(vertical_scan_period);
 
 	return Outputs::Display::Rect(start_x, start_y, width, height);
 }

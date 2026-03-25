@@ -196,7 +196,7 @@ void TIA::set_colour_palette_entry(size_t index, uint8_t colour) {
 	if(tv_standard_ == OutputMode::NTSC) {
 		if(!phase) phase = 255;
 		else {
-			phase = -(phase * 127) / 13;
+			phase = uint8_t(-(phase * 127) / 13);
 			phase -= 102;
 			phase &= 127;
 		}

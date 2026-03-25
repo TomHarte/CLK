@@ -577,7 +577,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	//
 	self.uniforms->scale[0] = modals.output_scale.x;
 	self.uniforms->scale[1] = modals.output_scale.y;
-	self.uniforms->lineWidth = 1.05f / modals.expected_vertical_lines;
+	self.uniforms->lineWidth = 1.05f / float(modals.expected_vertical_lines);
 	self.uniforms->phaseLinkedLuminanceOffset = __fp16(modals.input_data_tweaks.phase_linked_luminance_offset);
 	[self setAspectRatio];
 
@@ -676,13 +676,13 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 				);
 
 			// Create suitable filters.
-			_lineBufferPixelsPerLine = NSUInteger(modals.cycles_per_line * cyclesMultiplier);
+			_lineBufferPixelsPerLine = NSUInteger(float(modals.cycles_per_line) * cyclesMultiplier);
 			const float colourCyclesPerLine =
 				float(modals.colour_cycle_numerator) / float(modals.colour_cycle_denominator);
 			using DecodingPath = Outputs::Display::FilterGenerator::DecodingPath;
 
 			Outputs::Display::FilterGenerator generator(
-				_lineBufferPixelsPerLine,
+				float(_lineBufferPixelsPerLine),
 				colourCyclesPerLine,
 				isSVideoOutput ? DecodingPath::SVideo : DecodingPath::Composite
 			);

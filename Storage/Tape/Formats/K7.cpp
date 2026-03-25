@@ -10,12 +10,6 @@
 
 using namespace Storage::Tape;
 
-namespace {
-
-static constexpr int BitsPerByte = 11;
-
-}
-
 /*
 	K7 files are a raw dump of source bytes that were encoded in the standard Thomson layout.
 

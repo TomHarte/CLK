@@ -79,7 +79,7 @@ void not_(
 	/*
 		Flags affected: none.
 	*/
-	destination = ~destination;
+	destination = IntT(~destination);
 }
 
 template <typename IntT>

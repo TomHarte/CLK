@@ -153,9 +153,9 @@ void bit_manipulate(
 	const auto bit = mask_bit(instruction, source);
 	status.zero_result = destination & (1 << bit);
 	switch(operation) {
-		case Operation::BCLR:	destination &= ~(1 << bit);	break;
-		case Operation::BCHG:	destination ^= (1 << bit);	break;
-		case Operation::BSET:	destination |= (1 << bit);	break;
+		case Operation::BCLR:	destination &= uint32_t(~(1 << bit));	break;
+		case Operation::BCHG:	destination ^= (1 << bit);				break;
+		case Operation::BSET:	destination |= (1 << bit);				break;
 	}
 	flow_controller.did_bit_op(int(bit));
 }
@@ -273,7 +273,7 @@ template <typename IntT> void move(const IntT source, IntT &destination, Status 
 
 /// Perform NEG.[b/l/w] on @c source, updating @c status.
 template <bool is_extend, typename IntT> void negative(IntT &source, Status &status) {
-	const IntT result = -source - (is_extend && status.extend_flag ? 1 : 0);
+	const auto result = IntT(-source - (is_extend && status.extend_flag ? 1 : 0));
 
 	if constexpr (is_extend) {
 		status.zero_result |= result;

@@ -172,7 +172,7 @@ public:
 
 	/// Called by the 6522 to set output. The value of Port B selects which part of the keyboard to read.
 	template <MOS::MOS6522::Port port> void set_port_output(const uint8_t value, const uint8_t mask) {
-		if(port) activation_mask_ = (value & mask) | (~mask);
+		if(port) activation_mask_ = uint8_t((value & mask) | ~mask);
 	}
 
 	/// Called by the 6522 to set control line output. Which affects the serial port.

@@ -25,7 +25,7 @@ Drive::Drive(
 	Storage::TimedEventLoop(input_clock_rate),
 	available_heads_(number_of_heads),
 	ready_type_(rdy_type) {
-	set_rotation_speed(revolutions_per_minute);
+	set_rotation_speed(float(revolutions_per_minute));
 
 	const auto seed =
 		std::default_random_engine::result_type(std::chrono::system_clock::now().time_since_epoch().count());
@@ -392,7 +392,7 @@ void Drive::setup_track() {
 
 	// Reseed cycles_since_index_hole_; 99.99% of the time it'll still be correct as is,
 	// but if the track has rounded one way or the other it may now be very slightly adrift.
-	cycles_since_index_hole_ = (int((time_found + offset) * cycles_per_revolution_)) % cycles_per_revolution_;
+	cycles_since_index_hole_ = (int(time_found + offset) * cycles_per_revolution_) % cycles_per_revolution_;
 
 	get_next_event(offset);
 }

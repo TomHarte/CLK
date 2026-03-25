@@ -894,7 +894,7 @@ template <typename BusHandler, bool uses_ready_line> void Processor<BusHandler, 
 						case TRB:
 							assert(data_buffer_.size == 2 - m_flag());
 							registers_.flags.set_z(data_buffer_.value & registers_.a.full, registers_.m_shift);
-							data_buffer_.value &= ~registers_.a.full;
+							data_buffer_.value &= uint32_t(~registers_.a.full);
 						break;
 
 						case TSB:

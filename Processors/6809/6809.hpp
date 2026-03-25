@@ -167,19 +167,19 @@ struct Processor {
 	template <Line line>
 	void set(const bool value) {
 		const auto set_exception = [&](const Exception exception) {
-			exceptions_ = (exceptions_ & ~exception) | (value ? exception: 0);
+			exceptions_ = (exceptions_ & ~uint8_t(exception)) | (value ? uint8_t(exception): 0);
 		};
 
 		// As below, NMI is edge triggered whereas all the rest are level-triggered.
 		switch(line) {
-			case Line::PowerOnReset:	set_exception(Exception::PowerOnReset);		break;
-			case Line::Reset: 			set_exception(Exception::Reset);			break;
-			case Line::NMI: 			if(value) exceptions_ |= Exception::NMI;	break;
-			case Line::IRQ: 			set_exception(Exception::IRQ);				break;
-			case Line::FIRQ: 			set_exception(Exception::FIRQ);				break;
-			case Line::MRDY:			mrdy_ = value;								break;
-			case Line::Halt:			set_exception(Exception::Halt);				break;
-			case Line::DMABusReq:		set_exception(Exception::DMABusReq);		break;
+			case Line::PowerOnReset:	set_exception(Exception::PowerOnReset);				break;
+			case Line::Reset: 			set_exception(Exception::Reset);					break;
+			case Line::NMI: 			if(value) exceptions_ |= uint8_t(Exception::NMI);	break;
+			case Line::IRQ: 			set_exception(Exception::IRQ);						break;
+			case Line::FIRQ: 			set_exception(Exception::FIRQ);						break;
+			case Line::MRDY:			mrdy_ = value;										break;
+			case Line::Halt:			set_exception(Exception::Halt);						break;
+			case Line::DMABusReq:		set_exception(Exception::DMABusReq);				break;
 		}
 	}
 
@@ -364,7 +364,7 @@ struct Processor {
 
 			reset:
 				registers_.dp = 0;
-				exceptions_ &= ~(Exception::NMI | Exception::PowerOnReset);
+				exceptions_ &= ~(uint8_t(Exception::NMI) | uint8_t(Exception::PowerOnReset));
 				registers_.cc.set<ConditionCode::IRQMask>(true);
 				registers_.cc.set<ConditionCode::FIRQMask>(true);
 
@@ -375,7 +375,7 @@ struct Processor {
 					return;
 				}
 				addressed_internal_cycle(Address::Fixed<Vector::Reset>())
-				if(exceptions_ & (Exception::Halt | Exception::DMABusReq | Exception::Reset)) {
+				if(exceptions_ & (uint8_t(Exception::Halt) | uint8_t(Exception::DMABusReq) | uint8_t(Exception::Reset))) {
 					goto reset_spin;
 				}
 
@@ -423,27 +423,27 @@ struct Processor {
 					// Avoid potential accidental detection of SWIs on the interrupt paths.
 					operation_.operation = Operation::None;
 
-					if(exceptions_ & Exception::Halt) {
+					if(exceptions_ & uint8_t(Exception::Halt)) {
 						goto halt;
 					}
 
-					if(exceptions_ & (Exception::PowerOnReset | Exception::Reset)) {
+					if(exceptions_ & (uint8_t(Exception::PowerOnReset) | uint8_t(Exception::Reset))) {
 						address_ = Vector::Reset;
 						goto reset;
 					}
 
-					if(exceptions_ & Exception::NMI) {
+					if(exceptions_ & uint8_t(Exception::NMI)) {
 						address_ = Vector::NMI;
-						exceptions_ &= ~Exception::NMI;
+						exceptions_ &= ~uint8_t(Exception::NMI);
 						goto nmi_irq;
 					}
 
-					if(exceptions_ & Exception::FIRQ && !registers_.cc.get<ConditionCode::FIRQMask>()) {
+					if(exceptions_ & uint8_t(Exception::FIRQ) && !registers_.cc.get<ConditionCode::FIRQMask>()) {
 						address_ = Vector::FIRQ;
 						goto firq;
 					}
 
-					if(exceptions_ & Exception::IRQ && !registers_.cc.get<ConditionCode::IRQMask>()) {
+					if(exceptions_ & uint8_t(Exception::IRQ) && !registers_.cc.get<ConditionCode::IRQMask>()) {
 						address_ = Vector::IRQ;
 						goto nmi_irq;
 					}
@@ -801,17 +801,17 @@ struct Processor {
 					return;
 				}
 
-				if(exceptions_ & Exception::NMI) {
+				if(exceptions_ & uint8_t(Exception::NMI)) {
 					address_ = Vector::NMI;
 					goto interrupt_dispatch;
 				}
 
-				if(exceptions_ & Exception::FIRQ && !registers_.cc.get<ConditionCode::FIRQMask>()) {
+				if(exceptions_ & uint8_t(Exception::FIRQ) && !registers_.cc.get<ConditionCode::FIRQMask>()) {
 					address_ = Vector::FIRQ;
 					goto interrupt_dispatch;
 				}
 
-				if(exceptions_ & Exception::IRQ && !registers_.cc.get<ConditionCode::IRQMask>()) {
+				if(exceptions_ & uint8_t(Exception::IRQ) && !registers_.cc.get<ConditionCode::IRQMask>()) {
 					address_ = Vector::IRQ;
 					goto interrupt_dispatch;
 				}
@@ -922,7 +922,7 @@ struct Processor {
 						BusState::SyncAcknowledge
 					>(Address::Fixed<0xffff>(), Data::NoValue());
 
-				if(!(exceptions_ & (Exception::NMI | Exception::IRQ | Exception::FIRQ))) {
+				if(!(exceptions_ & (uint8_t(Exception::NMI) | uint8_t(Exception::IRQ) | uint8_t(Exception::FIRQ)))) {
 					goto sync;
 				}
 
@@ -1018,7 +1018,7 @@ private:
 	Registers registers_;
 	Cycles perform_cost_;
 
-	enum Exception: uint8_t {
+	enum class Exception: uint8_t {
 		Reset			= 1 << 0,
 		PowerOnReset	= 1 << 1,
 		NMI				= 1 << 2,
@@ -1027,7 +1027,7 @@ private:
 		Halt			= 1 << 5,
 		DMABusReq		= 1 << 6,		// TODO: implement.
 	};
-	uint8_t exceptions_ = Exception::PowerOnReset;
+	uint8_t exceptions_ = uint8_t(Exception::PowerOnReset);
 	bool mrdy_ = false;
 
 	// Transient storage.

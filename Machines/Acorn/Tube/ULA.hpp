@@ -37,7 +37,7 @@ struct ULA {
 	}
 
 	void fifo_is_empty(const uint8_t mask) {
-		apply_fifo_mask(0x00, ~mask);
+		apply_fifo_mask(0x00, uint8_t(~mask));
 	}
 
 	bool has_host_irq() const {

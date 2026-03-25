@@ -173,7 +173,7 @@ public:
 	IntT direction() const { return static_cast<IntT>(direction_); }
 
 	// Complete value get and set.
-	void set(uint16_t value) {
+	void set(const uint16_t value) {
 		set_from<Flag::Carry>(value & FlagValue::Carry);
 		set_from<Flag::AuxiliaryCarry>(value & FlagValue::AuxiliaryCarry);
 		set_from<Flag::Overflow>(value & FlagValue::Overflow);
@@ -183,8 +183,8 @@ public:
 
 		set_from<uint8_t, Flag::Sign>(uint8_t(value));
 
-		set_from<Flag::Zero>((~value) & FlagValue::Zero);
-		set_from<Flag::ParityOdd>((~value) & FlagValue::Parity);
+		set_from<Flag::Zero>(uint16_t(~value) & FlagValue::Zero);
+		set_from<Flag::ParityOdd>(uint16_t(~value) & FlagValue::Parity);
 	}
 
 	uint16_t get() const {

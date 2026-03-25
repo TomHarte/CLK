@@ -398,7 +398,7 @@ public:
 					case 0xff06:	value = video_.read<0xff06>();	break;
 					case 0xff07:	value = video_.read<0xff07>();	break;
 					case 0xff08: {
-						const uint8_t keyboard_input =
+						const auto keyboard_input = uint8_t(
 							~(
 								((keyboard_mask_ & 0x01) ? 0x00 : key_states_[0]) |
 								((keyboard_mask_ & 0x02) ? 0x00 : key_states_[1]) |
@@ -408,7 +408,8 @@ public:
 								((keyboard_mask_ & 0x20) ? 0x00 : key_states_[5]) |
 								((keyboard_mask_ & 0x40) ? 0x00 : key_states_[6]) |
 								((keyboard_mask_ & 0x80) ? 0x00 : key_states_[7])
-							);
+							)
+						);
 
 						const uint8_t joystick_mask =
 							0xff &

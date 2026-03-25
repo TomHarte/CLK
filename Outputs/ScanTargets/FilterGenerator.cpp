@@ -98,7 +98,7 @@ float FilterGenerator::suggested_sample_multiplier(
 	// subcarrier, ignoring the samples per line. This will allow the shaders to do point sampling
 	// with impunity.
 	if(input_type == InputDataType::PhaseLinkedLuminance8) {
-		const float sample_multiplier = per_line_subcarrier_frequency * 8.0f <= buffer_width ? 8.0f : 4.0f;
+		const float sample_multiplier = per_line_subcarrier_frequency * 8.0f <= float(buffer_width) ? 8.0f : 4.0f;
 		return sample_multiplier * per_line_subcarrier_frequency / float(samples_per_line);
 	}
 
@@ -107,7 +107,7 @@ float FilterGenerator::suggested_sample_multiplier(
 
 	// Prefer the minimum integer multiple that is at or above that minimum width.
 	const float ideal = std::ceil(minimum / float(samples_per_line));
-	if(ideal * float(samples_per_line) <= buffer_width) {
+	if(ideal * float(samples_per_line) <= float(buffer_width)) {
 		return ideal;
 	}
 

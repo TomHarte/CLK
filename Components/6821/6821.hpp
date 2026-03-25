@@ -164,7 +164,7 @@ private:
 
 		mutable uint8_t previous_output = 0x00;
 		uint8_t output() const {
-			return data | ~direction;
+			return uint8_t(data | ~direction);
 		}
 		uint8_t input(const uint8_t bus) const {
 			return (data & direction) | (bus & ~direction);
