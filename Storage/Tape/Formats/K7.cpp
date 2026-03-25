@@ -87,7 +87,7 @@ uint8_t K7::Serialiser::next() {
 			++state_length_;
 			if(state_length_ == 2) {
 				state_ = State::Body;
-				state_length_ = byte;
+				state_length_ = byte - 1;		// Because the test in ::Body is posthoc.
 			}
 			return byte;
 		} break;
