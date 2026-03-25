@@ -39,8 +39,10 @@ std::unique_ptr<FormatSerialiser> K7::format_serialiser() const {
 	return std::make_unique<Serialiser>(file_name_);
 }
 
-K7::Serialiser::Serialiser(const std::string &name) : file_(name, FileMode::Read) {
-	bit_ = BitsPerByte;
+K7::Serialiser::Serialiser(const std::string &name) : file_(name, FileMode::Read) {}
+
+void K7::Serialiser::set_target_platforms(const TargetPlatform::Type type) {
+	target_ = type;
 }
 
 void K7::Serialiser::reset() {
@@ -53,36 +55,64 @@ void K7::Serialiser::push_next_pulses() {
 		return;
 	}
 
-	static constexpr int LengthDenominator = 31'500 * 2;
+	// The TO and MO have entirely-distinct encodings.
+	if(target_ == TargetPlatform::ThomsonTO) {
+		static constexpr int LengthDenominator = 31'500 * 2;
 
-	static constexpr auto ZeroLength = Time(7, LengthDenominator);
-	static constexpr int ZeroRepetitions = 5;
+		static constexpr auto ZeroLength = Time(7, LengthDenominator);
+		static constexpr int ZeroRepetitions = 5;
 
-	static constexpr auto OneLength = Time(5, LengthDenominator);
-	static constexpr int OneRepetitions = 7;
+		static constexpr auto OneLength = Time(5, LengthDenominator);
+		static constexpr int OneRepetitions = 7;
 
-	const auto post = [&](const bool bit) {
-		const auto output = [&](const Time length, const int repetitions) {
-			for(int c = 0; c < repetitions; c++) {
-				emplace_back(Pulse::Low, length);
-				emplace_back(Pulse::High, length);
+		const auto post = [&](const bool bit) {
+			const auto output = [&](const Time length, const int repetitions) {
+				for(int c = 0; c < repetitions; c++) {
+					emplace_back(Pulse::Low, length);
+					emplace_back(Pulse::High, length);
+				}
+			};
+			if(bit) {
+				output(OneLength, OneRepetitions);
+			} else {
+				output(ZeroLength, ZeroRepetitions);
 			}
 		};
-		if(bit) {
-			output(OneLength, OneRepetitions);
-		} else {
-			output(ZeroLength, ZeroRepetitions);
+
+		post(0);
+
+		uint8_t byte = file_.get();
+		for(int c = 0; c < 8; c++) {
+			post(byte & 1);
+			byte >>= 1;
 		}
-	};
 
-	post(0);
+		post(1);
+		post(1);
+	} else {
+		const auto pulse_type = [&]() {
+			current_type_ = current_type_ == Pulse::Type::High ? Pulse::Type::Low : Pulse::Type::High;
+			return current_type_;
+		};
 
-	byte_ = file_.get();
-	for(int c = 0; c < 8; c++) {
-		post(byte_ & 1);
-		byte_ >>= 1;
+		const auto post = [&](const bool bit) {
+			static constexpr auto FullPulse = Time(833, 1'000'000);		// 833 µs
+			static constexpr auto HalfPulse = Time(417, 1'000'000);		// 417 µs
+
+			// Basic FM encoding. ROM watches for an edge to synchronise, then waits  for more than half of the
+			// bit length, then samples again to decide a 0 or a 1. And repeat.
+			if(bit) {
+				emplace_back(pulse_type(), HalfPulse);
+				emplace_back(pulse_type(), HalfPulse);
+			} else {
+				emplace_back(pulse_type(), FullPulse);
+			}
+		};
+
+		uint8_t byte = file_.get();
+		for(int c = 0; c < 8; c++) {
+			post(byte & 1);
+			byte >>= 1;
+		}
 	}
-
-	post(1);
-	post(1);
 }

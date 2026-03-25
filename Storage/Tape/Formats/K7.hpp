@@ -27,18 +27,17 @@ public:
 private:
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
-	struct Serialiser: public PulseQueuedSerialiser {
+	struct Serialiser: public PulseQueuedSerialiser, public TargetPlatform::Recipient {
 		Serialiser(const std::string &);
 
 	private:
 		void push_next_pulses() override;
 		void reset() override;
+		void set_target_platforms(TargetPlatform::Type) override;
 
 		Storage::FileHolder file_;
-		Pulse current_pulse_;
-		uint8_t byte_;
-		int bit_ = 0;
-		int repetitions_ = 0;
+		Pulse::Type current_type_;
+		TargetPlatform::Type target_;
 	};
 	std::string file_name_;
 };

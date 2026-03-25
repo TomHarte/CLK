@@ -309,7 +309,7 @@ private:
 
 	bool insert_media(const Analyser::Static::Media &media) override {
 		if(!media.tapes.empty()) {
-			tape_player_.set_tape(media.tapes.front(), TargetPlatform::Thomson);
+			tape_player_.set_tape(media.tapes.front(), TargetPlatform::ThomsonMO);
 		}
 
 		return !media.tapes.empty();

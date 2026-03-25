@@ -268,8 +268,8 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::JFD>>(TargetPlatform::Archimedes, "jfd");
 
-	accumulator.try_standard<Tape::K7>(TargetPlatform::Thomson, "k5");
-	accumulator.try_standard<Tape::K7>(TargetPlatform::Thomson, "k7");
+	accumulator.try_standard<Tape::K7>(TargetPlatform::ThomsonMO | TargetPlatform::ThomsonTO, "k5");
+	accumulator.try_standard<Tape::K7>(TargetPlatform::ThomsonMO | TargetPlatform::ThomsonTO, "k7");
 
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::MOOF>>(TargetPlatform::Macintosh, "moof");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::MSA>>(TargetPlatform::AtariST, "msa");
@@ -398,7 +398,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	append(TargetPlatform::Oric, Oric::GetTargets);
 	append(TargetPlatform::PCCompatible, PCCompatible::GetTargets);
 	append(TargetPlatform::Sega, Sega::GetTargets);
-	append(TargetPlatform::Thomson, Thomson::GetTargets);
+	append(TargetPlatform::ThomsonMO | TargetPlatform::ThomsonTO, Thomson::GetTargets);
 	append(TargetPlatform::ZX8081, ZX8081::GetTargets);
 	append(TargetPlatform::ZXSpectrum, ZXSpectrum::GetTargets);
 
