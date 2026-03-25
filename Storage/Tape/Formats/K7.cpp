@@ -45,6 +45,8 @@ static constexpr int BitsPerByte = 11;
 		Specifically, the ROM watches for an edge to synchronise, then waits for two thirds of the
 		bit length, then samples again to decide a 0 or a 1. And repeat.
 
+		There are not start and stop bits; bits are stored MSB first.
+
 */
 
 K7::K7(const std::string &file_name) : file_name_(file_name) {}
@@ -110,8 +112,8 @@ void K7::Serialiser::push_next_pulses() {
 		};
 
 		const auto post = [&](const bool bit) {
-			static constexpr auto FullPulse = Time(833, 1'000'000);		// 833 µs
-			static constexpr auto HalfPulse = Time(417, 1'000'000);		// 417 µs
+			static constexpr auto FullPulse = Time(17, 20408);		// ~833 µs.
+			static constexpr auto HalfPulse = Time(17, 40816);		// ~417 µs.
 
 			if(bit) {
 				emplace_back(pulse_type(), HalfPulse);
@@ -123,8 +125,8 @@ void K7::Serialiser::push_next_pulses() {
 
 		uint8_t byte = file_.get();
 		for(int c = 0; c < 8; c++) {
-			post(byte & 1);
-			byte >>= 1;
+			post(byte & 0x80);
+			byte <<= 1;
 		}
 	}
 }
