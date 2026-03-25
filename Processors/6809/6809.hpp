@@ -108,8 +108,13 @@ enum class Line {
 };
 
 enum class LIC {
-	Active,
-	Inactive,
+	Active,				// LIC is active.
+	Inactive,			// LIC is inactive.
+
+	InstructionFetch,	// LIC is inactive, and this is an instruction fetch. LIC's stated purpose is so that observers
+						// can detect instruction fetches by watching for its trailing edge. As an emulation nicety,
+						// and pragmatically because it's doable without additional cost, this implementation directly
+						// signals InstructionFetch so that interested observers don't need to maintain their own state.
 };
 
 enum Vector: uint16_t {
