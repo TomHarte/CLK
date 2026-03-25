@@ -89,11 +89,11 @@ void adc(RegistersT &registers, const uint8_t operand) {
 template <Model model, typename RegistersT>
 void sbc(RegistersT &registers, const uint8_t operand) {
 	if(!has_decimal_mode(model) || !registers.flags.template get<Flag::Decimal>()) {
-		adc<Model::NES6502>(registers, ~operand);	// Lie about the model to carry forward the fact of not-decimal.
+		adc<Model::NES6502>(registers, uint8_t(~operand));	// Lie about the model to carry forward the fact of not-decimal.
 		return;
 	}
 
-	const uint8_t operand_complement = ~operand;
+	const auto operand_complement = uint8_t(~operand);
 	uint8_t result = registers.a + operand_complement + registers.flags.carry_value();
 
 	// All flags are set based only on the decimal result.

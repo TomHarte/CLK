@@ -81,7 +81,7 @@ void GLU::EnsoniqState::set_register(uint16_t address, uint8_t value) {
 			oscillators[address & 0x1f].table_size = value;
 
 			// The most-significant bit that should be used is 16 + (value & 7).
-			oscillators[address & 0x1f].overflow_mask = ~(0xffffff >> (7 - (value & 7)));
+			oscillators[address & 0x1f].overflow_mask = uint32_t(~(0xffffff >> (7 - (value & 7))));
 		break;
 
 		default:
@@ -364,7 +364,7 @@ uint8_t GLU::EnsoniqState::Oscillator::sample(uint8_t *ram) {
 
 	// The full pointer is composed of the bits of the programmed address not touched by
 	// the table pointer, plus the table pointer.
-	const uint16_t sample_address = ((address << 8) & ~table_size_mask) | (table_pointer & table_size_mask);
+	const auto sample_address = uint16_t(((address << 8) & ~table_size_mask) | (table_pointer & table_size_mask));
 
 	// Ignored here: bit 6 should select between RAM banks. But for now this is IIgs-centric,
 	// and that has only one bank of RAM.

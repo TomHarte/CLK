@@ -361,7 +361,7 @@ private:
 		executor_.bus.video().crt().set_scan_target(scan_target);
 	}
 	Outputs::Display::ScanStatus get_scaled_scan_status() const override {
-		return executor_.bus.video().crt().get_scaled_scan_status() * video_divider_;
+		return executor_.bus.video().crt().get_scaled_scan_status() * float(video_divider_);
 	}
 
 	// MARK: - TimedMachine.

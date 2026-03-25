@@ -83,23 +83,37 @@ public:
 	template <typename Type = IntType>
 	requires std::integral<Type> || std::floating_point<Type>
 	constexpr Type as() const {
-		const auto value = get();
+		// TODO: adopt std::saturate_cast if/when this is a C++26 project.
 
-		if constexpr (sizeof(Type) == sizeof(IntType) && std::is_integral_v<Type>) {
-			if constexpr (std::is_same_v<Type, IntType>) {
-				return value;
-			} else if constexpr (std::is_signed_v<Type>) {
-				// Both integers are the same size, but a signed result is being asked for
-				// from an unsigned original.
-				return value > Type(std::numeric_limits<Type>::max()) ?
-					Type(std::numeric_limits<Type>::max()) : Type(value);
+		const IntType value = get();
+		if constexpr (std::is_floating_point_v<Type>) {
+			// Floating point: the caller takes responsibility for loss of precision;
+			// acceptable range can be assumed.
+			return Type(value);
+		} else {
+			assert(std::is_signed_v<IntType>);
+
+			if constexpr (std::is_signed_v<Type>) {
+				// Casting to another signed type; either it's large enough that range can't be exceeded,
+				// or it's a lesser range that can safely be clamped to.
+				if constexpr (sizeof(Type) >= sizeof(IntType)) {
+					return Type(value);
+				} else {
+					return Type(std::clamp<IntType>(value, IntType(std::numeric_limits<Type>::min()), IntType(std::numeric_limits<Type>::max())));
+				}
 			} else {
-				// An unsigned result is being asked for from a signed original.
-				return value < 0 ? 0 : Type(value);
+				// Casting to an unsigned type: negative numbers map straight to 0, everything positive
+				// either unambiguously fits, or can be subject to an in-IntType min.
+				if(value <= 0) {
+					return 0;
+				}
+				if constexpr (sizeof(Type) >= sizeof(IntType)) {
+					return Type(value);
+				} else {
+					return Type(std::min<IntType>(value, IntType(std::numeric_limits<Type>::max())));
+				}
 			}
 		}
-
-		return Type(std::clamp(length_, low<Type>, high<Type>));
 	}
 
 	/// @returns The underlying int, in its native form, potentially scaled upward.
@@ -172,21 +186,6 @@ public:
 
 private:
 	IntType length_;
-
-	template <typename Type>
-	static consteval bool can_represent(const Type x) {
-		return std::numeric_limits<IntType>::min() <= x && std::numeric_limits<IntType>::max() >= x;
-	}
-
-	template<typename Type>
-	static constexpr IntType low =
-		can_represent(std::numeric_limits<Type>::min()) ?
-			IntType(std::numeric_limits<Type>::min()) : std::numeric_limits<IntType>::min();
-
-	template<typename Type>
-	static constexpr IntType high =
-		can_represent(std::numeric_limits<Type>::max()) ?
-			IntType(std::numeric_limits<Type>::max()) : std::numeric_limits<IntType>::max();
 };
 
 /// Reasons Clocks into being a count of querter cycles, building half- and whole-cycles from there.

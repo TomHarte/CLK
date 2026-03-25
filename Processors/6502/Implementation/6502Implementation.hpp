@@ -360,7 +360,7 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 						++operand_;
 						[[fallthrough]];
 					case OperationSBC:
-						operand_ = ~operand_;
+						operand_ = uint8_t(~operand_);
 
 						if(flags_.decimal && has_decimal_mode(personality)) {
 							uint8_t result = a_ + operand_ + flags_.carry;
@@ -399,7 +399,7 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 							a_ = result;
 
 							// fix up in case this was INS.
-							if(cycle == OperationINS) operand_ = ~operand_;
+							if(cycle == OperationINS) operand_ = uint8_t(~operand_);
 
 							if constexpr (is_65c02(personality)) {
 								// 65C02 fix: set the N and Z flags based on the final, decimal result.
@@ -466,7 +466,7 @@ void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 						}
 
 						// fix up in case this was INS.
-						if(cycle == OperationINS) operand_ = ~operand_;
+						if(cycle == OperationINS) operand_ = uint8_t(~operand_);
 					continue;
 
 // MARK: - Shifts and Rolls

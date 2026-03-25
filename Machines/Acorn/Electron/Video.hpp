@@ -115,7 +115,7 @@ private:
 	template <uint16_t pair, int base>
 	requires ((pair & 1) == 0 && pair >= 0xfe08 && pair <= 0xfe0e && base >= 0 && base < 16 && !(base & 0b1010))
 	void set_palette_group(const int address, const uint8_t value) {
-		source_palette_[address & 0b0111] = ~value;
+		source_palette_[address & 0b0111] = uint8_t(~value);
 
 		mapped_palette_[base | 0b0000] = palette_entry<BitIndex{pair + 1, 0}, BitIndex{pair + 1, 4}, BitIndex{pair, 4}>();
 		mapped_palette_[base | 0b0010] = palette_entry<BitIndex{pair + 1, 1}, BitIndex{pair + 1, 5}, BitIndex{pair, 5}>();
