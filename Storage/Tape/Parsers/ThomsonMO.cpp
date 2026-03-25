@@ -36,6 +36,54 @@ std::optional<bool> Parser::bit(Storage::Tape::TapeSerialiser &serialiser) {
 	return result;
 }
 
-//std::optional<uint8_t> Parser::byte(Storage::Tape::TapeSerialiser &serialiser) {
-//
-//}
+std::optional<uint8_t> Parser::byte(Storage::Tape::TapeSerialiser &serialiser) {
+	uint8_t result = 0;
+
+	for(int c = 0; c < 8; c++) {
+		const auto next = bit(serialiser);
+		if(!next) return std::nullopt;
+		result = uint8_t((result << 1) | *next);
+	}
+
+	return result;
+}
+
+std::optional<Block> Parser::block(Storage::Tape::TapeSerialiser &serialiser) {
+	// Look for a leader of 01s, then align for bytes on a 0x3c5a.
+	uint16_t bits = 0;
+	bool had_leader = false;
+	while(true) {
+		const auto next = bit(serialiser);
+		if(!next) return std::nullopt;
+
+		bits = uint16_t((bits << 1) | *next);
+		had_leader |= bits == 0x0101;
+		if(had_leader && bits == 0x3c5a) break;
+	}
+
+	// Read type and length, seed checksum.
+	Block result;
+
+	const auto type = byte(serialiser);
+	if(!type) return std::nullopt;
+	result.type = *type;
+
+	const auto length = byte(serialiser);
+	if(!length) return std::nullopt;
+	result.data.resize(*length);
+
+	uint8_t checksum = 0;
+	for(auto &target: result.data) {
+		const auto next = byte(serialiser);
+		if(!next) return std::nullopt;
+		target = *next;
+		checksum += *next;
+	}
+
+	const auto trailer = byte(serialiser);
+	if(!trailer) return std::nullopt;
+	checksum += *trailer;
+	result.checksum_valid = !checksum;
+
+	return result;
+}
