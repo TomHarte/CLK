@@ -112,6 +112,7 @@ void K7::Serialiser::push_next_pulses() {
 		};
 
 		const auto post = [&](const bool bit) {
+			// TODO: could probably shave 1/4 off timings here and just be a tape playing quickly?
 			static constexpr auto FullPulse = Time(17, 20408);		// ~833 µs.
 			static constexpr auto HalfPulse = Time(17, 40816);		// ~417 µs.
 

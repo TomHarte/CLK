@@ -400,10 +400,19 @@ bool bra(Registers &registers, const OperandT operand) {
 /// i.e. the subset of instructions that can be rationalised as not touching memory or having any knowledge of the instruction stream once
 /// an appropriately-sized operand has been fetched.
 ///
+/// The nop handler will be called each time a NOP is encountered in code. This is intended to provide for high-level triggers without active
+/// instruction stream monitoring. A version that doesn't require a NOP handler is also provided below.
+///
 /// @returns The number of cycles spent in execution of this operation, abstract of the addressing mode in use. So EXG takes eight cycles,
 /// of which the first two are the stuff of immediate addressing — fetching an opcode then fetching a post byte. So this function would return 6,
 /// to indicate that processing the EXG additionally took six cycles.
-inline Cycles perform(const InstructionSet::M6809::Operation operation, Registers &registers, RegisterPair16 &operand) {
+template <typename NopHandlerT>
+Cycles perform(
+	const InstructionSet::M6809::Operation operation,
+	Registers &registers,
+	RegisterPair16 &operand,
+	const NopHandlerT &&nop_handler
+) {
 	auto &byte = operand.halves.low;
 	auto &word = operand.full;
 
@@ -411,8 +420,10 @@ inline Cycles perform(const InstructionSet::M6809::Operation operation, Register
 	switch(operation) {
 		using enum InstructionSet::M6809::Operation;
 
+		case NOP:
+			nop_handler();
 		case None:
-		case NOP: return 0;
+		return 0;
 
 		case ABX:	abx(registers);								return 1;
 
@@ -566,5 +577,15 @@ inline Cycles perform(const InstructionSet::M6809::Operation operation, Register
 		default: __builtin_unreachable();
 	}
 }
+
+/// Acts as @c perform above, but doesn't require the caller to provide a NOP handler.
+inline Cycles perform(
+	const InstructionSet::M6809::Operation operation,
+	Registers &registers,
+	RegisterPair16 &operand
+) {
+	return perform(operation, registers, operand, []{});
+}
+
 
 }

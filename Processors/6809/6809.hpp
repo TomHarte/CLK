@@ -321,7 +321,14 @@ struct Processor {
 			local_label(finishPerform):	(void)0;							\
 		}
 
-		#define perform_operation() internal_cycles(CPU::M6809::perform(operation_.operation, registers_, operand_))
+		#define perform_operation() {\
+			internal_cycles(CPU::M6809::perform(\
+				operation_.operation, \
+				registers_, \
+				operand_, \
+				[]{}	\
+			))	\
+		}
 
 		#define addressed_internal_cycle(address) {					\
 			static constexpr auto access = restore_point();			\
