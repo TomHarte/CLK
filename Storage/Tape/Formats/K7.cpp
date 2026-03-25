@@ -63,6 +63,55 @@ void K7::Serialiser::set_target_platforms(const TargetPlatform::Type type) {
 
 void K7::Serialiser::reset() {
 	file_.seek(0, Whence::SET);
+	state_ = State::Seeking;
+}
+
+uint8_t K7::Serialiser::next() {
+	// The state machine below forces gaps between files; the K7 file format is predicated on emulator hacks
+	// underneath — it assumes a high-level capturing of the relevant ROM routines.
+	//
+	// This attempts to ameliorate for that.
+	switch(state_) {
+		case State::Seeking: {
+			const uint8_t byte = file_.get();
+			byte_history_ = uint16_t((byte_history_ << 8) | byte);
+			if(byte_history_ == 0x3c5a) {
+				state_ = State::Header;
+				state_length_ = 0;
+			}
+			return byte;
+		} break;
+
+		case State::Header: {
+			const uint8_t byte = file_.get();
+			++state_length_;
+			if(state_length_ == 2) {
+				state_ = State::Body;
+				state_length_ = byte;
+			}
+			return byte;
+		} break;
+
+		case State::Body: {
+			const uint8_t byte = file_.get();
+			--state_length_;
+			if(!state_length_) {
+				state_ = State::PostBodyPause;
+				state_length_ = 50;				// Arbitrary; selected to be 'long enough'.
+			}
+			return byte;
+		} break;
+
+		case State::PostBodyPause: {
+			--state_length_;
+			if(!state_length_) {
+				state_ = State::Seeking;
+			}
+			return 0x01;						// Almost arbitrary: matches the standard synchronisation byte.
+		} break;
+
+		default: __builtin_unreachable();
+	}
 }
 
 void K7::Serialiser::push_next_pulses() {
@@ -97,7 +146,7 @@ void K7::Serialiser::push_next_pulses() {
 
 		post(0);
 
-		uint8_t byte = file_.get();
+		uint8_t byte = next();
 		for(int c = 0; c < 8; c++) {
 			post(byte & 1);
 			byte >>= 1;
@@ -124,7 +173,7 @@ void K7::Serialiser::push_next_pulses() {
 			}
 		};
 
-		uint8_t byte = file_.get();
+		uint8_t byte = next();
 		for(int c = 0; c < 8; c++) {
 			post(byte & 0x80);
 			byte <<= 1;

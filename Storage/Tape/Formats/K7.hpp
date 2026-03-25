@@ -38,6 +38,16 @@ private:
 		Storage::FileHolder file_;
 		Pulse::Type current_type_;
 		TargetPlatform::Type target_;
+
+		uint8_t next();
+		enum class State {
+			Seeking,
+			Header,
+			Body,
+			PostBodyPause,
+		} state_;
+		int state_length_ = 0;
+		uint16_t byte_history_ = 0;
 	};
 	std::string file_name_;
 };
