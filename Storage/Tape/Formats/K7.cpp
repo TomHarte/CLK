@@ -19,18 +19,32 @@ static constexpr int BitsPerByte = 11;
 /*
 	K7 files are a raw dump of source bytes that were encoded in the standard Thomson layout.
 
-	That layout is:
+	# TO machines:
 
-		0:			start bit
-		LSB...MSB:	byte content
-		1 1:		stop bits.
+		That layout is:
 
-	Each bit is composed of square waves — low, then high — of idealised duration:
+			0:			start bit
+			LSB...MSB:	byte content
+			1 1:		stop bits.
 
-		7 / 31500ths of a second, 5 times over: 0 bit
-		5 / 31500ths of a second, 7 times over: 1 bit
+		Each bit is composed of square waves — low, then high — of idealised duration:
 
-	So baud rate is 31500 / (5 * 7) = 900.
+			7 / 31500ths of a second, 5 times over: 0 bit
+			5 / 31500ths of a second, 7 times over: 1 bit
+
+		So baud rate is 31500 / (5 * 7) = 900.
+
+	# MO machines:
+
+		Basic FM encoding is used with an idealised 833µs window length; each window begins
+		with a level transition after which:
+
+			any transitions in that window: 1 bit
+			no transitions: 0 bit.
+
+		Specifically, the ROM watches for an edge to synchronise, then waits for two thirds of the
+		bit length, then samples again to decide a 0 or a 1. And repeat.
+
 */
 
 K7::K7(const std::string &file_name) : file_name_(file_name) {}
@@ -99,8 +113,6 @@ void K7::Serialiser::push_next_pulses() {
 			static constexpr auto FullPulse = Time(833, 1'000'000);		// 833 µs
 			static constexpr auto HalfPulse = Time(417, 1'000'000);		// 417 µs
 
-			// Basic FM encoding. ROM watches for an edge to synchronise, then waits  for more than half of the
-			// bit length, then samples again to decide a 0 or a 1. And repeat.
 			if(bit) {
 				emplace_back(pulse_type(), HalfPulse);
 				emplace_back(pulse_type(), HalfPulse);
