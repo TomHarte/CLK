@@ -1107,6 +1107,12 @@
 		4BBC7DC12F6D94E500E71794 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBC7DC02F6D94E500E71794 /* Video.cpp */; };
 		4BBC7DC22F6D94E500E71794 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBC7DC02F6D94E500E71794 /* Video.cpp */; };
 		4BBC7DC32F6D94E500E71794 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBC7DC02F6D94E500E71794 /* Video.cpp */; };
+		4BBC7DC82F7182CC00E71794 /* K7.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBC7DC72F7182CC00E71794 /* K7.cpp */; };
+		4BBC7DC92F7182CC00E71794 /* K7.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBC7DC72F7182CC00E71794 /* K7.cpp */; };
+		4BBC7DCA2F7182CC00E71794 /* K7.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBC7DC72F7182CC00E71794 /* K7.cpp */; };
+		4BBC7DD32F7186D600E71794 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBC7DD12F7186D600E71794 /* StaticAnalyser.cpp */; };
+		4BBC7DD42F7186D600E71794 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBC7DD12F7186D600E71794 /* StaticAnalyser.cpp */; };
+		4BBC7DD52F7186D600E71794 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBC7DD12F7186D600E71794 /* StaticAnalyser.cpp */; };
 		4BBC951E1F368D83008F4C34 /* i8272.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBC951C1F368D83008F4C34 /* i8272.cpp */; };
 		4BBF49AF1ED2880200AB3669 /* FUSETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF49AE1ED2880200AB3669 /* FUSETests.swift */; };
 		4BBFBB6C1EE8401E00C01E7A /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFBB6A1EE8401E00C01E7A /* ZX8081.cpp */; };
@@ -2383,6 +2389,10 @@
 		4BBC7DC02F6D94E500E71794 /* Video.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Video.cpp; sourceTree = "<group>"; };
 		4BBC7DC42F70507B00E71794 /* SegmentCounter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SegmentCounter.hpp; sourceTree = "<group>"; };
 		4BBC7DC52F70BAFB00E71794 /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
+		4BBC7DC62F7182CC00E71794 /* K7.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = K7.hpp; sourceTree = "<group>"; };
+		4BBC7DC72F7182CC00E71794 /* K7.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = K7.cpp; sourceTree = "<group>"; };
+		4BBC7DD02F7186D600E71794 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
+		4BBC7DD12F7186D600E71794 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4BBC951C1F368D83008F4C34 /* i8272.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = i8272.cpp; sourceTree = "<group>"; };
 		4BBC951D1F368D83008F4C34 /* i8272.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = i8272.hpp; sourceTree = "<group>"; };
 		4BBF49AE1ED2880200AB3669 /* FUSETests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FUSETests.swift; sourceTree = "<group>"; };
@@ -3697,6 +3707,7 @@
 				4B0E04E81FC9E5DA00F43484 /* CAS.cpp */,
 				4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */,
 				4B3BF5AE1F146264005B6C36 /* CSW.cpp */,
+				4BBC7DC72F7182CC00E71794 /* K7.cpp */,
 				4B59199A1DAC6C46005BB85C /* OricTAP.cpp */,
 				4B2BFC5D1D613E0200BA3AA9 /* TapePRG.cpp */,
 				4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */,
@@ -3706,6 +3717,7 @@
 				4B0E04E91FC9E5DA00F43484 /* CAS.hpp */,
 				4BC91B821D1F160E00884B76 /* CommodoreTAP.hpp */,
 				4B3BF5AF1F146264005B6C36 /* CSW.hpp */,
+				4BBC7DC62F7182CC00E71794 /* K7.hpp */,
 				4B59199B1DAC6C46005BB85C /* OricTAP.hpp */,
 				4B2BFC5E1D613E0200BA3AA9 /* TapePRG.hpp */,
 				4B69FB431C4D941400B5F0AA /* TapeUEF.hpp */,
@@ -4061,6 +4073,7 @@
 				4B8944F6201967B4007DE474 /* Oric */,
 				4238200D2B17CBC800964EFE /* PCCompatible */,
 				4B7F1894215486A100388727 /* Sega */,
+				4BBC7DD22F7186D600E71794 /* Thomson */,
 				4B894504201967B4007DE474 /* ZX8081 */,
 				4B0F1BAF2602645900B85C66 /* ZXSpectrum */,
 			);
@@ -5123,6 +5136,15 @@
 				4B9BE3FF203A0C0600FFAE60 /* MultiSpeaker.hpp */,
 			);
 			path = Implementation;
+			sourceTree = "<group>";
+		};
+		4BBC7DD22F7186D600E71794 /* Thomson */ = {
+			isa = PBXGroup;
+			children = (
+				4BBC7DD12F7186D600E71794 /* StaticAnalyser.cpp */,
+				4BBC7DD02F7186D600E71794 /* StaticAnalyser.hpp */,
+			);
+			path = Thomson;
 			sourceTree = "<group>";
 		};
 		4BBC951F1F368D87008F4C34 /* 8272 */ = {
@@ -6422,6 +6444,7 @@
 				4B12C0EE1FCFAD1A005BFD93 /* Keyboard.cpp in Sources */,
 				4BCD634A22D6756400F567F1 /* MacintoshDoubleDensityDrive.cpp in Sources */,
 				4B05401F219D1618001BF69C /* ScanTarget.cpp in Sources */,
+				4BBC7DC92F7182CC00E71794 /* K7.cpp in Sources */,
 				4B055AE81FAE9B7B0060FFFF /* FIRFilter.cpp in Sources */,
 				4B055A901FAE85A90060FFFF /* TimedEventLoop.cpp in Sources */,
 				4B8318B722D3E54D006DB630 /* Video.cpp in Sources */,
@@ -6539,6 +6562,7 @@
 				4B56173E2F44B384003CB7FE /* ROMLibrary.cpp in Sources */,
 				4BBB70A5202011C2002FE009 /* MultiMediaTarget.cpp in Sources */,
 				4B8318BC22D3E588006DB630 /* DisplayMetrics.cpp in Sources */,
+				4BBC7DD32F7186D600E71794 /* StaticAnalyser.cpp in Sources */,
 				4BEDA40E25B2844B000C2DBD /* Decoder.cpp in Sources */,
 				4B5617342F42ADB8003CB7FE /* MOOF.cpp in Sources */,
 				4B1B88BD202E3D3D00B67DFF /* MultiMachine.cpp in Sources */,
@@ -6801,6 +6825,7 @@
 				4B6FD0362923B88F00EC4760 /* HDV.cpp in Sources */,
 				4B051CB0267C1CA200CA44E8 /* Keyboard.cpp in Sources */,
 				4B1497881EE4A1DA00CE2596 /* ZX80O81P.cpp in Sources */,
+				4BBC7DD42F7186D600E71794 /* StaticAnalyser.cpp in Sources */,
 				4B894520201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BB4BFAD22A33DE50069048D /* DriveSpeedAccumulator.cpp in Sources */,
 				4BC080D926A25ADA00D03FD8 /* Amiga.cpp in Sources */,
@@ -6842,6 +6867,7 @@
 				4B0F1BB22602645900B85C66 /* StaticAnalyser.cpp in Sources */,
 				4BBC7DC32F6D94E500E71794 /* Video.cpp in Sources */,
 				4B8805F01DCFC99C003085B1 /* Acorn.cpp in Sources */,
+				4BBC7DC82F7182CC00E71794 /* K7.cpp in Sources */,
 				4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */,
 				4BCE005D227D30CC000CA200 /* MemoryPacker.cpp in Sources */,
 				4BCE1DF125D4C3FA00AE7A2B /* Bus.cpp in Sources */,
@@ -7093,6 +7119,7 @@
 				4BB0CAA727E51B6300672A88 /* DingusdevPowerPCTests.mm in Sources */,
 				4B06AACC2C645EDF0034D014 /* Archimedes.cpp in Sources */,
 				4B778F5623A5F2AF0000D260 /* CPM.cpp in Sources */,
+				4BBC7DCA2F7182CC00E71794 /* K7.cpp in Sources */,
 				4B778F1C23A5ED3F0000D260 /* TimedEventLoop.cpp in Sources */,
 				4B06AAFA2C6460800034D014 /* KonamiSCC.cpp in Sources */,
 				4B47770D26900685005C2340 /* EnterpriseDaveTests.mm in Sources */,
@@ -7108,6 +7135,7 @@
 				4B4DEC07252BFA56004583AC /* 65816Base.cpp in Sources */,
 				4B7752A628217DF80073E2C5 /* Dave.cpp in Sources */,
 				4B778F2323A5EDE40000D260 /* Tape.cpp in Sources */,
+				4BBC7DD52F7186D600E71794 /* StaticAnalyser.cpp in Sources */,
 				4B884C7E2EA8640700073840 /* 6502Mk2Tests.mm in Sources */,
 				4B7752A728217E060073E2C5 /* Blitter.cpp in Sources */,
 				4B06AAD22C645F190034D014 /* I2C.cpp in Sources */,

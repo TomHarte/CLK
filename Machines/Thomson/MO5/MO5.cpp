@@ -26,23 +26,28 @@ using namespace Thomson::MO5;
 
 namespace {
 
+static constexpr int ClockRate = 1'000'000;
+
 struct ConcreteMachine:
 	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MediaChangeObserver,
+	public MachineTypes::MediaTarget,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
 	public Machine
 {
-	ConcreteMachine(const Analyser::Static::Target &, const ROMMachine::ROMFetcher &rom_fetcher) :
+	ConcreteMachine(const Analyser::Static::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6809_(*this),
 		system_pia_port_handler_(*this),
 		system_pia_(system_pia_port_handler_),
 		video_(video_page(true), video_page(false)),
+		tape_player_(ClockRate),
 		audio_toggle_(audio_queue_),
 		speaker_(audio_toggle_)
 	{
-		set_clock_rate(1'000'000);
-		speaker_.set_input_rate(1'000'000.0f);
+		set_clock_rate(ClockRate);
+		speaker_.set_input_rate(ClockRate);
 
 		const auto request = ROM::Request(ROM::Name::ThomasonMO5v11);
 		auto roms = rom_fetcher(request);
@@ -55,6 +60,8 @@ struct ConcreteMachine:
 
 		Memory::Fuzz(ram_);
 		system_pia_.refresh();
+
+		insert_media(target.media);
 	}
 
 	~ConcreteMachine() {
@@ -84,10 +91,12 @@ struct ConcreteMachine:
 		const AddressT address,
 		CPU::M6809::data_t<read_write> value
 	) {
-		if(video_ += m6809_.duration(bus_phase)) {
+		static constexpr auto duration = CPU::M6809::duration<Cycles>(bus_phase);
+		if(video_ += duration) {
 			system_pia_.set<Motorola::MC6821::Control::CB1>(video_.last_valid()->irq());
 		}
-		time_since_audio_update_ += m6809_.duration(bus_phase);
+		time_since_audio_update_ += duration;
+		tape_player_.run_for(duration);
 
 		if constexpr (read_write == CPU::M6809::ReadWrite::NoData) {
 			return Cycles(0);
@@ -160,7 +169,9 @@ private:
 				//	Port A inputs:
 				//		b4: light pen button
 				//		b7: tape input [and 0 = no tape; 1 = tape present]
-				return 0xff;
+				return
+					(machine_.tape_player_.input() ? 0x00 : 0x80) |
+					0x10;	// Light pen button never pressed.
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
@@ -207,8 +218,9 @@ private:
 
 		template <Motorola::MC6821::Control control>
 		void observe(const bool value) {
-			// TODO: CA2 is drive motor control, so catch that.
-			(void)value;
+			if constexpr (control == Motorola::MC6821::Control::CA2) {
+				machine_.tape_player_.set_motor_control(!value);
+			}
 		}
 
 		// TODO:
@@ -235,6 +247,7 @@ private:
 	Motorola::MC6821::MC6821<SystemPIAPortHandler, 2, 1> system_pia_;
 
 	JustInTimeActor<Video, Cycles> video_;
+	Storage::Tape::BinaryTapePlayer tape_player_;
 
 	// MARK: - AudioProducer.
 
@@ -290,6 +303,20 @@ private:
 
 	void clear_all_keys() final {
 		system_pia_port_handler_.clear_all_keys();
+	}
+
+	// MARK: - MediaTarget and MediaChangeObserver.
+
+	bool insert_media(const Analyser::Static::Media &media) override {
+		if(!media.tapes.empty()) {
+			tape_player_.set_tape(media.tapes.front(), TargetPlatform::ThomsonMO);
+		}
+
+		return !media.tapes.empty();
+	}
+
+	ChangeEffect effect_for_file_did_change(const std::string &) const override {
+		return ChangeEffect::RestartMachine;
 	}
 };
 

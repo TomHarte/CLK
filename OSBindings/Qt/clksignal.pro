@@ -61,6 +61,7 @@ SOURCES += \
 	$$SRC/Analyser/Static/Oric/*.cpp \
 	$$SRC/Analyser/Static/PCCompatible/*.cpp \
 	$$SRC/Analyser/Static/Sega/*.cpp \
+	$$SRC/Analyser/Static/Thomson/*.cpp \
 	$$SRC/Analyser/Static/ZX8081/*.cpp \
 	$$SRC/Analyser/Static/ZXSpectrum/*.cpp \
 \
@@ -195,6 +196,7 @@ HEADERS += \
 	$$SRC/Analyser/Static/Oric/*.hpp \
 	$$SRC/Analyser/Static/PCCompatible/*.hpp \
 	$$SRC/Analyser/Static/Sega/*.hpp \
+	$$SRC/Analyser/Static/Thomson/*.hpp \
 	$$SRC/Analyser/Static/ZX8081/*.hpp \
 \
 	$$SRC/ClockReceiver/*.hpp \

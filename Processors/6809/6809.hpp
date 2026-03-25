@@ -63,6 +63,39 @@ constexpr bool is_terminal(const BusPhase phase) {
 	return phase >= BusPhase::PostMRDY;
 }
 
+// Time getter.
+template <typename Timescale>
+static constexpr Timescale duration([[maybe_unused]] const BusPhase phase) {
+	if constexpr (std::is_same_v<Timescale, Cycles>) {
+		return Cycles(1);
+	} else {
+		// My reading of the data sheet is that if accessing memory then in each EQ quadrants
+		// the 6809 proceeds as:
+		//
+		// EQ: 00
+		// EQ: 01		address becomes valid
+		// EQ: 11		data transfer begins
+		// ...			waiting if MRDY requested
+		// EQ: 10
+		//
+		// So that splits each access into 3/4 of a cycle in which the state of MRDY doesn't matter,
+		// arbitrarily more quarters of a cycle in which the processor pauses if MRDY is active,
+		// then a final quarter of a cycle to complete the access.
+		//
+		// Code expectation: some machines won't use MRDY and therefore won't be interested in bookkeeping at
+		// quarter-cycle precision. In that case all machine cycles last one cycle long, as per the if constexpr
+		// above. Otherwise machines can take the BusPhase handed to them and enquire as to length.
+		switch(phase) {
+			case BusPhase::PreMRDY:		return QuarterCycles(3);
+			case BusPhase::MRDY:		return QuarterCycles(1);
+			case BusPhase::PostMRDY:	return QuarterCycles(1);
+			case BusPhase::FullCycle:	return QuarterCycles(4);
+			default: __builtin_unreachable();
+		}
+	}
+}
+
+
 enum class Line {
 	Halt,
 	DMABusReq,
@@ -150,40 +183,9 @@ struct Processor {
 		}
 	}
 
-	// Time getter.
-	using Timescale = std::conditional_t<Traits::uses_mrdy, QuarterCycles, Cycles>;
-	static constexpr Timescale duration([[maybe_unused]] const BusPhase phase) {
-		if constexpr (std::is_same_v<Timescale, Cycles>) {
-			return Cycles(1);
-		} else {
-			// My reading of the data sheet is that if accessing memory then in each EQ quadrants
-			// the 6809 proceeds as:
-			//
-			// EQ: 00
-			// EQ: 01		address becomes valid
-			// EQ: 11		data transfer begins
-			// ...			waiting if MRDY requested
-			// EQ: 10
-			//
-			// So that splits each access into 3/4 of a cycle in which the state of MRDY doesn't matter,
-			// arbitrarily more quarters of a cycle in which the processor pauses if MRDY is active,
-			// then a final quarter of a cycle to complete the access.
-			//
-			// Code expectation: some machines won't use MRDY and therefore won't be interested in bookkeeping at
-			// quarter-cycle precision. In that case all machine cycles last one cycle long, as per the if constexpr
-			// above. Otherwise machines can take the BusPhase handed to them and enquire as to length.
-			switch(phase) {
-				case BusPhase::PreMRDY:		return QuarterCycles(3);
-				case BusPhase::MRDY:		return QuarterCycles(1);
-				case BusPhase::PostMRDY:	return QuarterCycles(1);
-				case BusPhase::FullCycle:	return QuarterCycles(4);
-				default: __builtin_unreachable();
-			}
-		}
-	}
-
 	Processor(Traits::BusHandlerT &bus_handler) noexcept : bus_handler_(bus_handler) {}
 
+	using Timescale = std::conditional_t<Traits::uses_mrdy, QuarterCycles, Cycles>;
 	void run_for(const Timescale duration) {
 		static constexpr auto FirstCounter = __COUNTER__;
 		#define addressing_program(name)	int(ResumePoint::Max) + int(name)
@@ -319,7 +321,14 @@ struct Processor {
 			local_label(finishPerform):	(void)0;							\
 		}
 
-		#define perform_operation() internal_cycles(CPU::M6809::perform(operation_.operation, registers_, operand_))
+		#define perform_operation() {\
+			internal_cycles(CPU::M6809::perform(\
+				operation_.operation, \
+				registers_, \
+				operand_, \
+				[]{}	\
+			))	\
+		}
 
 		#define addressed_internal_cycle(address) {					\
 			static constexpr auto access = restore_point();			\
