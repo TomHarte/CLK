@@ -642,15 +642,16 @@ struct Processor {
 				);
 				address_.halves.high = registers_.reg<R8::DP>();
 
-				resume_point_ = access_program(operation_.type);
 				if(operation_.type == AccessType::LEA) {
 					goto internal_lic_break;
 				}
 				internal_cycle(LIC::Inactive);
+				resume_point_ = access_program(operation_.type);
 				break;
 
 			internal_lic_break:
 				internal_cycle(LIC::Active);
+				resume_point_ = access_program(operation_.type);
 				break;
 
 			// MARK: - Extended addressing mode.
@@ -671,11 +672,11 @@ struct Processor {
 					++registers_.pc.full
 				);
 
-				resume_point_ = access_program(operation_.type);
 				if(operation_.type == AccessType::LEA) {
 					goto internal_lic_break;
 				}
 				internal_cycle(LIC::Inactive);
+				resume_point_ = access_program(operation_.type);
 				break;
 
 
@@ -724,21 +725,43 @@ struct Processor {
 				goto continue_indexed;
 
 			no_continuation:
+				if(is_zero_costed(operation_.operation) && !indexer_.indirect() && !indexer_.address_cost()) {
+					goto lic_internal_complete_address;
+				}
 				addressed_internal_cycle(LIC::Inactive, Address::Literal(registers_.pc.full));
 
 			continue_indexed:
-				internal_cycles(LIC::Inactive, indexer_.address_cost());
 				address_.full = indexer_.address(registers_);
+
+				if(is_zero_costed(operation_.operation) && !indexer_.indirect()) {
+					goto lic_complete_address;
+				}
+				internal_cycles(LIC::Inactive, indexer_.address_cost());
 				if(!indexer_.indirect()) {
 					goto complete_address;
 				}
 
 				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.high, ++address_.full);
 				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low, ++address_.full);
-				internal_cycle(LIC::Inactive);
+
 				address_ = operand_;
+				if(operation_.type == AccessType::LEA) {
+					goto internal_lic_break;
+				}
+				internal_cycle(LIC::Inactive);
 
 			complete_address:
+				resume_point_ = access_program(operation_.type);
+				break;
+
+			lic_complete_address:
+				internal_cycles(LIC::Active, indexer_.address_cost());
+				resume_point_ = access_program(operation_.type);
+				break;
+
+			lic_internal_complete_address:
+				addressed_internal_cycle(LIC::Active, Address::Literal(registers_.pc.full));
+				address_.full = indexer_.address(registers_);
 				resume_point_ = access_program(operation_.type);
 				break;
 
