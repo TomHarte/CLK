@@ -547,9 +547,15 @@ struct Processor {
 			// MARK: - Inherent addressing mode.
 
 			case addressing_program(AddressingMode::Inherent):
-				// TODO: probably needs to call perform first, to see whether there are delay cycles before
-				// figuring out where LIC goes.
+				if(is_zero_costed(operation_.operation)) {
+					goto inherent_lic_fetch;
+				}
 				addressed_internal_cycle(LIC::Inactive, Address::Literal(registers_.pc.full));
+				perform_operation(LIC::Active);
+				goto fetch_decode;
+
+			inherent_lic_fetch:
+				addressed_internal_cycle(LIC::Active, Address::Literal(registers_.pc.full));
 				perform_operation(LIC::Active);
 				goto fetch_decode;
 
@@ -561,9 +567,23 @@ struct Processor {
 				}
 				[[fallthrough]];
 			case addressing_program(AddressingMode::Immediate8):
+				if(is_zero_costed(operation_.operation)) {
+					goto immediate8_lic_fetch;
+				}
 				read(
 					BusState::Normal,
 					LIC::Inactive,
+					Literal(registers_.pc.full),
+					operand_.halves.low,
+					++registers_.pc.full
+				);
+				perform_operation(LIC::Active);
+				goto fetch_decode;
+
+			immediate8_lic_fetch:
+				read(
+					BusState::Normal,
+					LIC::Active,
 					Literal(registers_.pc.full),
 					operand_.halves.low,
 					++registers_.pc.full
@@ -1144,16 +1164,30 @@ struct Processor {
 				goto fetch_decode;
 
 			case access_program(AccessType::Read8):
-				// TODO: LIC needs to be active if this'll be a zero-cost perform, but perform itself can't happen
-				// until the byte has been fetched. But I don't want to do two switches if the caller doesn't actually
-				// care about LIC.
+				if(is_zero_costed(operation_.operation)) {
+					goto read8_lic_fetch;
+				}
 				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
+				perform_operation(LIC::Active);
+				goto fetch_decode;
+
+			read8_lic_fetch:
+				read(BusState::Normal, LIC::Active, Literal(address_.full), operand_.halves.low);
 				perform_operation(LIC::Active);
 				goto fetch_decode;
 
 			case access_program(AccessType::Read16):
 				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.high, ++address_.full);
+
+				if(is_zero_costed(operation_.operation)) {
+					goto read16_lic_fetch;
+				}
 				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
+				perform_operation(LIC::Active);
+				goto fetch_decode;
+
+			read16_lic_fetch:
+				read(BusState::Normal, LIC::Active, Literal(address_.full), operand_.halves.low);
 				perform_operation(LIC::Active);
 				goto fetch_decode;
 

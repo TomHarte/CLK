@@ -573,7 +573,6 @@ Cycles perform(
 
 		// Operation selection.
 		case Page1:	case Page2:
-//		break;
 
 		default: __builtin_unreachable();
 	}
@@ -588,5 +587,28 @@ inline Cycles perform(
 	return perform(operation, registers, operand, []{});
 }
 
+/// @returns @c true if no internal cycles are required to perform `operation`.
+inline bool is_zero_costed(const InstructionSet::M6809::Operation operation) {
+	switch(operation) {
+		using enum InstructionSet::M6809::Operation;
+		default: return false;
 
+		case NOP:	case None:	case ADCA:	case ADCB:	case ADDA:
+		case ADDB:	case SBCA:	case SBCB:	case SUBA:	case SUBB:
+		case CMPA:	case CMPB:	case DAA:	case ANDA:	case ANDB:
+		case ORA:	case ORB:	case EORA:	case EORB:	case INCA:
+		case INCB:	case INC:	case DECA:	case DECB:	case DEC:
+		case NEGA:	case NEGB:	case NEG:	case COMA:	case COMB:
+		case COM:	case ASRA:	case ASRB:	case ASR:	case LSLA:
+		case LSLB:	case LSL:	case LSRA:	case LSRB:	case LSR:
+		case ROLA:	case ROLB:	case ROL:	case RORA:	case RORB:
+		case ROR:	case BITA:	case BITB:	case CLRA:	case CLRB:
+		case CLR:	case LDA:	case LDB:	case STA:	case STB:
+		case LDD:	case LDU:	case LDX:	case LDY:	case LDS:
+		case STD:	case STU:	case STX:	case STY:	case STS:
+		case LEAU:	case LEAX:	case LEAY:	case LEAS:	case SEX:
+		case TSTA:	case TSTB:	case JMP:
+			return true;
+	}
+}
 }
