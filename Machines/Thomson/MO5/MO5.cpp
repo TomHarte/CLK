@@ -33,6 +33,7 @@ static constexpr int ClockRate = 1'000'000;
 
 struct ConcreteMachine:
 	public Activity::Source,
+	public Configurable::Device,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaChangeObserver,
@@ -128,7 +129,7 @@ struct ConcreteMachine:
 					} else if(address >= 0xc000) {
 						value = rom_[address - 0xc000];
 
-						if(lic == CPU::M6809::LIC::InstructionFetch && address == 0xf105) {
+						if(lic == CPU::M6809::LIC::InstructionFetch && allow_fast_tape_hack_ && address == 0xf105) {
 							[&] {
 								// Catch K7READ.
 								//
@@ -288,6 +289,7 @@ private:
 
 	JustInTimeActor<Video, Cycles> video_;
 	Storage::Tape::BinaryTapePlayer tape_player_;
+	bool allow_fast_tape_hack_ = true;
 
 	// MARK: - AudioProducer.
 
@@ -363,6 +365,19 @@ private:
 
 	void set_activity_observer(Activity::Observer *observer) override {
 		tape_player_.set_activity_observer(observer);
+	}
+
+	// MARK: - Configuration options.
+
+	std::unique_ptr<Reflection::Struct> get_options() const final {
+		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+		options->quick_load = allow_fast_tape_hack_;
+		return options;
+	}
+
+	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+		const auto options = dynamic_cast<Options *>(str.get());
+		allow_fast_tape_hack_ = options->quick_load;
 	}
 };
 
