@@ -486,8 +486,19 @@ struct M6809Traits {
 			std::equal(capturer.cycles.begin(), capturer.cycles.end(), expected.begin(), expected.end()),
 			"Opcode %04x", opcode
 		);
-		XCTAssertTrue(capturer.lic_active, "Opcode %04x", opcode);
-		XCTAssertEqual(capturer.lic_cycles, 1, "Opcode %04x", opcode);
+
+		// The exigencies of the test suite are that neither CWAI nor SYNC actually completes; therefore the
+		// correct expectation there is no LICs.
+		if(
+			opcode == 0x3c ||		// CWAI
+			opcode == 0x13			// SYNC
+		) {
+			XCTAssertTrue(!capturer.lic_active, "Opcode %04x", opcode);
+			XCTAssertEqual(capturer.lic_cycles, 0, "Opcode %04x", opcode);
+		} else {
+			XCTAssertTrue(capturer.lic_active, "Opcode %04x", opcode);
+			XCTAssertEqual(capturer.lic_cycles, 1, "Opcode %04x", opcode);
+		}
 	};
 
 	// EXG.

@@ -641,8 +641,16 @@ struct Processor {
 					++registers_.pc.full
 				);
 				address_.halves.high = registers_.reg<R8::DP>();
-				internal_cycle(LIC::Inactive);
+
 				resume_point_ = access_program(operation_.type);
+				if(operation_.type == AccessType::LEA) {
+					goto internal_lic_break;
+				}
+				internal_cycle(LIC::Inactive);
+				break;
+
+			internal_lic_break:
+				internal_cycle(LIC::Active);
 				break;
 
 			// MARK: - Extended addressing mode.
@@ -662,7 +670,11 @@ struct Processor {
 					address_.halves.low,
 					++registers_.pc.full
 				);
+
 				resume_point_ = access_program(operation_.type);
+				if(operation_.type == AccessType::LEA) {
+					goto internal_lic_break;
+				}
 				internal_cycle(LIC::Inactive);
 				break;
 
@@ -1157,6 +1169,9 @@ struct Processor {
 					goto sync;
 				}
 
+				// Per AN-865 there is a one-cycle latency in response.
+				internal_cycle(LIC::Active);
+
 				goto fetch_decode;
 
 			//
@@ -1175,7 +1190,7 @@ struct Processor {
 				--registers_.reg<R16::S>();
 				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), registers_.pc.halves.low);
 				--registers_.reg<R16::S>();
-				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), registers_.pc.halves.high);
+				write(BusState::Normal, LIC::Active, Literal(registers_.reg<R16::S>()), registers_.pc.halves.high);
 				registers_.reg<R16::PC>() = address_.full;
 				goto fetch_decode;
 
