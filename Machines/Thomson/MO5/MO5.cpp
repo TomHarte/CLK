@@ -21,6 +21,8 @@
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "Outputs/Speaker/Implementation/BufferSource.hpp"
 
+#include "Storage/Tape/Parsers/ThomsonMO.hpp"
+
 #include "Keyboard.hpp"
 
 using namespace Thomson::MO5;
@@ -125,6 +127,41 @@ struct ConcreteMachine:
 						value = start_pointer_[address];
 					} else if(address >= 0xc000) {
 						value = rom_[address - 0xc000];
+
+						if(lic == CPU::M6809::LIC::InstructionFetch && address == 0xf105) {
+							[&] {
+								// Catch K7READ.
+								//
+								// Input Y = pointer to buffer.
+								// Output (after RTS): A = checksum (0 for success); B = file type.
+								//
+								auto *const serialiser = tape_player_.serialiser();
+								if(!serialiser) return;
+
+								Storage::Tape::Thomson::MO::Parser parser;
+								const auto block = parser.block(*serialiser);
+								if(!block.has_value()) return;
+
+								// Put final values for A and B on the stack; they'll be picked up by the RTS.
+								const uint16_t s = m6809_.registers().reg<CPU::M6809::R16::S>();
+								ram_[s + 4] = block->type;
+								ram_[s + 3] = block->checksum;
+
+								uint16_t y = m6809_.registers().reg<CPU::M6809::R16::Y>();
+								uint8_t checksum = 0;
+
+								ram_[y++] = uint8_t(block->data.size() + 2);
+								checksum += uint8_t(block->data.size() + 2);
+
+								for(const auto byte: block->data) {
+									ram_[y++] = byte;
+									checksum += byte;
+								}
+								ram_[y++] = uint8_t(block->checksum - checksum);
+
+								value = 0x39;	// RTS
+							} ();
+						}
 					} else {
 						value = ram_[address];
 					}

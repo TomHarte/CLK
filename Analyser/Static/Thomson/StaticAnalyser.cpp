@@ -28,7 +28,7 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 		const auto serialiser = tape->serialiser();
 		const auto first = parser.block(*serialiser);
 
-		if(first && first->checksum_valid) {
+		if(first && first->checksum_valid()) {
 			target->media.tapes = media.tapes;
 		}
 	}

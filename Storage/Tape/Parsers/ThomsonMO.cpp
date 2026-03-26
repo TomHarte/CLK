@@ -83,7 +83,7 @@ std::optional<Block> Parser::block(Storage::Tape::TapeSerialiser &serialiser) {
 	const auto trailer = byte(serialiser);
 	if(!trailer) return std::nullopt;
 	checksum += *trailer;
-	result.checksum_valid = !checksum;
+	result.checksum = checksum;
 
 	return result;
 }

@@ -19,7 +19,11 @@ namespace Storage::Tape::Thomson::MO {
 struct Block {
 	uint8_t type;
 	std::vector<uint8_t> data;
-	bool checksum_valid = true;
+
+	uint8_t checksum = 0;
+	bool checksum_valid() const {
+		return checksum == 0;
+	}
 };
 
 class Parser {
