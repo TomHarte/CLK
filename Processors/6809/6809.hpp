@@ -387,12 +387,20 @@ struct Processor {
 
 		#define internal_cycle(lic) addressed_internal_cycle(lic, Address::Fixed<0xffff>())
 
-		#define pull(r)	\
-			read(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), r, ++registers_.reg<R16::S>())
+		#define pull_from(r, stack)	\
+			read(BusState::Normal, LIC::Inactive, Literal(stack), r, ++(stack))
 
-		#define push(r)																		\
-			-- registers_.reg<R16::S>();													\
-			write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), r);
+		#define pull(r)	pull_from(r, registers_.reg<R16::S>())
+
+		#define push_to(r, stack)										\
+			-- (stack);													\
+			write(BusState::Normal, LIC::Inactive, Literal(stack), r);
+
+		#define push(r) push_to(r, registers_.reg<R16::S>())
+
+		#define dynamic_goto(r)		\
+			resume_point_ = (r);	\
+			break;
 
 		time_ += duration;
 
@@ -513,20 +521,17 @@ struct Processor {
 					++registers_.pc.full
 				);
 				operation_ = Reflection::dispatch(op_mapper0, opcode, op_returner);
-				resume_point_ = addressing_program(operation_.mode);
-				break;
+				dynamic_goto(addressing_program(operation_.mode));
 
 			fetch_decode_page1:
 				read(BusState::Normal, LIC::Inactive, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
 				operation_ = Reflection::dispatch(op_mapper1, opcode, op_returner);
-				resume_point_ = addressing_program(operation_.mode);
-				break;
+				dynamic_goto(addressing_program(operation_.mode));
 
 			fetch_decode_page2:
 				read(BusState::Normal, LIC::Inactive,Literal(registers_.pc.full), opcode, ++registers_.pc.full);
 				operation_ = Reflection::dispatch(op_mapper2, opcode, op_returner);
-				resume_point_ = addressing_program(operation_.mode);
-				break;
+				dynamic_goto(addressing_program(operation_.mode));
 
 			// MARK: - 'Invalid' addressing mode (i.e. invalid operation).
 
@@ -646,13 +651,11 @@ struct Processor {
 					goto internal_lic_break;
 				}
 				internal_cycle(LIC::Inactive);
-				resume_point_ = access_program(operation_.type);
-				break;
+				dynamic_goto(access_program(operation_.type));
 
 			internal_lic_break:
 				internal_cycle(LIC::Active);
-				resume_point_ = access_program(operation_.type);
-				break;
+				dynamic_goto(access_program(operation_.type));
 
 			// MARK: - Extended addressing mode.
 
@@ -676,8 +679,7 @@ struct Processor {
 					goto internal_lic_break;
 				}
 				internal_cycle(LIC::Inactive);
-				resume_point_ = access_program(operation_.type);
-				break;
+				dynamic_goto(access_program(operation_.type));
 
 
 			// MARK: - Indexed addressing mode.
@@ -751,19 +753,16 @@ struct Processor {
 				internal_cycle(LIC::Inactive);
 
 			complete_address:
-				resume_point_ = access_program(operation_.type);
-				break;
+				dynamic_goto(access_program(operation_.type));
 
 			lic_complete_address:
 				internal_cycles(LIC::Active, indexer_.address_cost());
-				resume_point_ = access_program(operation_.type);
-				break;
+				dynamic_goto(access_program(operation_.type));
 
 			lic_internal_complete_address:
 				addressed_internal_cycle(LIC::Active, Address::Literal(registers_.pc.full));
 				address_.full = indexer_.address(registers_);
-				resume_point_ = access_program(operation_.type);
-				break;
+				dynamic_goto(access_program(operation_.type));
 
 			// MARK: - 'Specialised' addresing mode (i.e. irregulars0.
 
@@ -819,48 +818,48 @@ struct Processor {
 				if(!(operand_.halves.low & 0b0000'0001)) {
 					goto no_pull_cc;
 				}
-				read(BusState::Normal, LIC::Inactive, Literal(*stack_), registers_.reg<R8::CC>(), ++*stack_);
+				pull_from(registers_.reg<R8::CC>(), *stack_);
 			no_pull_cc:
 
 				if(!(operand_.halves.low & 0b0000'0010)) {
 					goto no_pull_a;
 				}
-				read(BusState::Normal, LIC::Inactive, Literal(*stack_), registers_.reg<R8::A>(), ++*stack_);
+				pull_from(registers_.reg<R8::A>(), *stack_);
 			no_pull_a:
 
 				if(!(operand_.halves.low & 0b0000'0100)) {
 					goto no_pull_b;
 				}
-				read(BusState::Normal, LIC::Inactive, Literal(*stack_), registers_.reg<R8::B>(), ++*stack_);
+				pull_from(registers_.reg<R8::B>(), *stack_);
 			no_pull_b:
 
 				if(!(operand_.halves.low & 0b0000'1000)) {
 					goto no_pull_dp;
 				}
-				read(BusState::Normal, LIC::Inactive, Literal(*stack_), registers_.reg<R8::DP>(), ++*stack_);
+				pull_from(registers_.reg<R8::DP>(), *stack_);
 			no_pull_dp:
 
 				if(!(operand_.halves.low & 0b0001'0000)) {
 					goto no_pull_x;
 				}
-				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high, ++*stack_);
-				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low, ++*stack_);
+				pull_from(address_.halves.high, *stack_);
+				pull_from(address_.halves.low, *stack_);
 				registers_.reg<R16::X>() = address_.full;
 			no_pull_x:
 
 				if(!(operand_.halves.low & 0b0010'0000)) {
 					goto no_pull_y;
 				}
-				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high, ++*stack_);
-				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low, ++*stack_);
+				pull_from(address_.halves.high, *stack_);
+				pull_from(address_.halves.low, *stack_);
 				registers_.reg<R16::Y>() = address_.full;
 			no_pull_y:
 
 				if(!(operand_.halves.low & 0b0100'0000)) {
 					goto no_pull_s;
 				}
-				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high, ++*stack_);
-				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low, ++*stack_);
+				pull_from(address_.halves.high, *stack_);
+				pull_from(address_.halves.low, *stack_);
 				(operation_.operation == Operation::PULU ? registers_.reg<R16::S>() : registers_.reg<R16::U>())
 					= address_.full;
 			no_pull_s:
@@ -868,8 +867,8 @@ struct Processor {
 				if(!(operand_.halves.low & 0b1000'0000)) {
 					goto end_pull;
 				}
-				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high, ++*stack_);
-				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low, ++*stack_);
+				pull_from(address_.halves.high, *stack_);
+				pull_from(address_.halves.low, *stack_);
 				registers_.reg<R16::PC>() = address_.full;
 
 			end_pull:
@@ -899,11 +898,11 @@ struct Processor {
 					goto no_push_pc;
 				}
 				address_.full = registers_.reg<R16::PC>();
-				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low);
+				push_to(address_.halves.low, *stack_);
 				if(!(operand_.halves.low & 0b0111'1111)) {
 					goto terminate_push_address_high;
 				}
-				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high);
+				push_to(address_.halves.high, *stack_);
 
 			no_push_pc:
 				if(!(operand_.halves.low & 0b0100'0000)) {
@@ -911,33 +910,33 @@ struct Processor {
 				}
 				address_.full =
 					operation_.operation == Operation::PSHU ? registers_.reg<R16::S>() : registers_.reg<R16::U>();
-				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low);
+				push_to(address_.halves.low, *stack_);
 				if(!(operand_.halves.low & 0b0011'1111)) {
 					goto terminate_push_address_high;
 				}
-				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high);
+				push_to(address_.halves.high, *stack_);
 
 			no_push_s:
 				if(!(operand_.halves.low & 0b0010'0000)) {
 					goto no_push_y;
 				}
 				address_.full = registers_.reg<R16::Y>();
-				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low);
+				push_to(address_.halves.low, *stack_);
 				if(!(operand_.halves.low & 0b0001'1111)) {
 					goto terminate_push_address_high;
 				}
-				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high);
+				push_to(address_.halves.high, *stack_);
 
 			no_push_y:
 				if(!(operand_.halves.low & 0b0001'0000)) {
 					goto no_push_x;
 				}
 				address_.full = registers_.reg<R16::X>();
-				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low);
+				push_to(address_.halves.low, *stack_);
 				if(!(operand_.halves.low & 0b0000'1111)) {
 					goto terminate_push_address_high;
 				}
-				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high);
+				push_to(address_.halves.high, *stack_);
 
 			no_push_x:
 				if(!(operand_.halves.low & 0b000'1000)) {
@@ -947,7 +946,7 @@ struct Processor {
 					address_.halves.high = registers_.reg<R8::DP>();
 					goto terminate_push_address_high;
 				}
-				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), registers_.reg<R8::DP>());
+				push_to(registers_.reg<R8::DP>(), *stack_);
 
 			no_push_dp:
 				if(!(operand_.halves.low & 0b000'0100)) {
@@ -957,7 +956,7 @@ struct Processor {
 					address_.halves.high = registers_.reg<R8::B>();
 					goto terminate_push_address_high;
 				}
-				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), registers_.reg<R8::B>());
+				push_to(registers_.reg<R8::B>(), *stack_);
 
 			no_push_b:
 				if(!(operand_.halves.low & 0b000'0010)) {
@@ -967,17 +966,17 @@ struct Processor {
 					address_.halves.high = registers_.reg<R8::A>();
 					goto terminate_push_address_high;
 				}
-				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), registers_.reg<R8::A>());
+				push_to(registers_.reg<R8::A>(), *stack_);
 
 			no_push_a:
 				if(!(operand_.halves.low & 0b000'0001)) {
 					goto fetch_decode;
 				}
-				(*stack_)--;	write(BusState::Normal, LIC::Active, Literal(*stack_), registers_.reg<R8::CC>());
+				(*stack_)--;    write(BusState::Normal, LIC::Active, Literal(*stack_), registers_.reg<R8::CC>());
 				goto fetch_decode;
 
 			terminate_push_address_high:
-				(*stack_)--;	write(BusState::Normal, LIC::Active, Literal(*stack_), address_.halves.high);
+				(*stack_)--;    write(BusState::Normal, LIC::Active, Literal(*stack_), address_.halves.high);
 				goto fetch_decode;
 
 			terminate_push_no_activity:
@@ -1279,7 +1278,10 @@ struct Processor {
 		#undef perform_operation
 		#undef addressed_internal_cycle
 		#undef pull
+		#undef pull_from
 		#undef push
+		#undef push_to
+		#undef dynamic_goto
 	}
 
 	Registers &registers() {
