@@ -50,15 +50,13 @@ std::optional<uint8_t> Parser::byte(Storage::Tape::TapeSerialiser &serialiser) {
 
 std::optional<Block> Parser::block(Storage::Tape::TapeSerialiser &serialiser) {
 	// Look for a leader of 01s, then align for bytes on a 0x3c5a.
-	uint16_t bits = 0;
-	bool had_leader = false;
+	uint32_t bits = 0;
 	while(true) {
 		const auto next = bit(serialiser);
 		if(!next) return std::nullopt;
 
-		bits = uint16_t((bits << 1) | *next);
-		had_leader |= bits == 0x0101;
-		if(had_leader && bits == 0x3c5a) break;
+		bits = uint32_t((bits << 1) | *next);
+		if(bits == 0x01013c5a) break;	// i.e. two bytes of lead-in, then the magic constant.
 	}
 
 	// Read type and length, seed checksum.
