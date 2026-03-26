@@ -138,7 +138,6 @@ struct ConcreteMachine:
 				}
 			}
 		}
-
 		return Cycles(0);
 	}
 
@@ -165,6 +164,13 @@ private:
 	friend struct SystemPIAPortHandler;
 	struct SystemPIAPortHandler {
 		SystemPIAPortHandler(ConcreteMachine &machine) : machine_(machine) {}
+
+		// System PIA control lines:
+		//
+		//	CA1: lightpen input
+		//	CA2: drive motor control output
+		//	CB1: 50Hz interrupt input
+		//	CB2: "Video encrustation"?
 
 		template <Motorola::MC6821::Port port>
 		uint8_t input() {
@@ -225,13 +231,6 @@ private:
 				machine_.tape_player_.set_motor_control(!value);
 			}
 		}
-
-		// TODO:
-		//
-		//	CA1: lightpen input
-		//	CA2: drive motor control
-		//	CB1: 50Hz interrupt
-		//	CB2: genlock enable, maybe? Video "encrustation".
 
 		void clear_all_keys() {
 			std::fill(std::begin(key_states_), std::end(key_states_), false);
