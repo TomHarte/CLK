@@ -70,22 +70,20 @@ std::optional<Block> Parser::block(Storage::Tape::TapeSerialiser &serialiser) {
 
 	const auto length = byte(serialiser);
 	if(!length) return std::nullopt;
-	if(*length >= 2) {
-		result.data.resize(*length - 2);	// Length includes: (i) itself; and (ii) the checksum.
+	result.data.resize(uint8_t(*length - 2));	// Length includes: (i) itself; and (ii) the checksum.
 
-		uint8_t checksum = 0;
-		for(auto &target: result.data) {
-			const auto next = byte(serialiser);
-			if(!next) return std::nullopt;
-			target = *next;
-			checksum += *next;
-		}
-
-		const auto trailer = byte(serialiser);
-		if(!trailer) return std::nullopt;
-		checksum += *trailer;
-		result.checksum = checksum;
+	uint8_t checksum = 0;
+	for(auto &target: result.data) {
+		const auto next = byte(serialiser);
+		if(!next) return std::nullopt;
+		target = *next;
+		checksum += *next;
 	}
+
+	const auto trailer = byte(serialiser);
+	if(!trailer) return std::nullopt;
+	checksum += *trailer;
+	result.checksum = checksum;
 
 	return result;
 }
