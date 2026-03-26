@@ -1169,7 +1169,7 @@ struct Processor {
 				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
 				perform_operation(LIC::Inactive);
 				internal_cycle(LIC::Inactive);
-				write(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
+				write(BusState::Normal, LIC::Active, Literal(address_.full), operand_.halves.low);
 				goto fetch_decode;
 		}
 

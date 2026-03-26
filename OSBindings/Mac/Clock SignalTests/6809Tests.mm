@@ -505,7 +505,7 @@ struct M6809Traits {
 	test({0x37, 0x02}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::Read, RW::NoData});
 	test({0x37, 0x41}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::Read, RW::Read, RW::Read, RW::NoData});
 
-	// TST direct, extended. TODO: indexed.
+	// TST direct, extended.
 	test({0x0d, 0x00}, {RW::Read, RW::Read, RW::NoData, RW::Read, RW::NoData, RW::NoData});
 	test({0x7d, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read, RW::NoData, RW::NoData});
 
@@ -544,8 +544,6 @@ struct M6809Traits {
 		sequence(0x7c);	// DEC.
 		sequence(0x7f);	// CLR.		(Confirmed: it really is read-modify-write.)
 	}
-
-	// TODO: indexed modifies. High nibble 0x6.
 
 	// MARK: - [SUB, CMP, SBC, AND, BIT, LD, EOR, ADC, OR, ADD][A, B]
 
@@ -630,8 +628,6 @@ struct M6809Traits {
 		sequence(0xfb);	// ADDB
 	}
 
-	// TODO: indexeds, at 0xa and 0xe.
-
 	// MARK: - STA, STB.
 
 	{	/* Direct. */
@@ -649,8 +645,6 @@ struct M6809Traits {
 		sequence(0xb7);	// STA
 		sequence(0xf7);	// STB
 	}
-
-	// TODO: indexed, 0xa7 and 0xe7.
 
 	// MARK: - ADDD, CMPX, SUBD.
 
@@ -680,8 +674,6 @@ struct M6809Traits {
 		sequence(0xbc);	// CMPX
 		sequence(0xb3);	// SUBD
 	}
-
-	// TODO: indexed, 0xe3, etc
 
 	// MARK: - CMPY, CMPD, CMPS, CMPU
 
