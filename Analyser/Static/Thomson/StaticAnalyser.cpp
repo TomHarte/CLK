@@ -7,6 +7,9 @@
 //
 
 #include "StaticAnalyser.hpp"
+#include "Target.hpp"
+
+#include "Storage/Tape/Parsers/ThomsonMO.hpp"
 
 Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 	const Media &media,
@@ -14,10 +17,24 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 	TargetPlatform::IntType,
 	bool
 ) {
-	// No discernment here; assume a Thomson MO because it's all I have.
+	using MOTarget = Analyser::Static::Thomson::MOTarget;
+
 	TargetList destination;
-	auto target = std::make_unique<Target>(Machine::ThomsonMO);
-	target->media = media;
-	destination.push_back(std::move(target));
+	auto target = std::make_unique<MOTarget>();
+
+	if(!media.tapes.empty()) {
+		Storage::Tape::Thomson::MO::Parser parser;
+		auto &tape = media.tapes.front();
+		const auto serialiser = tape->serialiser();
+		const auto first = parser.block(*serialiser);
+
+		if(first && first->checksum_valid) {
+			target->media.tapes = media.tapes;
+		}
+	}
+
+	if(!target->media.empty()) {
+		destination.push_back(std::move(target));
+	}
 	return destination;
 }
