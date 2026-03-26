@@ -117,6 +117,9 @@ enum class LIC {
 						// implementation directly signals InstructionFetch so that interested observers don't need to
 						// maintain their own state.
 };
+constexpr bool is_active(const LIC lic) {
+	return lic == LIC::Active;
+}
 
 enum Vector: uint16_t {
 	SWI3 = 0xfff2,

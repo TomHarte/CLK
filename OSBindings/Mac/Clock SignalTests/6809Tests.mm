@@ -19,6 +19,8 @@ namespace {
 struct M6809Capture {
 	std::unordered_map<uint16_t, uint8_t> ram;
 	std::vector<CPU::M6809::ReadWrite> cycles;
+	bool lic_active = false;
+	int lic_cycles = 0;
 
 	template <
 		CPU::M6809::BusPhase bus_phase,
@@ -31,6 +33,9 @@ struct M6809Capture {
 		const AddressT address,
 		CPU::M6809::data_t<read_write> value
 	) {
+		lic_active = CPU::M6809::is_active(lic);
+		lic_cycles += lic_active;
+
 		cycles.push_back(read_write);
 
 		if constexpr (read_write != CPU::M6809::ReadWrite::NoData) {
@@ -481,6 +486,8 @@ struct M6809Traits {
 			std::equal(capturer.cycles.begin(), capturer.cycles.end(), expected.begin(), expected.end()),
 			"Opcode %04x", opcode
 		);
+		XCTAssertTrue(capturer.lic_active, "Opcode %04x", opcode);
+		XCTAssertEqual(capturer.lic_cycles, 1, "Opcode %04x", opcode);
 	};
 
 	// EXG.
