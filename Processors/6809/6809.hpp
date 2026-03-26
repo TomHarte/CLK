@@ -604,6 +604,10 @@ struct Processor {
 					operand_.halves.high,
 					++registers_.pc.full
 				);
+
+				if(is_zero_costed(operation_.operation)) {
+					goto immediate16_lic_fetch;
+				}
 				read(
 					BusState::Normal,
 					LIC::Inactive,
@@ -613,6 +617,18 @@ struct Processor {
 				);
 				perform_operation(LIC::Active);
 				goto fetch_decode;
+
+			immediate16_lic_fetch:
+				read(
+					BusState::Normal,
+					LIC::Active,
+					Literal(registers_.pc.full),
+					operand_.halves.low,
+					++registers_.pc.full
+				);
+				perform_operation(LIC::Active);
+				goto fetch_decode;
+
 
 			// MARK: - Direct addressing mode.
 
