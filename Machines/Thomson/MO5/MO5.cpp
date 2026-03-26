@@ -142,7 +142,7 @@ struct ConcreteMachine:
 								const auto block = parser.block(*serialiser);
 								if(!block.has_value()) return;
 
-								// Put final values for A and B on the stack; they'll be picked up by the RTS.
+								// Put final values for A and B on the stack; they'll be picked up later.
 								const uint16_t s = m6809_.registers().reg<CPU::M6809::R16::S>();
 								ram_[s + 4] = block->type;
 								ram_[s + 3] = block->checksum;
@@ -158,6 +158,7 @@ struct ConcreteMachine:
 									checksum += byte;
 								}
 								ram_[y++] = uint8_t(block->checksum - checksum);
+								m6809_.registers().reg<CPU::M6809::R16::Y>() = y;
 
 								value = 0x39;	// RTS
 							} ();
