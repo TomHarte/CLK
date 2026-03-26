@@ -144,6 +144,10 @@ void TapePlayer::process_next_event() {
 
 // MARK: - Binary Player
 
+namespace {
+constexpr char LEDName[] = "Tape motor";
+}
+
 BinaryTapePlayer::BinaryTapePlayer(const int input_clock_rate) :
 	TapePlayer(input_clock_rate)
 {}
@@ -159,16 +163,25 @@ void BinaryTapePlayer::set_motor_control(const bool enabled) {
 		update_clocking_observer();
 
 		if(observer_) {
-			observer_->set_led_status("Tape motor", enabled);
+			update_observer();
 		}
+	}
+}
+
+void BinaryTapePlayer::update_observer() {
+	const bool lit = motor_is_running_ && !is_at_end();
+	if(observer_ && lit != observer_lit_) {
+		observer_->set_led_status(LEDName, motor_is_running_ && !is_at_end());
+		observer_lit_ = lit;
 	}
 }
 
 void BinaryTapePlayer::set_activity_observer(Activity::Observer *const observer) {
 	observer_ = observer;
 	if(observer) {
-		observer->register_led("Tape motor");
-		observer_->set_led_status("Tape motor", motor_is_running_);
+		observer->register_led(LEDName);
+		observer_lit_ ^= true;
+		update_observer();
 	}
 }
 
@@ -197,5 +210,8 @@ void BinaryTapePlayer::process(const Storage::Tape::Pulse &pulse) {
 	if(input_level_ != new_input_level) {
 		input_level_ = new_input_level;
 		if(delegate_) delegate_->tape_did_change_input(*this);
+
+		// Potentially update observer again, as this might be end-of-tape.
+		update_observer();
 	}
 }

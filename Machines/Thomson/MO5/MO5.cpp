@@ -10,6 +10,7 @@
 
 #include "Video.hpp"
 
+#include "Activity/Source.hpp"
 #include "Machines/MachineTypes.hpp"
 #include "Machines/Utility/MemoryFuzzer.hpp"
 #include "Processors/6809/6809.hpp"
@@ -29,6 +30,7 @@ namespace {
 static constexpr int ClockRate = 1'000'000;
 
 struct ConcreteMachine:
+	public Activity::Source,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaChangeObserver,
@@ -318,6 +320,12 @@ private:
 
 	ChangeEffect effect_for_file_did_change(const std::string &) const override {
 		return ChangeEffect::RestartMachine;
+	}
+
+	// MARK: - Activity Source.
+
+	void set_activity_observer(Activity::Observer *observer) override {
+		tape_player_.set_activity_observer(observer);
 	}
 };
 

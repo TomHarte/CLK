@@ -183,6 +183,8 @@ protected:
 	bool motor_is_running_ = false;
 
 	Activity::Observer *observer_ = nullptr;
+	bool observer_lit_ = false;
+	void update_observer();
 };
 
 }
