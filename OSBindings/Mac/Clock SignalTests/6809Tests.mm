@@ -19,9 +19,12 @@ namespace {
 struct M6809Capture {
 	std::unordered_map<uint16_t, uint8_t> ram;
 	std::vector<CPU::M6809::ReadWrite> cycles;
+	bool lic_active = false;
+	int lic_cycles = 0;
 
 	template <
 		CPU::M6809::BusPhase bus_phase,
+		CPU::M6809::LIC lic,
 		CPU::M6809::ReadWrite read_write,
 		CPU::M6809::BusState bus_state,
 		typename AddressT
@@ -30,6 +33,9 @@ struct M6809Capture {
 		const AddressT address,
 		CPU::M6809::data_t<read_write> value
 	) {
+		lic_active = CPU::M6809::is_active(lic);
+		lic_cycles += lic_active;
+
 		cycles.push_back(read_write);
 
 		if constexpr (read_write != CPU::M6809::ReadWrite::NoData) {
@@ -480,6 +486,19 @@ struct M6809Traits {
 			std::equal(capturer.cycles.begin(), capturer.cycles.end(), expected.begin(), expected.end()),
 			"Opcode %04x", opcode
 		);
+
+		// The exigencies of the test suite are that neither CWAI nor SYNC actually completes; therefore the
+		// correct expectation there is no LICs.
+		if(
+			opcode == 0x3c ||		// CWAI
+			opcode == 0x13			// SYNC
+		) {
+			XCTAssertTrue(!capturer.lic_active, "Opcode %04x", opcode);
+			XCTAssertEqual(capturer.lic_cycles, 0, "Opcode %04x", opcode);
+		} else {
+			XCTAssertTrue(capturer.lic_active, "Opcode %04x", opcode);
+			XCTAssertEqual(capturer.lic_cycles, 1, "Opcode %04x", opcode);
+		}
 	};
 
 	// EXG.
@@ -497,7 +516,7 @@ struct M6809Traits {
 	test({0x37, 0x02}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::Read, RW::NoData});
 	test({0x37, 0x41}, {RW::Read, RW::Read, RW::NoData, RW::NoData, RW::Read, RW::Read, RW::Read, RW::NoData});
 
-	// TST direct, extended. TODO: indexed.
+	// TST direct, extended.
 	test({0x0d, 0x00}, {RW::Read, RW::Read, RW::NoData, RW::Read, RW::NoData, RW::NoData});
 	test({0x7d, 0x00, 0x00}, {RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read, RW::NoData, RW::NoData});
 
@@ -536,8 +555,6 @@ struct M6809Traits {
 		sequence(0x7c);	// DEC.
 		sequence(0x7f);	// CLR.		(Confirmed: it really is read-modify-write.)
 	}
-
-	// TODO: indexed modifies. High nibble 0x6.
 
 	// MARK: - [SUB, CMP, SBC, AND, BIT, LD, EOR, ADC, OR, ADD][A, B]
 
@@ -622,8 +639,6 @@ struct M6809Traits {
 		sequence(0xfb);	// ADDB
 	}
 
-	// TODO: indexeds, at 0xa and 0xe.
-
 	// MARK: - STA, STB.
 
 	{	/* Direct. */
@@ -641,8 +656,6 @@ struct M6809Traits {
 		sequence(0xb7);	// STA
 		sequence(0xf7);	// STB
 	}
-
-	// TODO: indexed, 0xa7 and 0xe7.
 
 	// MARK: - ADDD, CMPX, SUBD.
 
@@ -672,8 +685,6 @@ struct M6809Traits {
 		sequence(0xbc);	// CMPX
 		sequence(0xb3);	// SUBD
 	}
-
-	// TODO: indexed, 0xe3, etc
 
 	// MARK: - CMPY, CMPD, CMPS, CMPU
 
