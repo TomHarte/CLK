@@ -1144,6 +1144,9 @@ struct Processor {
 				goto fetch_decode;
 
 			case access_program(AccessType::Read8):
+				// TODO: LIC needs to be active if this'll be a zero-cost perform, but perform itself can't happen
+				// until the byte has been fetched. But I don't want to do two switches if the caller doesn't actually
+				// care about LIC.
 				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
 				perform_operation(LIC::Active);
 				goto fetch_decode;
