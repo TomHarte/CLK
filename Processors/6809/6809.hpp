@@ -325,18 +325,21 @@ struct Processor {
 					BusState::HaltOrBusGrantAcknowledge			\
 				>(Address::Fixed<0xffff>(), Data::NoValue());
 
-		#define internal_cycles(n) { 										\
-			perform_cost_ = n;												\
+		#define internal_cycles(final_lic, n) { 							\
+			perform_cost_ = (n);											\
+			if(perform_cost_ == 0) goto local_label(noPerform);				\
 																			\
 			static constexpr auto perform_spin = restore_point();			\
 			local_label(performSpin):										\
 			[[fallthrough]];												\
 			case perform_spin:												\
-			if(perform_cost_ == 0) goto local_label(finishPerform);			\
-			--perform_cost_;												\
 																			\
 			check_pause(PausePrecision::BetweenBusActions, perform_spin);	\
 			time_ -= Cycles(1);												\
+																			\
+			if(perform_cost_ == 1) goto local_label(finishPerform);			\
+			--perform_cost_;												\
+																			\
 			time_ -=														\
 				bus_handler_.template perform<								\
 					BusPhase::FullCycle,									\
@@ -346,16 +349,26 @@ struct Processor {
 				>(Address::Fixed<0xffff>(), Data::NoValue());				\
 			goto local_label(performSpin);									\
 																			\
-			local_label(finishPerform):	(void)0;							\
+			local_label(finishPerform):										\
+			time_ -=														\
+				bus_handler_.template perform<								\
+					BusPhase::FullCycle,									\
+					final_lic,												\
+					ReadWrite::NoData,										\
+					BusState::Normal										\
+				>(Address::Fixed<0xffff>(), Data::NoValue());				\
+																			\
+			local_label(noPerform):											\
+				(void)0;													\
 		}
 
-		#define perform_operation() {				\
-			internal_cycles(CPU::M6809::perform(	\
-				operation_.operation, 				\
-				registers_,							\
-				operand_, 							\
-				[]{}								\
-			))										\
+		#define perform_operation(final_lic) {				\
+			internal_cycles(final_lic, CPU::M6809::perform(	\
+				operation_.operation, 						\
+				registers_,									\
+				operand_, 									\
+				[]{}										\
+			))												\
 		}
 
 		#define addressed_internal_cycle(lic, address) {			\
@@ -437,7 +450,7 @@ struct Processor {
 				goto fetch_decode;
 
 			firq:
-				internal_cycles(3);
+				internal_cycles(LIC::Inactive, 3);
 
 				registers_.cc.set<ConditionCode::Entire>(false);
 
@@ -537,7 +550,7 @@ struct Processor {
 				// TODO: probably needs to call perform first, to see whether there are delay cycles before
 				// figuring out where LIC goes.
 				addressed_internal_cycle(LIC::Inactive, Address::Literal(registers_.pc.full));
-				perform_operation();
+				perform_operation(LIC::Active);
 				goto fetch_decode;
 
 			// MARK: - Immediate and relative addressing modes.
@@ -555,7 +568,7 @@ struct Processor {
 					operand_.halves.low,
 					++registers_.pc.full
 				);
-				perform_operation();
+				perform_operation(LIC::Active);
 				goto fetch_decode;
 
 			case addressing_program(AddressingMode::Relative16):
@@ -578,7 +591,7 @@ struct Processor {
 					operand_.halves.low,
 					++registers_.pc.full
 				);
-				perform_operation();
+				perform_operation(LIC::Active);
 				goto fetch_decode;
 
 			// MARK: - Direct addressing mode.
@@ -666,7 +679,7 @@ struct Processor {
 				addressed_internal_cycle(LIC::Inactive, Address::Literal(registers_.pc.full));
 
 			continue_indexed:
-				internal_cycles(indexer_.address_cost());
+				internal_cycles(LIC::Inactive, indexer_.address_cost());
 				address_.full = indexer_.address(registers_);
 				if(!indexer_.indirect()) {
 					goto complete_address;
@@ -730,7 +743,7 @@ struct Processor {
 					++registers_.pc.full
 				);
 
-				internal_cycles(2);
+				internal_cycles(LIC::Inactive, 2);
 
 				if(!(operand_.halves.low & 0b0000'0001)) {
 					goto no_pull_cc;
@@ -805,7 +818,7 @@ struct Processor {
 					++registers_.pc.full
 				);
 
-				internal_cycles(2);
+				internal_cycles(LIC::Inactive, 2);
 				addressed_internal_cycle(LIC::Inactive, Address::Literal(*stack_));
 
 				if(!(operand_.halves.low & 0b1000'0000)) {
@@ -928,7 +941,7 @@ struct Processor {
 					++registers_.pc.full
 				);
 				address_.full = registers_.pc.full + operand_.full;
-				internal_cycles(2);
+				internal_cycles(LIC::Inactive, 2);
 				goto jsr;
 
 			case ResumePoint::CWAISpin:
@@ -980,7 +993,7 @@ struct Processor {
 				goto exception;
 
 			nmi_irq:
-				internal_cycles(2);
+				internal_cycles(LIC::Inactive, 2);
 				goto exception;
 
 			exception:
@@ -1080,7 +1093,7 @@ struct Processor {
 			//
 			case access_program(AccessType::LEA):
 				operand_.full = address_.full;
-				perform_operation();
+				perform_operation(LIC::Active);
 				goto fetch_decode;
 
 			case access_program(AccessType::JSR):
@@ -1097,29 +1110,29 @@ struct Processor {
 
 			case access_program(AccessType::Read8):
 				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
-				perform_operation();
+				perform_operation(LIC::Active);
 				goto fetch_decode;
 
 			case access_program(AccessType::Read16):
 				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.high, ++address_.full);
 				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
-				perform_operation();
+				perform_operation(LIC::Active);
 				goto fetch_decode;
 
 			case access_program(AccessType::Write8):
-				perform_operation();
-				write(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
+				perform_operation(LIC::Inactive);
+				write(BusState::Normal, LIC::Active, Literal(address_.full), operand_.halves.low);
 				goto fetch_decode;
 
 			case access_program(AccessType::Write16):
-				perform_operation();
+				perform_operation(LIC::Inactive);
 				write(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.high, ++address_.full);
-				write(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
+				write(BusState::Normal, LIC::Active, Literal(address_.full), operand_.halves.low);
 				goto fetch_decode;
 
 			case access_program(AccessType::Modify8):
 				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
-				perform_operation();
+				perform_operation(LIC::Inactive);
 				internal_cycle(LIC::Inactive);
 				write(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
 				goto fetch_decode;
