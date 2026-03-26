@@ -111,10 +111,11 @@ enum class LIC {
 	Active,				// LIC is active.
 	Inactive,			// LIC is inactive.
 
-	InstructionFetch,	// LIC is inactive, and this is an instruction fetch. LIC's stated purpose is so that observers
-						// can detect instruction fetches by watching for its trailing edge. As an emulation nicety,
-						// and pragmatically because it's doable without additional cost, this implementation directly
-						// signals InstructionFetch so that interested observers don't need to maintain their own state.
+	InstructionFetch,	// LIC is inactive, and this is the first byte of an instruction fetch. LIC's stated purpose is
+						// so that observers can detect instruction fetches by watching for its trailing edge. As an
+						// emulation nicety, and pragmatically because it's doable without additional cost, this
+						// implementation directly signals InstructionFetch so that interested observers don't need to
+						// maintain their own state.
 };
 
 enum Vector: uint16_t {
@@ -195,7 +196,8 @@ struct Processor {
 		static constexpr auto FirstCounter = __COUNTER__;
 		#define addressing_program(name)	int(ResumePoint::Max) + int(name)
 		#define access_program(name)		int(ResumePoint::Max) + int(AddressingMode::Max) + int(name)
-		#define restore_point()				(__COUNTER__ - FirstCounter + int(ResumePoint::Max) + int(AddressingMode::Max) + int(AccessType::Max))
+		#define restore_point()				\
+			(__COUNTER__ - FirstCounter + int(ResumePoint::Max) + int(AddressingMode::Max) + int(AccessType::Max))
 
 		#define join(a, b)			a##b
 		#define attach(a, b)		join(a, b)
@@ -210,18 +212,22 @@ struct Processor {
 				}														\
 			}
 
-		#define read(bus_state, addr, value, ...) {																	\
+		#define read(bus_state, lic, addr, value, ...) {															\
 			if constexpr (!Traits::uses_mrdy) {																		\
 				time_ -= Cycles(1);																					\
-				time_ -= 																							\
-					bus_handler_.template perform<BusPhase::FullCycle, ReadWrite::Read, bus_state>(addr, target_);	\
+				time_ -=																							\
+					bus_handler_.																					\
+						template perform<BusPhase::FullCycle, lic, ReadWrite::Read, bus_state>						\
+							(addr,target_);																			\
 				goto local_label(skipMRDY);																			\
 			}																										\
 																													\
 			if constexpr (Traits::uses_mrdy) {																		\
 				time_ -= QuarterCycles(3);																			\
 				time_ -=																							\
-					bus_handler_.template perform<BusPhase::PreMRDY, ReadWrite::Read, bus_state>(addr, target_);	\
+					bus_handler_.																					\
+						template perform<BusPhase::PreMRDY, lic, ReadWrite::Read, bus_state>						\
+							(addr, target_);																		\
 			}																										\
 																													\
 			static constexpr auto check_mrdy = restore_point();														\
@@ -232,7 +238,9 @@ struct Processor {
 				if constexpr (Traits::uses_mrdy) {																	\
 					time_ -= QuarterCycles(1);																		\
 					time_ -=																						\
-						bus_handler_.template perform<BusPhase::MRDY, ReadWrite::Read, bus_state>(addr, target_);	\
+						bus_handler_.																				\
+							template perform<BusPhase::MRDY, lic, ReadWrite::Read, bus_state>						\
+								(addr, target_);																	\
 				}																									\
 			}																										\
 																													\
@@ -244,19 +252,23 @@ struct Processor {
 			if constexpr (Traits::uses_mrdy) {																		\
 				time_ -= QuarterCycles(1);																			\
 				time_ -=																							\
-					bus_handler_.template perform<BusPhase::PostMRDY, ReadWrite::Read, bus_state>(addr, target_);	\
+					bus_handler_.																					\
+						template perform<BusPhase::PostMRDY, lic, ReadWrite::Read, bus_state>						\
+							(addr, target_);																		\
 			}																										\
 																													\
-			local_label(skipMRDY):																	\
+			local_label(skipMRDY):																					\
 			value = target_;																						\
 			__VA_ARGS__;																							\
 		}
 
-		#define write(bus_state, addr, value, ...) {																\
+		#define write(bus_state, lic, addr, value, ...) {															\
 			if constexpr (!Traits::uses_mrdy) {																		\
 				time_ -= Cycles(1);																					\
 				time_ -=																							\
-					bus_handler_.template perform<BusPhase::FullCycle, ReadWrite::Write, bus_state>(addr, value);	\
+					bus_handler_.																					\
+						template perform<BusPhase::FullCycle, lic, ReadWrite::Write, bus_state>						\
+							(addr, value);																			\
 																													\
 				goto local_label(skipMRDY);																			\
 			}																										\
@@ -264,7 +276,9 @@ struct Processor {
 			if constexpr (Traits::uses_mrdy) {																		\
 				time_ -= QuarterCycles(3);																			\
 				time_ -=																							\
-					bus_handler_.template perform<BusPhase::PreMRDY, ReadWrite::Write, bus_state>(addr, value);		\
+					bus_handler_.																					\
+						template perform<BusPhase::PreMRDY, lic, ReadWrite::Write, bus_state>						\
+							(addr, value);																			\
 			}																										\
 																													\
 			static constexpr auto check_mrdy = restore_point();														\
@@ -275,7 +289,9 @@ struct Processor {
 				if constexpr (Traits::uses_mrdy) {																	\
 					time_ -= QuarterCycles(1);																		\
 					time_ -=																						\
-						bus_handler_.template perform<BusPhase::MRDY, ReadWrite::Write, bus_state>(addr, value);	\
+						bus_handler_.																				\
+							template perform<BusPhase::MRDY, lic, ReadWrite::Write, bus_state>						\
+								(addr, value);																		\
 				}																									\
 			}																										\
 																													\
@@ -287,20 +303,23 @@ struct Processor {
 			if constexpr (Traits::uses_mrdy) {																		\
 				time_ -= QuarterCycles(1);																			\
 				time_ -=																							\
-					bus_handler_.template perform<BusPhase::PostMRDY, ReadWrite::Write, bus_state>(addr, value);	\
+					bus_handler_.																					\
+						template perform<BusPhase::PostMRDY, lic, ReadWrite::Write, bus_state>						\
+							(addr, value);																			\
 			}																										\
 																													\
 			local_label(skipMRDY):																					\
 			__VA_ARGS__;																							\
 		}
 
-		#define inactive_bus()										\
-			time_ -= Cycles(1);										\
-			time_ -=												\
-				bus_handler_.template perform<						\
-					BusPhase::FullCycle,							\
-					ReadWrite::NoData,								\
-					BusState::HaltOrBusGrantAcknowledge				\
+		#define inactive_bus(lic)								\
+			time_ -= Cycles(1);									\
+			time_ -=											\
+				bus_handler_.template perform<					\
+					BusPhase::FullCycle,						\
+					lic,										\
+					ReadWrite::NoData,							\
+					BusState::HaltOrBusGrantAcknowledge			\
 				>(Address::Fixed<0xffff>(), Data::NoValue());
 
 		#define internal_cycles(n) { 										\
@@ -318,6 +337,7 @@ struct Processor {
 			time_ -=														\
 				bus_handler_.template perform<								\
 					BusPhase::FullCycle,									\
+					LIC::Inactive,											\
 					ReadWrite::NoData,										\
 					BusState::Normal										\
 				>(Address::Fixed<0xffff>(), Data::NoValue());				\
@@ -326,16 +346,16 @@ struct Processor {
 			local_label(finishPerform):	(void)0;							\
 		}
 
-		#define perform_operation() {\
-			internal_cycles(CPU::M6809::perform(\
-				operation_.operation, \
-				registers_, \
-				operand_, \
-				[]{}	\
-			))	\
+		#define perform_operation() {				\
+			internal_cycles(CPU::M6809::perform(	\
+				operation_.operation, 				\
+				registers_,							\
+				operand_, 							\
+				[]{}								\
+			))										\
 		}
 
-		#define addressed_internal_cycle(address) {					\
+		#define addressed_internal_cycle(lic, address) {			\
 			static constexpr auto access = restore_point();			\
 			[[fallthrough]]; case access:							\
 			check_pause(PausePrecision::BetweenBusActions, access);	\
@@ -343,12 +363,20 @@ struct Processor {
 			time_ -=												\
 				bus_handler_.template perform<						\
 					BusPhase::FullCycle,							\
+					lic,											\
 					ReadWrite::NoData,								\
 					BusState::Normal								\
 				>(address, Data::NoValue());						\
 		}
 
-		#define internal_cycle() addressed_internal_cycle(Address::Fixed<0xffff>())
+		#define internal_cycle(lic) addressed_internal_cycle(lic, Address::Fixed<0xffff>())
+
+		#define pull(r)	\
+			read(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), r, ++registers_.reg<R16::S>())
+
+		#define push(r)																		\
+			-- registers_.reg<R16::S>();													\
+			write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), r);
 
 		time_ += duration;
 
@@ -379,19 +407,29 @@ struct Processor {
 					resume_point_ = ResumePoint::ResetSpin;
 					return;
 				}
-				addressed_internal_cycle(Address::Fixed<Vector::Reset>())
+				addressed_internal_cycle(LIC::Inactive, Address::Fixed<Vector::Reset>())
 				if(exceptions_ & (uint8_t(Exception::Halt) | uint8_t(Exception::DMABusReq) | uint8_t(Exception::Reset))) {
 					goto reset_spin;
 				}
 
-				addressed_internal_cycle(Address::Fixed<Vector::Reset>())
-				addressed_internal_cycle(Address::Fixed<Vector::Reset>())
-				addressed_internal_cycle(Address::Fixed<Vector::Reset>())
+				addressed_internal_cycle(LIC::Inactive, Address::Fixed<Vector::Reset>())
+				addressed_internal_cycle(LIC::Inactive, Address::Fixed<Vector::Reset>())
+				addressed_internal_cycle(LIC::Inactive, Address::Fixed<Vector::Reset>())
 
-				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<Vector::Reset>(), registers_.pc.halves.high);
-				read(BusState::InterruptOrResetAcknowledge, Address::Fixed<Vector::Reset + 1>(), registers_.pc.halves.low);
+				read(
+					BusState::InterruptOrResetAcknowledge,
+					LIC::Inactive,
+					Address::Fixed<Vector::Reset>(),
+					registers_.pc.halves.high
+				);
+				read(
+					BusState::InterruptOrResetAcknowledge,
+					LIC::Inactive,
+					Address::Fixed<Vector::Reset + 1>(),
+					registers_.pc.halves.low
+				);
 
-				internal_cycle();
+				internal_cycle(LIC::Active);
 
 				goto fetch_decode;
 
@@ -401,12 +439,9 @@ struct Processor {
 				registers_.cc.set<ConditionCode::Entire>(false);
 
 				operand_ = registers_.reg<R16::PC>();
-				-- registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.low);
-				-- registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.high);
-				-- registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::CC>());
+				push(operand_.halves.low);
+				push(operand_.halves.high);
+				push(registers_.reg<R8::CC>());
 
 				address_.full = Vector::FIRQ;
 				goto interrupt_dispatch;
@@ -414,7 +449,7 @@ struct Processor {
 			// MARK: - Fetch/decode.
 
 			halt:
-				inactive_bus();
+				inactive_bus(LIC::Inactive);
 
 			fetch_decode:
 			[[fallthrough]];
@@ -454,19 +489,25 @@ struct Processor {
 					}
 				}
 
-				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
+				read(
+					BusState::Normal,
+					LIC::InstructionFetch,
+					Literal(registers_.pc.full),
+					opcode,
+					++registers_.pc.full
+				);
 				operation_ = Reflection::dispatch(op_mapper0, opcode, op_returner);
 				resume_point_ = addressing_program(operation_.mode);
 				break;
 
 			fetch_decode_page1:
-				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
+				read(BusState::Normal, LIC::Inactive, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
 				operation_ = Reflection::dispatch(op_mapper1, opcode, op_returner);
 				resume_point_ = addressing_program(operation_.mode);
 				break;
 
 			fetch_decode_page2:
-				read(BusState::Normal, Literal(registers_.pc.full), opcode, ++registers_.pc.full);
+				read(BusState::Normal, LIC::Inactive,Literal(registers_.pc.full), opcode, ++registers_.pc.full);
 				operation_ = Reflection::dispatch(op_mapper2, opcode, op_returner);
 				resume_point_ = addressing_program(operation_.mode);
 				break;
@@ -490,7 +531,9 @@ struct Processor {
 			// MARK: - Inherent addressing mode.
 
 			case addressing_program(AddressingMode::Inherent):
-				addressed_internal_cycle(Address::Literal(registers_.pc.full));
+				// TODO: probably needs to call perform first, to see whether there are delay cycles before
+				// figuring out where LIC goes.
+				addressed_internal_cycle(LIC::Inactive, Address::Literal(registers_.pc.full));
 				perform_operation();
 				goto fetch_decode;
 
@@ -502,7 +545,13 @@ struct Processor {
 				}
 				[[fallthrough]];
 			case addressing_program(AddressingMode::Immediate8):
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				read(
+					BusState::Normal,
+					LIC::Inactive,
+					Literal(registers_.pc.full),
+					operand_.halves.low,
+					++registers_.pc.full
+				);
 				perform_operation();
 				goto fetch_decode;
 
@@ -512,27 +561,57 @@ struct Processor {
 				}
 				[[fallthrough]];
 			case addressing_program(AddressingMode::Immediate16):
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				read(
+					BusState::Normal,
+					LIC::Inactive,
+					Literal(registers_.pc.full),
+					operand_.halves.high,
+					++registers_.pc.full
+				);
+				read(
+					BusState::Normal,
+					LIC::Inactive,
+					Literal(registers_.pc.full),
+					operand_.halves.low,
+					++registers_.pc.full
+				);
 				perform_operation();
 				goto fetch_decode;
 
 			// MARK: - Direct addressing mode.
 
 			case addressing_program(AddressingMode::Direct):
-				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
+				read(
+					BusState::Normal,
+					LIC::Inactive,
+					Literal(registers_.pc.full),
+					address_.halves.low,
+					++registers_.pc.full
+				);
 				address_.halves.high = registers_.reg<R8::DP>();
-				internal_cycle();
+				internal_cycle(LIC::Inactive);
 				resume_point_ = access_program(operation_.type);
 				break;
 
 			// MARK: - Extended addressing mode.
 
 			case addressing_program(AddressingMode::Extended):
-				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.high, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.pc.full), address_.halves.low, ++registers_.pc.full);
+				read(
+					BusState::Normal,
+					LIC::Inactive,
+					Literal(registers_.pc.full),
+					address_.halves.high,
+					++registers_.pc.full
+				);
+				read(
+					BusState::Normal,
+					LIC::Inactive,
+					Literal(registers_.pc.full),
+					address_.halves.low,
+					++registers_.pc.full
+				);
 				resume_point_ = access_program(operation_.type);
-				internal_cycle();
+				internal_cycle(LIC::Inactive);
 				break;
 
 
@@ -545,7 +624,13 @@ struct Processor {
 				// Determine target address.
 				//
 
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				read(
+					BusState::Normal,
+					LIC::Inactive,
+					Literal(registers_.pc.full),
+					operand_.halves.low,
+					++registers_.pc.full
+				);
 				indexer_ = IndexedAddressDecoder(operand_.halves.low);
 
 				if(!indexer_.required_continuation()) {
@@ -555,15 +640,27 @@ struct Processor {
 					goto indexed_getlow;
 				}
 
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
+				read(
+					BusState::Normal,
+					LIC::Inactive,
+					Literal(registers_.pc.full),
+					operand_.halves.high,
+					++registers_.pc.full
+				);
 
 			indexed_getlow:
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				read(
+					BusState::Normal,
+					LIC::Inactive,
+					Literal(registers_.pc.full),
+					operand_.halves.low,
+					++registers_.pc.full
+				);
 				indexer_.set_continuation(operand_.full);
 				goto continue_indexed;
 
 			no_continuation:
-				addressed_internal_cycle(Address::Literal(registers_.pc.full));
+				addressed_internal_cycle(LIC::Inactive, Address::Literal(registers_.pc.full));
 
 			continue_indexed:
 				internal_cycles(indexer_.address_cost());
@@ -572,9 +669,9 @@ struct Processor {
 					goto complete_address;
 				}
 
-				read(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
-				read(BusState::Normal, Literal(address_.full), operand_.halves.low, ++address_.full);
-				internal_cycle();
+				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.high, ++address_.full);
+				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low, ++address_.full);
+				internal_cycle(LIC::Inactive);
 				address_ = operand_;
 
 			complete_address:
@@ -620,56 +717,63 @@ struct Processor {
 			// MARK: - PULU/PULS.
 
 			pull:
-				stack_ = operation_.operation == Operation::PULU ? &registers_.reg<R16::U>(): &registers_.reg<R16::S>();
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				stack_ =
+					operation_.operation == Operation::PULU ? &registers_.reg<R16::U>(): &registers_.reg<R16::S>();
+				read(
+					BusState::Normal,
+					LIC::Inactive,
+					Literal(registers_.pc.full),
+					operand_.halves.low,
+					++registers_.pc.full
+				);
 
 				internal_cycles(2);
 
 				if(!(operand_.halves.low & 0b0000'0001)) {
 					goto no_pull_cc;
 				}
-				read(BusState::Normal, Literal(*stack_), registers_.reg<R8::CC>(), ++*stack_);
+				read(BusState::Normal, LIC::Inactive, Literal(*stack_), registers_.reg<R8::CC>(), ++*stack_);
 			no_pull_cc:
 
 				if(!(operand_.halves.low & 0b0000'0010)) {
 					goto no_pull_a;
 				}
-				read(BusState::Normal, Literal(*stack_), registers_.reg<R8::A>(), ++*stack_);
+				read(BusState::Normal, LIC::Inactive, Literal(*stack_), registers_.reg<R8::A>(), ++*stack_);
 			no_pull_a:
 
 				if(!(operand_.halves.low & 0b0000'0100)) {
 					goto no_pull_b;
 				}
-				read(BusState::Normal, Literal(*stack_), registers_.reg<R8::B>(), ++*stack_);
+				read(BusState::Normal, LIC::Inactive, Literal(*stack_), registers_.reg<R8::B>(), ++*stack_);
 			no_pull_b:
 
 				if(!(operand_.halves.low & 0b0000'1000)) {
 					goto no_pull_dp;
 				}
-				read(BusState::Normal, Literal(*stack_), registers_.reg<R8::DP>(), ++*stack_);
+				read(BusState::Normal, LIC::Inactive, Literal(*stack_), registers_.reg<R8::DP>(), ++*stack_);
 			no_pull_dp:
 
 				if(!(operand_.halves.low & 0b0001'0000)) {
 					goto no_pull_x;
 				}
-				read(BusState::Normal, Literal(*stack_), address_.halves.high, ++*stack_);
-				read(BusState::Normal, Literal(*stack_), address_.halves.low, ++*stack_);
+				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high, ++*stack_);
+				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low, ++*stack_);
 				registers_.reg<R16::X>() = address_.full;
 			no_pull_x:
 
 				if(!(operand_.halves.low & 0b0010'0000)) {
 					goto no_pull_y;
 				}
-				read(BusState::Normal, Literal(*stack_), address_.halves.high, ++*stack_);
-				read(BusState::Normal, Literal(*stack_), address_.halves.low, ++*stack_);
+				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high, ++*stack_);
+				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low, ++*stack_);
 				registers_.reg<R16::Y>() = address_.full;
 			no_pull_y:
 
 				if(!(operand_.halves.low & 0b0100'0000)) {
 					goto no_pull_s;
 				}
-				read(BusState::Normal, Literal(*stack_), address_.halves.high, ++*stack_);
-				read(BusState::Normal, Literal(*stack_), address_.halves.low, ++*stack_);
+				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high, ++*stack_);
+				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low, ++*stack_);
 				(operation_.operation == Operation::PULU ? registers_.reg<R16::S>() : registers_.reg<R16::U>())
 					= address_.full;
 			no_pull_s:
@@ -677,29 +781,36 @@ struct Processor {
 				if(!(operand_.halves.low & 0b1000'0000)) {
 					goto end_pull;
 				}
-				read(BusState::Normal, Literal(*stack_), address_.halves.high, ++*stack_);
-				read(BusState::Normal, Literal(*stack_), address_.halves.low, ++*stack_);
+				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high, ++*stack_);
+				read(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low, ++*stack_);
 				registers_.reg<R16::PC>() = address_.full;
 
 			end_pull:
-				internal_cycle();
+				internal_cycle(LIC::Active);
 				goto fetch_decode;
 
 			// MARK: - PHSH/PSHS.
 
 			push:
-				stack_ = operation_.operation == Operation::PSHU ? &registers_.reg<R16::U>(): &registers_.reg<R16::S>();
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				stack_ =
+					operation_.operation == Operation::PSHU ? &registers_.reg<R16::U>(): &registers_.reg<R16::S>();
+				read(
+					BusState::Normal,
+					LIC::Inactive,
+					Literal(registers_.pc.full),
+					operand_.halves.low,
+					++registers_.pc.full
+				);
 
 				internal_cycles(2);
-				addressed_internal_cycle(Address::Literal(*stack_));
+				addressed_internal_cycle(LIC::Inactive, Address::Literal(*stack_));
 
 				if(!(operand_.halves.low & 0b1000'0000)) {
 					goto no_push_pc;
 				}
 				address_.full = registers_.reg<R16::PC>();
-				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.low);
-				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.high);
+				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low);
+				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high);
 
 			no_push_pc:
 				if(!(operand_.halves.low & 0b0100'0000)) {
@@ -707,94 +818,112 @@ struct Processor {
 				}
 				address_.full =
 					operation_.operation == Operation::PSHU ? registers_.reg<R16::S>() : registers_.reg<R16::U>();
-				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.low);
-				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.high);
+				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low);
+				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high);
 
 			no_push_s:
 				if(!(operand_.halves.low & 0b0010'0000)) {
 					goto no_push_y;
 				}
 				address_.full = registers_.reg<R16::Y>();
-				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.low);
-				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.high);
+				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low);
+				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high);
 
 			no_push_y:
 				if(!(operand_.halves.low & 0b0001'0000)) {
 					goto no_push_x;
 				}
 				address_.full = registers_.reg<R16::X>();
-				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.low);
-				(*stack_)--;	write(BusState::Normal, Literal(*stack_), address_.halves.high);
+				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.low);
+				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), address_.halves.high);
 
 			no_push_x:
 				if(!(operand_.halves.low & 0b000'1000)) {
 					goto no_push_dp;
 				}
-				(*stack_)--;	write(BusState::Normal, Literal(*stack_), registers_.reg<R8::DP>());
+				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), registers_.reg<R8::DP>());
 
 			no_push_dp:
 				if(!(operand_.halves.low & 0b000'0100)) {
 					goto no_push_b;
 				}
-				(*stack_)--;	write(BusState::Normal, Literal(*stack_), registers_.reg<R8::B>());
+				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), registers_.reg<R8::B>());
 
 			no_push_b:
 				if(!(operand_.halves.low & 0b000'0010)) {
 					goto no_push_a;
 				}
-				(*stack_)--;	write(BusState::Normal, Literal(*stack_), registers_.reg<R8::A>());
+				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), registers_.reg<R8::A>());
 
 			no_push_a:
 				if(!(operand_.halves.low & 0b000'0001)) {
 					goto fetch_decode;
 				}
-				(*stack_)--;	write(BusState::Normal, Literal(*stack_), registers_.reg<R8::CC>());
+				(*stack_)--;	write(BusState::Normal, LIC::Inactive, Literal(*stack_), registers_.reg<R8::CC>());
 				goto fetch_decode;
 
 			// MARK: - Stack-related control flow.
 
 			rti:
-				addressed_internal_cycle(Address::Literal(registers_.pc.full));
-				read(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.cc, ++registers_.reg<R16::S>());
+				addressed_internal_cycle(LIC::Inactive, Address::Literal(registers_.pc.full));
+				pull(registers_.cc);
 				if(!registers_.cc.get<ConditionCode::Entire>()) {
 					goto rti_not_entire;
 				}
 
-				read(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::A>(), ++registers_.reg<R16::S>());
-				read(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::B>(), ++registers_.reg<R16::S>());
-				read(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::DP>(), ++registers_.reg<R16::S>());
+				pull(registers_.reg<R8::A>());
+				pull(registers_.reg<R8::B>());
+				pull(registers_.reg<R8::DP>());
 
-				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.high, ++registers_.reg<R16::S>());
-				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.low, ++registers_.reg<R16::S>());
+				pull(address_.halves.high);
+				pull(address_.halves.low);
 				registers_.reg<R16::X>() = address_.full;
 
-				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.high, ++registers_.reg<R16::S>());
-				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.low, ++registers_.reg<R16::S>());
+				pull(address_.halves.high);
+				pull(address_.halves.low);
 				registers_.reg<R16::Y>() = address_.full;
 
-				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.high, ++registers_.reg<R16::S>());
-				read(BusState::Normal, Literal(registers_.reg<R16::S>()), address_.halves.low, ++registers_.reg<R16::S>());
+				pull(address_.halves.high);
+				pull(address_.halves.low);
 				registers_.reg<R16::U>() = address_.full;
 
 			rti_not_entire:
-				read(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.high, ++registers_.reg<R16::S>());
-				read(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.low, ++registers_.reg<R16::S>());
-				internal_cycle();
+				pull(registers_.pc.halves.high);
+				pull(registers_.pc.halves.low);
+				internal_cycle(LIC::Active);
 				goto fetch_decode;
 
 			rts:
-				addressed_internal_cycle(Address::Literal(registers_.pc.full));
+				addressed_internal_cycle(LIC::Inactive, Address::Literal(registers_.pc.full));
 				goto rti_not_entire;
 
 			bsr:
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				read(
+					BusState::Normal,
+					LIC::Inactive,
+					Literal(registers_.pc.full),
+					operand_.halves.low,
+					++registers_.pc.full
+				);
 				address_.full = uint16_t(registers_.pc.full + int8_t(operand_.halves.low));
-				internal_cycle();
+				internal_cycle(LIC::Inactive);
 				goto jsr;
 
 			lbsr:
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.high, ++registers_.pc.full);
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				read(
+					BusState::Normal,
+					LIC::Inactive,
+					Literal(registers_.pc.full),
+					operand_.halves.high,
+					++registers_.pc.full
+				);
+				read(
+					BusState::Normal,
+					LIC::Inactive,
+					Literal(registers_.pc.full),
+					operand_.halves.low,
+					++registers_.pc.full
+				);
 				address_.full = registers_.pc.full + operand_.full;
 				internal_cycles(2);
 				goto jsr;
@@ -825,6 +954,7 @@ struct Processor {
 				time_ -=
 					bus_handler_.template perform<
 						BusPhase::FullCycle,
+						LIC::Inactive,
 						ReadWrite::NoData,
 						BusState::Normal
 					>(Address::Fixed<0xffff>(), Data::NoValue());
@@ -832,12 +962,18 @@ struct Processor {
 				goto finish_cwai;
 
 			cwai:
-				read(BusState::Normal, Literal(registers_.pc.full), operand_.halves.low, ++registers_.pc.full);
+				read(
+					BusState::Normal,
+					LIC::Inactive,
+					Literal(registers_.pc.full),
+					operand_.halves.low,
+					++registers_.pc.full
+				);
 				CPU::M6809::perform(Operation::ANDCC, registers_, operand_);
 				/* Fallthrough. */
 
 			swi_reset:
-				addressed_internal_cycle(Address::Literal(registers_.pc.full));
+				addressed_internal_cycle(LIC::Inactive, Address::Literal(registers_.pc.full));
 				goto exception;
 
 			nmi_irq:
@@ -845,43 +981,43 @@ struct Processor {
 				goto exception;
 
 			exception:
-				internal_cycle();
+				internal_cycle(LIC::Inactive);
 				if(operation_.operation != Operation::RESET) {
 					registers_.cc.set<ConditionCode::Entire>(true);
 				}
 
 				operand_ = registers_.reg<R16::PC>();
 				-- registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.low);
+				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), operand_.halves.low);
 				-- registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.high);
+				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), operand_.halves.high);
 
 				operand_ = registers_.reg<R16::U>();
 				-- registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.low);
+				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), operand_.halves.low);
 				-- registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.high);
+				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), operand_.halves.high);
 
 				operand_ = registers_.reg<R16::Y>();
 				-- registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.low);
+				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), operand_.halves.low);
 				-- registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.high);
+				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), operand_.halves.high);
 
 				operand_ = registers_.reg<R16::X>();
 				-- registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.low);
+				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), operand_.halves.low);
 				-- registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), operand_.halves.high);
+				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), operand_.halves.high);
 
 				-- registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::DP>());
+				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), registers_.reg<R8::DP>());
 				-- registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::B>());
+				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), registers_.reg<R8::B>());
 				-- registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::A>());
+				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), registers_.reg<R8::A>());
 				-- registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.reg<R8::CC>());
+				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), registers_.reg<R8::CC>());
 
 				if(operation_.operation == Operation::CWAI) {
 					goto finish_cwai;
@@ -893,24 +1029,26 @@ struct Processor {
 					registers_.cc.set<ConditionCode::FIRQMask>(true);
 				}
 
-				internal_cycle();
+				internal_cycle(LIC::Inactive);
 				read(
 					BusState::InterruptOrResetAcknowledge,
+					LIC::Inactive,
 					Literal(address_.full),
 					registers_.pc.halves.high,
 					++address_.full
 				);
 				read(
 					BusState::InterruptOrResetAcknowledge,
+					LIC::Inactive,
 					Literal(address_.full),
 					registers_.pc.halves.low,
 					++address_.full
 				);
-				internal_cycle();
+				internal_cycle(LIC::Active);
 				goto fetch_decode;
 
 			sync:
-				addressed_internal_cycle(Address::Literal(registers_.pc.full));
+				addressed_internal_cycle(LIC::Inactive, Address::Literal(registers_.pc.full));
 			[[fallthrough]]; case ResumePoint::Sync:
 				// Always consider taking a break here, regardless of selected pause precision; otherwise there's
 				// a risk of never exiting.
@@ -923,6 +1061,7 @@ struct Processor {
 				time_ -=
 					bus_handler_.template perform<
 						BusPhase::FullCycle,
+						LIC::Inactive,
 						ReadWrite::NoData,
 						BusState::SyncAcknowledge
 					>(Address::Fixed<0xffff>(), Data::NoValue());
@@ -943,43 +1082,43 @@ struct Processor {
 
 			case access_program(AccessType::JSR):
 			jsr:
-				addressed_internal_cycle(Address::Literal(address_.full));
-				internal_cycle();
+				addressed_internal_cycle(LIC::Inactive, Address::Literal(address_.full));
+				internal_cycle(LIC::Inactive);
 
 				--registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.low);
+				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), registers_.pc.halves.low);
 				--registers_.reg<R16::S>();
-				write(BusState::Normal, Literal(registers_.reg<R16::S>()), registers_.pc.halves.high);
+				write(BusState::Normal, LIC::Inactive, Literal(registers_.reg<R16::S>()), registers_.pc.halves.high);
 				registers_.reg<R16::PC>() = address_.full;
 				goto fetch_decode;
 
 			case access_program(AccessType::Read8):
-				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
+				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
 				perform_operation();
 				goto fetch_decode;
 
 			case access_program(AccessType::Read16):
-				read(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
-				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
+				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.high, ++address_.full);
+				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
 				perform_operation();
 				goto fetch_decode;
 
 			case access_program(AccessType::Write8):
 				perform_operation();
-				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
+				write(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
 				goto fetch_decode;
 
 			case access_program(AccessType::Write16):
 				perform_operation();
-				write(BusState::Normal, Literal(address_.full), operand_.halves.high, ++address_.full);
-				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
+				write(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.high, ++address_.full);
+				write(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
 				goto fetch_decode;
 
 			case access_program(AccessType::Modify8):
-				read(BusState::Normal, Literal(address_.full), operand_.halves.low);
+				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
 				perform_operation();
-				internal_cycle();
-				write(BusState::Normal, Literal(address_.full), operand_.halves.low);
+				internal_cycle(LIC::Inactive);
+				write(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low);
 				goto fetch_decode;
 		}
 
@@ -997,6 +1136,8 @@ struct Processor {
 		#undef internal_cycles
 		#undef perform_operation
 		#undef addressed_internal_cycle
+		#undef pull
+		#undef push
 	}
 
 	Registers &registers() {

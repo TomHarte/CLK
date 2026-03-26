@@ -22,6 +22,7 @@ struct M6809Capture {
 
 	template <
 		CPU::M6809::BusPhase bus_phase,
+		CPU::M6809::LIC lic,
 		CPU::M6809::ReadWrite read_write,
 		CPU::M6809::BusState bus_state,
 		typename AddressT
