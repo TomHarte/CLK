@@ -69,8 +69,8 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 			case LeftMeta:
 			case RightMeta:		return 0x39;
 
-			// TODO: INS and EFF from the lower right, which I think are 0x09 and 0x11?
-			// And where the heck is forward slash?
+			case Insert:		return 0x09;	// INS.
+			case Home:			return 0x11;	// EFF.
 		}
 	}
 };

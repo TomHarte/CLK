@@ -48,6 +48,7 @@
 #include "Analyser/Static/Oric/Target.hpp"
 #include "Analyser/Static/PCCompatible/Target.hpp"
 #include "Analyser/Static/Sega/Target.hpp"
+#include "Analyser/Static/Thomson/Target.hpp"
 #include "Analyser/Static/ZX8081/Target.hpp"
 #include "Analyser/Static/ZXSpectrum/Target.hpp"
 
@@ -170,6 +171,7 @@ std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) 
 		case Analyser::Machine::Oric:			return "Oric";
 		case Analyser::Machine::Plus4:			return "Plus4";
 		case Analyser::Machine::PCCompatible:	return "PCCompatible";
+		case Analyser::Machine::ThomsonMO:		return "ThomsonMO";
 		case Analyser::Machine::Vic20:			return "Vic20";
 		case Analyser::Machine::ZX8081:			return "ZX8081";
 		case Analyser::Machine::ZXSpectrum:		return "ZXSpectrum";
@@ -197,6 +199,7 @@ std::string Machine::LongNameForTargetMachine(const Analyser::Machine machine) {
 		case Analyser::Machine::Oric:			return "Oric";
 		case Analyser::Machine::Plus4:			return "Commodore C16+4";
 		case Analyser::Machine::PCCompatible:	return "PC Compatible";
+		case Analyser::Machine::ThomsonMO:		return "Thomson MO";
 		case Analyser::Machine::Vic20:			return "Vic 20";
 		case Analyser::Machine::ZX8081:			return "ZX80/81";
 		case Analyser::Machine::ZXSpectrum:		return "ZX Spectrum";
@@ -234,6 +237,7 @@ std::vector<std::string> Machine::AllMachines(const Type type, const bool long_n
 		add_name(Analyser::Machine::Oric);
 		add_name(Analyser::Machine::Plus4);
 		add_name(Analyser::Machine::PCCompatible);
+		add_name(Analyser::Machine::ThomsonMO);
 		add_name(Analyser::Machine::Vic20);
 		add_name(Analyser::Machine::ZX8081);
 		add_name(Analyser::Machine::ZXSpectrum);
@@ -265,6 +269,7 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsBy
 	Emplace(Oric, Oric::Machine);
 	Emplace(Plus4, Commodore::Plus4::Machine);
 	Emplace(PCCompatible, PCCompatible::Machine);
+	Emplace(ThomsonMO, Thomson::MO5::Machine);
 	Emplace(Vic20, Commodore::Vic20::Machine);
 	Emplace(ZX8081, Sinclair::ZX8081::Machine);
 	Emplace(ZXSpectrum, Sinclair::ZXSpectrum::Machine);
@@ -312,6 +317,10 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 		std::make_unique<Analyser::Static::Commodore::Plus4Target>()
 	);
 	Add(PCCompatible);
+	options.emplace(
+		LongNameForTargetMachine(Analyser::Machine::ThomsonMO),
+		std::make_unique<Analyser::Static::Thomson::MOTarget>()
+	);
 	options.emplace(
 		LongNameForTargetMachine(Analyser::Machine::Vic20),
 		std::make_unique<Analyser::Static::Commodore::Vic20Target>()

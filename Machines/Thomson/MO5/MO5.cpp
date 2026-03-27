@@ -21,6 +21,8 @@
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "Outputs/Speaker/Implementation/BufferSource.hpp"
 
+#include "Storage/Tape/Parsers/ThomsonMO.hpp"
+
 #include "Keyboard.hpp"
 
 using namespace Thomson::MO5;
@@ -31,6 +33,7 @@ static constexpr int ClockRate = 1'000'000;
 
 struct ConcreteMachine:
 	public Activity::Source,
+	public Configurable::Device,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaChangeObserver,
@@ -125,6 +128,42 @@ struct ConcreteMachine:
 						value = start_pointer_[address];
 					} else if(address >= 0xc000) {
 						value = rom_[address - 0xc000];
+
+						if(lic == CPU::M6809::LIC::InstructionFetch && allow_fast_tape_hack_ && address == 0xf105) {
+							[&] {
+								// Catch K7READ.
+								//
+								// Input Y = pointer to buffer.
+								// Output (after RTS): A = checksum (0 for success); B = file type.
+								//
+								auto *const serialiser = tape_player_.serialiser();
+								if(!serialiser) return;
+
+								Storage::Tape::Thomson::MO::Parser parser;
+								const auto block = parser.block(*serialiser);
+								if(!block.has_value()) return;
+
+								// Put final values for A and B on the stack; they'll be picked up later.
+								const uint16_t s = m6809_.registers().reg<CPU::M6809::R16::S>();
+								ram_[s + 4] = block->type;
+								ram_[s + 3] = block->checksum;
+
+								uint16_t y = m6809_.registers().reg<CPU::M6809::R16::Y>();
+								uint8_t checksum = 0;
+
+								ram_[y++] = uint8_t(block->data.size() + 2);
+								checksum += uint8_t(block->data.size() + 2);
+
+								for(const auto byte: block->data) {
+									ram_[y++] = byte;
+									checksum += byte;
+								}
+								ram_[y++] = uint8_t(block->checksum - checksum);
+								m6809_.registers().reg<CPU::M6809::R16::Y>() = y;
+
+								value = 0x39;	// RTS
+							} ();
+						}
 					} else {
 						value = ram_[address];
 					}
@@ -138,7 +177,6 @@ struct ConcreteMachine:
 				}
 			}
 		}
-
 		return Cycles(0);
 	}
 
@@ -165,6 +203,13 @@ private:
 	friend struct SystemPIAPortHandler;
 	struct SystemPIAPortHandler {
 		SystemPIAPortHandler(ConcreteMachine &machine) : machine_(machine) {}
+
+		// System PIA control lines:
+		//
+		//	CA1: lightpen input
+		//	CA2: drive motor control output
+		//	CB1: 50Hz interrupt input
+		//	CB2: "Video encrustation"?
 
 		template <Motorola::MC6821::Port port>
 		uint8_t input() {
@@ -226,13 +271,6 @@ private:
 			}
 		}
 
-		// TODO:
-		//
-		//	CA1: lightpen input
-		//	CA2: drive motor control
-		//	CB1: 50Hz interrupt
-		//	CB2: genlock enable, maybe? Video "encrustation".
-
 		void clear_all_keys() {
 			std::fill(std::begin(key_states_), std::end(key_states_), false);
 		}
@@ -251,6 +289,7 @@ private:
 
 	JustInTimeActor<Video, Cycles> video_;
 	Storage::Tape::BinaryTapePlayer tape_player_;
+	bool allow_fast_tape_hack_ = true;
 
 	// MARK: - AudioProducer.
 
@@ -326,6 +365,19 @@ private:
 
 	void set_activity_observer(Activity::Observer *observer) override {
 		tape_player_.set_activity_observer(observer);
+	}
+
+	// MARK: - Configuration options.
+
+	std::unique_ptr<Reflection::Struct> get_options() const final {
+		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+		options->quick_load = allow_fast_tape_hack_;
+		return options;
+	}
+
+	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+		const auto options = dynamic_cast<Options *>(str.get());
+		allow_fast_tape_hack_ = options->quick_load;
 	}
 };
 
