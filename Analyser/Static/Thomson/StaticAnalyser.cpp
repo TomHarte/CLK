@@ -30,6 +30,15 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 
 		if(first && first->checksum_valid()) {
 			target->media.tapes = media.tapes;
+
+			// Very coarse attempt at divining a loading command: check for the BAS file extension.
+			if(!first->type && first->data.size() >= 11) {
+				if(first->data[8] == 'B' && first->data[9] == 'A' && first->data[10] == 'S') {
+					target->loading_command = "RUN\"\n";
+				} else {
+					target->loading_command = "LOADM\"\",,R\n";
+				}
+			}
 		}
 	}
 
