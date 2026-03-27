@@ -25,6 +25,7 @@
 #include "Analyser/Static/MSX/Target.hpp"
 #include "Analyser/Static/Oric/Target.hpp"
 #include "Analyser/Static/PCCompatible/Target.hpp"
+#include "Analyser/Static/Thomson/Target.hpp"
 #include "Analyser/Static/ZX8081/Target.hpp"
 #include "Analyser/Static/ZXSpectrum/Target.hpp"
 
@@ -551,8 +552,8 @@ PermissionDelegate permission_delegate;
 
 	self = [super init];
 	if(self) {
-		using Target = Analyser::Static::Target;
-		auto target = std::make_unique<Target>(Analyser::Machine::ThomsonMO);
+		using Target = Analyser::Static::Thomson::MOTarget;
+		auto target = std::make_unique<Target>();
 		_targets.push_back(std::move(target));
 	}
 	return self;
