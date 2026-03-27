@@ -54,11 +54,11 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 }
 
-const uint16_t *CharacterMapper::sequence_for_character(char character) const {
+const uint16_t *CharacterMapper::sequence_for_character(const char character) const {
 #define KEYS(...)	{__VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
 #define SHIFT(...)	{KeyLeftShift, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
 #define X			{MachineTypes::MappedKeyboardMachine::KeyNotMapped}
-	static KeySequence key_sequences[] = {
+	static constexpr KeySequence key_sequences[] = {
 		/* NUL */	X,							/* SOH */	X,
 		/* STX */	X,							/* ETX */	X,
 		/* EOT */	X,							/* ENQ */	X,

@@ -192,6 +192,25 @@ struct Processor {
 		}
 	}
 
+	template <Line line>
+	bool get() const {
+		const auto exception = [&](const Exception exception) {
+			return exceptions_ & uint8_t(exception);
+		};
+
+		// As below, NMI is edge triggered whereas all the rest are level-triggered.
+		switch(line) {
+			case Line::PowerOnReset:	return exception(Exception::PowerOnReset);
+			case Line::Reset: 			return exception(Exception::Reset);
+			case Line::NMI: 			return exception(Exception::NMI);
+			case Line::IRQ: 			return exception(Exception::IRQ);
+			case Line::FIRQ: 			return exception(Exception::FIRQ);
+			case Line::MRDY:			return mrdy_;
+			case Line::Halt:			return exception(Exception::Halt);
+			case Line::DMABusReq:		return exception(Exception::DMABusReq);
+		}
+	}
+
 	Processor(Traits::BusHandlerT &bus_handler) noexcept : bus_handler_(bus_handler) {}
 
 	using Timescale = std::conditional_t<Traits::uses_mrdy, QuarterCycles, Cycles>;
