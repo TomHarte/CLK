@@ -22,6 +22,7 @@
 #include "Outputs/Speaker/Implementation/BufferSource.hpp"
 
 #include "Storage/Tape/Parsers/ThomsonMO.hpp"
+#include "Analyser/Static/Thomson/Target.hpp"
 
 #include "Keyboard.hpp"
 
@@ -40,9 +41,10 @@ struct ConcreteMachine:
 	public MachineTypes::MediaTarget,
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
-	public Machine
+	public Machine,
+	public Utility::TypeRecipient<CharacterMapper>
 {
-	ConcreteMachine(const Analyser::Static::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+	ConcreteMachine(const Analyser::Static::Thomson::MOTarget &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6809_(*this),
 		system_pia_port_handler_(*this),
 		system_pia_(system_pia_port_handler_),
@@ -67,6 +69,9 @@ struct ConcreteMachine:
 		system_pia_.refresh();
 
 		insert_media(target.media);
+		if(!target.loading_command.empty()) {
+			type_string(target.loading_command);
+		}
 	}
 
 	~ConcreteMachine() {
@@ -103,6 +108,9 @@ struct ConcreteMachine:
 		}
 		time_since_audio_update_ += duration;
 		tape_player_.run_for(duration);
+		if(typer_) {
+			typer_->run_for(duration);
+		}
 
 		if constexpr (read_write == CPU::M6809::ReadWrite::NoData) {
 			return Cycles(0);
@@ -334,7 +342,7 @@ private:
 
 	// MARK: - MappedKeyboardMachine.
 
-	MO5::KeyboardMapper keyboard_mapper_;
+	Thomson::MO5::KeyboardMapper keyboard_mapper_;
 	KeyboardMapper *get_keyboard_mapper() final {
 		return &keyboard_mapper_;
 	}
@@ -345,6 +353,26 @@ private:
 
 	void clear_all_keys() final {
 		system_pia_port_handler_.clear_all_keys();
+	}
+
+	void type_string(const std::string &string) final {
+		Utility::TypeRecipient<CharacterMapper>::add_typer(string);
+	}
+
+	bool can_type(char c) const final {
+		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
+	}
+
+	HalfCycles get_typer_delay(const std::string &) const final {
+		if(m6809_.get<CPU::M6809::Line::PowerOnReset>()) {
+			return Cycles(1'000'000);
+		} else {
+			return Cycles(0);
+		}
+	}
+
+	HalfCycles get_typer_frequency() const final {
+		return Cycles(20'000);
 	}
 
 	// MARK: - MediaTarget and MediaChangeObserver.
@@ -387,5 +415,7 @@ std::unique_ptr<Machine> Machine::ThomsonMO(
 	const Analyser::Static::Target *target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	return std::make_unique<ConcreteMachine>(*target, rom_fetcher);
+	using Target = Analyser::Static::Thomson::MOTarget;
+	const Target *const thomson_target = dynamic_cast<const Target *>(target);
+	return std::make_unique<ConcreteMachine>(*thomson_target, rom_fetcher);
 }
