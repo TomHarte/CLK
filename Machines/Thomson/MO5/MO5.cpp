@@ -129,10 +129,10 @@ struct ConcreteMachine:
 					case 0xa7c2:	access<0xa7c2, read_write>(system_pia_, value);				break;
 					case 0xa7c3:	access<0xa7c3, read_write>(system_pia_, value);				break;
 
-					case 0xa7cc:	access<0xa7c0, read_write>(sound_and_game_pia_, value);		break;
-					case 0xa7cd:	access<0xa7c1, read_write>(sound_and_game_pia_, value);		break;
-					case 0xa7ce:	access<0xa7c2, read_write>(sound_and_game_pia_, value);		break;
-					case 0xa7cf:	access<0xa7c3, read_write>(sound_and_game_pia_, value);		break;
+					case 0xa7cc:	access<0xa7cc, read_write>(sound_and_game_pia_, value);		break;
+					case 0xa7cd:	access<0xa7cd, read_write>(sound_and_game_pia_, value);		break;
+					case 0xa7ce:	access<0xa7ce, read_write>(sound_and_game_pia_, value);		break;
+					case 0xa7cf:	access<0xa7cf, read_write>(sound_and_game_pia_, value);		break;
 
 					default:
 						if constexpr (CPU::M6809::is_read(read_write)) {
