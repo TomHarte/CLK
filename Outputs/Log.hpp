@@ -71,6 +71,7 @@ enum class Source {
 	MultiMachine,
 	MFP68901,
 	MOS6526,
+	MO5,
 	MSX,
 	NCR5380,
 	OpenGL,
@@ -160,6 +161,7 @@ constexpr const char *prefix(const Source source) {
 		case Source::Macintosh:					return "Macintosh";
 		case Source::MasterSystem:				return "SMS";
 		case Source::MOS6526:					return "MOS6526";
+		case Source::MO5:						return "MO5";
 		case Source::MFP68901:					return "MFP68901";
 		case Source::MultiMachine:				return "Multi-machine";
 		case Source::MSX:						return "MSX";

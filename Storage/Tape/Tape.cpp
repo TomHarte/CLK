@@ -206,12 +206,11 @@ void BinaryTapePlayer::set_delegate(Delegate *const delegate) {
 }
 
 void BinaryTapePlayer::process(const Storage::Tape::Pulse &pulse) {
-	bool new_input_level = pulse.type == Pulse::High;
+	const bool new_input_level = pulse.type == Pulse::High;
 	if(input_level_ != new_input_level) {
 		input_level_ = new_input_level;
 		if(delegate_) delegate_->tape_did_change_input(*this);
-
-		// Potentially update observer again, as this might be end-of-tape.
-		update_observer();
 	}
+	// Potentially update observer again, as this might be end-of-tape.
+	update_observer();
 }

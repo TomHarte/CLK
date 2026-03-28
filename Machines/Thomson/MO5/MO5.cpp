@@ -20,6 +20,7 @@
 #include "Components/AudioToggle/AudioToggle.hpp"
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "Outputs/Speaker/Implementation/BufferSource.hpp"
+#include "Outputs/Log.hpp"
 
 #include "Storage/Tape/Parsers/ThomsonMO.hpp"
 #include "Analyser/Static/Thomson/Target.hpp"
@@ -29,6 +30,8 @@
 using namespace Thomson::MO5;
 
 namespace {
+
+using Log = Log::Logger<Log::Source::MO5>;
 
 static constexpr int ClockRate = 1'000'000;
 
@@ -124,9 +127,9 @@ struct ConcreteMachine:
 					default:
 						if constexpr (CPU::M6809::is_read(read_write)) {
 							value = 0xff;
-							printf("Unhandled read at %04x\n", +address);
+							Log::info().append("Unhandled read at %04x", +address);
 						} else {
-							printf("Unhandled write: %02x -> %04x\n", +value, +address);
+							Log::info().append("Unhandled write: %02x -> %04x", +value, +address);
 						}
 					break;
 				}
@@ -276,6 +279,9 @@ private:
 		void observe(const bool value) {
 			if constexpr (control == Motorola::MC6821::Control::CA2) {
 				machine_.tape_player_.set_motor_control(!value);
+			}
+			if constexpr (control == Motorola::MC6821::Control::CB2) {
+				Log::info().append("Video encrustation (?) is %d", value);
 			}
 		}
 
