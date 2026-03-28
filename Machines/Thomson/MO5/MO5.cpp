@@ -52,6 +52,7 @@ struct ConcreteMachine:
 		m6809_(*this),
 		system_pia_port_handler_(*this),
 		system_pia_(system_pia_port_handler_),
+		sound_and_game_pia_port_handler_(*this),
 		sound_and_game_pia_(sound_and_game_pia_port_handler_),
 		video_(video_page(true), video_page(false)),
 		tape_player_(ClockRate),
@@ -312,13 +313,14 @@ private:
 
 	friend struct SoundAndGamePIAPortHandler;
 	struct SoundAndGamePIAPortHandler {
-		// TODO: all inputs and outputs.
+		SoundAndGamePIAPortHandler(ConcreteMachine &machine) : machine_(machine) {}
 
 		template <Motorola::MC6821::Control control>
 		void observe(const bool) {}
 
 		template <Motorola::MC6821::Port port>
 		void output(const uint8_t) {
+			// TODO: sound.
 			// Port B:
 			//
 			//	b0–b5: DAC output
@@ -339,6 +341,9 @@ private:
 			//	b5: joystick 1 down
 			//	b6: joystick 1 left
 			//	b7: joystick 1 right
+			if constexpr (port == Motorola::MC6821::Port::A) {
+				return port_a_;
+			}
 
 			// Port B:
 			//
@@ -350,6 +355,9 @@ private:
 			//	b5:
 			//	b6: joystick 0 button 1 / YA
 			//	b7: joystick 1 button 1
+			if constexpr (port == Motorola::MC6821::Port::B) {
+				return port_b_;
+			}
 
 			return 0xff;
 		}
@@ -361,11 +369,55 @@ private:
 		//	CB1: joystick 1 button 2
 		//	CB2: joystick 1 button 1
 
-		void set_joystick_input(const int index, const Inputs::Joystick::Input &input, bool is_active) {
-			(void)index;
-			(void)input;
-			(void)is_active;
+		void set_joystick_input(
+			const int index,
+			const Inputs::Joystick::Input &input,
+			bool is_active
+		) {
+			const auto apply = [&](uint8_t &port, const uint8_t mask) {
+				if(is_active) {
+					port |= mask;
+				} else {
+					port &= ~mask;
+				}
+			};
+
+			switch(input.type) {
+				using enum Inputs::Joystick::Input::Type;
+
+				case Up:	apply(port_a_, index ? 0x10 : 0x01);	break;
+				case Down:	apply(port_a_, index ? 0x20 : 0x02);	break;
+				case Left:	apply(port_a_, index ? 0x40 : 0x04);	break;
+				case Right:	apply(port_a_, index ? 0x80 : 0x08);	break;
+
+				case Fire:
+					if(input.info.control.index) {
+						apply(port_b_, index ? 0x08 : 0x04);
+
+						if(index) {
+							machine_.sound_and_game_pia_.set<Motorola::MC6821::Control::CB1>(is_active);
+						} else {
+							machine_.sound_and_game_pia_.set<Motorola::MC6821::Control::CA1>(is_active);
+						}
+					} else {
+						apply(port_b_, index ? 0x80 : 0x40);
+
+						if(index) {
+							machine_.sound_and_game_pia_.set<Motorola::MC6821::Control::CB2>(is_active);
+						} else {
+							machine_.sound_and_game_pia_.set<Motorola::MC6821::Control::CA2>(is_active);
+						}
+					}
+				break;
+
+				default: break;
+			}
 		}
+
+	private:
+		ConcreteMachine &machine_;
+		uint8_t port_a_ = 0xff;
+		uint8_t port_b_ = 0xff;
 	};
 	struct Joystick: public Inputs::ConcreteJoystick {
 		Joystick(SoundAndGamePIAPortHandler &pia_port_handler, const int index) :
