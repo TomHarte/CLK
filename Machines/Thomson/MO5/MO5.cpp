@@ -39,6 +39,7 @@ struct ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
 	public MachineTypes::AudioProducer,
+	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaChangeObserver,
 	public MachineTypes::MediaTarget,
@@ -59,6 +60,7 @@ struct ConcreteMachine:
 	{
 		set_clock_rate(ClockRate);
 		speaker_.set_input_rate(ClockRate);
+		construct_joysticks();
 
 		const auto request = ROM::Request(ROM::Name::ThomasonMO5v11);
 		auto roms = rom_fetcher(request);
@@ -358,7 +360,35 @@ private:
 		//	CA2: joystick 0 button 1
 		//	CB1: joystick 1 button 2
 		//	CB2: joystick 1 button 1
+
+		void set_joystick_input(const int index, const Inputs::Joystick::Input &input, bool is_active) {
+			(void)index;
+			(void)input;
+			(void)is_active;
+		}
 	};
+	struct Joystick: public Inputs::ConcreteJoystick {
+		Joystick(SoundAndGamePIAPortHandler &pia_port_handler, const int index) :
+			ConcreteJoystick({
+				Input(Input::Up),
+				Input(Input::Down),
+				Input(Input::Left),
+				Input(Input::Right),
+				Input(Input::Fire, 0),
+				Input(Input::Fire, 1),
+			}),
+			pia_port_handler_(pia_port_handler),
+			index_(index) {}
+
+		void did_set_input(const Input &digital_input, bool is_active) final {
+			pia_port_handler_.set_joystick_input(index_, digital_input, is_active);
+		}
+
+	private:
+		SoundAndGamePIAPortHandler &pia_port_handler_;
+		int index_;
+	};
+
 	SoundAndGamePIAPortHandler sound_and_game_pia_port_handler_;
 	Motorola::MC6821::MC6821<SoundAndGamePIAPortHandler, 2, 1> sound_and_game_pia_;
 
@@ -473,6 +503,18 @@ private:
 	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
 		const auto options = dynamic_cast<Options *>(str.get());
 		allow_fast_tape_hack_ = options->quick_load;
+	}
+
+	// MARK: - Joystick Machine.
+
+	const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		return joysticks_;
+	}
+
+	std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+	void construct_joysticks() {
+		joysticks_.push_back(std::make_unique<Joystick>(sound_and_game_pia_port_handler_, 0));
+		joysticks_.push_back(std::make_unique<Joystick>(sound_and_game_pia_port_handler_, 1));
 	}
 };
 
