@@ -52,7 +52,7 @@ enum Key: uint16_t {
 	KeyACC		=	0x36,
 	KeyStop		=	0x37,
 
-	KeyForwardSlash	= 0x00,	// TODO. It does exist.
+	KeyForwardSlash	= 0x24,
 };
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
@@ -88,6 +88,7 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 
 			case OpenSquareBracket:	return KeyAt;
 			case Semicolon:			return KeyM;
+			case ForwardSlash:		return KeyForwardSlash;
 
 			case CloseSquareBracket:
 			case Quote:		return KeyAsterisk;
@@ -143,7 +144,7 @@ struct CharacterMapper: public ::Utility::CharacterMapper {
 		/* $ */		SHIFT(Key4),				/* % */		SHIFT(Key5),
 		/* & */		SHIFT(Key6),				/* ' */		SHIFT(Key7),
 		/* ( */		SHIFT(Key8),				/* ) */		SHIFT(Key9),
-		/* * */		KEYS(KeyAsterisk),			/* + */		SHIFT(KeyPlus),
+		/* * */		KEYS(KeyAsterisk),			/* + */		KEYS(KeyPlus),
 		/* , */		KEYS(KeyComma),				/* - */		KEYS(KeyMinus),
 		/* . */		KEYS(KeyFullStop),			/* / */		KEYS(KeyForwardSlash),
 		/* 0 */		KEYS(Key0),					/* 1 */		KEYS(Key1),
