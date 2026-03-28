@@ -51,6 +51,7 @@ struct ConcreteMachine:
 		m6809_(*this),
 		system_pia_port_handler_(*this),
 		system_pia_(system_pia_port_handler_),
+		sound_and_game_pia_(sound_and_game_pia_port_handler_),
 		video_(video_page(true), video_page(false)),
 		tape_player_(ClockRate),
 		audio_toggle_(audio_queue_),
@@ -120,10 +121,16 @@ struct ConcreteMachine:
 		} else {
 			if(address >= 0xa7c0 && address < 0xa800) {
 				switch(address) {
-					case 0xa7c0:	access<0xa7c0, read_write>(system_pia_, value);		break;
-					case 0xa7c1:	access<0xa7c1, read_write>(system_pia_, value);		break;
-					case 0xa7c2:	access<0xa7c2, read_write>(system_pia_, value);		break;
-					case 0xa7c3:	access<0xa7c3, read_write>(system_pia_, value);		break;
+					case 0xa7c0:	access<0xa7c0, read_write>(system_pia_, value);				break;
+					case 0xa7c1:	access<0xa7c1, read_write>(system_pia_, value);				break;
+					case 0xa7c2:	access<0xa7c2, read_write>(system_pia_, value);				break;
+					case 0xa7c3:	access<0xa7c3, read_write>(system_pia_, value);				break;
+
+					case 0xa7cc:	access<0xa7c0, read_write>(sound_and_game_pia_, value);		break;
+					case 0xa7cd:	access<0xa7c1, read_write>(sound_and_game_pia_, value);		break;
+					case 0xa7ce:	access<0xa7c2, read_write>(sound_and_game_pia_, value);		break;
+					case 0xa7cf:	access<0xa7c3, read_write>(sound_and_game_pia_, value);		break;
+
 					default:
 						if constexpr (CPU::M6809::is_read(read_write)) {
 							value = 0xff;
@@ -300,6 +307,60 @@ private:
 	};
 	SystemPIAPortHandler system_pia_port_handler_;
 	Motorola::MC6821::MC6821<SystemPIAPortHandler, 2, 1> system_pia_;
+
+	friend struct SoundAndGamePIAPortHandler;
+	struct SoundAndGamePIAPortHandler {
+		// TODO: all inputs and outputs.
+
+		template <Motorola::MC6821::Control control>
+		void observe(const bool) {}
+
+		template <Motorola::MC6821::Port port>
+		void output(const uint8_t) {
+			// Port B:
+			//
+			//	b0–b5: DAC output
+		}
+
+		template <Motorola::MC6821::IRQ irq>
+		void set(const bool) {}
+
+		template <Motorola::MC6821::Port port>
+		uint8_t input() {
+			// Port A:
+			//
+			//	b0: joystick 0 up / left mouse click
+			//	b1: joystick 0 down / right mouse click
+			//	b2: joystick 0 left / XB
+			//	b3: joystick 0 right / YB
+			//	b4: joystick 1 up
+			//	b5: joystick 1 down
+			//	b6: joystick 1 left
+			//	b7: joystick 1 right
+
+			// Port B:
+			//
+			//	b0: common 0
+			//	b1: common 1
+			//	b2: joystick 0 button 2 / XA
+			//	b3: joystick 1 button 2
+			//	b4:
+			//	b5:
+			//	b6: joystick 0 button 1 / YA
+			//	b7: joystick 1 button 1
+
+			return 0xff;
+		}
+
+		// Control ports: (CE/CF?)
+		//
+		//	CA1: joystick 0 button 2
+		//	CA2: joystick 0 button 1
+		//	CB1: joystick 1 button 2
+		//	CB2: joystick 1 button 1
+	};
+	SoundAndGamePIAPortHandler sound_and_game_pia_port_handler_;
+	Motorola::MC6821::MC6821<SoundAndGamePIAPortHandler, 2, 1> sound_and_game_pia_;
 
 	JustInTimeActor<Video, Cycles> video_;
 	Storage::Tape::BinaryTapePlayer tape_player_;
