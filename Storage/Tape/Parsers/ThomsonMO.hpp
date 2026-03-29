@@ -24,6 +24,7 @@ struct Block {
 	bool checksum_valid() const {
 		return checksum == 0;
 	}
+	uint8_t check_digit() const;
 };
 
 class Parser {

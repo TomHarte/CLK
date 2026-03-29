@@ -39,6 +39,7 @@ struct ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
 	public MachineTypes::AudioProducer,
+	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaChangeObserver,
 	public MachineTypes::MediaTarget,
@@ -51,6 +52,8 @@ struct ConcreteMachine:
 		m6809_(*this),
 		system_pia_port_handler_(*this),
 		system_pia_(system_pia_port_handler_),
+		sound_and_game_pia_port_handler_(*this),
+		sound_and_game_pia_(sound_and_game_pia_port_handler_),
 		video_(video_page(true), video_page(false)),
 		tape_player_(ClockRate),
 		audio_toggle_(audio_queue_),
@@ -58,6 +61,7 @@ struct ConcreteMachine:
 	{
 		set_clock_rate(ClockRate);
 		speaker_.set_input_rate(ClockRate);
+		construct_joysticks();
 
 		const auto request = ROM::Request(ROM::Name::ThomasonMO5v11);
 		auto roms = rom_fetcher(request);
@@ -120,10 +124,16 @@ struct ConcreteMachine:
 		} else {
 			if(address >= 0xa7c0 && address < 0xa800) {
 				switch(address) {
-					case 0xa7c0:	access<0xa7c0, read_write>(system_pia_, value);		break;
-					case 0xa7c1:	access<0xa7c1, read_write>(system_pia_, value);		break;
-					case 0xa7c2:	access<0xa7c2, read_write>(system_pia_, value);		break;
-					case 0xa7c3:	access<0xa7c3, read_write>(system_pia_, value);		break;
+					case 0xa7c0:	access<0xa7c0, read_write>(system_pia_, value);				break;
+					case 0xa7c1:	access<0xa7c1, read_write>(system_pia_, value);				break;
+					case 0xa7c2:	access<0xa7c2, read_write>(system_pia_, value);				break;
+					case 0xa7c3:	access<0xa7c3, read_write>(system_pia_, value);				break;
+
+					case 0xa7cc:	access<0xa7cc, read_write>(sound_and_game_pia_, value);		break;
+					case 0xa7cd:	access<0xa7cd, read_write>(sound_and_game_pia_, value);		break;
+					case 0xa7ce:	access<0xa7ce, read_write>(sound_and_game_pia_, value);		break;
+					case 0xa7cf:	access<0xa7cf, read_write>(sound_and_game_pia_, value);		break;
+
 					default:
 						if constexpr (CPU::M6809::is_read(read_write)) {
 							value = 0xff;
@@ -159,18 +169,12 @@ struct ConcreteMachine:
 								ram_[s + 4] = block->type;
 								ram_[s + 3] = block->checksum;
 
-								uint16_t y = m6809_.registers().reg<CPU::M6809::R16::Y>();
-								uint8_t checksum = 0;
-
+								auto &y = m6809_.registers().reg<CPU::M6809::R16::Y>();
 								ram_[y++] = uint8_t(block->data.size() + 2);
-								checksum += uint8_t(block->data.size() + 2);
-
 								for(const auto byte: block->data) {
 									ram_[y++] = byte;
-									checksum += byte;
 								}
-								ram_[y++] = uint8_t(block->checksum - checksum);
-								m6809_.registers().reg<CPU::M6809::R16::Y>() = y;
+								ram_[y++] = block->check_digit();
 
 								value = 0x39;	// RTS
 							} ();
@@ -301,6 +305,139 @@ private:
 	SystemPIAPortHandler system_pia_port_handler_;
 	Motorola::MC6821::MC6821<SystemPIAPortHandler, 2, 1> system_pia_;
 
+	friend struct SoundAndGamePIAPortHandler;
+	struct SoundAndGamePIAPortHandler {
+		SoundAndGamePIAPortHandler(ConcreteMachine &machine) : machine_(machine) {}
+
+		template <Motorola::MC6821::Control control>
+		void observe(const bool) {}
+
+		template <Motorola::MC6821::Port port>
+		void output(const uint8_t) {
+			// TODO: sound.
+			// Port B:
+			//
+			//	b0–b5: DAC output
+		}
+
+		template <Motorola::MC6821::IRQ irq>
+		void set(const bool) {}
+
+		template <Motorola::MC6821::Port port>
+		uint8_t input() {
+			// Port A:
+			//
+			//	b0: joystick 0 up / left mouse click
+			//	b1: joystick 0 down / right mouse click
+			//	b2: joystick 0 left / XB
+			//	b3: joystick 0 right / YB
+			//	b4: joystick 1 up
+			//	b5: joystick 1 down
+			//	b6: joystick 1 left
+			//	b7: joystick 1 right
+			if constexpr (port == Motorola::MC6821::Port::A) {
+				return port_a_;
+			}
+
+			// Port B:
+			//
+			//	b0: common 0
+			//	b1: common 1
+			//	b2: joystick 0 button 2 / XA
+			//	b3: joystick 1 button 2
+			//	b4:
+			//	b5:
+			//	b6: joystick 0 button 1 / YA
+			//	b7: joystick 1 button 1
+			if constexpr (port == Motorola::MC6821::Port::B) {
+				return port_b_;
+			}
+
+			return 0xff;
+		}
+
+		// Control ports: (CE/CF?)
+		//
+		//	CA1: joystick 0 button 2
+		//	CA2: joystick 0 button 1
+		//	CB1: joystick 1 button 2
+		//	CB2: joystick 1 button 1
+
+		void set_joystick_input(
+			const int index,
+			const Inputs::Joystick::Input &input,
+			bool is_active
+		) {
+			const auto apply = [&](uint8_t &port, const uint8_t mask) {
+				if(is_active) {
+					port &= ~mask;
+				} else {
+					port |= mask;
+				}
+			};
+
+			switch(input.type) {
+				using enum Inputs::Joystick::Input::Type;
+
+				case Up:	apply(port_a_, index ? 0x10 : 0x01);	break;
+				case Down:	apply(port_a_, index ? 0x20 : 0x02);	break;
+				case Left:	apply(port_a_, index ? 0x40 : 0x04);	break;
+				case Right:	apply(port_a_, index ? 0x80 : 0x08);	break;
+
+				case Fire:
+					if(input.info.control.index) {
+						apply(port_b_, index ? 0x08 : 0x04);
+
+						if(index) {
+							machine_.sound_and_game_pia_.set<Motorola::MC6821::Control::CB1>(is_active);
+						} else {
+							machine_.sound_and_game_pia_.set<Motorola::MC6821::Control::CA1>(is_active);
+						}
+					} else {
+						apply(port_b_, index ? 0x80 : 0x40);
+
+						if(index) {
+							machine_.sound_and_game_pia_.set<Motorola::MC6821::Control::CB2>(is_active);
+						} else {
+							machine_.sound_and_game_pia_.set<Motorola::MC6821::Control::CA2>(is_active);
+						}
+					}
+				break;
+
+				default: break;
+			}
+		}
+
+	private:
+		ConcreteMachine &machine_;
+		uint8_t port_a_ = 0xff;
+		uint8_t port_b_ = 0xff;
+	};
+	struct Joystick: public Inputs::ConcreteJoystick {
+		Joystick(SoundAndGamePIAPortHandler &pia_port_handler, const int index) :
+			ConcreteJoystick({
+				Input(Input::Up),
+				Input(Input::Down),
+				Input(Input::Left),
+				Input(Input::Right),
+				Input(Input::Fire, 0),
+				Input(Input::Fire, 1),
+			}),
+			pia_port_handler_(pia_port_handler),
+			index_(index) {}
+
+		void did_set_input(const Input &digital_input, bool is_active) final {
+			pia_port_handler_.set_joystick_input(index_, digital_input, is_active);
+		}
+
+	private:
+		SoundAndGamePIAPortHandler &pia_port_handler_;
+		int index_;
+	};
+
+	SoundAndGamePIAPortHandler sound_and_game_pia_port_handler_;
+	Motorola::MC6821::MC6821<SoundAndGamePIAPortHandler, 2, 1> sound_and_game_pia_;
+
 	JustInTimeActor<Video, Cycles> video_;
 	Storage::Tape::BinaryTapePlayer tape_player_;
 	bool allow_fast_tape_hack_ = true;
@@ -412,6 +549,18 @@ private:
 	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
 		const auto options = dynamic_cast<Options *>(str.get());
 		allow_fast_tape_hack_ = options->quick_load;
+	}
+
+	// MARK: - Joystick Machine.
+
+	const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		return joysticks_;
+	}
+
+	std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+	void construct_joysticks() {
+		joysticks_.push_back(std::make_unique<Joystick>(sound_and_game_pia_port_handler_, 0));
+		joysticks_.push_back(std::make_unique<Joystick>(sound_and_game_pia_port_handler_, 1));
 	}
 };
 
