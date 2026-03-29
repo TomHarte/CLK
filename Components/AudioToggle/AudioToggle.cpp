@@ -12,23 +12,28 @@
 
 using namespace Audio;
 
-Audio::Toggle::Toggle(Concurrency::AsyncTaskQueue<false> &audio_queue) :
-	audio_queue_(audio_queue) {}
+Audio::DAC::DAC(Concurrency::AsyncTaskQueue<false> &audio_queue, const int16_t max) :
+	audio_queue_(audio_queue), max_output_(max) {}
 
-void Toggle::set_sample_volume_range(const std::int16_t range) {
-	volume_ = range;
-	level_ = level_active_ ? volume_ : 0;
+void DAC::update_level() {
+	level_ = (output_ * volume_) / max_output_;
 }
 
-void Toggle::set_output(const bool enabled) {
-	if(is_enabled_ == enabled) return;
-	is_enabled_ = enabled;
-	audio_queue_.enqueue([this, enabled] {
-		level_active_ = enabled;
-		level_ = enabled ? volume_ : 0;
+void DAC::set_sample_volume_range(const std::int16_t range) {
+	volume_ = range;
+	update_level();
+}
+
+void DAC::set_output(const int16_t output) {
+	if(set_output_ == output) return;
+	set_output_ = output;
+
+	audio_queue_.enqueue([this, output] {
+		output_ = output;
+		update_level();
 	});
 }
 
-bool Toggle::get_output() const {
-	return is_enabled_;
+int16_t DAC::get_output() const {
+	return set_output_;
 }
