@@ -8,6 +8,8 @@
 
 #include "ThomsonMO.hpp"
 
+#include <numeric>
+
 using namespace Storage::Tape::Thomson::MO;
 
 std::optional<bool> Parser::bit(Storage::Tape::TapeSerialiser &serialiser) {
@@ -84,4 +86,8 @@ std::optional<Block> Parser::block(Storage::Tape::TapeSerialiser &serialiser) {
 	result.checksum = checksum;
 
 	return result;
+}
+
+uint8_t Block::check_digit() const {
+	return uint8_t(checksum - std::accumulate(data.begin(), data.end(), 0));
 }
