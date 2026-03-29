@@ -169,18 +169,12 @@ struct ConcreteMachine:
 								ram_[s + 4] = block->type;
 								ram_[s + 3] = block->checksum;
 
-								uint16_t y = m6809_.registers().reg<CPU::M6809::R16::Y>();
-								uint8_t checksum = 0;
-
+								auto &y = m6809_.registers().reg<CPU::M6809::R16::Y>();
 								ram_[y++] = uint8_t(block->data.size() + 2);
-								checksum += uint8_t(block->data.size() + 2);
-
 								for(const auto byte: block->data) {
 									ram_[y++] = byte;
-									checksum += byte;
 								}
-								ram_[y++] = uint8_t(block->checksum - checksum);
-								m6809_.registers().reg<CPU::M6809::R16::Y>() = y;
+								ram_[y++] = block->check_digit();
 
 								value = 0x39;	// RTS
 							} ();
