@@ -376,9 +376,9 @@ private:
 		) {
 			const auto apply = [&](uint8_t &port, const uint8_t mask) {
 				if(is_active) {
-					port |= mask;
-				} else {
 					port &= ~mask;
+				} else {
+					port |= mask;
 				}
 			};
 
