@@ -34,6 +34,7 @@ namespace {
 using Log = Log::Logger<Log::Source::MO5>;
 
 static constexpr int ClockRate = 1'000'000;
+static constexpr uint8_t MusicExpansionMask = 63;
 
 struct ConcreteMachine:
 	public Activity::Source,
@@ -56,8 +57,8 @@ struct ConcreteMachine:
 		sound_and_game_pia_(sound_and_game_pia_port_handler_),
 		video_(video_page(true), video_page(false)),
 		tape_player_(ClockRate),
-		audio_toggle_(audio_queue_),
-		speaker_(audio_toggle_)
+		audio_(audio_queue_, MusicExpansionMask),
+		speaker_(audio_)
 	{
 		set_clock_rate(ClockRate);
 		speaker_.set_input_rate(ClockRate);
@@ -263,8 +264,7 @@ private:
 				//		b1–3 = keyboard column;
 				//		b4–6: keyboard line;
 				key_ = (value >> 1) & 0b111'111;
-				machine_.update_audio();
-				machine_.audio_toggle_.set_output(value & 1);
+				machine_.set_audio(value & 1, std::nullopt);
 			}
 		}
 
@@ -313,11 +313,13 @@ private:
 		void observe(const bool) {}
 
 		template <Motorola::MC6821::Port port>
-		void output(const uint8_t) {
-			// TODO: sound.
+		void output(const uint8_t value) {
 			// Port B:
 			//
 			//	b0–b5: DAC output
+			if constexpr (port == Motorola::MC6821::Port::B) {
+				machine_.set_audio(std::nullopt, value & MusicExpansionMask);
+			}
 		}
 
 		template <Motorola::MC6821::IRQ irq>
@@ -445,8 +447,8 @@ private:
 	// MARK: - AudioProducer.
 
 	Concurrency::AsyncTaskQueue<false> audio_queue_;
-	Audio::Toggle audio_toggle_;
-	Outputs::Speaker::PullLowpass<Audio::Toggle> speaker_;
+	Audio::DAC audio_;
+	Outputs::Speaker::PullLowpass<Audio::DAC> speaker_;
 
 	Cycles time_since_audio_update_;
 	void update_audio() {
@@ -456,6 +458,15 @@ private:
 
 	Outputs::Speaker::Speaker *get_speaker() override {
 		return &speaker_;
+	}
+
+	bool audio_enabled_ = false;
+	uint8_t audio_level_ = MusicExpansionMask;
+	void set_audio(const std::optional<bool> enabled, const std::optional<uint8_t> level) {
+		update_audio();
+		audio_enabled_ = enabled.value_or(audio_enabled_);
+		audio_level_ = level.value_or(audio_level_);
+		audio_.set_output(audio_enabled_ ? audio_level_ : 0);
 	}
 
 	// MARK: - ScanProducer.
