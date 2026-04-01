@@ -34,6 +34,7 @@ namespace {
 using Log = Log::Logger<Log::Source::MO5>;
 
 static constexpr int ClockRate = 1'000'000;
+static constexpr uint8_t MusicExpansionMask = 63;
 
 struct ConcreteMachine:
 	public Activity::Source,
@@ -56,7 +57,7 @@ struct ConcreteMachine:
 		sound_and_game_pia_(sound_and_game_pia_port_handler_),
 		video_(video_page(true), video_page(false)),
 		tape_player_(ClockRate),
-		audio_(audio_queue_, 63),
+		audio_(audio_queue_, MusicExpansionMask),
 		speaker_(audio_)
 	{
 		set_clock_rate(ClockRate);
@@ -317,7 +318,7 @@ private:
 			//
 			//	b0–b5: DAC output
 			if constexpr (port == Motorola::MC6821::Port::B) {
-				machine_.set_audio(std::nullopt, value & 63);
+				machine_.set_audio(std::nullopt, value & MusicExpansionMask);
 			}
 		}
 
@@ -460,7 +461,7 @@ private:
 	}
 
 	bool audio_enabled_ = false;
-	uint8_t audio_level_ = 63;
+	uint8_t audio_level_ = MusicExpansionMask;
 	void set_audio(const std::optional<bool> enabled, const std::optional<uint8_t> level) {
 		update_audio();
 		audio_enabled_ = enabled.value_or(audio_enabled_);
