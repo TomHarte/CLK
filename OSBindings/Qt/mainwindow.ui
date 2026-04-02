@@ -821,6 +821,20 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="thomsonTab">
+       <attribute name="title">
+        <string>Thomson</string>
+       </attribute>
+       <layout class="QFormLayout">
+        <item row="0" column="0">
+         <widget class="QLabel">
+          <property name="text">
+           <string> At present only an unexpanded Thomson MO5 is available.</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
       <widget class="QWidget" name="vic20Tab">
        <attribute name="title">
         <string>Vic-20</string>

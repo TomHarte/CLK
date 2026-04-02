@@ -1024,6 +1024,7 @@ void MainWindow::setButtonPressed(const int index, const bool isPressed) {
 #include "../../Analyser/Static/MSX/Target.hpp"
 #include "../../Analyser/Static/Oric/Target.hpp"
 #include "../../Analyser/Static/PCCompatible/Target.hpp"
+#include "../../Analyser/Static/Thomson/Target.hpp"
 #include "../../Analyser/Static/ZX8081/Target.hpp"
 #include "../../Analyser/Static/ZXSpectrum/Target.hpp"
 
@@ -1279,6 +1280,12 @@ void MainWindow::start_spectrum() {
 		case 5:		target->model = Target::Model::Plus3;			break;
 	}
 
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_thomson() {
+	using Target = Analyser::Static::Thomson::MOTarget;
+	auto target = std::make_unique<Target>();
 	launchTarget(std::move(target));
 }
 
