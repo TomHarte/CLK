@@ -99,6 +99,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void start_plus4();
 		void start_pc();
 		void start_spectrum();
+		void start_thomson();
 		void start_vic20();
 		void start_zx80();
 		void start_zx81();
