@@ -135,6 +135,12 @@ struct ConcreteMachine:
 					case 0xa7ce:	access<0xa7ce, read_write>(sound_and_game_pia_, value);		break;
 					case 0xa7cf:	access<0xa7cf, read_write>(sound_and_game_pia_, value);		break;
 
+					case 0xa7e7:
+						if constexpr (CPU::M6809::is_read(read_write)) {
+							value = video_->sync();
+						}
+					break;
+
 					default:
 						if constexpr (CPU::M6809::is_read(read_write)) {
 							value = 0xff;

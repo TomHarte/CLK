@@ -37,6 +37,11 @@ struct DividingAccumulator {
 		}
 	}
 
+	/// @returns Current segment.
+	int segment() const {
+		return position_ / SegmentLength;
+	}
+
 	/// @returns Position within the range [0, SegmentLength*Segments)
 	int absolute() const {
 		return position_;
