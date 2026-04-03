@@ -549,6 +549,7 @@ void CRT::posit(Display::Rect rect) {
 
 void CRT::output_scan(const Scan &scan) {
 	assert(scan.number_of_cycles >= 0);
+	if(!scan.number_of_cycles) return;
 
 	// Simplified colour burst logic: if it's within the back porch we'll take it.
 	if(scan.type == Scan::Type::ColourBurst) {
