@@ -233,7 +233,9 @@ public:
 			is_info_ == accumulator_.is_info
 		) {
 			++accumulator_.count;
-			return;
+			if(accumulator_.count < 1000) {	// Always print when the count reaches 1000.
+				return;
+			}
 		}
 
 		if(!accumulator_.last.empty()) {
