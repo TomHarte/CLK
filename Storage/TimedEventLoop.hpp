@@ -46,7 +46,12 @@ public:
 	/*!
 		Advances the event loop by @c number_of_cycles cycles.
 	*/
-	void run_for(const Cycles);
+	void run_for(Cycles);
+
+	/*!
+		Extends the amount of time until the next event fires.
+	*/
+	void add_delay(Cycles);
 
 	/*!
 		@returns the number of whole cycles remaining until the next event is triggered.

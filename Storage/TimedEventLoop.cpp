@@ -17,6 +17,10 @@ using namespace Storage;
 TimedEventLoop::TimedEventLoop(Cycles::IntType input_clock_rate) :
 	input_clock_rate_(input_clock_rate) {}
 
+void TimedEventLoop::add_delay(const Cycles cycles) {
+	cycles_until_event_ += cycles.get();
+}
+
 void TimedEventLoop::run_for(const Cycles cycles) {
 	auto remaining_cycles = cycles.get();
 #ifndef NDEBUG
