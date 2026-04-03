@@ -12,6 +12,10 @@
 
 using namespace Storage::Tape::Thomson::MO;
 
+void Parser::seed_level(const Pulse::Type level) {
+	last_type_ = level;
+}
+
 std::optional<bool> Parser::bit(Storage::Tape::TapeSerialiser &serialiser) {
 	Pulse pulse;
 

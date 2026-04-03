@@ -33,6 +33,8 @@ public:
 	std::optional<uint8_t> byte(Storage::Tape::TapeSerialiser &);
 	std::optional<Block> block(Storage::Tape::TapeSerialiser &);
 
+	void seed_level(Pulse::Type);
+
 private:
 	Pulse::Type last_type_ = Pulse::Low;
 };
