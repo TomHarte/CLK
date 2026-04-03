@@ -23,6 +23,7 @@ public:
 
 	void set_border_colour(uint8_t);
 	bool irq() const;
+	uint8_t sync() const;
 
 	// MARK: - Standard boilerplate.
 

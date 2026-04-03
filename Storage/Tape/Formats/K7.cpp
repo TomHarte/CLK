@@ -13,6 +13,11 @@ using namespace Storage::Tape;
 /*
 	K7 files are a raw dump of source bytes that were encoded in the standard Thomson layout.
 
+	They assume a high-level ROM hack from the emulator, the primary consequence of which is
+	failure to include realistic amounts of time between blocks. Consequently the process of
+	turning them back into audio that a real machine can use requires block-level parsing,
+	in order to insert gaps.
+
 	# TO machines:
 
 		That layout is:

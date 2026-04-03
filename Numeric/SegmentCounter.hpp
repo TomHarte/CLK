@@ -7,6 +7,7 @@
 //
 
 #include <algorithm>
+#include <cassert>
 
 namespace Numeric {
 
@@ -26,6 +27,7 @@ struct DividingAccumulator {
 			const int begin = position_ % SegmentLength;
 			const int length = std::min(SegmentLength - begin, count);
 
+			assert(length > 0);
 			advance(segment, begin, begin + length);
 
 			count -= length;
@@ -35,6 +37,11 @@ struct DividingAccumulator {
 				reset();
 			}
 		}
+	}
+
+	/// @returns Current segment.
+	int segment() const {
+		return position_ / SegmentLength;
 	}
 
 	/// @returns Position within the range [0, SegmentLength*Segments)

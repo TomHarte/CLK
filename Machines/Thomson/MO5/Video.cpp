@@ -62,8 +62,25 @@ void Video::run_for(const Cycles cycles) {
 	);
 }
 
-void Video::vsync_line(const int line_begin, const int line_end) {
-	crt_.output_sync(line_end - line_begin);
+uint8_t Video::sync() const {
+	// !!Guesswork!! here:
+	//
+	// Enduro Racer spins for as long as the value read from here is negative.
+	//
+	// There'd be no point spinning on vertical sync because there's an IRQ for that. So it's probably to do with
+	// the active area?
+	//
+	// Ditto, the border zone is more usual to want to wait for. So probably active low for the border?
+	const auto line = position_.segment();
+	return line >= TotalPixelLines ? 0x00 : 0x80;
+}
+
+void Video::vsync_line(const int, const int line_end) {
+	// TODO: resolve coupling here.
+	// Supplying sync as it comes to the CRT seems to trigger a fault in retrace start time.
+	if(line_end == CyclesPerLine) {
+		crt_.output_sync(CyclesPerLine); //line_end - line_begin);
+	}
 }
 
 void Video::border_line(const int line_begin, const int line_end) {

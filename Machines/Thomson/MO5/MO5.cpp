@@ -135,6 +135,12 @@ struct ConcreteMachine:
 					case 0xa7ce:	access<0xa7ce, read_write>(sound_and_game_pia_, value);		break;
 					case 0xa7cf:	access<0xa7cf, read_write>(sound_and_game_pia_, value);		break;
 
+					case 0xa7e7:
+						if constexpr (CPU::M6809::is_read(read_write)) {
+							value = video_->sync();
+						}
+					break;
+
 					default:
 						if constexpr (CPU::M6809::is_read(read_write)) {
 							value = 0xff;
@@ -151,34 +157,51 @@ struct ConcreteMachine:
 					} else if(address >= 0xc000) {
 						value = rom_[address - 0xc000];
 
-						if(lic == CPU::M6809::LIC::InstructionFetch && allow_fast_tape_hack_ && address == 0xf105) {
-							[&] {
-								// Catch K7READ.
+						if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
+							// Catch RDBITS.
+							if(allow_fast_tape_hack_ && address == 0xf168) {
+								// Inputs:
 								//
-								// Input Y = pointer to buffer.
-								// Output (after RTS): A = checksum (0 for success); B = file type.
+								//	M0044 = current tape polarity (complement if applicable).
+								//	M0045 = byte in progress; ROL new bit into here.
 								//
-								auto *const serialiser = tape_player_.serialiser();
-								if(!serialiser) return;
+								// Additional output:
+								//
+								//	A = 00 or FF as per bit detected.
+								//
+								[&] {
+									auto *const serialiser = tape_player_.serialiser();
+									if(!serialiser) return;
 
-								Storage::Tape::Thomson::MO::Parser parser;
-								const auto block = parser.block(*serialiser);
-								if(!block.has_value()) return;
+									Storage::Tape::Thomson::MO::Parser parser;
+									const auto dp = m6809_.registers().reg<CPU::M6809::R8::DP>();
+									auto &polarity = ram_[size_t((dp << 8) | 0x44)];
+									auto &data =  ram_[size_t((dp << 8) | 0x45)];
 
-								// Put final values for A and B on the stack; they'll be picked up later.
-								const uint16_t s = m6809_.registers().reg<CPU::M6809::R16::S>();
-								ram_[s + 4] = block->type;
-								ram_[s + 3] = block->checksum;
+									parser.seed_level(
+										polarity & 0x80 ? Storage::Tape::Pulse::Low : Storage::Tape::Pulse::High
+									);
 
-								auto &y = m6809_.registers().reg<CPU::M6809::R16::Y>();
-								ram_[y++] = uint8_t(block->data.size() + 2);
-								for(const auto byte: block->data) {
-									ram_[y++] = byte;
-								}
-								ram_[y++] = block->check_digit();
+									const auto offset = serialiser->offset();
+									const auto bit = parser.bit(*serialiser);
+									if(!bit.has_value()) {
+										serialiser->set_offset(offset);
+										return;
+									}
 
-								value = 0x39;	// RTS
-							} ();
+									data = uint8_t((data << 1) | uint8_t(*bit));
+									if(!*bit) {
+										polarity ^= 0xff;
+									}
+									m6809_.registers().reg<CPU::M6809::R8::A>() = *bit ? 0xff : 0x00;
+
+									// The parser reads up to the end of the bit. The ROM routine ends about two-thirds
+									// of the way through the bit. So 'rewind' the tape a little.
+									tape_player_.add_delay(Cycles(200));
+
+									value = 0x39;	// RTS
+								} ();
+							}
 						}
 					} else {
 						value = ram_[address];
@@ -188,6 +211,11 @@ struct ConcreteMachine:
 						if(address < 40*200) video_.flush();
 						start_pointer_[address] = value;
 					} else {
+						if constexpr (!CPU::M6809::is_read(read_write)) {
+							if(address >= 0xc000) {
+								Log::info().append("ROM write at %04x", +address);
+							}
+						}
 						ram_[address] = value;
 					}
 				}
