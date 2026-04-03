@@ -606,6 +606,7 @@ void CRT::output_scan(const Scan &scan) {
 	if(is_accumulating_sync_ && !is_refusing_sync_) {
 		cycles_of_sync_ += scan.number_of_cycles;
 
+		// TODO: Verify the logic below; I'm suspicious.
 		if(this_is_sync && cycles_of_sync_ >= sync_capacitor_charge_threshold_) {
 			const int overshoot = std::min(cycles_of_sync_ - sync_capacitor_charge_threshold_, number_of_cycles);
 			if(overshoot) {

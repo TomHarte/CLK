@@ -75,8 +75,12 @@ uint8_t Video::sync() const {
 	return line >= TotalPixelLines ? 0x00 : 0x80;
 }
 
-void Video::vsync_line(const int line_begin, const int line_end) {
-	crt_.output_sync(line_end - line_begin);
+void Video::vsync_line(const int, const int line_end) {
+	// TODO: resolve coupling here.
+	// Supplying sync as it comes to the CRT seems to trigger a fault in retrace start time.
+	if(line_end == CyclesPerLine) {
+		crt_.output_sync(CyclesPerLine); //line_end - line_begin);
+	}
 }
 
 void Video::border_line(const int line_begin, const int line_end) {
