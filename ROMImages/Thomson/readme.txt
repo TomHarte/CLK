@@ -3,4 +3,5 @@ ROM files would ordinarily go here; the copyright status of these is uncertain s
 Expected files:
 
 mo5-v1.0.rom — the MO5 ROM, version 1;
-mo5-v1.1.rom — the MO5 ROM, version 1.1.
+mo5-v1.1.rom — the MO5 ROM, version 1.1;
+cd90-640.rom — the CD90-640 floppy disk drive ROM.

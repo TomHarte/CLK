@@ -64,13 +64,13 @@ struct ConcreteMachine:
 		speaker_.set_input_rate(ClockRate);
 		construct_joysticks();
 
-		const auto request = ROM::Request(ROM::Name::ThomasonMO5v11);
+		const auto request = ROM::Request(ROM::Name::ThomsonMO5v11);
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
 			throw ROMMachine::Error::MissingROMs;
 		}
 
-		const auto &rom = roms.find(ROM::Name::ThomasonMO5v11)->second;
+		const auto &rom = roms.find(ROM::Name::ThomsonMO5v11)->second;
 		std::copy_n(rom.begin(), rom.size(), rom_.begin());
 
 		Memory::Fuzz(ram_);
