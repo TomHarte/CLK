@@ -133,6 +133,9 @@
 		4B055AEE1FAE9BBF0060FFFF /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B86E2591F8C628F006FAA45 /* Keyboard.cpp */; };
 		4B055AEF1FAE9BF00060FFFF /* Typer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2B3A471F9B8FA70062DABF /* Typer.cpp */; };
 		4B055AF21FAE9C1C0060FFFF /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B055AF01FAE9C080060FFFF /* OpenGL.framework */; };
+		4B062D1A2F81427D00472717 /* CD90-640.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B062D192F81427D00472717 /* CD90-640.cpp */; };
+		4B062D1B2F81427D00472717 /* CD90-640.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B062D192F81427D00472717 /* CD90-640.cpp */; };
+		4B062D1C2F81427D00472717 /* CD90-640.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B062D192F81427D00472717 /* CD90-640.cpp */; };
 		4B06AACB2C645ED00034D014 /* AY38910.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4A762E1DB1A3FA007AAE2E /* AY38910.cpp */; };
 		4B06AACC2C645EDF0034D014 /* Archimedes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB505842B9634F30031C43C /* Archimedes.cpp */; };
 		4B06AACD2C645EE50034D014 /* Enterprise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051CA12676F52200CA44E8 /* Enterprise.cpp */; };
@@ -1405,6 +1408,8 @@
 		4B055ABE1FAE98000060FFFF /* MachineForTarget.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MachineForTarget.cpp; sourceTree = "<group>"; };
 		4B055ABF1FAE98000060FFFF /* MachineForTarget.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MachineForTarget.hpp; sourceTree = "<group>"; };
 		4B055AF01FAE9C080060FFFF /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		4B062D182F81427D00472717 /* CD90-640.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "CD90-640.hpp"; sourceTree = "<group>"; };
+		4B062D192F81427D00472717 /* CD90-640.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "CD90-640.cpp"; sourceTree = "<group>"; };
 		4B08A2741EE35D56008B7065 /* Z80InterruptTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80InterruptTests.swift; sourceTree = "<group>"; };
 		4B08A2761EE39306008B7065 /* TestMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TestMachine.h; sourceTree = "<group>"; };
 		4B08A2771EE39306008B7065 /* TestMachine.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TestMachine.mm; sourceTree = "<group>"; };
@@ -5350,8 +5355,10 @@
 		4BCA6FAA2F589C0C000B9537 /* MO5 */ = {
 			isa = PBXGroup;
 			children = (
+				4B062D192F81427D00472717 /* CD90-640.cpp */,
 				4BCA6FA92F589C0C000B9537 /* MO5.cpp */,
 				4BBC7DC02F6D94E500E71794 /* Video.cpp */,
+				4B062D182F81427D00472717 /* CD90-640.hpp */,
 				4BBC7DC52F70BAFB00E71794 /* Keyboard.hpp */,
 				4BCA6FA82F589C0C000B9537 /* MO5.hpp */,
 				4BBC7DBF2F6D94E500E71794 /* Video.hpp */,
@@ -6538,6 +6545,7 @@
 				4B0ACC03237756F6008902D0 /* Line.cpp in Sources */,
 				4B055AB11FAE86070060FFFF /* Tape.cpp in Sources */,
 				4B96F7CF263E33B10092AEE1 /* DSK.cpp in Sources */,
+				4B062D1C2F81427D00472717 /* CD90-640.cpp in Sources */,
 				4B2B946626377C0200E7097C /* SZX.cpp in Sources */,
 				4BEDA43225B3C700000C2DBD /* Executor.cpp in Sources */,
 				4BC1317B2346DF2B00E4FF3D /* MSA.cpp in Sources */,
@@ -6865,6 +6873,7 @@
 				4B7C681627517A59001671EC /* Sprites.cpp in Sources */,
 				4B0ACC02237756ED008902D0 /* Line.cpp in Sources */,
 				4B5617402F44D533003CB7FE /* ROMCatalogue.cpp in Sources */,
+				4B062D1B2F81427D00472717 /* CD90-640.cpp in Sources */,
 				4B89453A201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */,
 				4BDACBEC22FFA5D20045EF7E /* ncr5380.cpp in Sources */,
@@ -7018,6 +7027,7 @@
 				4B778F0E23A5EC4F0000D260 /* Tape.cpp in Sources */,
 				4B778F2D23A5EF190000D260 /* MFMDiskController.cpp in Sources */,
 				4B06AAD92C645F5D0034D014 /* SN76489.cpp in Sources */,
+				4B062D1A2F81427D00472717 /* CD90-640.cpp in Sources */,
 				423BDC4A2AB24699008E37B6 /* 8088Tests.mm in Sources */,
 				4B778F2723A5EEF60000D260 /* BinaryDump.cpp in Sources */,
 				4BFCA1241ECBDCB400AC40C1 /* AllRAMProcessor.cpp in Sources */,

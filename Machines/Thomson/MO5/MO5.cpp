@@ -8,6 +8,7 @@
 
 #include "MO5.hpp"
 
+#include "CD90-640.hpp"
 #include "Video.hpp"
 
 #include "Activity/Source.hpp"
@@ -129,9 +130,21 @@ struct ConcreteMachine:
 		if(typer_) {
 			typer_->run_for(duration);
 		}
+		if(has_floppy) {
+			fdc_.run_for(duration * 8);	// My WD1770 has a nominal clock of 8Mhz.
+		}
 
 		if constexpr (read_write != CPU::M6809::ReadWrite::NoData) {
 			if(address >= 0xa7c0 && address < 0xa800) {
+				const auto unmapped = [&] {
+					if constexpr (CPU::M6809::is_read(read_write)) {
+						value = 0xff;
+						Log::info().append("Unhandled read at %04x", +address);
+					} else {
+						Log::info().append("Unhandled write: %02x -> %04x", +value, +address);
+					}
+				};
+
 				switch(address) {
 					case 0xa7c0:	access<0xa7c0, read_write>(system_pia_, value);				break;
 					case 0xa7c1:	access<0xa7c1, read_write>(system_pia_, value);				break;
@@ -149,13 +162,14 @@ struct ConcreteMachine:
 						}
 					break;
 
+					case 0xa7d0:	if(has_floppy) access<0xa7d0, read_write>(fdc_, value); else unmapped();	break;
+					case 0xa7d1:	if(has_floppy) access<0xa7d1, read_write>(fdc_, value);	else unmapped();	break;
+					case 0xa7d2:	if(has_floppy) access<0xa7d2, read_write>(fdc_, value);	else unmapped();	break;
+					case 0xa7d3:	if(has_floppy) access<0xa7d3, read_write>(fdc_, value);	else unmapped();	break;
+					case 0xa7d8:	if(has_floppy) access<0xa7d8, read_write>(fdc_, value);	else unmapped();	break;
+
 					default:
-						if constexpr (CPU::M6809::is_read(read_write)) {
-							value = 0xff;
-							Log::info().append("Unhandled read at %04x", +address);
-						} else {
-							Log::info().append("Unhandled write: %02x -> %04x", +value, +address);
-						}
+						unmapped();
 					break;
 				}
 			} else {
@@ -480,8 +494,13 @@ private:
 	Motorola::MC6821::MC6821<SoundAndGamePIAPortHandler, 2, 1> sound_and_game_pia_;
 
 	JustInTimeActor<Video, Cycles> video_;
+
+	// MARK: - Tape and disk.
+
 	Storage::Tape::BinaryTapePlayer tape_player_;
 	bool allow_fast_tape_hack_ = true;
+
+	Thomson::CD90_640 fdc_;
 
 	// MARK: - AudioProducer.
 
@@ -584,8 +603,11 @@ private:
 
 	// MARK: - Activity Source.
 
-	void set_activity_observer(Activity::Observer *observer) override {
+	void set_activity_observer(Activity::Observer *const observer) override {
 		tape_player_.set_activity_observer(observer);
+		if(has_floppy) {
+			fdc_.set_activity_observer(observer);
+		}
 	}
 
 	// MARK: - Configuration options.

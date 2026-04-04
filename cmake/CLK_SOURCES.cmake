@@ -151,6 +151,7 @@ set(CLK_SOURCES
 	Machines/Sinclair/ZX8081/Video.cpp
 	Machines/Sinclair/ZX8081/ZX8081.cpp
 	Machines/Sinclair/ZXSpectrum/ZXSpectrum.cpp
+	Machines/Thomson/MO5/CD90-640.cpp
 	Machines/Thomson/MO5/MO5.cpp
 	Machines/Thomson/MO5/Video.cpp
 	Machines/Utility/MachineForTarget.cpp
