@@ -51,7 +51,7 @@ AcornADF::AcornADF(const std::string &file_name) : MFMSectorDump(file_name) {
 	//
 	// So then .ADF files might be track-interleaved and might not be.
 
-	const auto has_identifier = [&](long location, bool permit_hugo, bool permit_nick) -> bool {
+	const auto has_identifier = [&](const long location, const bool permit_hugo, const bool permit_nick) -> bool {
 		file_.seek(location, Whence::SET);
 
 		uint8_t bytes[4];
@@ -119,6 +119,6 @@ int AcornADF::head_count() const {
 	return head_count_;
 }
 
-long AcornADF::get_file_offset_for_position(Track::Address address) const {
+long AcornADF::get_file_offset_for_position(const Track::Address address) const {
 	return (address.position.as_int() * head_count_ + address.head) * (128 << sector_size_) * sectors_per_track_;
 }
