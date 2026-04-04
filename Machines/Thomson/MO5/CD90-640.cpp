@@ -10,15 +10,17 @@
 
 using namespace Thomson;
 
-CD90_640::CD90_640() : WD::WD1770(P1770) {
+CD90_640::CD90_640() : WD::WD1770(P1793) {
 	emplace_drives(2, 8000000, 300, 2);
 }
 
 uint8_t CD90_640::control() {
+	Logger::info().append("Read control: %02x", control_);
 	return control_;
 }
 
 void CD90_640::set_control(const uint8_t value) {
+	Logger::info().append("Set control to %02x", value);
 	control_ = value;
 	// TODO: What do these bits mean?
 }

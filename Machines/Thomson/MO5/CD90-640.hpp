@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Components/1770/1770.hpp"
+#include "Outputs/Log.hpp"
 
 #include <string>
 
@@ -24,6 +25,7 @@ public:
 
 	template <int address>
 	uint8_t read() {
+		Logger::info().append("Read %04x", address);
 		if(address & 8) {
 			return control();
 		} else {
@@ -33,6 +35,7 @@ public:
 
 	template <int address>
 	void write(const uint8_t value) {
+		Logger::info().append("Write %02x -> %04x", value, address);
 		if(address & 8) {
 			set_control(value);
 		} else {
@@ -44,6 +47,8 @@ private:
 	uint8_t control();
 	void set_control(uint8_t);
 	uint8_t control_;
+
+	using Logger = Log::Logger<Log::Source::Floppy>;
 };
 
 }
