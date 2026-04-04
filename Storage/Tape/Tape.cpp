@@ -171,7 +171,7 @@ void BinaryTapePlayer::set_motor_control(const bool enabled) {
 void BinaryTapePlayer::update_observer() {
 	const bool lit = motor_is_running_ && !is_at_end();
 	if(observer_ && lit != observer_lit_) {
-		observer_->set_led_status(LEDName, motor_is_running_ && !is_at_end());
+		observer_->set_led_status(LEDName, lit);
 		observer_lit_ = lit;
 	}
 }
