@@ -52,6 +52,8 @@ private:
 	uint8_t control_;
 
 	using Logger = Log::Logger<Log::Source::Floppy>;
+
+//	void set_head_load_request(bool) override;
 };
 
 }

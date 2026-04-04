@@ -51,3 +51,12 @@ const Storage::Disk::Disk *CD90_640::disk(const std::string &name) {
 	});
 	return result;
 }
+
+//void CD90_640::set_head_load_request(const bool head_load) {
+//	// Turn all motors on or off; if off then unload the head instantly.
+//	for_all_drives([head_load] (Storage::Disk::Drive &drive, size_t) {
+//		drive.set_motor_on(head_load);
+//	});
+//	Logger::info().append("Head load: %d", head_load);
+//	set_head_loaded(head_load);
+//}
