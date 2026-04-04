@@ -594,7 +594,16 @@ private:
 			tape_player_.set_tape(media.tapes.front(), TargetPlatform::ThomsonMO);
 		}
 
-		return !media.tapes.empty();
+		if(!has_floppy) {
+			return !media.tapes.empty();
+		}
+
+		size_t index = 0;
+		for(auto &disk: media.disks) {
+			fdc_.set_disk(disk, index);
+			++ index;
+		}
+		return !media.tapes.empty() || !media.disks.empty();
 	}
 
 	ChangeEffect effect_for_file_did_change(const std::string &) const override {
@@ -644,5 +653,9 @@ std::unique_ptr<Machine> Machine::ThomsonMO(
 ) {
 	using Target = Analyser::Static::Thomson::MOTarget;
 	const Target *const thomson_target = dynamic_cast<const Target *>(target);
-	return std::make_unique<ConcreteMachine<true>>(*thomson_target, rom_fetcher);
+
+	switch(thomson_target->floppy) {
+		case Target::Floppy::None:		return std::make_unique<ConcreteMachine<false>>(*thomson_target, rom_fetcher);
+		case Target::Floppy::CD90_640:	return std::make_unique<ConcreteMachine<true>>(*thomson_target, rom_fetcher);
+	}
 }

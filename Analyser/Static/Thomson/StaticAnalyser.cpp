@@ -45,6 +45,12 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 		}
 	}
 
+	// Currently: accept all floppy disks.
+	if(!media.disks.empty()) {
+		target->floppy = MOTarget::Floppy::CD90_640;
+		target->media.disks = media.disks;
+	}
+
 	if(!target->media.empty()) {
 		destination.push_back(std::move(target));
 	}

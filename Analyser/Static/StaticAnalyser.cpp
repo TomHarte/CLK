@@ -51,6 +51,7 @@
 #include "Storage/Disk/DiskImage/Formats/G64.hpp"
 #include "Storage/Disk/DiskImage/Formats/DMK.hpp"
 #include "Storage/Disk/DiskImage/Formats/FAT12.hpp"
+#include "Storage/Disk/DiskImage/Formats/FD.hpp"
 #include "Storage/Disk/DiskImage/Formats/HFE.hpp"
 #include "Storage/Disk/DiskImage/Formats/IPF.hpp"
 #include "Storage/Disk/DiskImage/Formats/IMD.hpp"
@@ -239,6 +240,8 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	accumulator.try_standard<MassStorage::DSK>(TargetPlatform::Macintosh, "dsk");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::MSX, "dsk");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::OricMFMDSK>>(TargetPlatform::Oric, "dsk");
+
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::FD>>(TargetPlatform::ThomsonMO, "fd");
 
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::G64>>(TargetPlatform::Commodore8bit, "g64");
 

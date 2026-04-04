@@ -30,3 +30,20 @@ void CD90_640::set_activity_observer(Activity::Observer *const observer) {
 		drive.set_activity_observer(observer, "Drive " + std::to_string(index+1), true);
 	});
 }
+
+// TODO: the code below is fairly boilerplate; can it be factored out?
+
+void CD90_640::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, const size_t drive) {
+	get_drive(drive).set_disk(disk);
+}
+
+const Storage::Disk::Disk *CD90_640::disk(const std::string &name) {
+	const Storage::Disk::Disk *result = nullptr;
+	for_all_drives( [&](Storage::Disk::Drive &drive, size_t) {
+		const auto disk = drive.disk();
+		if(disk && disk->represents(name)) {
+			result = disk;
+		}
+	});
+	return result;
+}

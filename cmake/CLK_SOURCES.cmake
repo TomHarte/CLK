@@ -207,6 +207,7 @@ set(CLK_SOURCES
 	Storage/Disk/DiskImage/Formats/D64.cpp
 	Storage/Disk/DiskImage/Formats/DMK.cpp
 	Storage/Disk/DiskImage/Formats/FAT12.cpp
+	Storage/Disk/DiskImage/Formats/FD.cpp
 	Storage/Disk/DiskImage/Formats/G64.cpp
 	Storage/Disk/DiskImage/Formats/HFE.cpp
 	Storage/Disk/DiskImage/Formats/IMD.cpp
