@@ -36,6 +36,7 @@ using Log = Log::Logger<Log::Source::MO5>;
 static constexpr int ClockRate = 1'000'000;
 static constexpr uint8_t MusicExpansionMask = 63;
 
+template <bool has_floppy>
 struct ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
@@ -64,7 +65,11 @@ struct ConcreteMachine:
 		speaker_.set_input_rate(ClockRate);
 		construct_joysticks();
 
-		const auto request = ROM::Request(ROM::Name::ThomsonMO5v11);
+		auto request = ROM::Request(ROM::Name::ThomsonMO5v11);
+		if(has_floppy) {
+			request = request && ROM::Request(ROM::Name::ThomsonCD90_640);
+		}
+
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
 			throw ROMMachine::Error::MissingROMs;
@@ -72,6 +77,11 @@ struct ConcreteMachine:
 
 		const auto &rom = roms.find(ROM::Name::ThomsonMO5v11)->second;
 		std::copy_n(rom.begin(), rom.size(), rom_.begin());
+
+		if(has_floppy) {
+			const auto &floppy_rom = roms.find(ROM::Name::ThomsonCD90_640)->second;
+			std::copy_n(floppy_rom.begin(), floppy_rom.size(), floppy_rom_.begin());
+		}
 
 		Memory::Fuzz(ram_);
 		system_pia_.refresh();
@@ -112,7 +122,7 @@ struct ConcreteMachine:
 	) {
 		static constexpr auto duration = CPU::M6809::duration<Cycles>(bus_phase);
 		if(video_ += duration) {
-			system_pia_.set<Motorola::MC6821::Control::CB1>(video_.last_valid()->irq());
+			system_pia_.template set<Motorola::MC6821::Control::CB1>(video_.last_valid()->irq());
 		}
 		time_since_audio_update_ += duration;
 		tape_player_.run_for(duration);
@@ -120,9 +130,7 @@ struct ConcreteMachine:
 			typer_->run_for(duration);
 		}
 
-		if constexpr (read_write == CPU::M6809::ReadWrite::NoData) {
-			return Cycles(0);
-		} else {
+		if constexpr (read_write != CPU::M6809::ReadWrite::NoData) {
 			if(address >= 0xa7c0 && address < 0xa800) {
 				switch(address) {
 					case 0xa7c0:	access<0xa7c0, read_write>(system_pia_, value);				break;
@@ -154,6 +162,8 @@ struct ConcreteMachine:
 				if constexpr (CPU::M6809::is_read(read_write)) {
 					if(address < 0x2000) {
 						value = start_pointer_[address];
+					} else if(address >= 0xa000 && address < 0xa7c0) {
+						value = has_floppy ? floppy_rom_[address - 0xa000] : 0xff;
 					} else if(address >= 0xc000) {
 						value = rom_[address - 0xc000];
 
@@ -174,7 +184,7 @@ struct ConcreteMachine:
 									if(!serialiser) return;
 
 									Storage::Tape::Thomson::MO::Parser parser;
-									const auto dp = m6809_.registers().reg<CPU::M6809::R8::DP>();
+									const auto dp = m6809_.registers().template reg<CPU::M6809::R8::DP>();
 									auto &polarity = ram_[size_t((dp << 8) | 0x44)];
 									auto &data =  ram_[size_t((dp << 8) | 0x45)];
 
@@ -193,7 +203,7 @@ struct ConcreteMachine:
 									if(!*bit) {
 										polarity ^= 0xff;
 									}
-									m6809_.registers().reg<CPU::M6809::R8::A>() = *bit ? 0xff : 0x00;
+									m6809_.registers().template reg<CPU::M6809::R8::A>() = *bit ? 0xff : 0x00;
 
 									// The parser reads up to the end of the bit. The ROM routine ends about two-thirds
 									// of the way through the bit. So 'rewind' the tape a little.
@@ -234,6 +244,7 @@ private:
 
 	std::array<uint8_t, 0x10000 + 0x2000> ram_;
 	std::array<uint8_t, 0x4000> rom_;
+	std::array<uint8_t, 0x7c0> floppy_rom_;
 	uint8_t *start_pointer_ = nullptr;
 
 	uint8_t *video_page(const bool pixels) {
@@ -299,11 +310,11 @@ private:
 		template <Motorola::MC6821::IRQ irq>
 		void set(const bool active) {
 			if constexpr (irq == Motorola::MC6821::IRQ::A) {
-				machine_.m6809_.set<CPU::M6809::Line::FIRQ>(active);
+				machine_.m6809_.template set<CPU::M6809::Line::FIRQ>(active);
 			}
 
 			if constexpr (irq == Motorola::MC6821::IRQ::B) {
-				machine_.m6809_.set<CPU::M6809::Line::IRQ>(active);
+				machine_.m6809_.template set<CPU::M6809::Line::IRQ>(active);
 			}
 		}
 
@@ -419,17 +430,17 @@ private:
 						apply(port_b_, index ? 0x08 : 0x04);
 
 						if(index) {
-							machine_.sound_and_game_pia_.set<Motorola::MC6821::Control::CB1>(is_active);
+							machine_.sound_and_game_pia_.template set<Motorola::MC6821::Control::CB1>(is_active);
 						} else {
-							machine_.sound_and_game_pia_.set<Motorola::MC6821::Control::CA1>(is_active);
+							machine_.sound_and_game_pia_.template set<Motorola::MC6821::Control::CA1>(is_active);
 						}
 					} else {
 						apply(port_b_, index ? 0x80 : 0x40);
 
 						if(index) {
-							machine_.sound_and_game_pia_.set<Motorola::MC6821::Control::CB2>(is_active);
+							machine_.sound_and_game_pia_.template set<Motorola::MC6821::Control::CB2>(is_active);
 						} else {
-							machine_.sound_and_game_pia_.set<Motorola::MC6821::Control::CA2>(is_active);
+							machine_.sound_and_game_pia_.template set<Motorola::MC6821::Control::CA2>(is_active);
 						}
 					}
 				break;
@@ -546,7 +557,7 @@ private:
 	}
 
 	HalfCycles get_typer_delay(const std::string &) const final {
-		if(m6809_.get<CPU::M6809::Line::PowerOnReset>()) {
+		if(m6809_.template get<CPU::M6809::Line::PowerOnReset>()) {
 			return Cycles(1'000'000);
 		} else {
 			return Cycles(0);
@@ -611,5 +622,5 @@ std::unique_ptr<Machine> Machine::ThomsonMO(
 ) {
 	using Target = Analyser::Static::Thomson::MOTarget;
 	const Target *const thomson_target = dynamic_cast<const Target *>(target);
-	return std::make_unique<ConcreteMachine>(*thomson_target, rom_fetcher);
+	return std::make_unique<ConcreteMachine<true>>(*thomson_target, rom_fetcher);
 }
