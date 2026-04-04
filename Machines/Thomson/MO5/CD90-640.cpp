@@ -36,8 +36,9 @@ void CD90_640::set_activity_observer(Activity::Observer *const observer) {
 void CD90_640::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, const size_t drive) {
 	get_drive(drive).set_disk(disk);
 
-	// TODO: what is really in charge of motor control?
+	// TODO: what is really in charge of motor control and drive selection?
 	get_drive(drive).set_motor_on(true);
+	set_drive(1 << drive);
 }
 
 const Storage::Disk::Disk *CD90_640::disk(const std::string &name) {

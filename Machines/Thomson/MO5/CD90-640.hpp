@@ -25,12 +25,15 @@ public:
 
 	template <int address>
 	uint8_t read() {
-		Logger::info().append("Read %04x", address);
-		if(address & 8) {
-			return control();
-		} else {
-			return WD::WD1770::read(address);
-		}
+		const uint8_t result = [&] {
+			if(address & 8) {
+				return control();
+			} else {
+				return WD::WD1770::read(address);
+			}
+		} ();
+		Logger::info().append("Read %02x <- %04x", result, address);
+		return result;
 	}
 
 	template <int address>
