@@ -44,7 +44,6 @@ int FD::head_count() const {
 }
 
 long FD::get_file_offset_for_position(const Track::Address address) const {
-	// TODO: RESOLVE GUESS HERE.
-	// Guess is that data is interleaved.
-	return (address.position.as_int() * head_count_ + address.head) * bytes_per_track;
+	// Determined empirically: disk images are not interleaved.
+	return  address.head * bytes_per_side + address.position.as_int() * bytes_per_track;
 }
