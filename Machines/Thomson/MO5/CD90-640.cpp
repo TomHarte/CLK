@@ -11,16 +11,17 @@
 using namespace Thomson;
 
 CD90_640::CD90_640() : WD::WD1770(P1770) {
-	emplace_drives(2, 8000000, 360, 2);
+	// 325 is a peculiar RPM, but seems to match a spin-up test in the disk ROM that polls the WD1770's status register
+	// index hole bit and counts time. Furthermore there are other machines with unusual RPMs. Could definitely
+	// still just imply an issue elsewhere in the emulator though.
+	emplace_drives(2, 8000000, 325, 2);
 }
 
 uint8_t CD90_640::control() {
-//	Logger::info().append("Read control: %02x [?]", control_);
-	return control_;
+	return control_;	// Possibly only b7 is loaded?
 }
 
 void CD90_640::set_control(const uint8_t value) {
-//	Logger::info().append("Write control: %02x", value);
 	control_ = value;
 
 	// Following along from the schematic in https://github.com/OlivierP-To8/CD90-640/ :
