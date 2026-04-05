@@ -236,7 +236,7 @@ struct ConcreteMachine:
 						start_pointer_[address] = value;
 					} else {
 						if constexpr (!CPU::M6809::is_read(read_write)) {
-							if(address >= 0xc000) {
+							if(address >= 0xa000) {
 								Log::info().append("ROM write at %04x", +address);
 							}
 						}
