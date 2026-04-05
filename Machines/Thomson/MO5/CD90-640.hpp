@@ -53,7 +53,7 @@ private:
 
 	using Logger = Log::Logger<Log::Source::Floppy>;
 
-//	void set_head_load_request(bool) override;
+	void set_motor_on(bool) override;
 };
 
 }

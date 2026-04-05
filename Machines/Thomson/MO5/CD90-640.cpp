@@ -10,19 +10,45 @@
 
 using namespace Thomson;
 
-CD90_640::CD90_640() : WD::WD1770(P1793) {
+CD90_640::CD90_640() : WD::WD1770(P1770) {
 	emplace_drives(2, 8000000, 300, 2);
 }
 
 uint8_t CD90_640::control() {
-	Logger::info().append("Read control: %02x", control_);
+//	Logger::info().append("Read control: %02x [?]", control_);
 	return control_;
 }
 
 void CD90_640::set_control(const uint8_t value) {
-	Logger::info().append("Set control to %02x", value);
+//	Logger::info().append("Write control: %02x", value);
 	control_ = value;
-	// TODO: What do these bits mean?
+
+	// Following along from the schematic in https://github.com/OlivierP-To8/CD90-640/ :
+	//
+	//	The 74LS123 on the second page is fed with:
+	//
+	//		D0 = external data line 7
+	//		D1 = line 0
+	//		D2 = line 1
+	//		D3 = line 2
+	//
+	//	It then routes:
+	//
+	//		Q0 = DDEN select
+	//		Q1 = side sleect
+	//		Q2, Q3 = drive selects
+	//
+	set_is_double_density(!(value & 0x80));
+	for_all_drives( [&](Storage::Disk::Drive &drive, size_t) {
+		drive.set_head(value & 1);
+	});
+	set_drive((value >> 1) & 3);
+}
+
+void CD90_640::set_motor_on(const bool motor) {
+	for_all_drives( [&](Storage::Disk::Drive &drive, size_t) {
+		drive.set_motor_on(motor);
+	});
 }
 
 void CD90_640::set_activity_observer(Activity::Observer *const observer) {
@@ -35,10 +61,6 @@ void CD90_640::set_activity_observer(Activity::Observer *const observer) {
 
 void CD90_640::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, const size_t drive) {
 	get_drive(drive).set_disk(disk);
-
-	// TODO: what is really in charge of motor control and drive selection?
-	get_drive(drive).set_motor_on(true);
-	set_drive(1 << drive);
 }
 
 const Storage::Disk::Disk *CD90_640::disk(const std::string &name) {
@@ -51,12 +73,3 @@ const Storage::Disk::Disk *CD90_640::disk(const std::string &name) {
 	});
 	return result;
 }
-
-//void CD90_640::set_head_load_request(const bool head_load) {
-//	// Turn all motors on or off; if off then unload the head instantly.
-//	for_all_drives([head_load] (Storage::Disk::Drive &drive, size_t) {
-//		drive.set_motor_on(head_load);
-//	});
-//	Logger::info().append("Head load: %d", head_load);
-//	set_head_loaded(head_load);
-//}
