@@ -11,7 +11,7 @@
 using namespace Thomson;
 
 CD90_640::CD90_640() : WD::WD1770(P1770) {
-	emplace_drives(2, 8000000, 300, 2);
+	emplace_drives(2, 8000000, 360, 2);
 }
 
 uint8_t CD90_640::control() {
