@@ -122,9 +122,9 @@ constexpr EnabledLevel enabled_level(const Source source) {
 //		case Source::PCPOST:
 			return EnabledLevel::None;
 
-//		case Source::Floppy:
+		case Source::Floppy:
 //		case Source::Keyboard:
-//			return EnabledLevel::Errors;
+			return EnabledLevel::Errors;
 	}
 }
 
