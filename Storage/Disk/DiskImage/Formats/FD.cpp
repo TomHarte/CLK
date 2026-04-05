@@ -32,7 +32,7 @@ FD::FD(const std::string &file_name) : MFMSectorDump(file_name) {
 
 	head_count_ = is_double_sided ? 2 : 1;
 
-	set_geometry(sectors_per_track, sector_size, 0, Encodings::MFM::Density::Double);
+	set_geometry(sectors_per_track, sector_size, 1, Encodings::MFM::Density::Double);
 }
 
 HeadPosition FD::maximum_head_position() const {
