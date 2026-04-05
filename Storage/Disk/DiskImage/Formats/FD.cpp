@@ -11,32 +11,40 @@
 namespace {
 // Per https://en.wikipedia.org/wiki/List_of_floppy_disk_formats the Thomson
 // uses 16 256-byte sectors per track.
-constexpr int tracks_per_side = 40;
 constexpr int sectors_per_track = 16;
 constexpr int sector_size = 1;
 
 constexpr int bytes_per_track = sectors_per_track * (128 << sector_size);
-constexpr int bytes_per_side = tracks_per_side * bytes_per_track;
 }
 
 using namespace Storage::Disk;
 
 FD::FD(const std::string &file_name) : MFMSectorDump(file_name) {
-	// Disk has two heads if the suffix is .dsd or if it's too large to be an SSD.
-	const bool is_double_sided = file_.stats().st_size > bytes_per_side;
+	// Guess disk geometry from file size.
+	switch(file_.stats().st_size) {
+		default: throw Error::InvalidFormat;
 
-	if(
-		file_.stats().st_size != bytes_per_side &&
-		file_.stats().st_size != bytes_per_side * 2
-	) throw Error::InvalidFormat;
+		case bytes_per_track * 40:
+			head_count_ = 1;
+			track_count_ = 40;
+		break;
 
-	head_count_ = is_double_sided ? 2 : 1;
+		case bytes_per_track * 80:
+			head_count_ = 1;
+			track_count_ = 80;
+		break;
+
+		case bytes_per_track * 160:
+			head_count_ = 2;
+			track_count_ = 80;
+		break;
+	}
 
 	set_geometry(sectors_per_track, sector_size, 1, Encodings::MFM::Density::Double);
 }
 
 HeadPosition FD::maximum_head_position() const {
-	return HeadPosition(tracks_per_side);
+	return HeadPosition(track_count_);
 }
 
 int FD::head_count() const {
@@ -45,5 +53,5 @@ int FD::head_count() const {
 
 long FD::get_file_offset_for_position(const Track::Address address) const {
 	// Determined empirically: disk images are not interleaved.
-	return (address.head * bytes_per_side) + (address.position.as_int() * bytes_per_track);
+	return ((address.head * track_count_) + address.position.as_int()) * bytes_per_track;
 }

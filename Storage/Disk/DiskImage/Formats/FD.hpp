@@ -31,6 +31,7 @@ public:
 private:
 	long get_file_offset_for_position(Track::Address) const final;
 	int head_count_;
+	int track_count_;
 };
 
 }
