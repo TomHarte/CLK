@@ -77,12 +77,12 @@ CD90_640::CD90_640() : WD::WD1770(P1770) {
 	//
 	//	(1) wait for index hole;
 	//	(2) spend 20,013 µs doing something else;
-	//	(3) get Y = time from there to next index hole.
+	//	(3) get Y = [µs from there to next index hole] / 13.
 	//
-	// i.e. it's a test that the rotation it samples takes n cycles, where:
+	// i.e. it's a test that the rotation it samples takes n µs, where:
 	//
 	//	13 * 0x311b < n - 20,013 < 13 * 0x3357
-	//	183436 µs < n < 190872 µs
+	//	183436 < n < 190872
 	//
 	// i.e.
 	//
