@@ -176,8 +176,10 @@ enum Name {
 	SinclairQLJS,
 
 	// Thomson MO and TO machines.
-	ThomasonMO5v1,
-	ThomasonMO5v11,
+	ThomsonMO5v1,
+	ThomsonMO5v11,
+
+	ThomsonCD90_640,
 
 	// Vic-20.
 	Vic20BASIC,

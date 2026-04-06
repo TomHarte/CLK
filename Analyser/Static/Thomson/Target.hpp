@@ -18,12 +18,16 @@ namespace Analyser::Static::Thomson {
 struct MOTarget: public Analyser::Static::Target, public Reflection::StructImpl<MOTarget> {
 	std::string loading_command;
 
+	ReflectableEnum(Floppy, None, CD90_640);
+	Floppy floppy = Floppy::None;
+
 	MOTarget() : Analyser::Static::Target(Machine::ThomsonMO) {}
 
 private:
 	friend Reflection::StructImpl<MOTarget>;
 	void declare_fields() {
-		// None yet.
+		AnnounceEnum(Floppy);
+		DeclareField(floppy);
 	}
 };
 

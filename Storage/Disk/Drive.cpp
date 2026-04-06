@@ -352,8 +352,8 @@ void Drive::process_next_event() {
 		}
 		cycles_since_index_hole_ = 0;
 
-		// Begin a 2ms period of holding the index line pulse active.
-		index_pulse_remaining_ = Cycles((get_input_clock_rate() * 2) / 1000);
+		// Begin a 1ms period of holding the index line pulse active.
+		index_pulse_remaining_ = Cycles((get_input_clock_rate() * 1) / 1000);
 	}
 	if(
 		event_delegate_ &&

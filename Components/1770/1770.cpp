@@ -207,6 +207,7 @@ void WD1770::posit_event(const int new_event_type) {
 			status.data_request = false;
 			status.spin_up = false;
 		});
+		// TODO: potentially should disable motors?
 	} else {
 		if(!(interesting_event_mask_ & int(new_event_type))) return;
 		interesting_event_mask_ &= ~new_event_type;

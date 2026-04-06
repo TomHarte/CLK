@@ -875,6 +875,28 @@
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>fd</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>floppy525</string>
+			<key>CFBundleTypeName</key>
+			<string>Thomson Disk Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
+		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
