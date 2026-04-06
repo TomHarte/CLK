@@ -824,7 +824,8 @@ struct M6809Traits {
 		sequence(0xbf);	// STY
 	}
 
-	// Omitted entirely: LEAS, LEAU, LEAX, LEAY that come only in indexed mode. Maybe use those as the indexed test?
+	// Omitted entirely: LEAS, LEAU, LEAX, LEAY that come only in indexed mode. LEAS is the subject of the indexed
+	// timing tests, and I _assume_ the rest conform.
 
 	// MARK: - JMP
 
@@ -1087,35 +1088,35 @@ struct M6809Traits {
 	test(
 		{0x32, NoOffset | RegX},						// ,R
 		{
-			RW::Read, RW::Read, RW::NoData
+			RW::Read, RW::Read, RW::NoData, RW::NoData,
 		}
 	);
 
 	test(
 		{0x32, NoOffset | RegX | Indirect},				// [,R]
 		{
-			RW::Read, RW::Read, RW::NoData, RW::Read, RW::Read, RW::NoData
+			RW::Read, RW::Read, RW::NoData, RW::Read, RW::Read, RW::NoData, RW::NoData,
 		}
 	);
 
 	test(
 		{0x32, Offset5bit | RegX},						// [5n,R]
 		{
-			RW::Read, RW::Read, RW::NoData, RW::NoData
+			RW::Read, RW::Read, RW::NoData, RW::NoData, RW::NoData,
 		}
 	);
 
 	test(
 		{0x32, Offset8bit | RegX, 0x00},				// 8n,R
 		{
-			RW::Read, RW::Read, RW::Read, RW::NoData
+			RW::Read, RW::Read, RW::Read, RW::NoData, RW::NoData,
 		}
 	);
 
 	test(
 		{0x32, Offset8bit | RegX | Indirect, 0x00},		// [8n,R]
 		{
-			RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read, RW::Read, RW::NoData,
+			RW::Read, RW::Read, RW::Read, RW::NoData, RW::Read, RW::Read, RW::NoData, RW::NoData,
 		}
 	);
 
@@ -1124,7 +1125,7 @@ struct M6809Traits {
 		{
 			RW::Read, RW::Read,
 			RW::Read, RW::Read,
-			RW::NoData, RW::NoData, RW::NoData,
+			RW::NoData, RW::NoData, RW::NoData, RW::NoData,
 		}
 	);
 
@@ -1132,7 +1133,7 @@ struct M6809Traits {
 		{0x32, ARegisterOffset | RegX},		// A,R
 		{
 			RW::Read, RW::Read,
-			RW::NoData, RW::NoData,
+			RW::NoData, RW::NoData, RW::NoData,
 		}
 	);
 
@@ -1141,7 +1142,7 @@ struct M6809Traits {
 		{
 			RW::Read, RW::Read,
 			RW::NoData, RW::NoData,
-			RW::Read, RW::Read, RW::NoData,
+			RW::Read, RW::Read, RW::NoData, RW::NoData,
 		}
 	);
 
@@ -1152,7 +1153,7 @@ struct M6809Traits {
 		{0x32, DRegisterOffset | RegX},		// D,R
 		{
 			RW::Read, RW::Read,
-			RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData,
+			RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData,
 		}
 	);
 
@@ -1161,7 +1162,7 @@ struct M6809Traits {
 		{
 			RW::Read, RW::Read,
 			RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData,
-			RW::Read, RW::Read, RW::NoData,
+			RW::Read, RW::Read, RW::NoData, RW::NoData,
 		}
 	);
 
@@ -1169,7 +1170,7 @@ struct M6809Traits {
 		{0x32, PostInc1 | RegX},	// R+
 		{
 			RW::Read, RW::Read,
-			RW::NoData, RW::NoData, RW::NoData,
+			RW::NoData, RW::NoData, RW::NoData, RW::NoData,
 		}
 	);
 
@@ -1177,7 +1178,7 @@ struct M6809Traits {
 		{0x32, PreDec1 | RegX},	// -R
 		{
 			RW::Read, RW::Read,
-			RW::NoData, RW::NoData, RW::NoData,
+			RW::NoData, RW::NoData, RW::NoData, RW::NoData,
 		}
 	);
 
@@ -1185,7 +1186,7 @@ struct M6809Traits {
 		{0x32, PostInc2 | RegX},	// R++
 		{
 			RW::Read, RW::Read,
-			RW::NoData, RW::NoData, RW::NoData, RW::NoData,
+			RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData,
 		}
 	);
 
@@ -1194,14 +1195,14 @@ struct M6809Traits {
 		{
 			RW::Read, RW::Read,
 			RW::NoData, RW::NoData, RW::NoData, RW::NoData,
-			RW::Read, RW::Read, RW::NoData,
+			RW::Read, RW::Read, RW::NoData, RW::NoData,
 		}
 	);
 
 	test(
 		{0x32, PCOffset8bit | RegX, 0x00},	// 8n, PC
 		{
-			RW::Read, RW::Read, RW::Read, RW::NoData,
+			RW::Read, RW::Read, RW::Read, RW::NoData, RW::NoData,
 		}
 	);
 
@@ -1209,7 +1210,7 @@ struct M6809Traits {
 		{0x32, PCOffset8bit | RegX | Indirect, 0x00, 0x00, 0x00},	// [8n, PC]
 		{
 			RW::Read, RW::Read, RW::Read, RW::NoData,
-			RW::Read, RW::Read, RW::NoData,
+			RW::Read, RW::Read, RW::NoData, RW::NoData,
 		}
 	);
 
@@ -1217,7 +1218,7 @@ struct M6809Traits {
 		{0x32, PCOffset16bit | RegX, 0x00, 0x00},	// 16n, PC
 		{
 			RW::Read, RW::Read, RW::Read, RW::Read,
-			RW::NoData, RW::NoData, RW::NoData, RW::NoData,
+			RW::NoData, RW::NoData, RW::NoData, RW::NoData, RW::NoData,
 		}
 	);
 
@@ -1226,7 +1227,7 @@ struct M6809Traits {
 		{
 			RW::Read, RW::Read, RW::Read, RW::Read,
 			RW::NoData, RW::NoData, RW::NoData, RW::NoData,
-			RW::Read, RW::Read, RW::NoData,
+			RW::Read, RW::Read, RW::NoData, RW::NoData,
 		}
 	);
 
@@ -1235,7 +1236,7 @@ struct M6809Traits {
 		{
 			RW::Read, RW::Read,
 			RW::Read, RW::Read, RW::NoData,
-			RW::Read, RW::Read, RW::NoData,
+			RW::Read, RW::Read, RW::NoData, RW::NoData,
 		}
 	);
 }
