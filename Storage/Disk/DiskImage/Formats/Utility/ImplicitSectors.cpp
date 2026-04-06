@@ -29,7 +29,7 @@ std::unique_ptr<Track> Storage::Disk::track_for_sectors(
 ) {
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
 
-	size_t byte_size = size_t(128 << size);
+	const size_t byte_size = size_t(128 << size);
 	size_t source_pointer = 0;
 	for(int sector = 0; sector < number_of_sectors; sector++) {
 		sectors.emplace_back();
@@ -42,7 +42,11 @@ std::unique_ptr<Track> Storage::Disk::track_for_sectors(
 		new_sector.size = size;
 
 		new_sector.samples.emplace_back();
-		new_sector.samples[0].insert(new_sector.samples[0].begin(), source + source_pointer, source + source_pointer + byte_size);
+		new_sector.samples[0].insert(
+			new_sector.samples[0].begin(),
+			source + source_pointer,
+			source + source_pointer + byte_size
+		);
 		source_pointer += byte_size;
 	}
 
