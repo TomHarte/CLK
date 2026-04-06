@@ -33,7 +33,7 @@ Drive::Drive(
 
 	// Get at least 64 bits of random information; rounding is likey to give this a slight bias.
 	random_source_ = 0;
-	auto half_range = (randomiser.max() - randomiser.min()) / 2;
+	const auto half_range = (randomiser.max() - randomiser.min()) / 2;
 	for(int bit = 0; bit < 64; ++bit) {
 		random_source_ <<= 1;
 		random_source_ |= ((randomiser() - randomiser.min()) >= half_range) ? 1 : 0;
@@ -233,11 +233,11 @@ void Drive::run_for(const Cycles cycles) {
 
 	if(disk_is_rotating_) {
 		if(has_disk_) {
-			Time zero(0);
+			static constexpr Time zero(0);
 
 			auto number_of_cycles = cycles.get();
 			while(number_of_cycles) {
-				auto cycles_until_next_event = get_cycles_until_next_event();
+				const auto cycles_until_next_event = get_cycles_until_next_event();
 				auto cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
 				if(!is_reading_ && cycles_until_bits_written_ > zero) {
 					auto write_cycles_target = cycles_until_bits_written_.get<Cycles::IntType>();
@@ -248,7 +248,7 @@ void Drive::run_for(const Cycles cycles) {
 				number_of_cycles -= cycles_to_run_for;
 				if(!is_reading_) {
 					if(cycles_until_bits_written_ > zero) {
-						Storage::Time cycles_to_run_for_time(static_cast<int>(cycles_to_run_for));
+						const Storage::Time cycles_to_run_for_time(static_cast<int>(cycles_to_run_for));
 						if(cycles_until_bits_written_ <= cycles_to_run_for_time) {
 							cycles_until_bits_written_.set_zero();
 							if(event_delegate_) {
@@ -347,7 +347,10 @@ void Drive::get_next_event(const float duration_already_passed) {
 void Drive::process_next_event() {
 	if(current_event_.type == Track::Event::IndexHole) {
 		++ready_index_count_;
-		if(ready_index_count_ == 2 && (ready_type_ == ReadyType::ShugartRDY || ready_type_ == ReadyType::ShugartModifiedRDY)) {
+		if(
+			ready_index_count_ == 2 &&
+			(ready_type_ == ReadyType::ShugartRDY || ready_type_ == ReadyType::ShugartModifiedRDY)
+		) {
 			is_ready_ = true;
 		}
 		cycles_since_index_hole_ = 0;

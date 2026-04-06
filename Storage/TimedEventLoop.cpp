@@ -14,7 +14,7 @@
 
 using namespace Storage;
 
-TimedEventLoop::TimedEventLoop(Cycles::IntType input_clock_rate) :
+TimedEventLoop::TimedEventLoop(const Cycles::IntType input_clock_rate) :
 	input_clock_rate_(input_clock_rate) {}
 
 void TimedEventLoop::add_delay(const Cycles cycles) {
@@ -73,23 +73,35 @@ void TimedEventLoop::jump_to_next_event() {
 	process_next_event();
 }
 
-void TimedEventLoop::set_next_event_time_interval(Time interval) {
+void TimedEventLoop::set_next_event_time_interval(const Time interval) {
 	set_next_event_time_interval(interval.get<float>());
 }
 
-void TimedEventLoop::set_next_event_time_interval(float interval) {
+void TimedEventLoop::set_next_event_time_interval(const float interval) {
 	// Calculate [interval]*[input clock rate] + [subcycles until this event]
-	const float float_interval = interval * float(input_clock_rate_) + subcycles_until_event_;
+	const float cycles = interval * float(input_clock_rate_) + subcycles_until_event_;
 
 	// This event will fire in the integral number of cycles from now, putting us at the remainder
 	// number of subcycles.
-	const Cycles::IntType addition = Cycles::IntType(float_interval);
+	const Cycles::IntType addition = Cycles::IntType(cycles);
 	cycles_until_event_ += addition;
-	subcycles_until_event_ = fmodf(float_interval, 1.0f);
+	subcycles_until_event_ = std::fmod(cycles, 1.0f);
+
+#ifndef NDEBUG
+	cycles_total_ += addition;
+#endif
 
 	assert(cycles_until_event_ >= 0);
 	assert(subcycles_until_event_ >= 0.0f);
 }
+
+#ifndef NDEBUG
+float TimedEventLoop::get_reset_cycles_total() {
+	const auto result = cycles_total_;
+	cycles_total_ = 0;
+	return result;
+}
+#endif
 
 Time TimedEventLoop::get_time_into_next_event() {
 	// TODO: calculate, presumably as [length of interval] - ([cycles left] + [subcycles left])
