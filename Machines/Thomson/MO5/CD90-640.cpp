@@ -19,6 +19,9 @@ CD90_640::CD90_640() : WD::WD1770(P1770) {
 	//
 	// On "325 RPM":
 	//
+	// Faulty reasoning was:
+	// ---------------------
+	//
 	// The DOS ROM verifies that a disk is present and spinning before proceeding.
 	// Part of that test is of spin speed.
 	//
@@ -39,7 +42,7 @@ CD90_640::CD90_640() : WD::WD1770(P1770) {
 	//		; Fixed delay...
 	//		;
 	//		a2a1	LDY     #M09C4		; 4 µs
-	//		a2a5	DEY					; 4 µs
+	//		a2a5	DEY					; 5 µs
 	//		a2a7	BNE     ZA2A5		; 3 µs	= net delay of 4 + 9C4*7 = 17,504 µs
 	//
 	//		a2a9	PSHS    CC			; 6 µs
@@ -49,7 +52,7 @@ CD90_640::CD90_640() : WD::WD1770(P1770) {
 	//		; Count time until index hole is set again
 	//		;
 	//		a2ad	LDA     ,X			; 4 µs, read WD status
-	//		a2af	INY					; 4 µs
+	//		a2af	INY					; 5 µs
 	//		a2b1	ANDA    #$02		; 2 µs
 	//		a2b3	BEQ     ZA2AD		; 3 µs
 	//
@@ -81,9 +84,9 @@ CD90_640::CD90_640() : WD::WD1770(P1770) {
 	//
 	// i.e. it's a test that the rotation it samples takes n µs, where:
 	//
-	//	13 * 0x311b < n - 17,513 < 13 * 0x3357
-	//	13 * 12,571 + 17,513 < n < 13 * 13,143 + 17,513
-	//	180,936 < n < 188,372
+	//	14 * 0x311b < n - 17,513 < 14 * 0x3357
+	//	14 * 12,571 + 20,009 < n < 14 * 13,143 + 20,009
+	//	196,003 < n < 204,011
 	//
 	// i.e.
 	//
@@ -91,7 +94,14 @@ CD90_640::CD90_640() : WD::WD1770(P1770) {
 	//
 	// So 325 RPM is a really weird number but I can't currently say why it should be
 	// wrong rather than merely unexpected. So here it is.
-
+	//
+	// Correct reasoning is:
+	// ---------------------
+	//
+	//	The LEAYs that constitute INY and DEY above should be _five_ cycles long, not four.
+	//	My 6809 timing is adrift.
+	//	If loops were properly timed then 300 RPM looks appropriate.
+	//	Cf. https://forum.system-cfg.com/viewtopic.php?f=1&t=17137
 }
 
 uint8_t CD90_640::control() {
