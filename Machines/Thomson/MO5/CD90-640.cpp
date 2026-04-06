@@ -73,7 +73,7 @@ CD90_640::CD90_640() : WD::WD1770(P1770) {
 	//	(4) count time from here until next index hole, ending with Y = time/13;
 	//	(5) test that that is within the bounds 0x311b, 0x3357.
 	//
-	// Ignoring minor potential latencies in loop exists, that's:
+	// Ignoring minor potential latencies in loop exits, that's:
 	//
 	//	(1) wait for index hole;
 	//	(2) spend 20,013 µs doing something else;
