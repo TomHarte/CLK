@@ -40,7 +40,7 @@ CD90_640::CD90_640() : WD::WD1770(P1770) {
 	//		;
 	//		a2a1	LDY     #M09C4		; 4 µs
 	//		a2a5	DEY					; 4 µs
-	//		a2a7	BNE     ZA2A5		; 3 µs	= net delay of 4 + 9C4*8 = 20,004 µs
+	//		a2a7	BNE     ZA2A5		; 3 µs	= net delay of 4 + 9C4*7 = 17,500 µs
 	//
 	//		a2a9	PSHS    CC			; 6 µs
 	//		a2ab	SEIF				; 3 µs
@@ -68,7 +68,7 @@ CD90_640::CD90_640() : WD::WD1770(P1770) {
 	// If I've disassembled that correctly, then the process is:
 	//
 	//	(1) wait for index hole, with up to 9 µs of latency;
-	//	(2) spin in a loop for 20,004 µs;
+	//	(2) spin in a loop for 17,500 µs;
 	//	(3) do minor stack/flag work for 9 µs;
 	//	(4) count time from here until next index hole, ending with Y = time/13;
 	//	(5) test that that is within the bounds 0x311b, 0x3357.
@@ -76,17 +76,18 @@ CD90_640::CD90_640() : WD::WD1770(P1770) {
 	// Ignoring minor potential latencies in loop exits, that's:
 	//
 	//	(1) wait for index hole;
-	//	(2) spend 20,013 µs doing something else;
+	//	(2) spend 17,509 µs doing something else;
 	//	(3) get Y = [µs from there to next index hole] / 13.
 	//
 	// i.e. it's a test that the rotation it samples takes n µs, where:
 	//
-	//	13 * 0x311b < n - 20,013 < 13 * 0x3357
-	//	183436 < n < 190872
+	//	13 * 0x311b < n - 17,509 < 13 * 0x3357
+	//	13 * 12,571 + 17,509 < n < 13 * 13,143 + 17,509
+	//	180,932 < n < 188,368
 	//
 	// i.e.
 	//
-	//	327 >= RPM >= 314 RPM.
+	//	331 >= RPM >= 319 RPM.
 	//
 	// So 325 RPM is a really weird number but I can't currently say why it should be
 	// wrong rather than merely unexpected. So here it is.
