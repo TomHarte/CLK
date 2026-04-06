@@ -11,10 +11,7 @@
 using namespace Thomson;
 
 CD90_640::CD90_640() : WD::WD1770(P1770) {
-	// 325 is a peculiar RPM, but seems to match a spin-up test in the disk ROM that polls the WD1770's status register
-	// index hole bit and counts time. Furthermore there are other machines with unusual RPMs. Could definitely
-	// still just imply an issue elsewhere in the emulator though.
-	emplace_drives(2, 8000000, 325, 2);
+	emplace_drives(2, 8'000'000, 300, 2);
 }
 
 uint8_t CD90_640::control() {

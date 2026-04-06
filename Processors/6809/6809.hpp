@@ -666,7 +666,7 @@ struct Processor {
 				);
 				address_.halves.high = registers_.reg<R8::DP>();
 
-				if(operation_.type == AccessType::LEA) {
+				if(operation_.operation == Operation::JMP) {
 					goto internal_lic_break;
 				}
 				internal_cycle(LIC::Inactive);
@@ -694,7 +694,7 @@ struct Processor {
 					++registers_.pc.full
 				);
 
-				if(operation_.type == AccessType::LEA) {
+				if(operation_.operation == Operation::JMP) {
 					goto internal_lic_break;
 				}
 				internal_cycle(LIC::Inactive);
@@ -766,7 +766,7 @@ struct Processor {
 				read(BusState::Normal, LIC::Inactive, Literal(address_.full), operand_.halves.low, ++address_.full);
 
 				address_ = operand_;
-				if(operation_.type == AccessType::LEA) {
+				if(operation_.operation == Operation::JMP) {
 					goto internal_lic_break;
 				}
 				internal_cycle(LIC::Inactive);

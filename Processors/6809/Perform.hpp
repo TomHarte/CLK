@@ -606,8 +606,7 @@ inline bool is_zero_costed(const InstructionSet::M6809::Operation operation) {
 		case CLR:	case LDA:	case LDB:	case STA:	case STB:
 		case LDD:	case LDU:	case LDX:	case LDY:	case LDS:
 		case STD:	case STU:	case STX:	case STY:	case STS:
-		case LEAU:	case LEAX:	case LEAY:	case LEAS:	case SEX:
-		case TSTA:	case TSTB:	case JMP:
+		case SEX:	case TSTA:	case TSTB:	case JMP:
 			return true;
 	}
 }
