@@ -9,6 +9,7 @@
 #pragma once
 
 #include <cassert>
+#include <concepts>
 #include <cstdint>
 
 #include "Numeric/RegisterSizes.hpp"
