@@ -14,9 +14,83 @@ CD90_640::CD90_640() : WD::WD1770(P1770) {
 	// 325 is a peculiar RPM, but seems to match a spin-up test in the disk ROM that polls the WD1770's status register
 	// index hole bit and counts time. Furthermore there are other machines with unusual RPMs. Could definitely
 	// still just imply an issue elsewhere in the emulator though.
-	//
-	// TODO: I think the 325 proves some sort of timing issue elsewhere. Should be 360. Investigate.
 	emplace_drives(2, 8'000'000, 325, 2);
+
+	//
+	// On "325 RPM":
+	//
+	// The DOS ROM verifies that a disk is present and spinning before proceeding.
+	// Part of that test is of spin speed.
+	//
+	// Specifically, with X = 0xa7d0 it performs:
+	//
+	//		;
+	//		; Wait for index hole set.
+	//		;
+	//		a29b	LDA     ,X			; 4 µs
+	//		a29d	ANDA    #$02		; 2 µs
+	//		a29f	BEQ     ZA29B		; 3 µs
+	//
+	//		;
+	//		; i.e. start of track falls about here
+	//		;
+	//
+	//		;
+	//		; Fixed delay...
+	//		;
+	//		a2a1	LDY     #M09C4		; 4 µs
+	//		a2a5	DEY					; 4 µs
+	//		a2a7	BNE     ZA2A5		; 3 µs	= net delay of 4 + 9C4*8 = 20,004 µs
+	//
+	//		a2a9	PSHS    CC			; 6 µs
+	//		a2ab	SEIF				; 3 µs
+	//
+	//		;
+	//		; Count time until index hole is set again
+	//		;
+	//		a2ad	LDA     ,X			; 4 µs, read WD status
+	//		a2af	INY					; 4 µs
+	//		a2b1	ANDA    #$02		; 2 µs
+	//		a2b3	BEQ     ZA2AD		; 3 µs
+	//
+	//		a2b5	PULS    CC
+	//
+	//		;
+	//		; Check whether rotation speed was within bounds
+	//		;
+	//		a2b7	CMPY    #M311B
+	//		a2bb	BMI     ZA2C7
+	//		a2bd	CMPY    #M3357
+	//		a2c1	BPL     ZA2C7
+	//
+	//		[test passed code here, test failed code from a2c7]
+	//
+	// If I've disassembled that correctly, then the process is:
+	//
+	//	(1) wait for index hole, with up to 9 µs of latency;
+	//	(2) spin in a loop for 20,004 µs;
+	//	(3) do minor stack/flag work for 9 µs;
+	//	(4) count time from here until next index hole, ending with Y = time/13;
+	//	(5) test that that is within the bounds 0x311b, 0x3357.
+	//
+	// Ignoring minor potential latencies in loop exists, that's:
+	//
+	//	(1) wait for index hole;
+	//	(2) spend 20,013 µs doing something else;
+	//	(3) get Y = time from there to next index hole.
+	//
+	// i.e. it's a test that the rotation it samples takes n cycles, where:
+	//
+	//	13 * 0x311b < n - 20,013 < 13 * 0x3357
+	//	183436 µs < n < 190872 µs
+	//
+	// i.e.
+	//
+	//	327 >= RPM >= 314 RPM.
+	//
+	// So 325 RPM is a really weird number but I can't currently say why it should be
+	// wrong rather than merely unexpected. So here it is.
+
 }
 
 uint8_t CD90_640::control() {
