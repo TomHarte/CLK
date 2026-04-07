@@ -81,10 +81,13 @@ enum class SurfaceItem {
 
 class MFMEncoder: public Encoder {
 public:
-	MFMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr) : Encoder(target, fuzzy_target) {}
+	MFMEncoder(
+		std::vector<bool> &target,
+		std::vector<bool> *const fuzzy_target = nullptr
+	) : Encoder(target, fuzzy_target) {}
 	virtual ~MFMEncoder() = default;
 
-	void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) final {
+	void add_byte(const uint8_t input, const uint8_t fuzzy_mask = 0) final {
 		crc_generator_.add(input);
 		const uint16_t spread_value = Numeric::spread_bits(input);
 		const uint16_t spread_mask = Numeric::spread_bits(fuzzy_mask);
@@ -114,7 +117,7 @@ public:
 		add_byte(DeletedDataAddressByte);
 	}
 
-	size_t item_size(SurfaceItem item) {
+	size_t item_size(const SurfaceItem item) const {
 		switch(item) {
 			case SurfaceItem::Mark: return 8;	// Three syncs plus the mark type.
 			case SurfaceItem::Data: return 2;	// Just a single encoded byte.
@@ -125,7 +128,7 @@ public:
 
 private:
 	uint16_t last_output_;
-	void output_short(uint16_t value, uint16_t fuzzy_mask = 0) final {
+	void output_short(const uint16_t value, const uint16_t fuzzy_mask = 0) final {
 		last_output_ = value;
 		Encoder::output_short(value, fuzzy_mask);
 	}
@@ -139,9 +142,12 @@ private:
 class FMEncoder: public Encoder {
 // encodes each 16-bit part as clock, data, clock, data [...]
 public:
-	FMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr) : Encoder(target, fuzzy_target) {}
+	FMEncoder(
+		std::vector<bool> &target,
+		std::vector<bool> *const fuzzy_target = nullptr
+	) : Encoder(target, fuzzy_target) {}
 
-	void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) final {
+	void add_byte(const uint8_t input, const uint8_t fuzzy_mask = 0) final {
 		crc_generator_.add(input);
 		output_short(
 			Numeric::spread_bits(input) | 0xaaaa,
@@ -173,7 +179,7 @@ public:
 		output_short(FMDeletedDataAddressMark);
 	}
 
-	size_t item_size(SurfaceItem) {
+	size_t item_size(SurfaceItem) const {
 		// Marks are just slightly-invalid bytes, so everything is the same length.
 		return 2;
 	}
@@ -210,15 +216,28 @@ template<class T> std::unique_ptr<Storage::Disk::Track>
 			post_index_address_mark_bytes * data_size +
 			total_sector_bytes * data_size +
 			sectors.size() * (
-				(pre_address_mark_bytes + 6 + post_address_mark_bytes + pre_data_mark_bytes + post_data_bytes) * data_size + 2 * mark_size
+				(
+					pre_address_mark_bytes +
+					6 +
+					post_address_mark_bytes +
+					pre_data_mark_bytes +
+					post_data_bytes
+				) * data_size + 2 * mark_size
 			);
 
 		// If this track already fits, do nothing.
 		if(size*8 < max_size) break;
 
 		// If all gaps are already zero, do nothing.
-		if(!post_index_address_mark_bytes && !pre_address_mark_bytes && !post_address_mark_bytes && !pre_data_mark_bytes && !post_data_bytes)
+		if(
+			!post_index_address_mark_bytes &&
+			!pre_address_mark_bytes &&
+			!post_address_mark_bytes &&
+			!pre_data_mark_bytes &&
+			!post_data_bytes
+		) {
 			break;
+		}
 
 		// Very simple solution: try halving all gaps.
 		post_index_address_mark_bytes >>= 1;
@@ -235,7 +254,7 @@ template<class T> std::unique_ptr<Storage::Disk::Track>
 	for(std::size_t c = 0; c < post_index_address_mark_bytes; c++) shifter.add_byte(post_index_address_mark_value);
 
 	// Add sectors.
-	for(const Sector *sector : sectors) {
+	for(const Sector *const sector : sectors) {
 		// Gap.
 		for(std::size_t c = 0; c < pre_address_mark_bytes; c++) shifter.add_byte(0x00);
 
@@ -259,7 +278,7 @@ template<class T> std::unique_ptr<Storage::Disk::Track>
 				shifter.add_data_address_mark();
 
 			std::size_t c = 0;
-			std::size_t declared_length = size_t(128 << sector->size);
+			const std::size_t declared_length = size_t(128 << sector->size);
 			if(sector->samples.size() > 1) {
 				// For each byte, mark as fuzzy any bits that differ. Which isn't exactly the
 				// same thing as obeying the multiple samples, as it discards the implied
@@ -311,7 +330,7 @@ void Encoder::reset_target(std::vector<bool> &target, std::vector<bool> *fuzzy_t
 	fuzzy_target_ = fuzzy_target;
 }
 
-void Encoder::output_short(uint16_t value, uint16_t fuzzy_mask) {
+void Encoder::output_short(uint16_t value, const uint16_t fuzzy_mask) {
 	const bool write_fuzzy_bits = fuzzy_mask;
 
 	if(write_fuzzy_bits) {
@@ -331,7 +350,7 @@ void Encoder::output_short(uint16_t value, uint16_t fuzzy_mask) {
 	}
 }
 
-void Encoder::add_crc(bool incorrectly) {
+void Encoder::add_crc(const bool incorrectly) {
 	const uint16_t crc_value = crc_generator_.get_value();
 	add_byte(crc_value >> 8);
 	add_byte((crc_value & 0xff) ^ (incorrectly ? 1 : 0));
@@ -341,8 +360,8 @@ namespace {
 template <Density density>
 std::unique_ptr<Storage::Disk::Track> TTrackWithSectors(
 	const std::vector<const Sector *> &sectors,
-	std::optional<std::size_t> sector_gap_length,
-	std::optional<uint8_t> sector_gap_filler_byte
+	const std::optional<std::size_t> sector_gap_length,
+	const std::optional<uint8_t> sector_gap_filler_byte
 ) {
 	using EncoderT = std::conditional_t<density == Density::Single, FMEncoder, MFMEncoder>;
 	return GTrackWithSectors<EncoderT>(
@@ -362,10 +381,10 @@ std::unique_ptr<Storage::Disk::Track> TTrackWithSectors(
 }
 
 std::unique_ptr<Storage::Disk::Track> Storage::Encodings::MFM::TrackWithSectors(
-	Density density,
+	const Density density,
 	const std::vector<Sector> &sectors,
-	std::optional<std::size_t> sector_gap_length,
-	std::optional<uint8_t> sector_gap_filler_byte
+	const std::optional<std::size_t> sector_gap_length,
+	const std::optional<uint8_t> sector_gap_filler_byte
 ) {
 	return TrackWithSectors(
 		density,
@@ -376,23 +395,30 @@ std::unique_ptr<Storage::Disk::Track> Storage::Encodings::MFM::TrackWithSectors(
 }
 
 std::unique_ptr<Storage::Disk::Track> Storage::Encodings::MFM::TrackWithSectors(
-	Density density,
+	const Density density,
 	const std::vector<const Sector *> &sectors,
-	std::optional<std::size_t> sector_gap_length,
-	std::optional<uint8_t> sector_gap_filler_byte
+	const std::optional<std::size_t> sector_gap_length,
+	const std::optional<uint8_t> sector_gap_filler_byte
 ) {
 	switch(density) {
+		using enum Density;
 		default:
-		case Density::Single:	return TTrackWithSectors<Density::Single>(sectors, sector_gap_length, sector_gap_filler_byte);
-		case Density::Double:	return TTrackWithSectors<Density::Double>(sectors, sector_gap_length, sector_gap_filler_byte);
-		case Density::High:		return TTrackWithSectors<Density::High>(sectors, sector_gap_length, sector_gap_filler_byte);
+		case Single:	return TTrackWithSectors<Single>(sectors, sector_gap_length, sector_gap_filler_byte);
+		case Double:	return TTrackWithSectors<Double>(sectors, sector_gap_length, sector_gap_filler_byte);
+		case High:		return TTrackWithSectors<High>(sectors, sector_gap_length, sector_gap_filler_byte);
 	}
 }
 
-std::unique_ptr<Encoder> Storage::Encodings::MFM::GetMFMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target) {
+std::unique_ptr<Encoder> Storage::Encodings::MFM::GetMFMEncoder(
+	std::vector<bool> &target,
+	std::vector<bool> *const fuzzy_target
+) {
 	return std::make_unique<MFMEncoder>(target, fuzzy_target);
 }
 
-std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target) {
+std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(
+	std::vector<bool> &target,
+	std::vector<bool> *const fuzzy_target
+) {
 	return std::make_unique<FMEncoder>(target, fuzzy_target);
 }
