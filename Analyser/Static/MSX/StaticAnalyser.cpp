@@ -77,7 +77,7 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 
 	Analyser::Static::TargetList targets;
 	for(const auto &cartridge : cartridges) {
-		const auto &segments = cartridge->get_segments();
+		const auto &segments = cartridge->segments();
 
 		// Only one mapped item is allowed.
 		if(segments.size() != 1) continue;

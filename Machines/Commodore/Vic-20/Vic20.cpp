@@ -446,7 +446,7 @@ public:
 
 		if(!media.cartridges.empty()) {
 			rom_address_ = 0xa000;
-			std::vector<uint8_t> rom_image = media.cartridges.front()->get_segments().front().data;
+			std::vector<uint8_t> rom_image = media.cartridges.front()->segments().front().data;
 			rom_length_ = uint16_t(rom_image.size());
 
 			rom_ = rom_image;

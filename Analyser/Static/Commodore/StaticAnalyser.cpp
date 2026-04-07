@@ -33,7 +33,7 @@ Vic20CartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartri
 	std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> vic20_cartridges;
 
 	for(const auto &cartridge : cartridges) {
-		const auto &segments = cartridge->get_segments();
+		const auto &segments = cartridge->segments();
 
 		// Only one mapped item is allowed ...
 		if(segments.size() != 1) continue;

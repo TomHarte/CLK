@@ -206,7 +206,7 @@ public:
 				slot = ROM((int(slot) + 1) & 15);
 				if(slot == first_slot_tried) return false;
 			}
-			set_rom(slot, cartridge->get_segments().front().data, false);
+			set_rom(slot, cartridge->segments().front().data, false);
 		}
 
 		// TODO: allow this only at machine startup?
