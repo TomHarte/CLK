@@ -1286,6 +1286,7 @@ void MainWindow::start_spectrum() {
 void MainWindow::start_thomson() {
 	using Target = Analyser::Static::Thomson::MOTarget;
 	auto target = std::make_unique<Target>();
+	target->floppy = ui->thomsonDiskDriveCheckBox->isChecked() ? Target::Floppy::CD90_640 : Target::Floppy::None;
 	launchTarget(std::move(target));
 }
 
@@ -1426,6 +1427,9 @@ void MainWindow::processAllSettings() {
 	/* PC Compatible. */
 	applier(ui->pcSpeedComboBox, "pc.speed");
 	applier(ui->pcVideoAdaptorComboBox, "pc.videoAdaptor");
+
+	/* Thomson. */
+	applier(ui->thomsonDiskDriveCheckBox, "thomson.hasDiskDrive");
 
 	/* Vic-20 */
 	applier(ui->vic20RegionComboBox, "vic20.region");

@@ -84,6 +84,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 	// MARK: - Spectrum properties
 	@IBOutlet var spectrumModelTypeButton: NSPopUpButton!
 
+	// MARK: - Thomson
+	@IBOutlet var thomsonDiskButton: NSButton!
+
 	// MARK: - Vic-20 properties
 	@IBOutlet var vic20RegionButton: NSPopUpButton!
 	@IBOutlet var vic20MemorySizeButton: NSPopUpButton!
@@ -186,6 +189,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 		// Spectrum settings
 		spectrumModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.spectrumModel"))
 
+		// Thomson settings
+		thomsonDiskButton.state = standardUserDefaults.bool(forKey: "new.thomsonDiskDrive") ? .on : .off
+
 		// Vic-20 settings
 		vic20RegionButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.vic20Region"))
 		vic20MemorySizeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.vic20MemorySize"))
@@ -269,6 +275,9 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 
 		// Spectrum settings
 		standardUserDefaults.set(spectrumModelTypeButton.selectedTag(), forKey: "new.spectrumModel")
+
+		// Thomson settings
+		standardUserDefaults.set(thomsonDiskButton.state == .on, forKey: "new.thomsonDiskDrive")
 
 		// Vic-20 settings
 		standardUserDefaults.set(vic20RegionButton.selectedTag(), forKey: "new.vic20Region")
@@ -517,7 +526,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 				return CSStaticAnalyser(spectrumModel: model)
 
 			case "thomsonmo":
-				return CSStaticAnalyser(thomsonMO: 1)
+				return CSStaticAnalyser(thomsonMOHasDiskDrive: thomsonDiskButton.state == .on)
 
 			case "vic20":
 				let memorySize = Kilobytes(vic20MemorySizeButton.selectedTag())

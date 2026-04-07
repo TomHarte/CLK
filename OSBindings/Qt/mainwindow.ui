@@ -823,17 +823,24 @@
       </widget>
       <widget class="QWidget" name="thomsonTab">
        <attribute name="title">
-        <string>Thomson</string>
+        <string>Thomson MO5</string>
        </attribute>
-       <layout class="QFormLayout">
-        <item row="0" column="0">
-         <widget class="QLabel">
+       <layout class="QVBoxLayout">
+        <item>
+         <widget class="QCheckBox" name="thomsonDiskDriveCheckBox">
           <property name="text">
-           <string> At present only an unexpanded Thomson MO5 is available.</string>
+           <string>With Disk Drive</string>
           </property>
          </widget>
         </item>
-       </layout>
+        <item>
+         <spacer>
+          <property name="orientation">
+           <enum>Qt::Orientation::Vertical</enum>
+          </property>
+         </spacer>
+        </item>
+	</layout>
       </widget>
       <widget class="QWidget" name="vic20Tab">
        <attribute name="title">
