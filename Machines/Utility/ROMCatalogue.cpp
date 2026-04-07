@@ -1036,6 +1036,30 @@ const std::vector<Description> &Description::all_roms() {
 			16_kb,
 			0x237c60bfu
 		},
+		{
+			ThomsonMO6v1,
+			"Thomson",
+			"the Thomson MO6 ROM, version 1",
+			"mo6-v1.rom",
+			64_kb,
+			0x45e859c6u
+		},
+		{
+			ThomsonMO6v2,
+			"Thomson",
+			"the Thomson MO6 ROM, version 2",
+			"mo6-v2.rom",
+			64_kb,
+			0xb4430a3bu
+		},
+		{
+			ThomsonMO6v3,
+			"Thomson",
+			"the Thomson MO6 ROM, version 3",
+			"mo6-v3.rom",
+			64_kb,
+			0x7a012322u
+		},
 
 		{
 			ThomsonCD90_640,

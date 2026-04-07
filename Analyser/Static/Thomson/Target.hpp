@@ -21,6 +21,9 @@ struct MOTarget: public Analyser::Static::Target, public Reflection::StructImpl<
 	ReflectableEnum(Floppy, None, CD90_640);
 	Floppy floppy = Floppy::None;
 
+	ReflectableEnum(Model, MO5v1, MO5v11, MO6v1, MO6v2, MO6v3);
+	Model model = Model::MO5v11;
+
 	MOTarget() : Analyser::Static::Target(Machine::ThomsonMO) {}
 
 private:
@@ -28,7 +31,13 @@ private:
 	void declare_fields() {
 		AnnounceEnum(Floppy);
 		DeclareField(floppy);
+		AnnounceEnum(Model);
+		DeclareField(model);
 	}
 };
+
+static constexpr bool is_mo6(const MOTarget::Model model) {
+	return model >= MOTarget::Model::MO6v1;
+}
 
 }
