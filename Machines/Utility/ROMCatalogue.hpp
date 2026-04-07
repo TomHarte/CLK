@@ -178,6 +178,9 @@ enum Name {
 	// Thomson MO and TO machines.
 	ThomsonMO5v1,
 	ThomsonMO5v11,
+	ThomsonMO6v1,
+	ThomsonMO6v2,
+	ThomsonMO6v3,
 
 	ThomsonCD90_640,
 

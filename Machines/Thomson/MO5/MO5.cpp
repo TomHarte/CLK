@@ -37,6 +37,8 @@ using Log = Log::Logger<Log::Source::MO5>;
 static constexpr int ClockRate = 1'000'000;
 static constexpr uint8_t MusicExpansionMask = 63;
 
+using Target = Analyser::Static::Thomson::MOTarget;
+
 template <bool has_floppy>
 struct ConcreteMachine:
 	public Activity::Source,
@@ -51,7 +53,7 @@ struct ConcreteMachine:
 	public Machine,
 	public Utility::TypeRecipient<CharacterMapper>
 {
-	ConcreteMachine(const Analyser::Static::Thomson::MOTarget &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+	ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6809_(*this),
 		system_pia_port_handler_(*this),
 		system_pia_(system_pia_port_handler_),
@@ -66,7 +68,20 @@ struct ConcreteMachine:
 		speaker_.set_input_rate(ClockRate);
 		construct_joysticks();
 
-		auto request = ROM::Request(ROM::Name::ThomsonMO5v11);
+		const auto BasicROM = [](const Target::Model model) {
+			switch(model) {
+				using enum Target::Model;
+
+				default:		__builtin_unreachable();
+				case MO5v1:		return ROM::Name::ThomsonMO5v1;
+				case MO5v11:	return ROM::Name::ThomsonMO5v11;
+				case MO6v1:		return ROM::Name::ThomsonMO6v1;
+				case MO6v2:		return ROM::Name::ThomsonMO6v2;
+				case MO6v3:		return ROM::Name::ThomsonMO6v3;
+			}
+		} (target.model);
+
+		auto request = ROM::Request(BasicROM);
 		if(has_floppy) {
 			request = request && ROM::Request(ROM::Name::ThomsonCD90_640);
 		}
@@ -76,7 +91,7 @@ struct ConcreteMachine:
 			throw ROMMachine::Error::MissingROMs;
 		}
 
-		const auto &rom = roms.find(ROM::Name::ThomsonMO5v11)->second;
+		const auto &rom = roms.find(BasicROM)->second;
 		std::copy_n(rom.begin(), rom.size(), rom_.begin() + 0x1000);
 
 		if(has_floppy) {
