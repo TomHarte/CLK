@@ -68,7 +68,7 @@ public:
 		std::vector<uint8_t> data;
 	};
 
-	const std::vector<Segment> &get_segments() const {
+	const std::vector<Segment> &segments() const {
 		return segments_;
 	}
 	virtual ~Cartridge() = default;

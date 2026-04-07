@@ -77,7 +77,7 @@ struct ConcreteMachine:
 		}
 
 		const auto &rom = roms.find(ROM::Name::ThomsonMO5v11)->second;
-		std::copy_n(rom.begin(), rom.size(), rom_.begin());
+		std::copy_n(rom.begin(), rom.size(), rom_.begin() + 0x1000);
 
 		if(has_floppy) {
 			const auto &floppy_rom = roms.find(ROM::Name::ThomsonCD90_640)->second;
@@ -178,8 +178,8 @@ struct ConcreteMachine:
 						value = start_pointer_[address];
 					} else if(address >= 0xa000 && address < 0xa7c0) {
 						value = has_floppy ? floppy_rom_[address - 0xa000] : 0xff;
-					} else if(address >= 0xc000) {
-						value = rom_[address - 0xc000];
+					} else if(address >= 0xb000) {
+						value = rom_[address - 0xb000];
 
 						if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
 							// Catch RDBITS.
@@ -257,7 +257,7 @@ private:
 	CPU::M6809::Processor<M6809Traits> m6809_;
 
 	std::array<uint8_t, 0x10000 + 0x2000> ram_;
-	std::array<uint8_t, 0x4000> rom_;
+	std::array<uint8_t, 0x5000> rom_{0xff};
 	std::array<uint8_t, 0x7c0> floppy_rom_;
 	uint8_t *start_pointer_ = nullptr;
 
@@ -594,16 +594,20 @@ private:
 			tape_player_.set_tape(media.tapes.front(), TargetPlatform::ThomsonMO);
 		}
 
-		if(!has_floppy) {
-			return !media.tapes.empty();
+		if(!media.cartridges.empty()) {
+			auto segment = media.cartridges.front()->segments().front();
+			std::copy_n(segment.data.begin(), std::min<size_t>(segment.data.size(), 16384), rom_.begin());
 		}
 
-		size_t index = 0;
-		for(auto &disk: media.disks) {
-			fdc_.set_disk(disk, index);
-			++ index;
+		if(has_floppy) {
+			size_t index = 0;
+			for(auto &disk: media.disks) {
+				fdc_.set_disk(disk, index);
+				++ index;
+			}
 		}
-		return !media.tapes.empty() || !media.disks.empty();
+
+		return !media.tapes.empty() || (!media.disks.empty() && has_floppy) || !media.cartridges.empty();
 	}
 
 	ChangeEffect effect_for_file_did_change(const std::string &) const override {

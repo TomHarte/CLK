@@ -45,10 +45,14 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 		}
 	}
 
-	// Currently: accept all floppy disks.
+	// Currently: accept all floppy disks and all cartridges.
 	if(!media.disks.empty()) {
 		target->floppy = MOTarget::Floppy::CD90_640;
 		target->media.disks = media.disks;
+	}
+
+	if(!media.cartridges.empty()) {
+		target->media.cartridges = media.cartridges;
 	}
 
 	if(!target->media.empty()) {

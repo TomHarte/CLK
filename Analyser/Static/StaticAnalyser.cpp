@@ -274,6 +274,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	accumulator.try_standard<Tape::K7>(TargetPlatform::ThomsonMO | TargetPlatform::ThomsonTO, "k5");
 	accumulator.try_standard<Tape::K7>(TargetPlatform::ThomsonMO | TargetPlatform::ThomsonTO, "k7");
 
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::ThomsonMO, "m5");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::MOOF>>(TargetPlatform::Macintosh, "moof");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::MSA>>(TargetPlatform::AtariST, "msa");
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::MSX, "mx2");

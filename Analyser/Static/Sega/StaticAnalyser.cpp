@@ -34,7 +34,7 @@ Analyser::Static::TargetList Analyser::Static::Sega::GetTargets(
 
 	// If this is a Master System title, look for a ROM header.
 	if(target->model == Target::Model::MasterSystem) {
-		const auto &data = media.cartridges.front()->get_segments()[0].data;
+		const auto &data = media.cartridges.front()->segments()[0].data;
 
 		// First try to locate a header.
 		size_t header_offset = 0;

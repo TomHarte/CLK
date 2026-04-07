@@ -203,7 +203,7 @@ Analyser::Static::TargetList Analyser::Static::Atari2600::GetTargets(
 
 	// try to figure out the paging scheme
 	if(!media.cartridges.empty()) {
-		const auto &segments = media.cartridges.front()->get_segments();
+		const auto &segments = media.cartridges.front()->segments();
 
 		if(segments.size() == 1) {
 			const Storage::Cartridge::Cartridge::Segment &segment = segments.front();

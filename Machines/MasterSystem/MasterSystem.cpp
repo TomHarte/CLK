@@ -118,7 +118,7 @@ public:
 
 		// Take a copy of the cartridge and place it into memory.
 		if(!target.media.cartridges.empty()) {
-			cartridge_ = target.media.cartridges[0]->get_segments()[0].data;
+			cartridge_ = target.media.cartridges[0]->segments()[0].data;
 		}
 
 		static constexpr size_t TargetSize = 48*1024;

@@ -404,7 +404,7 @@ public:
 
 	bool insert_media(const Analyser::Static::Media &media) final {
 		if(!media.cartridges.empty()) {
-			const auto &segment = media.cartridges.front()->get_segments().front();
+			const auto &segment = media.cartridges.front()->segments().front();
 			auto &slot = cartridge_slot();
 
 			slot.set_source(segment.data);

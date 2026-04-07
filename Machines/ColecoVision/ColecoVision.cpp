@@ -136,7 +136,7 @@ public:
 		bios_ = roms.find(rom_name)->second;
 
 		if(!target.media.cartridges.empty()) {
-			const auto &segment = target.media.cartridges.front()->get_segments().front();
+			const auto &segment = target.media.cartridges.front()->segments().front();
 			cartridge_ = segment.data;
 			if(cartridge_.size() >= 32768)
 				cartridge_address_limit_ = 0xffff;
