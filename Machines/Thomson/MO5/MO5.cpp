@@ -39,7 +39,7 @@ static constexpr uint8_t MusicExpansionMask = 63;
 
 using Target = Analyser::Static::Thomson::MOTarget;
 
-template <bool has_floppy>
+template <bool has_floppy, bool is_mo6>
 struct ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
@@ -92,7 +92,7 @@ struct ConcreteMachine:
 		}
 
 		const auto &rom = roms.find(BasicROM)->second;
-		std::copy_n(rom.begin(), rom.size(), rom_.begin() + 0x1000);
+		std::copy_n(rom.begin(), std::min(rom.size(), rom_.size() - 0x1000), rom_.begin() + 0x1000);
 
 		if(has_floppy) {
 			const auto &floppy_rom = roms.find(ROM::Name::ThomsonCD90_640)->second;
@@ -678,15 +678,25 @@ private:
 
 }
 
+namespace {
+template <bool is_mo6>
+std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	switch(target.floppy) {
+		using enum Target::Floppy;
+		case None:		return std::make_unique<ConcreteMachine<false, is_mo6>>(target, rom_fetcher);
+		case CD90_640:	return std::make_unique<ConcreteMachine<true, is_mo6>>(target, rom_fetcher);
+	}
+}
+}
+
 std::unique_ptr<Machine> Machine::ThomsonMO(
 	const Analyser::Static::Target *target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	using Target = Analyser::Static::Thomson::MOTarget;
 	const Target *const thomson_target = dynamic_cast<const Target *>(target);
-
-	switch(thomson_target->floppy) {
-		case Target::Floppy::None:		return std::make_unique<ConcreteMachine<false>>(*thomson_target, rom_fetcher);
-		case Target::Floppy::CD90_640:	return std::make_unique<ConcreteMachine<true>>(*thomson_target, rom_fetcher);
+	if(Analyser::Static::Thomson::is_mo6(thomson_target->model)) {
+		return machine<true>(*thomson_target, rom_fetcher);
+	} else {
+		return machine<false>(*thomson_target, rom_fetcher);
 	}
 }
