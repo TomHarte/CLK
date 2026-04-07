@@ -547,13 +547,12 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithThomsonMO:(int)unused {
-	(void)unused;
-
+- (instancetype)initWithThomsonMOHasDiskDrive:(BOOL)hasDiskDrive {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Thomson::MOTarget;
 		auto target = std::make_unique<Target>();
+		target->floppy = hasDiskDrive ? Target::Floppy::CD90_640 : Target::Floppy::None;
 		_targets.push_back(std::move(target));
 	}
 	return self;

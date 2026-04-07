@@ -521,32 +521,32 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Electron" identifier="electron" id="2yt-ae-G30">
                                 <view key="view" id="D45-v0-jTK">
-                                    <rect key="frame" x="10" y="7" width="400" height="292"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="308"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Gss-41-d6D">
-                                            <rect key="frame" x="18" y="255" width="168" height="18"/>
+                                            <rect key="frame" x="18" y="271" width="168" height="18"/>
                                             <buttonCell key="cell" type="check" title="With Disk Filing System" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="MtF-wS-Q8R">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="81w-gC-hph">
-                                            <rect key="frame" x="18" y="233" width="232" height="18"/>
+                                            <rect key="frame" x="18" y="249" width="232" height="18"/>
                                             <buttonCell key="cell" type="check" title="With Advanced Disk Filing System" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="eUa-hN-pYz">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="h4a-aK-2FB">
-                                            <rect key="frame" x="18" y="211" width="231" height="18"/>
+                                            <rect key="frame" x="18" y="227" width="231" height="18"/>
                                             <buttonCell key="cell" type="check" title="With Advanced Plus 6 Utility ROM" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="9hT-Or-oPW">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="YYl-Ej-Zxi">
-                                            <rect key="frame" x="18" y="189" width="284" height="18"/>
+                                            <rect key="frame" x="18" y="205" width="284" height="18"/>
                                             <buttonCell key="cell" type="check" title="Fill unused ROM banks with sideways RAM" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="bdQ-qK-WmZ">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
@@ -572,11 +572,11 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Enterprise" identifier="enterprise" id="zhO-EO-wUe">
                                 <view key="view" id="1cs-PX-RAH">
-                                    <rect key="frame" x="10" y="7" width="400" height="292"/>
+                                    <rect key="frame" x="10" y="7" width="400" height="308"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="PhH-bu-pb5">
-                                            <rect key="frame" x="80" y="248" width="129" height="25"/>
+                                            <rect key="frame" x="80" y="264" width="129" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Enterprise 128" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="128" imageScaling="axesIndependently" inset="2" selectedItem="roH-nL-f8o" id="z9O-XC-XBv">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="message"/>
@@ -590,7 +590,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Lfl-5c-b8j">
-                                            <rect key="frame" x="67" y="218" width="77" height="25"/>
+                                            <rect key="frame" x="67" y="234" width="77" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="4 Mhz" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="4" imageScaling="axesIndependently" inset="2" selectedItem="5N6-tD-uN7" id="BU2-NJ-Kii">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="message"/>
@@ -603,7 +603,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="nen-Za-7zH">
-                                            <rect key="frame" x="64" y="188" width="107" height="25"/>
+                                            <rect key="frame" x="64" y="204" width="107" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Version 2.1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="21" imageScaling="axesIndependently" inset="2" selectedItem="Qja-xZ-wVM" id="xGG-ri-8Sb">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="message"/>
@@ -617,7 +617,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="hIr-GH-7xi">
-                                            <rect key="frame" x="67" y="158" width="105" height="25"/>
+                                            <rect key="frame" x="67" y="174" width="105" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Version 2.1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="21" imageScaling="axesIndependently" inset="2" selectedItem="TME-cv-Jh1" id="9mQ-GW-lq9">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="message"/>
@@ -632,7 +632,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="syE-e7-TjU">
-                                            <rect key="frame" x="57" y="128" width="83" height="25"/>
+                                            <rect key="frame" x="57" y="144" width="83" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="EXDOS" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="1" imageScaling="axesIndependently" inset="2" selectedItem="8rP-2w-PdU" id="NvO-Zm-2Rq">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="message"/>
@@ -645,7 +645,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ykc-W1-YaS">
-                                            <rect key="frame" x="18" y="194" width="43" height="16"/>
+                                            <rect key="frame" x="18" y="210" width="43" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="EXOS:" id="gUC-PN-zVL">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -653,7 +653,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="frx-nk-c3P">
-                                            <rect key="frame" x="18" y="254" width="59" height="16"/>
+                                            <rect key="frame" x="18" y="270" width="59" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Machine:" id="uTv-hH-mIC">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -661,7 +661,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="dzd-tH-BjX">
-                                            <rect key="frame" x="18" y="164" width="46" height="16"/>
+                                            <rect key="frame" x="18" y="180" width="46" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="BASIC:" id="ai1-oR-X6Y">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -669,7 +669,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="pxr-Bq-yh0">
-                                            <rect key="frame" x="18" y="134" width="36" height="16"/>
+                                            <rect key="frame" x="18" y="150" width="36" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="DOS:" id="NFk-cp-DfS">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -677,7 +677,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rHr-bh-QMV">
-                                            <rect key="frame" x="17" y="224" width="47" height="16"/>
+                                            <rect key="frame" x="17" y="240" width="47" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Speed:" id="sAw-C9-Sf7">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -685,14 +685,14 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gv6-nD-GXj">
-                                            <rect key="frame" x="18" y="107" width="207" height="18"/>
+                                            <rect key="frame" x="18" y="123" width="207" height="18"/>
                                             <buttonCell key="cell" type="check" title="Expose local path to machine:" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="l0h-Ih-sZi">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <pathControl verticalHuggingPriority="750" allowsExpansionToolTips="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Q4Y-IX-PrB">
-                                            <rect key="frame" x="230" y="103" width="96" height="25"/>
+                                            <rect key="frame" x="230" y="119" width="96" height="25"/>
                                             <pathCell key="cell" selectable="YES" editable="YES" alignment="left" pathStyle="popUp" id="gwZ-3L-JoC">
                                                 <font key="font" metaFont="system"/>
                                                 <url key="url" string="~">
@@ -995,26 +995,23 @@ Gw
                                     </constraints>
                                 </view>
                             </tabViewItem>
-                            <tabViewItem label="Thomson MO" identifier="thomsonmo" id="Swn-Yx-KLU" userLabel="Thomson MO5/6">
+                            <tabViewItem label="Thomson MO5" identifier="thomsonmo" id="Swn-Yx-KLU" userLabel="Thomson MO5/6">
                                 <view key="view" id="Hvw-jv-dC2">
                                     <rect key="frame" x="10" y="7" width="400" height="308"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
-                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="GCH-Lk-riP">
-                                            <rect key="frame" x="19" y="272" width="362" height="16"/>
-                                            <textFieldCell key="cell" lineBreakMode="clipping" title=" At present only an unexpanded Thomson MO5 is available." id="hfk-el-X3f">
-                                                <font key="font" usesAppearanceFont="YES"/>
-                                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
+                                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="iXv-3w-3t5">
+                                            <rect key="frame" x="18" y="271" width="119" height="18"/>
+                                            <buttonCell key="cell" type="check" title="With Disk Drive" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="xIr-cG-FuW">
+                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                        </button>
                                     </subviews>
                                     <constraints>
-                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="GCH-Lk-riP" secondAttribute="bottom" constant="20" symbolic="YES" id="HyL-be-tTO"/>
-                                        <constraint firstItem="GCH-Lk-riP" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="Hvw-jv-dC2" secondAttribute="leading" constant="20" symbolic="YES" id="OzT-0G-wiU"/>
-                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="GCH-Lk-riP" secondAttribute="trailing" constant="20" symbolic="YES" id="jID-GV-1kp"/>
-                                        <constraint firstItem="GCH-Lk-riP" firstAttribute="centerX" secondItem="Hvw-jv-dC2" secondAttribute="centerX" id="k1e-5F-gQr"/>
-                                        <constraint firstItem="GCH-Lk-riP" firstAttribute="top" secondItem="Hvw-jv-dC2" secondAttribute="top" constant="20" symbolic="YES" id="yF4-tQ-okU"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="iXv-3w-3t5" secondAttribute="trailing" constant="20" symbolic="YES" id="Lcj-Lh-OCQ"/>
+                                        <constraint firstItem="iXv-3w-3t5" firstAttribute="top" secondItem="Hvw-jv-dC2" secondAttribute="top" constant="20" symbolic="YES" id="khw-sx-Oq2"/>
+                                        <constraint firstItem="iXv-3w-3t5" firstAttribute="leading" secondItem="Hvw-jv-dC2" secondAttribute="leading" constant="20" symbolic="YES" id="vvt-fg-Qxs"/>
                                     </constraints>
                                 </view>
                             </tabViewItem>
@@ -1287,6 +1284,7 @@ Gw
                 <outlet property="pcVideoAdaptorButton" destination="stw-i3-ikG" id="6VO-Q9-4kV"/>
                 <outlet property="plus4HasC1541Button" destination="c7C-7n-u1N" id="v29-j6-o43"/>
                 <outlet property="spectrumModelTypeButton" destination="gFZ-d4-WFv" id="tdX-Cv-Swe"/>
+                <outlet property="thomsonDiskButton" destination="iXv-3w-3t5" id="qgb-SD-Ql0"/>
                 <outlet property="vic20HasC1540Button" destination="Lrf-gL-6EI" id="21g-dJ-mOo"/>
                 <outlet property="vic20MemorySizeButton" destination="2eV-Us-eEv" id="5j4-jw-89d"/>
                 <outlet property="vic20RegionButton" destination="ueK-gq-gaF" id="qMq-uP-y4r"/>

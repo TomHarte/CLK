@@ -210,7 +210,7 @@ typedef int Kilobytes;
 
 - (instancetype)initWithSpectrumModel:(CSMachineSpectrumModel)model;
 
-- (instancetype)initWithThomsonMO:(int)unused;
+- (instancetype)initWithThomsonMOHasDiskDrive:(BOOL)hasDiskDrive;
 
 - (instancetype)initWithVic20Region:(CSMachineVic20Region)region
 	memorySize:(Kilobytes)memorySize
