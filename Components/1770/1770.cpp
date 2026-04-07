@@ -493,7 +493,7 @@ void WD1770::posit_event(const int new_event_type) {
 		// TODO: timeout
 		if(get_latest_token().type == Token::Data || get_latest_token().type == Token::DeletedData) {
 			update_status([this] (Status &status) {
-				status.record_type = (get_latest_token().type == Token::DeletedData);
+				status.record_type = get_latest_token().type == Token::DeletedData;
 			});
 			distance_into_section_ = 0;
 			set_data_mode(DataMode::Reading);
@@ -506,6 +506,9 @@ void WD1770::posit_event(const int new_event_type) {
 		if(get_latest_token().type != Token::Byte) goto type2_read_byte;
 		data_ = get_latest_token().byte_value;
 		update_status([] (Status &status) {
+			if(!status.lost_data && status.data_request) {
+				Logger::info().append("Data lost.");
+			}
 			status.lost_data |= status.data_request;
 			status.data_request = true;
 		});
