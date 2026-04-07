@@ -134,6 +134,18 @@ struct ConcreteMachine:
 			fdc_.run_for(duration * 8);	// My WD1770 has a nominal clock of 8Mhz.
 		}
 
+		//
+		// Complete MO5 memory map:
+		//
+		//	0x0000–:	video RAM, either pixels or attributes paged.
+		//	0x2000–:	RAM
+		//	0xa000–:	DOS ROM, if installed
+		//	0xa7c0–:	memory-mapped devices
+		//	0xb000–:	cartridge, if installed
+		//	0xc000–:	BASIC/ROM, if no cartridge installed
+		//	0xf000–:	BASIC/ROM
+		//
+
 		if constexpr (read_write != CPU::M6809::ReadWrite::NoData) {
 			if(address >= 0xa7c0 && address < 0xa800) {
 				const auto unmapped = [&] {
