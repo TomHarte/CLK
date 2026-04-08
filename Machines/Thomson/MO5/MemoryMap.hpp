@@ -68,7 +68,7 @@ public:
 
 	void page_ram() {
 		// TODO: should be pageable.
-		for(size_t c = 0x3; c < 0xb; c++) {
+		for(size_t c = 0x2; c < 0xb; c++) {
 			set_readwrite(c, ram_.data() + (c << 12));
 		}
 	}

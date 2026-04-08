@@ -260,6 +260,10 @@ struct ConcreteMachine:
 						}
 					}
 				} else {
+					if(address < 40*200) {
+						video_.flush();
+					}
+
 					memory_.write(address, value);
 				}
 			}
