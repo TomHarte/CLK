@@ -96,7 +96,7 @@ void TimedEventLoop::set_next_event_time_interval(const float interval) {
 }
 
 #ifndef NDEBUG
-float TimedEventLoop::get_reset_cycles_total() {
+Cycles TimedEventLoop::get_reset_cycles_total() {
 	const auto result = cycles_total_;
 	cycles_total_ = 0;
 	return result;
