@@ -91,8 +91,11 @@ struct ConcreteMachine:
 			throw ROMMachine::Error::MissingROMs;
 		}
 
-		const auto &rom = roms.find(BasicROM)->second;
-		std::copy_n(rom.begin(), std::min(rom.size(), rom_.size() - 0x1000), rom_.begin() + 0x1000);
+		{
+			const auto &rom = roms.find(BasicROM)->second;
+			std::copy_n(rom.end() - 0x1000, 0x1000, monitor_.begin());
+			rom_ = std::vector<uint8_t>(rom.begin(), rom.end() - 0x1000);
+		}
 
 		if(has_floppy) {
 			const auto &floppy_rom = roms.find(ROM::Name::ThomsonCD90_640)->second;
@@ -101,6 +104,8 @@ struct ConcreteMachine:
 
 		Memory::Fuzz(ram_);
 		system_pia_.refresh();
+		upper_ram_pointer_ = ram();
+		rom_pointer_ = rom();
 
 		insert_media(target.media);
 		if(!target.loading_command.empty()) {
@@ -195,6 +200,10 @@ struct ConcreteMachine:
 					case 0xa7d3:	if(has_floppy) access<0xa7d3, read_write>(fdc_, value);	else unmapped();	break;
 					case 0xa7d8:	if(has_floppy) access<0xa7d8, read_write>(fdc_, value);	else unmapped();	break;
 
+					// MO6 notes:
+					//	A7E5 = ROM paging (?)
+					//	A7E4 = RAM paging (?)
+
 					default:
 						unmapped();
 					break;
@@ -202,11 +211,15 @@ struct ConcreteMachine:
 			} else {
 				if constexpr (CPU::M6809::is_read(read_write)) {
 					if(address < 0x2000) {
-						value = start_pointer_[address];
-					} else if(address >= 0xa000 && address < 0xa7c0) {
-						value = has_floppy ? floppy_rom_[address - 0xa000] : 0xff;
-					} else if(address >= 0xb000) {
-						value = rom_[address - 0xb000];
+						value = lower_ram_pointer_[address];
+					} else if(address < 0xa000) {
+						value = upper_ram_pointer_[address];
+					} else if(address < 0xb000) {
+						value = floppy_rom_[address - 0xa000];
+					} else if(address <= 0xf000) {
+						value = rom_pointer_[address];
+					} else {
+						value = monitor_[address - 0xf000];
 
 						if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
 							// Catch RDBITS.
@@ -254,20 +267,15 @@ struct ConcreteMachine:
 								} ();
 							}
 						}
-					} else {
-						value = ram_[address];
 					}
 				} else {
 					if(address < 0x2000) {
 						if(address < 40*200) video_.flush();
-						start_pointer_[address] = value;
+						lower_ram_pointer_[address] = value;
+					} else if(address < 0xa000) {
+						upper_ram_pointer_[address] = value;
 					} else {
-						if constexpr (!CPU::M6809::is_read(read_write)) {
-							if(address >= 0xa000) {
-								Log::info().append("ROM write at %04x", +address);
-							}
-						}
-						ram_[address] = value;
+						Log::info().append("Write to nothing at %04x", +address);
 					}
 				}
 			}
@@ -283,17 +291,31 @@ private:
 	};
 	CPU::M6809::Processor<M6809Traits> m6809_;
 
-	std::array<uint8_t, 0x10000 + 0x2000> ram_;
-	std::array<uint8_t, 0x5000> rom_{0xff};
+	std::array<uint8_t, 0x2000 + (is_mo6 ? (128 * 1024) : (48 * 1024))> ram_;
 	std::array<uint8_t, 0x7c0> floppy_rom_;
-	uint8_t *start_pointer_ = nullptr;
+	std::array<uint8_t, 0x1000> monitor_;
+	std::vector<uint8_t> rom_;
+
+	uint8_t *lower_ram_pointer_ = nullptr;	// Region up to 0x2000.
+	uint8_t *upper_ram_pointer_ = nullptr;	// Region from 0x2000 to 0xa000.
+	// [floppy ROM goes from 0xa000 to 0xa7c0, and IO addresses follow up to 0xb000]
+	const uint8_t *rom_pointer_ = nullptr;	// Region from 0xb000 to 0xf000.
+	// [monitor goes from 0xf000 to the end of the memory space]
 
 	uint8_t *video_page(const bool pixels) {
-		return &ram_[pixels ? 0 : 0x1'0000];
+		return &ram_[pixels ? 0 : 0x2000];
 	}
 
 	void page_lower(const bool pixels) {
-		start_pointer_ = video_page(pixels);
+		lower_ram_pointer_ = video_page(pixels);
+	}
+
+	uint8_t *ram() {
+		return &ram_[0x4000] - 0x2000;
+	}
+
+	const uint8_t *rom() {
+		return &rom_[0] - 0xb000;
 	}
 
 	friend struct SystemPIAPortHandler;
