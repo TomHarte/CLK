@@ -15,7 +15,6 @@
 
 #include "Activity/Source.hpp"
 #include "Machines/MachineTypes.hpp"
-#include "Machines/Utility/MemoryFuzzer.hpp"
 #include "Processors/6809/6809.hpp"
 #include "Components/6821/6821.hpp"
 #include "ClockReceiver/JustInTime.hpp"
@@ -60,7 +59,7 @@ struct ConcreteMachine:
 		system_pia_(system_pia_port_handler_),
 		sound_and_game_pia_port_handler_(*this),
 		sound_and_game_pia_(sound_and_game_pia_port_handler_),
-		video_(video_page(true), video_page(false)),
+		video_(memory_.video(true), memory_.video(false)),
 		tape_player_(ClockRate),
 		audio_(audio_queue_, MusicExpansionMask),
 		speaker_(audio_)
@@ -93,28 +92,21 @@ struct ConcreteMachine:
 		}
 
 		{
-			const auto &rom = roms.find(BasicROM)->second;
-			std::copy_n(rom.end() - 0x1000, 0x1000, monitor_.begin());
+			auto rom = roms.find(BasicROM)->second;
+			memory_.set_monitor(rom.end() - 0x1000, rom.end());
 
-			rom_ = std::vector<uint8_t>(rom.begin(), rom.end() - 0x1000);
-
-			if(rom_.size() < 16384) {
-				std::vector<uint8_t> padding(16384 - rom_.size(), 0xff);
-				rom_.insert(rom_.begin(), padding.begin(), padding.end());
+			if(rom.size() < 16384) {
+				std::vector<uint8_t> padding(16384 - rom.size(), 0xff);
+				rom.insert(rom.begin(), padding.begin(), padding.end());
 			}
+			memory_.set_rom(rom);
 		}
 
 		if(has_floppy) {
-			const auto &floppy_rom = roms.find(ROM::Name::ThomsonCD90_640)->second;
-			std::copy_n(floppy_rom.begin(), floppy_rom.size(), floppy_rom_.begin());
-		} else {
-			std::fill(floppy_rom_.begin(), floppy_rom_.end(), 0xff);
+			memory_.set_floppy_rom(roms.find(ROM::Name::ThomsonCD90_640)->second);
 		}
 
-		Memory::Fuzz(ram_);
 		system_pia_.refresh();
-		upper_ram_pointer_ = ram();
-		rom_pointer_ = rom();
 
 		insert_media(target.media);
 		if(!target.loading_command.empty()) {
@@ -218,79 +210,57 @@ struct ConcreteMachine:
 					break;
 				}
 			} else {
-				static constexpr uint16_t LowerRAMTop = 0x2000;
-				static constexpr uint16_t UpperRAMTop = 0xa000;
-				static constexpr uint16_t FloppyROMTop = 0xb000;
-				static constexpr uint16_t MainROMTop = 0xf000;
-
 				if constexpr (CPU::M6809::is_read(read_write)) {
-					if(address < LowerRAMTop) {
-						value = lower_ram_pointer_[address];
-					} else if(address < UpperRAMTop) {
-						value = upper_ram_pointer_[address];
-					} else if(address < FloppyROMTop) {
-						value = floppy_rom_[address - 0xa000];
-					} else if(address <= MainROMTop) {
-						value = rom_pointer_[address];
-					} else {
-						value = monitor_[address - 0xf000];
+					value = memory_.read(address);
 
-						if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
-							// Catch RDBITS.
-							if(allow_fast_tape_hack_ && address == 0xf168) {
-								// Inputs:
-								//
-								//	M0044 = current tape polarity (complement if applicable).
-								//	M0045 = byte in progress; ROL new bit into here.
-								//
-								// Additional output:
-								//
-								//	A = 00 or FF as per bit detected.
-								//
-								[&] {
-									auto *const serialiser = tape_player_.serialiser();
-									if(!serialiser) return;
+					if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
+						// Catch RDBITS.
+						if(allow_fast_tape_hack_ && address == 0xf168) {
+							// Inputs:
+							//
+							//	M0044 = current tape polarity (complement if applicable).
+							//	M0045 = byte in progress; ROL new bit into here.
+							//
+							// Additional output:
+							//
+							//	A = 00 or FF as per bit detected.
+							//
+							[&] {
+								auto *const serialiser = tape_player_.serialiser();
+								if(!serialiser) return;
 
-									Storage::Tape::Thomson::MO::Parser parser;
-									const auto dp = m6809_.registers().template reg<CPU::M6809::R8::DP>();
-									auto &polarity = ram_[size_t((dp << 8) | 0x44)];
-									auto &data =  ram_[size_t((dp << 8) | 0x45)];
+								Storage::Tape::Thomson::MO::Parser parser;
+								const auto dp = m6809_.registers().template reg<CPU::M6809::R8::DP>();
+								auto &polarity = memory_[size_t((dp << 8) | 0x44)];
+								auto &data = memory_[size_t((dp << 8) | 0x45)];
 
-									parser.seed_level(
-										polarity & 0x80 ? Storage::Tape::Pulse::Low : Storage::Tape::Pulse::High
-									);
+								parser.seed_level(
+									polarity & 0x80 ? Storage::Tape::Pulse::Low : Storage::Tape::Pulse::High
+								);
 
-									const auto offset = serialiser->offset();
-									const auto bit = parser.bit(*serialiser);
-									if(!bit.has_value()) {
-										serialiser->set_offset(offset);
-										return;
-									}
+								const auto offset = serialiser->offset();
+								const auto bit = parser.bit(*serialiser);
+								if(!bit.has_value()) {
+									serialiser->set_offset(offset);
+									return;
+								}
 
-									data = uint8_t((data << 1) | uint8_t(*bit));
-									if(!*bit) {
-										polarity ^= 0xff;
-									}
-									m6809_.registers().template reg<CPU::M6809::R8::A>() = *bit ? 0xff : 0x00;
+								data = uint8_t((data << 1) | uint8_t(*bit));
+								if(!*bit) {
+									polarity ^= 0xff;
+								}
+								m6809_.registers().template reg<CPU::M6809::R8::A>() = *bit ? 0xff : 0x00;
 
-									// The parser reads up to the end of the bit. The ROM routine ends about two-thirds
-									// of the way through the bit. So 'rewind' the tape a little.
-									tape_player_.add_delay(Cycles(200));
+								// The parser reads up to the end of the bit. The ROM routine ends about two-thirds
+								// of the way through the bit. So 'rewind' the tape a little.
+								tape_player_.add_delay(Cycles(200));
 
-									value = 0x39;	// RTS
-								} ();
-							}
+								value = 0x39;	// RTS
+							} ();
 						}
 					}
 				} else {
-					if(address < LowerRAMTop) {
-						if(address < 40*200) video_.flush();
-						lower_ram_pointer_[address] = value;
-					} else if(address < UpperRAMTop) {
-						upper_ram_pointer_[address] = value;
-					} else {
-						Log::info().append("Write to nothing at %04x", +address);
-					}
+					memory_.write(address, value);
 				}
 			}
 		}
@@ -304,33 +274,7 @@ private:
 		using BusHandlerT = ConcreteMachine;
 	};
 	CPU::M6809::Processor<M6809Traits> m6809_;
-
-	std::array<uint8_t, 0x2000 + (is_mo6 ? (128 * 1024) : (48 * 1024))> ram_;
-	std::array<uint8_t, 0x7c0> floppy_rom_;
-	std::array<uint8_t, 0x1000> monitor_;
-	std::vector<uint8_t> rom_;
-
-	uint8_t *lower_ram_pointer_ = nullptr;	// Region up to 0x2000.
-	uint8_t *upper_ram_pointer_ = nullptr;	// Region from 0x2000 to 0xa000.
-	// [floppy ROM goes from 0xa000 to 0xa7c0, and IO addresses follow up to 0xb000]
-	const uint8_t *rom_pointer_ = nullptr;	// Region from 0xb000 to 0xf000.
-	// [monitor goes from 0xf000 to the end of the memory space]
-
-	uint8_t *video_page(const bool pixels) {
-		return &ram_[pixels ? 0 : 0x2000];
-	}
-
-	void page_lower(const bool pixels) {
-		lower_ram_pointer_ = video_page(pixels);
-	}
-
-	uint8_t *ram() {
-		return &ram_[0x4000] - 0x2000;
-	}
-
-	const uint8_t *rom() {
-		return &rom_[0] - 0xb000;
-	}
+	MemoryMap<is_mo6> memory_;
 
 	friend struct SystemPIAPortHandler;
 	struct SystemPIAPortHandler {
@@ -370,7 +314,7 @@ private:
 				//		b0 = lower 8kb RAM paging;
 				//		b1–4: border colour;
 				//		b6: tape output
-				machine_.page_lower(value & 1);
+				machine_.memory_.page_video(value & 1);
 				machine_.video_->set_border_colour((value >> 1) & 0xf);
 			}
 
@@ -658,11 +602,11 @@ private:
 		}
 
 		if(!media.cartridges.empty()) {
-			rom_ = media.cartridges.front()->segments().front().data;
-			if(rom_.size() < 16384) {
-				rom_.resize(16384);
+			auto rom = media.cartridges.front()->segments().front().data;
+			if(rom.size() < 16384) {
+				rom.resize(16384);
 			}
-			rom_pointer_ = rom();
+			memory_.set_rom(rom);
 		}
 
 		if(has_floppy) {
