@@ -33,6 +33,14 @@ private:
 		DeclareField(floppy);
 		AnnounceEnum(Model);
 		DeclareField(model);
+
+		// TODO: eliminate this if/when MO6 emulation works.
+		limit_enum(
+			&model,
+			Model::MO5v1,
+			Model::MO5v11,
+			-1
+		);
 	}
 };
 
