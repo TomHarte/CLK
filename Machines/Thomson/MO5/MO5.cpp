@@ -209,14 +209,19 @@ struct ConcreteMachine:
 					break;
 				}
 			} else {
+				static constexpr uint16_t LowerRAMTop = 0x2000;
+				static constexpr uint16_t UpperRAMTop = 0xa000;
+				static constexpr uint16_t FloppyROMTop = 0xb000;
+				static constexpr uint16_t MainROMTop = 0xf000;
+
 				if constexpr (CPU::M6809::is_read(read_write)) {
-					if(address < 0x2000) {
+					if(address < LowerRAMTop) {
 						value = lower_ram_pointer_[address];
-					} else if(address < 0xa000) {
+					} else if(address < UpperRAMTop) {
 						value = upper_ram_pointer_[address];
-					} else if(address < 0xb000) {
+					} else if(address < FloppyROMTop) {
 						value = floppy_rom_[address - 0xa000];
-					} else if(address <= 0xf000) {
+					} else if(address <= MainROMTop) {
 						value = rom_pointer_[address];
 					} else {
 						value = monitor_[address - 0xf000];
@@ -269,10 +274,10 @@ struct ConcreteMachine:
 						}
 					}
 				} else {
-					if(address < 0x2000) {
+					if(address < LowerRAMTop) {
 						if(address < 40*200) video_.flush();
 						lower_ram_pointer_[address] = value;
-					} else if(address < 0xa000) {
+					} else if(address < UpperRAMTop) {
 						upper_ram_pointer_[address] = value;
 					} else {
 						Log::info().append("Write to nothing at %04x", +address);
