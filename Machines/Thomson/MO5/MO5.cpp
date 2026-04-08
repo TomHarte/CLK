@@ -9,6 +9,8 @@
 #include "MO5.hpp"
 
 #include "CD90-640.hpp"
+#include "Keyboard.hpp"
+#include "MemoryMap.hpp"
 #include "Video.hpp"
 
 #include "Activity/Source.hpp"
@@ -26,7 +28,6 @@
 #include "Storage/Tape/Parsers/ThomsonMO.hpp"
 #include "Analyser/Static/Thomson/Target.hpp"
 
-#include "Keyboard.hpp"
 
 using namespace Thomson::MO5;
 
