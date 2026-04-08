@@ -661,6 +661,7 @@ private:
 			if(rom_.size() < 16384) {
 				rom_.resize(16384);
 			}
+			rom_pointer_ = rom();
 		}
 
 		if(has_floppy) {
