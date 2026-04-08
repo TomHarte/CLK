@@ -94,12 +94,20 @@ struct ConcreteMachine:
 		{
 			const auto &rom = roms.find(BasicROM)->second;
 			std::copy_n(rom.end() - 0x1000, 0x1000, monitor_.begin());
+
 			rom_ = std::vector<uint8_t>(rom.begin(), rom.end() - 0x1000);
+
+			if(rom_.size() < 16384) {
+				std::vector<uint8_t> padding(16384 - rom_.size(), 0xff);
+				rom_.insert(rom_.begin(), padding.begin(), padding.end());
+			}
 		}
 
 		if(has_floppy) {
 			const auto &floppy_rom = roms.find(ROM::Name::ThomsonCD90_640)->second;
 			std::copy_n(floppy_rom.begin(), floppy_rom.size(), floppy_rom_.begin());
+		} else {
+			std::fill(floppy_rom_.begin(), floppy_rom_.end(), 0xff);
 		}
 
 		Memory::Fuzz(ram_);
@@ -649,8 +657,10 @@ private:
 		}
 
 		if(!media.cartridges.empty()) {
-			auto segment = media.cartridges.front()->segments().front();
-			std::copy_n(segment.data.begin(), std::min<size_t>(segment.data.size(), 16384), rom_.begin());
+			rom_ = media.cartridges.front()->segments().front().data;
+			if(rom_.size() < 16384) {
+				rom_.resize(16384);
+			}
 		}
 
 		if(has_floppy) {
