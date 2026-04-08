@@ -94,12 +94,7 @@ struct ConcreteMachine:
 		{
 			auto rom = roms.find(BasicROM)->second;
 			memory_.set_monitor(rom.end() - 0x1000, rom.end());
-
-			if(rom.size() < 16384) {
-				std::vector<uint8_t> padding(16384 - rom.size(), 0xff);
-				rom.insert(rom.begin(), padding.begin(), padding.end());
-			}
-			memory_.set_rom(rom);
+			memory_.set_rom(std::vector<uint8_t>(rom.begin(), rom.end() - 0x1000));
 		}
 
 		if(has_floppy) {

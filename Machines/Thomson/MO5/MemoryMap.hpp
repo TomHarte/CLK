@@ -30,9 +30,6 @@ public:
 		page_video(false);
 		page_ram();
 
-		// Default to no floppy ROM.
-		std::fill(floppy_rom_.begin(), floppy_rom_.end(), 0xff);
-
 		// Set RAM to an undefined state.
 		Memory::Fuzz(ram_);
 	}
@@ -52,6 +49,7 @@ public:
 
 	void set_floppy_rom(const std::vector<uint8_t> &rom) {
 		std::copy_n(rom.begin(), std::min(rom.size(), floppy_rom_.size()), floppy_rom_.begin());
+		set_read(0xa, floppy_rom_.data());
 	}
 
 	uint8_t *video(const bool pixels) {
@@ -68,7 +66,7 @@ public:
 
 	void page_ram() {
 		// TODO: should be pageable.
-		for(size_t c = 0x2; c < 0xb; c++) {
+		for(size_t c = 0x2; c < 0xa; c++) {
 			set_readwrite(c, ram_.data() + (c << 12));
 		}
 	}
@@ -77,7 +75,11 @@ public:
 
 	template <typename AddressT>
 	uint8_t read(const AddressT address) const {
-		return read_[address >> 12][address];
+		if(read_[address >> 12]) {
+			return read_[address >> 12][address];
+		} else {
+			return 0xff;
+		}
 	}
 
 	template <typename AddressT>
@@ -101,18 +103,24 @@ private:
 	void update_commutable_rom() {
 		// TODO: this should be pageable.
 
-		// Commutable ROM: 0xb000 to 0xf000.
+		// Commutable ROM: 0xb000 to 0xf000; if it's smaller than that then
+		// align it to end at 0xf000.
+		const size_t start = 0xf - (rom_.size() >> 12);
 		for(size_t c = 0xb; c < 0xf; c++) {
-			set_read(c, rom_.data() + (c << 12));
+			if(c >= start) {
+				set_read(c, rom_.data() + ((c - start) << 12));
+			} else {
+				set_read(c, nullptr);
+			}
 		}
 	}
 
 	void set_read(const size_t slot, const uint8_t *const pointer) {
-		read_[slot] = pointer - (slot << 12);
+		read_[slot] = pointer ? pointer - (slot << 12) : nullptr;
 		write_[slot] = nullptr;
 	}
 	void set_readwrite(const size_t slot, uint8_t *const pointer) {
-		read_[slot] = write_[slot] = pointer - (slot << 12);
+		read_[slot] = write_[slot] = pointer ? pointer - (slot << 12) : nullptr;
 	}
 
 	std::array<uint8_t, 0x4000> video_;
