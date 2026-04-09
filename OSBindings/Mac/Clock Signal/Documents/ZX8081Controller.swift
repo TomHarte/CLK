@@ -28,8 +28,8 @@ class ZX8081Controller: MachineController {
 	@IBAction func playOrPauseTape(_ sender: NSButton!) {
 		self.zx8081.tapeIsPlaying = !self.zx8081.tapeIsPlaying
 		self.playOrPauseTapeButton.title = self.zx8081.tapeIsPlaying
-			? NSLocalizedString("Stop Tape", comment: "Text for a button that will stop tape playback")
-			: NSLocalizedString("Play Tape", comment: "Text for a button that will start tape playback")
+			? NSLocalizedString("Stop Tape", comment: "Button: stop tape playback")
+			: NSLocalizedString("Play Tape", comment: "Button: start tape playback")
 	}
 
 	// MARK: option restoration
@@ -41,7 +41,8 @@ class ZX8081Controller: MachineController {
 			self.automaticTapeMotorControlDefaultsKey: true
 		])
 
-		let automaticTapeMotorControlIsEnabled = standardUserDefaults.bool(forKey: self.automaticTapeMotorControlDefaultsKey)
+		let automaticTapeMotorControlIsEnabled =
+			standardUserDefaults.bool(forKey: self.automaticTapeMotorControlDefaultsKey)
 		self.automaticTapeMotorControlButton.state = automaticTapeMotorControlIsEnabled ? .on : .off
 		self.playOrPauseTapeButton.isEnabled = !automaticTapeMotorControlIsEnabled
 		self.machine.useAutomaticTapeMotorControl = automaticTapeMotorControlIsEnabled
