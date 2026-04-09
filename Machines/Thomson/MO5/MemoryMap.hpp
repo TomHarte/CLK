@@ -43,9 +43,16 @@ public:
 		std::copy(begin, end, monitor_.begin());
 	}
 
-	void set_rom(const std::vector<uint8_t> &rom) {
-		rom_ = rom;
+	template <typename IteratorT>
+	void set_rom(const IteratorT begin, const IteratorT end) {
+		rom_ = std::vector<uint8_t>(begin, end);
 		update_commutable_rom();
+	}
+
+	void set_cartridge(const std::vector<uint8_t> &cartridge) {
+		if constexpr (!is_mo6) {
+			set_rom(cartridge.begin(), cartridge.end());
+		}
 	}
 
 	void set_floppy_rom(const std::vector<uint8_t> &rom) {
