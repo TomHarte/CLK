@@ -96,7 +96,7 @@ public:
 		}
 	}
 
-	// MARK: - Access.
+	// MARK: - Memory Access.
 
 	template <typename AddressT>
 	uint8_t read(const AddressT address) const {
@@ -119,6 +119,20 @@ public:
 	// Defined to work correctly only for in-RAM addresses.
 	uint8_t &operator[] (const size_t index) {
 		return write_[index >> 12][index];
+	}
+
+
+	// MARK: - Register Access.
+
+	template <uint16_t address>
+	uint8_t read() {
+		Log::Logger<Log::Source::MO5>::info().append("Unhandled read from %04x", address);
+		return 0xff;
+	}
+
+	template <uint16_t address>
+	void write(const uint8_t value) {
+		Log::Logger<Log::Source::MO5>::info().append("Unhandled write of %02x to %04x", value, address);
 	}
 
 private:

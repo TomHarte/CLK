@@ -200,6 +200,9 @@ struct ConcreteMachine:
 					//	A7E5 = ROM paging (?)
 					//	A7E4 = RAM paging (?)
 
+					case 0xa7e4:	if(is_mo6) access<0xa7e4, read_write>(memory_, value); else unmapped();		break;
+					case 0xa7e5:	if(is_mo6) access<0xa7e5, read_write>(memory_, value); else unmapped();		break;
+
 					default:
 						unmapped();
 					break;
@@ -312,6 +315,7 @@ private:
 				//	Port A outputs:
 				//		b0 = lower 8kb RAM paging;
 				//		b1–4: border colour;
+				//		b5: MO6 only ROM paging control?
 				//		b6: tape output
 				machine_.memory_.page_video(value & 1);
 				machine_.video_->set_border_colour((value >> 1) & 0xf);
