@@ -100,6 +100,89 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 	@IBOutlet var zx81MemorySizeButton: NSPopUpButton!
 
 	// MARK: - Preferences
+
+	private func applyToControls(_ function: (_: Any, _: String) -> Void) {
+		// Amiga settings
+		function(amigaChipRAMButton!, "new.amigaChipRAM")
+		function(amigaFastRAMButton!, "new.amigaFastRAM")
+
+		// Apple II settings
+		function(appleIIModelButton!, "new.appleIIModel")
+		function(appleIIDiskControllerButton!, "new.appleIIDiskController")
+		function(appleIIMockingboardButton!, "new.appleIIMockingboard")
+
+		// Apple IIgs settings
+		function(appleIIgsModelButton!, "new.appleIIgsModel")
+		function(appleIIgsMemorySizeButton!, "new.appleIIgsMemorySize")
+
+		// Atari ST settings
+		function(atariSTMemorySizeButton!, "new.atariSTMemorySize")
+
+		// BBC Micro settings
+		function(bbcDFSButton!, "new.bbcDFS")
+		function(bbcADFSButton!, "new.bbcADFS")
+		function(bbcSidewaysRAMButton!, "new.bbcSidewaysRAM")
+		function(bbcBeebSIDButton!, "new.bbcBeebSID")
+		function(bbcSecondProcessorButton!, "new.bbcSecondProcessor")
+
+		// CPC settings
+		function(cpcModelTypeButton!, "new.cpcModel")
+
+		// Electron settings
+		function(electronDFSButton!, "new.electronDFS")
+		function(electronADFSButton!, "new.electronADFS")
+		function(electronAP6Button!, "new.electronAP6")
+		function(electronSidewaysRAMButton!, "new.electronSidewaysRAM")
+
+		// Enterprise settings
+		function(enterpriseModelButton!, "new.enterpriseModel")
+		function(enterpriseSpeedButton!, "new.enterpriseSpeed")
+		function(enterpriseEXOSButton!, "new.enterpriseEXOSVersion")
+		function(enterpriseBASICButton!, "new.enterpriseBASICVersion")
+		function(enterpriseDOSButton!, "new.enterpriseDOS")
+
+		function(enterpriseExposePathButton!, "new.enterpriseExposeLocalPath")
+		function(enterprisePathControl!, "new.enterpriseExposedLocalPath")
+
+		// Macintosh settings
+		function(macintoshModelTypeButton!, "new.macintoshModel")
+
+		// MSX settings
+		function(msxModelButton!, "new.msxModel")
+		function(msxRegionButton!, "new.msxRegion")
+		function(msxHasDiskDriveButton!, "new.msxDiskDrive")
+		function(msxHasMSXMUSICButton!, "new.msxMSXMUSIC")
+
+		// Oric settings
+		function(oricDiskInterfaceButton!, "new.oricDiskInterface")
+		function(oricModelTypeButton!, "new.oricModel")
+
+		// Plus 4 settings
+		function(plus4HasC1541Button!, "new.plus4C1541")
+
+		// PC settings
+		function(pcVideoAdaptorButton!, "new.pcVideoAdaptor")
+		function(pcSpeedButton!, "new.pcSpeed")
+
+		// Spectrum settings
+		function(spectrumModelTypeButton!, "new.spectrumModel")
+
+		// Thomson settings
+		function(thomsonDiskButton!, "new.thomsonDiskDrive")
+
+		// Vic-20 settings
+		function(vic20RegionButton!, "new.vic20Region")
+		function(vic20MemorySizeButton!, "new.vic20MemorySize")
+		function(vic20HasC1540Button!, "new.vic20C1540")
+
+		// ZX80
+		function(zx80MemorySizeButton!, "new.zx80MemorySize")
+		function(zx80UsesZX81ROMButton!, "new.zx80UsesZX81ROM")
+
+		// ZX81
+		function(zx81MemorySizeButton!, "new.zx81MemorySize")
+	}
+
 	func establishStoredOptions() {
 		let standardUserDefaults = UserDefaults.standard
 
@@ -124,85 +207,25 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 			}
 		}
 
-		// Amiga settings
-		amigaChipRAMButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.amigaChipRAM"))
-		amigaFastRAMButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.amigaFastRAM"))
+		// Per-machine controls.
+		self.applyToControls { (control: Any, name: String) in
+			if let popUp = control as? NSPopUpButton {
+				popUp.selectItem(withTag: standardUserDefaults.integer(forKey: name))
+				return
+			}
 
-		// Apple II settings
-		appleIIModelButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIModel"))
-		appleIIDiskControllerButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIDiskController"))
-		appleIIMockingboardButton.state = standardUserDefaults.bool(forKey: "new.appleIIMockingboard") ? .on : .off
+			if let button = control as? NSButton {
+				button.state = standardUserDefaults.bool(forKey: name) ? .on : .off
+				return
+			}
 
-		// Apple IIgs settings
-		appleIIgsModelButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIgsModel"))
-		appleIIgsMemorySizeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIgsMemorySize"))
+			if let pathControl = control as? NSPathControl {
+				establishPathControl(pathControl, userDefaultsKey: name)
+				return
+			}
 
-		// Atari ST settings
-		atariSTMemorySizeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.atariSTMemorySize"))
-
-		// BBC Micro settings
-		bbcDFSButton.state = standardUserDefaults.bool(forKey: "new.bbcDFS") ? .on : .off
-		bbcADFSButton.state = standardUserDefaults.bool(forKey: "new.bbcADFS") ? .on : .off
-		bbcSidewaysRAMButton.state = standardUserDefaults.bool(forKey: "new.bbcSidewaysRAM") ? .on : .off
-		bbcBeebSIDButton.state = standardUserDefaults.bool(forKey: "new.bbcBeebSID") ? .on : .off
-		bbcSecondProcessorButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.bbcSecondProcessor"))
-
-		// CPC settings
-		cpcModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.cpcModel"))
-
-		// Electron settings
-		electronDFSButton.state = standardUserDefaults.bool(forKey: "new.electronDFS") ? .on : .off
-		electronADFSButton.state = standardUserDefaults.bool(forKey: "new.electronADFS") ? .on : .off
-		electronAP6Button.state = standardUserDefaults.bool(forKey: "new.electronAP6") ? .on : .off
-		electronSidewaysRAMButton.state = standardUserDefaults.bool(forKey: "new.electronSidewaysRAM") ? .on : .off
-
-		// Enterprise settings
-		enterpriseModelButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.enterpriseModel"))
-		enterpriseSpeedButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.enterpriseSpeed"))
-		enterpriseEXOSButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.enterpriseEXOSVersion"))
-		enterpriseBASICButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.enterpriseBASICVersion"))
-		enterpriseDOSButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.enterpriseDOS"))
-
-		enterpriseExposePathButton.state = standardUserDefaults.bool(forKey: "new.enterpriseExposeLocalPath") ? .on : .off
-		establishPathControl(enterprisePathControl, userDefaultsKey: "new.enterpriseExposedLocalPath")
-
-		// Macintosh settings
-		macintoshModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.macintoshModel"))
-
-		// MSX settings
-		msxModelButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.msxModel"))
-		msxRegionButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.msxRegion"))
-		msxHasDiskDriveButton.state = standardUserDefaults.bool(forKey: "new.msxDiskDrive") ? .on : .off
-		msxHasMSXMUSICButton.state = standardUserDefaults.bool(forKey: "new.msxMSXMUSIC") ? .on : .off
-
-		// Oric settings
-		oricDiskInterfaceButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.oricDiskInterface"))
-		oricModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.oricModel"))
-
-		// Plus 4 settings
-		plus4HasC1541Button.state = standardUserDefaults.bool(forKey: "new.plus4C1541") ? .on : .off
-
-		// PC settings
-		pcVideoAdaptorButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.pcVideoAdaptor"))
-		pcSpeedButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.pcSpeed"))
-
-		// Spectrum settings
-		spectrumModelTypeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.spectrumModel"))
-
-		// Thomson settings
-		thomsonDiskButton.state = standardUserDefaults.bool(forKey: "new.thomsonDiskDrive") ? .on : .off
-
-		// Vic-20 settings
-		vic20RegionButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.vic20Region"))
-		vic20MemorySizeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.vic20MemorySize"))
-		vic20HasC1540Button.state = standardUserDefaults.bool(forKey: "new.vic20C1540") ? .on : .off
-
-		// ZX80
-		zx80MemorySizeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.zx80MemorySize"))
-		zx80UsesZX81ROMButton.state = standardUserDefaults.bool(forKey: "new.zx80UsesZX81ROM") ? .on : .off
-
-		// ZX81
-		zx81MemorySizeButton.selectItem(withTag: standardUserDefaults.integer(forKey: "new.zx81MemorySize"))
+			Swift.print("Unable to establish stored state for control \(control)")
+		}
 	}
 
 	fileprivate func storeOptions() {
@@ -211,88 +234,29 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 		// Machine type
 		standardUserDefaults.set(machineSelector.selectedTabViewItem!.identifier as! String, forKey: "new.machine")
 
-		// Amiga settings
-		standardUserDefaults.set(amigaChipRAMButton.selectedTag(), forKey: "new.amigaChipRAM")
-		standardUserDefaults.set(amigaFastRAMButton.selectedTag(), forKey: "new.amigaFastRAM")
+		// Per-machine controls.
+		self.applyToControls { (control: Any, name: String) in
+			if let popUp = control as? NSPopUpButton {
+				standardUserDefaults.set(popUp.selectedTag(), forKey: name)
+				return
+			}
 
-		// Apple II settings
-		standardUserDefaults.set(appleIIModelButton.selectedTag(), forKey: "new.appleIIModel")
-		standardUserDefaults.set(appleIIDiskControllerButton.selectedTag(), forKey: "new.appleIIDiskController")
-		standardUserDefaults.set(appleIIMockingboardButton.state == .on, forKey: "new.appleIIMockingboard")
+			if let button = control as? NSButton {
+				standardUserDefaults.set(button.state == .on, forKey: name)
+				return
+			}
 
-		// Apple IIgs settings
-		standardUserDefaults.set(appleIIgsModelButton.selectedTag(), forKey: "new.appleIIgsModel")
-		standardUserDefaults.set(appleIIgsMemorySizeButton.selectedTag(), forKey: "new.appleIIgsMemorySize")
+			if let pathControl = control as? NSPathControl {
+				storePathControl(pathControl, userDefaultsKey: name)
+				return
+			}
 
-		// Atari ST settings
-		standardUserDefaults.set(atariSTMemorySizeButton.selectedTag(), forKey: "new.atariSTMemorySize")
-
-		// BBC Micro settings
-		standardUserDefaults.set(bbcDFSButton.state == .on, forKey: "new.bbcDFS")
-		standardUserDefaults.set(bbcADFSButton.state == .on, forKey: "new.bbcADFS")
-		standardUserDefaults.set(bbcSidewaysRAMButton.state == .on, forKey: "new.bbcSidewaysRAM")
-		standardUserDefaults.set(bbcBeebSIDButton.state == .on, forKey: "new.bbcBeebSID")
-		standardUserDefaults.set(bbcSecondProcessorButton.selectedTag(), forKey: "new.bbcSecondProcessor")
-
-		// CPC settings
-		standardUserDefaults.set(cpcModelTypeButton.selectedTag(), forKey: "new.cpcModel")
-
-		// Electron settings
-		standardUserDefaults.set(electronDFSButton.state == .on, forKey: "new.electronDFS")
-		standardUserDefaults.set(electronADFSButton.state == .on, forKey: "new.electronADFS")
-		standardUserDefaults.set(electronAP6Button.state == .on, forKey: "new.electronAP6")
-		standardUserDefaults.set(electronSidewaysRAMButton.state == .on, forKey: "new.electronSidewaysRAM")
-
-		// Enterprise settings
-		standardUserDefaults.set(enterpriseModelButton.selectedTag(), forKey: "new.enterpriseModel")
-		standardUserDefaults.set(enterpriseSpeedButton.selectedTag(), forKey: "new.enterpriseSpeed")
-		standardUserDefaults.set(enterpriseEXOSButton.selectedTag(), forKey: "new.enterpriseEXOSVersion")
-		standardUserDefaults.set(enterpriseBASICButton.selectedTag(), forKey: "new.enterpriseBASICVersion")
-		standardUserDefaults.set(enterpriseDOSButton.selectedTag(), forKey: "new.enterpriseDOS")
-
-		standardUserDefaults.set(enterpriseExposePathButton.state == .on, forKey: "new.enterpriseExposeLocalPath")
-		storePathControl(enterprisePathControl, userDefaultsKey: "new.enterpriseExposedLocalPath")
-
-		// Macintosh settings
-		standardUserDefaults.set(macintoshModelTypeButton.selectedTag(), forKey: "new.macintoshModel")
-
-		// MSX settings
-		standardUserDefaults.set(msxModelButton.selectedTag(), forKey: "new.msxModel")
-		standardUserDefaults.set(msxRegionButton.selectedTag(), forKey: "new.msxRegion")
-		standardUserDefaults.set(msxHasDiskDriveButton.state == .on, forKey: "new.msxDiskDrive")
-		standardUserDefaults.set(msxHasMSXMUSICButton.state == .on, forKey: "new.msxMSXMUSIC")
-
-		// Oric settings
-		standardUserDefaults.set(oricDiskInterfaceButton.selectedTag(), forKey: "new.oricDiskInterface")
-		standardUserDefaults.set(oricModelTypeButton.selectedTag(), forKey: "new.oricModel")
-
-		// Plus 4 settings
-		standardUserDefaults.set(plus4HasC1541Button.state == .on, forKey: "new.plus4C1541")
-
-		// PC settings
-		standardUserDefaults.set(pcVideoAdaptorButton.selectedTag(), forKey: "new.pcVideoAdaptor")
-		standardUserDefaults.set(pcSpeedButton.selectedTag(), forKey: "new.pcSpeed")
-
-		// Spectrum settings
-		standardUserDefaults.set(spectrumModelTypeButton.selectedTag(), forKey: "new.spectrumModel")
-
-		// Thomson settings
-		standardUserDefaults.set(thomsonDiskButton.state == .on, forKey: "new.thomsonDiskDrive")
-
-		// Vic-20 settings
-		standardUserDefaults.set(vic20RegionButton.selectedTag(), forKey: "new.vic20Region")
-		standardUserDefaults.set(vic20MemorySizeButton.selectedTag(), forKey: "new.vic20MemorySize")
-		standardUserDefaults.set(vic20HasC1540Button.state == .on, forKey: "new.vic20C1540")
-
-		// ZX80
-		standardUserDefaults.set(zx80MemorySizeButton.selectedTag(), forKey: "new.zx80MemorySize")
-		standardUserDefaults.set(zx80UsesZX81ROMButton.state == .on, forKey: "new.zx80UsesZX81ROM")
-
-		// ZX81
-		standardUserDefaults.set(zx81MemorySizeButton.selectedTag(), forKey: "new.zx81MemorySize")
+			Swift.print("Unable to store state for control \(control)")
+		}
 	}
 
-	// MARK: - Table view handling
+	// MARK: - NSTableViewDataSource and NSTableViewDelegate
+
 	func numberOfRows(in tableView: NSTableView) -> Int {
 		return machineSelector.numberOfTabViewItems
 	}
@@ -314,6 +278,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 	}
 
 	// MARK: - Machine builder
+
 	func selectedMachine() -> CSStaticAnalyser {
 		storeOptions()
 
@@ -477,7 +442,12 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 					case 1:		fallthrough
 					default:	model = .MSX1
 				}
-				return CSStaticAnalyser(msxModel: model, region: region, hasDiskDrive: hasDiskDrive, hasMSXMUSIC: hasMSXMUSIC)
+				return CSStaticAnalyser(
+					msxModel: model,
+					region: region,
+					hasDiskDrive: hasDiskDrive,
+					hasMSXMUSIC: hasMSXMUSIC
+				)
 
 			case "oric":
 				var diskInterface: CSMachineOricDiskInterface = .none
@@ -546,7 +516,10 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 				}
 
 			case "zx80":
-				return CSStaticAnalyser(zx80MemorySize: Kilobytes(zx80MemorySizeButton.selectedTag()), useZX81ROM: zx80UsesZX81ROMButton.state == .on)
+				return CSStaticAnalyser(
+					zx80MemorySize: Kilobytes(zx80MemorySizeButton.selectedTag()),
+					useZX81ROM: zx80UsesZX81ROMButton.state == .on
+				)
 
 			case "zx81":
 				return CSStaticAnalyser(zx81MemorySize: Kilobytes(zx81MemorySizeButton.selectedTag()))
