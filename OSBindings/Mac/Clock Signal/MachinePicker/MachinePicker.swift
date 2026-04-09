@@ -199,7 +199,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 		if let machineIdentifier = standardUserDefaults.string(forKey: "new.machine") {
 			// If I've changed my mind about visible tabs between versions, there may not be one that corresponds
 			// to the stored identifier. Make sure not to raise an NSRangeException in that scenario.
-			let index = machineSelector.indexOfTabViewItem(withIdentifier: machineIdentifier as Any)
+			let index = machineSelector.indexOfTabViewItem(withIdentifier: machineIdentifier)
 			if index != NSNotFound {
 				machineSelector.selectTabViewItem(at: index)
 				machineNameTable.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
