@@ -32,6 +32,7 @@ public:
 
 		// Set RAM to an undefined state.
 		Memory::Fuzz(ram_);
+		Memory::Fuzz(video_);
 	}
 
 	// MARK: - ROM installation and connection for video.
@@ -53,7 +54,7 @@ public:
 	}
 
 	uint8_t *video(const bool pixels) {
-		return &video_[pixels ? 0 : 0x2000];
+		return &video_[pixels ? 0x2000 : 0x0000];
 	}
 
 	// MARK: - Paging.
@@ -66,8 +67,8 @@ public:
 
 	void page_ram() {
 		// TODO: should be pageable.
-		for(size_t c = 0x2; c < 0xa; c++) {
-			set_readwrite(c, ram_.data() + (c << 12));
+		for(size_t c = 0x0; c < 0x8; c++) {
+			set_readwrite(c + 0x2, ram_.data() + (c << 12));
 		}
 	}
 
