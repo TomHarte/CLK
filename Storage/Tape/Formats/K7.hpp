@@ -45,7 +45,7 @@ private:
 			Header,
 			Body,
 			PostBodyPause,
-		} state_;
+		} state_ = State::Seeking;
 		int state_length_ = 0;
 		uint16_t byte_history_ = 0;
 	};
