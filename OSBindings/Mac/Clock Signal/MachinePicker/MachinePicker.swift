@@ -102,85 +102,90 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 	// MARK: - Preferences
 
 	private func applyToControls(_ function: (_: NSControl, _: String) -> Void) {
-		// Amiga settings
-		function(amigaChipRAMButton!, "new.amigaChipRAM")
-		function(amigaFastRAMButton!, "new.amigaFastRAM")
+		let namedControls : [String: NSControl] = [
+			// Amiga
+			"amigaChipRAM": amigaChipRAMButton,
+			"amigaFastRAM": amigaFastRAMButton,
 
-		// Apple II settings
-		function(appleIIModelButton!, "new.appleIIModel")
-		function(appleIIDiskControllerButton!, "new.appleIIDiskController")
-		function(appleIIMockingboardButton!, "new.appleIIMockingboard")
+			// Apple II
+			"appleIIModel": appleIIModelButton,
+			"appleIIDiskController": appleIIDiskControllerButton,
+			"appleIIMockingboard": appleIIMockingboardButton,
 
-		// Apple IIgs settings
-		function(appleIIgsModelButton!, "new.appleIIgsModel")
-		function(appleIIgsMemorySizeButton!, "new.appleIIgsMemorySize")
+			// Apple IIgs
+			"appleIIgsModel": appleIIgsModelButton,
+			"appleIIgsMemorySize": appleIIgsMemorySizeButton,
 
-		// Atari ST settings
-		function(atariSTMemorySizeButton!, "new.atariSTMemorySize")
+			// Atari ST
+			"atariSTMemorySize": atariSTMemorySizeButton,
 
-		// BBC Micro settings
-		function(bbcDFSButton!, "new.bbcDFS")
-		function(bbcADFSButton!, "new.bbcADFS")
-		function(bbcSidewaysRAMButton!, "new.bbcSidewaysRAM")
-		function(bbcBeebSIDButton!, "new.bbcBeebSID")
-		function(bbcSecondProcessorButton!, "new.bbcSecondProcessor")
+			// BBC Micro
+			"bbcDFS": bbcDFSButton,
+			"bbcADFS": bbcADFSButton,
+			"bbcSidewaysRAM": bbcSidewaysRAMButton,
+			"bbcBeebSID": bbcBeebSIDButton,
+			"bbcSecondProcessor": bbcSecondProcessorButton,
 
-		// CPC settings
-		function(cpcModelTypeButton!, "new.cpcModel")
+			// CPC
+			"cpcModel": cpcModelTypeButton,
 
-		// Electron settings
-		function(electronDFSButton!, "new.electronDFS")
-		function(electronADFSButton!, "new.electronADFS")
-		function(electronAP6Button!, "new.electronAP6")
-		function(electronSidewaysRAMButton!, "new.electronSidewaysRAM")
+			// Electron settings
+			"electronDFS": electronDFSButton,
+			"electronADFS": electronADFSButton,
+			"electronAP6": electronAP6Button,
+			"electronSidewaysRAM": electronSidewaysRAMButton,
 
-		// Enterprise settings
-		function(enterpriseModelButton!, "new.enterpriseModel")
-		function(enterpriseSpeedButton!, "new.enterpriseSpeed")
-		function(enterpriseEXOSButton!, "new.enterpriseEXOSVersion")
-		function(enterpriseBASICButton!, "new.enterpriseBASICVersion")
-		function(enterpriseDOSButton!, "new.enterpriseDOS")
+			// Enterprise settings
+			"enterpriseModel": enterpriseModelButton,
+			"enterpriseSpeed": enterpriseSpeedButton,
+			"enterpriseEXOSVersion": enterpriseEXOSButton,
+			"enterpriseBASICVersion": enterpriseBASICButton,
+			"enterpriseDOS": enterpriseDOSButton,
+			"enterpriseExposeLocalPath": enterpriseExposePathButton,
+			"enterpriseExposedLocalPath": enterprisePathControl,
 
-		function(enterpriseExposePathButton!, "new.enterpriseExposeLocalPath")
-		function(enterprisePathControl!, "new.enterpriseExposedLocalPath")
+			// Macintosh settings
+			"new.macintoshModel": macintoshModelTypeButton,
 
-		// Macintosh settings
-		function(macintoshModelTypeButton!, "new.macintoshModel")
+			// MSX settings
+			"msxModel": msxModelButton,
+			"msxRegion": msxRegionButton,
+			"msxDiskDrive": msxHasDiskDriveButton,
+			"msxMSXMUSIC": msxHasMSXMUSICButton,
 
-		// MSX settings
-		function(msxModelButton!, "new.msxModel")
-		function(msxRegionButton!, "new.msxRegion")
-		function(msxHasDiskDriveButton!, "new.msxDiskDrive")
-		function(msxHasMSXMUSICButton!, "new.msxMSXMUSIC")
+			// Oric settings
+			"oricDiskInterface": oricDiskInterfaceButton,
+			"oricModel": oricModelTypeButton,
 
-		// Oric settings
-		function(oricDiskInterfaceButton!, "new.oricDiskInterface")
-		function(oricModelTypeButton!, "new.oricModel")
+			// Plus 4 settings
+			"plus4C1541": plus4HasC1541Button,
 
-		// Plus 4 settings
-		function(plus4HasC1541Button!, "new.plus4C1541")
+			// PC settings
+			"pcVideoAdaptor": pcVideoAdaptorButton,
+			"pcSpeed": pcSpeedButton,
 
-		// PC settings
-		function(pcVideoAdaptorButton!, "new.pcVideoAdaptor")
-		function(pcSpeedButton!, "new.pcSpeed")
+			// Spectrum settings
+			"spectrumModel": spectrumModelTypeButton,
 
-		// Spectrum settings
-		function(spectrumModelTypeButton!, "new.spectrumModel")
+			// Thomson settings
+			"thomsonDiskDrive": thomsonDiskButton,
 
-		// Thomson settings
-		function(thomsonDiskButton!, "new.thomsonDiskDrive")
+			// Vic-20 settings
+			"vic20Region": vic20RegionButton,
+			"vic20MemorySize": vic20MemorySizeButton,
+			"vic20C1540": vic20HasC1540Button,
 
-		// Vic-20 settings
-		function(vic20RegionButton!, "new.vic20Region")
-		function(vic20MemorySizeButton!, "new.vic20MemorySize")
-		function(vic20HasC1540Button!, "new.vic20C1540")
+			// ZX80
+			"zx80MemorySize": zx80MemorySizeButton,
+			"zx80UsesZX81ROM": zx80UsesZX81ROMButton,
 
-		// ZX80
-		function(zx80MemorySizeButton!, "new.zx80MemorySize")
-		function(zx80UsesZX81ROMButton!, "new.zx80UsesZX81ROM")
+			// ZX81
+			"zx81MemorySize": zx81MemorySizeButton,
+		]
 
-		// ZX81
-		function(zx81MemorySizeButton!, "new.zx81MemorySize")
+		for (name, control) in namedControls {
+			function(control, "new." + name)
+		}
 	}
 
 	func establishStoredOptions() {
