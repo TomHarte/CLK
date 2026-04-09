@@ -35,8 +35,10 @@ class MachineDocument:
 	private var machine: CSMachine!
 
 	/// @returns the appropriate window content aspect ratio for this @c self.machine.
-	private func aspectRatio() -> NSSize {
-		return NSSize(width: 4.0, height: 3.0)
+	private var aspectRatio: NSSize {
+		get {
+			return NSSize(width: 4.0, height: 3.0)
+		}
 	}
 
 	/// The output audio queue, if any.
@@ -71,10 +73,11 @@ class MachineDocument:
 			checkPermisions(analyser.mediaSet)
 			self.displayName = analyser.displayName
 			self.configureAs(analyser)
+
 			self.fileObserver = CSFileContentChangeObserver.init(url: url, handler: {
 				if let machine = self.machine {
 					DispatchQueue.main.async {
-						switch(machine.effectForFile(atURLDidChange: url)) {
+						switch machine.effectForFile(atURLDidChange: url) {
 							case .reinsertMedia:	self.insertFile(url)
 							case .restartMachine:
 								let target = CSStaticAnalyser(fileAt: url)
@@ -130,7 +133,7 @@ class MachineDocument:
 
 	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
-		aController.window?.contentAspectRatio = self.aspectRatio()
+		aController.window?.contentAspectRatio = self.aspectRatio
 		volumeSlider.floatValue = pow(2.0, userDefaultsVolume())
 
 		volumeView.layer!.cornerRadius = 5.0
@@ -210,17 +213,19 @@ class MachineDocument:
 	private func setupMachineOutput() {
 		if let machine = self.machine, let scanTargetView = self.scanTargetView, machine.view != scanTargetView {
 			// Establish the output aspect ratio and audio.
-			let aspectRatio = self.aspectRatio()
+			let aspectRatio = self.aspectRatio
 			machine.setView(scanTargetView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
 
 			// Attach an options panel if one is available.
 			if let optionsNibName = self.machineDescription?.optionsNibName {
 				let didLoad = Bundle.main.loadNibNamed(optionsNibName, owner: self, topLevelObjects: nil)
 				assert(didLoad)
+
 				if let optionsController = self.optionsController {
 					optionsController.machine = machine
 					optionsController.establishStoredOptions()
 				}
+
 				if let optionsView = self.optionsView, let superview = self.volumeView.superview {
 					// Apply rounded edges.
 					optionsView.layer!.cornerRadius = 5.0
@@ -284,17 +289,22 @@ class MachineDocument:
 	private func setupAudioQueueClockRate() {
 		// Establish and provide the audio queue, taking advice as to an appropriate sampling rate.
 		//
-		// TODO: this needs to be threadsafe. FIX!
+		// TODO: audit for thread safety.
 		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
-		let selectedSamplingRate = Float64(self.machine.idealSamplingRate(from: NSRange(location: 0, length: NSInteger(maximumSamplingRate))))
+		let selectedSamplingRate =
+			Float64(self.machine.idealSamplingRate(from: NSRange(location: 0, length: NSInteger(maximumSamplingRate))))
 		let isStereo = self.machine.isStereo
 		if selectedSamplingRate > 0 {
 			// [Re]create the audio queue only if necessary.
-			if self.audioQueue == nil || self.audioQueue.samplingRate != selectedSamplingRate || self.audioQueue != self.machine.audioQueue {
+			if 	self.audioQueue == nil ||
+				self.audioQueue.samplingRate != selectedSamplingRate ||
+				self.audioQueue != self.machine.audioQueue
+			{
 				self.machine.audioQueue = nil
 				self.audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate), isStereo:isStereo)
 				self.machine.audioQueue = self.audioQueue
-				self.machine.setAudioSamplingRate(Float(selectedSamplingRate), bufferSize:audioQueue.preferredBufferSize, stereo:isStereo)
+				self.machine.setAudioSamplingRate(
+					Float(selectedSamplingRate), bufferSize:audioQueue.preferredBufferSize, stereo:isStereo)
 			}
 		}
 	}
@@ -304,9 +314,10 @@ class MachineDocument:
 	/// Forwards any text currently on the pasteboard into the active machine.
 	func paste(_ sender: Any) {
 		let pasteboard = NSPasteboard.general
-		if let string = pasteboard.string(forType: .string), let machine = self.machine {
-			machine.paste(string)
+		guard let string = pasteboard.string(forType: .string), let machine = self.machine else {
+			return
 		}
+		machine.paste(string)
 	}
 
 	// MARK: - Runtime Media Insertion.
@@ -340,7 +351,6 @@ class MachineDocument:
 		}
 
 		// Failing that see whether a new machine is required.
-		// TODO.
 		if let newMachine = CSStaticAnalyser(fileAt: URL) {
 			machine?.stop()
 			self.interactionMode = .notStarted
@@ -371,47 +381,52 @@ class MachineDocument:
 
 	/// Upon becoming key, attaches joystick input to the machine.
 	func windowDidBecomeKey(_ notification: Notification) {
-		if let machine = self.machine {
-			machine.joystickManager = (DocumentController.shared as! DocumentController).joystickManager
+		guard let machine = self.machine else {
+			return
 		}
+		machine.joystickManager = (DocumentController.shared as! DocumentController).joystickManager
 	}
 
 	/// Forwards key down events directly to the machine.
 	func keyDown(_ event: NSEvent) {
-		if let machine = self.machine {
-			machine.setKey(event.keyCode, characters: event.characters, isPressed: true, isRepeat: event.isARepeat)
+		guard let machine = self.machine else {
+			return
 		}
+		machine.setKey(event.keyCode, characters: event.characters, isPressed: true, isRepeat: event.isARepeat)
 	}
 
 	/// Forwards key up events directly to the machine.
 	func keyUp(_ event: NSEvent) {
-		if let machine = self.machine {
-			machine.setKey(event.keyCode, characters: event.characters, isPressed: false, isRepeat: false)
+		guard let machine = self.machine else {
+			return
 		}
+		machine.setKey(event.keyCode, characters: event.characters, isPressed: false, isRepeat: false)
 	}
 
 	/// Synthesies appropriate key up and key down events upon any change in modifiers.
 	func flagsChanged(_ newModifiers: NSEvent) {
-		if let machine = self.machine {
-			if newModifiers.modifierFlags.contains(.shift) != shiftIsDown {
-				shiftIsDown = newModifiers.modifierFlags.contains(.shift)
-				machine.setKey(VK_Shift, characters: nil, isPressed: shiftIsDown, isRepeat: false)
-				machine.setKey(VK_RightShift, characters: nil, isPressed: shiftIsDown, isRepeat: false)
-			}
-			if newModifiers.modifierFlags.contains(.control) != controlIsDown {
-				controlIsDown = newModifiers.modifierFlags.contains(.control)
-				machine.setKey(VK_Control, characters: nil, isPressed: controlIsDown, isRepeat: false)
-				machine.setKey(VK_RightControl, characters: nil, isPressed: controlIsDown, isRepeat: false)
-			}
-			if newModifiers.modifierFlags.contains(.command) != commandIsDown {
-				commandIsDown = newModifiers.modifierFlags.contains(.command)
-				machine.setKey(VK_Command, characters: nil, isPressed: commandIsDown, isRepeat: false)
-			}
-			if newModifiers.modifierFlags.contains(.option) != optionIsDown {
-				optionIsDown = newModifiers.modifierFlags.contains(.option)
-				machine.setKey(VK_Option, characters: nil, isPressed: optionIsDown, isRepeat: false)
-				machine.setKey(VK_RightOption, characters: nil, isPressed: optionIsDown, isRepeat: false)
-			}
+		guard let machine = self.machine else {
+			return
+		}
+
+		if newModifiers.modifierFlags.contains(.shift) != shiftIsDown {
+			shiftIsDown = newModifiers.modifierFlags.contains(.shift)
+			machine.setKey(VK_Shift, characters: nil, isPressed: shiftIsDown, isRepeat: false)
+			machine.setKey(VK_RightShift, characters: nil, isPressed: shiftIsDown, isRepeat: false)
+		}
+		if newModifiers.modifierFlags.contains(.control) != controlIsDown {
+			controlIsDown = newModifiers.modifierFlags.contains(.control)
+			machine.setKey(VK_Control, characters: nil, isPressed: controlIsDown, isRepeat: false)
+			machine.setKey(VK_RightControl, characters: nil, isPressed: controlIsDown, isRepeat: false)
+		}
+		if newModifiers.modifierFlags.contains(.command) != commandIsDown {
+			commandIsDown = newModifiers.modifierFlags.contains(.command)
+			machine.setKey(VK_Command, characters: nil, isPressed: commandIsDown, isRepeat: false)
+		}
+		if newModifiers.modifierFlags.contains(.option) != optionIsDown {
+			optionIsDown = newModifiers.modifierFlags.contains(.option)
+			machine.setKey(VK_Option, characters: nil, isPressed: optionIsDown, isRepeat: false)
+			machine.setKey(VK_RightOption, characters: nil, isPressed: optionIsDown, isRepeat: false)
 		}
 	}
 	private var shiftIsDown = false
@@ -421,23 +436,26 @@ class MachineDocument:
 
 	/// Forwards mouse movement events to the mouse.
 	func mouseMoved(_ event: NSEvent) {
-		if let machine = self.machine {
-			machine.addMouseMotionX(event.deltaX, y: event.deltaY)
+		guard let machine = self.machine else {
+			return
 		}
+		machine.addMouseMotionX(event.deltaX, y: event.deltaY)
 	}
 
 	/// Forwards mouse button down events to the mouse.
 	func mouseUp(_ event: NSEvent) {
-		if let machine = self.machine {
-			machine.setMouseButton(Int32(event.buttonNumber), isPressed: false)
+		guard let machine = self.machine else {
+			return
 		}
+		machine.setMouseButton(Int32(event.buttonNumber), isPressed: false)
 	}
 
 	/// Forwards mouse button up events to the mouse.
 	func mouseDown(_ event: NSEvent) {
-		if let machine = self.machine {
-			machine.setMouseButton(Int32(event.buttonNumber), isPressed: true)
+		guard let machine = self.machine else {
+			return
 		}
+		machine.setMouseButton(Int32(event.buttonNumber), isPressed: true)
 	}
 
 	// MARK: - MachinePicker Outlets and Actions
@@ -467,16 +485,16 @@ class MachineDocument:
 	@IBOutlet var romReceiverView: CSROMReceiverView?
 	private var romRequestBaseText = ""
 
-	private func setRomRequesterIsVisible(_ visible : Bool) {
-		if !visible && self.romRequesterPanel == nil {
-			return;
-		}
-
-		if self.romRequesterPanel!.isVisible == visible {
+	private func setRomRequesterIsVisible(_ isVisible : Bool) {
+		if !isVisible && self.romRequesterPanel == nil {
 			return
 		}
 
-		if visible {
+		if self.romRequesterPanel!.isVisible == isVisible {
+			return
+		}
+
+		if isVisible {
 			self.windowControllers[0].window?.beginSheet(self.romRequesterPanel!, completionHandler: nil)
 		} else {
 			self.windowControllers[0].window?.endSheet(self.romRequesterPanel!)
@@ -630,8 +648,9 @@ class MachineDocument:
 		dateFormatter.dateStyle = .short
 		dateFormatter.timeStyle = .long
 
-		let filename = ("Clock Signal Screen Shot " + dateFormatter.string(from: Date()) + ".png").replacingOccurrences(of: "/", with: "-")
-			.replacingOccurrences(of: ":", with: ".")
+		let filename =
+			("Clock Signal Screen Shot " + dateFormatter.string(from: Date()) + ".png")
+				.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: ".")
 		let pictursURL = FileManager.default.urls(for: .picturesDirectory, in: .userDomainMask)[0]
 		let url = pictursURL.appendingPathComponent(filename)
 
@@ -687,7 +706,7 @@ class MachineDocument:
 
 	func setupActivityDisplay() {
 		var leds = machine.leds
-		if leds.count > 0 {
+		if !leds.isEmpty {
 			Bundle.main.loadNibNamed("Activity", owner: self, topLevelObjects: nil)
 
 			// Inspect the activity panel for indicators.
@@ -728,7 +747,8 @@ class MachineDocument:
 			// Add view to window, and constrain.
 			if let superview = activityIndicators[leds.count-1].superview {
 				superview.addConstraint(
-					activityIndicators[leds.count-1].bottomAnchor.constraint(equalTo: activityIndicators[leds.count-1].superview!.bottomAnchor, constant: -8.0)
+					activityIndicators[leds.count-1].bottomAnchor
+						.constraint(equalTo: activityIndicators[leds.count-1].superview!.bottomAnchor, constant: -8.0)
 				)
 			}
 			if let windowView = self.volumeView.superview {
@@ -753,16 +773,18 @@ class MachineDocument:
 		// If there is such an LED, switch it off for 0.03 of a second; if it's meant
 		// to be off at the end of that, leave it off. Don't allow the blinks to
 		// pile up — allow there to be only one in flight at a time.
-		if let led = leds[ledName] {
-			DispatchQueue.main.async {
-				if !led.isBlinking && led.isLit {
-					led.levelIndicator.floatValue = 0.0
-					led.isBlinking = true
+		guard let led = leds[ledName] else {
+			return
+		}
 
-					DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
-						led.levelIndicator.floatValue = led.isLit ? 1.0 : 0.0
-						led.isBlinking = false
-					}
+		DispatchQueue.main.async {
+			if !led.isBlinking && led.isLit {
+				led.levelIndicator.floatValue = 0.0
+				led.isBlinking = true
+
+				DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
+					led.levelIndicator.floatValue = led.isLit ? 1.0 : 0.0
+					led.isBlinking = false
 				}
 			}
 		}
@@ -770,19 +792,21 @@ class MachineDocument:
 
 	func machine(_ machine: CSMachine, led ledName: String, didChangeToLit isLit: Bool) {
 		// If there is such an LED, switch it appropriately.
-		if let led = leds[ledName] {
-			DispatchQueue.main.async { [self] in
-				// Do nothing for no change of state.
-				if led.isLit == isLit {
-					return
-				}
+		guard let led = leds[ledName] else {
+			return
+		}
 
-				led.levelIndicator.floatValue = isLit ? 1.0 : 0.0
-				led.isLit = isLit
-
-				// Possibly show or hide the activity subview.
-				self.updateActivityViewVisibility(false, changed: ledName)
+		DispatchQueue.main.async { [self] in
+			// Do nothing for no change of state.
+			if led.isLit == isLit {
+				return
 			}
+
+			led.levelIndicator.floatValue = isLit ? 1.0 : 0.0
+			led.isLit = isLit
+
+			// Possibly show or hide the activity subview.
+			self.updateActivityViewVisibility(false, changed: ledName)
 		}
 	}
 
@@ -802,7 +826,8 @@ class MachineDocument:
 				$0.value.isLit && (!$0.value.isPersistent || window.styleMask.contains(.fullScreen)) ||
 				($0.value.isPersistent && window.styleMask.contains(.fullScreen))
 			}.isEmpty
-			let shouldShowTransient = !window.styleMask.contains(.fullScreen) && changed != nil && self.leds[changed!]!.isPersistent
+			let shouldShowTransient =
+				!window.styleMask.contains(.fullScreen) && changed != nil && self.leds[changed!]!.isPersistent
 
 			if hasLitLEDs {
 				activityFader.animateIn()
