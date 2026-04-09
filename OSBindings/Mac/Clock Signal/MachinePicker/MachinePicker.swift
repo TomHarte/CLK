@@ -209,22 +209,16 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 
 		// Per-machine controls.
 		self.applyToControls { (control: NSControl, name: String) in
-			if let popUp = control as? NSPopUpButton {
-				popUp.selectItem(withTag: standardUserDefaults.integer(forKey: name))
-				return
+			switch control {
+				case let popUp as NSPopUpButton:
+					popUp.selectItem(withTag: standardUserDefaults.integer(forKey: name))
+				case let button as NSButton:
+					button.state = standardUserDefaults.bool(forKey: name) ? .on : .off
+				case let pathControl as NSPathControl:
+					establishPathControl(pathControl, userDefaultsKey: name)
+				default:
+					Swift.print("Unable to establish stored state for control \(control)")
 			}
-
-			if let button = control as? NSButton {
-				button.state = standardUserDefaults.bool(forKey: name) ? .on : .off
-				return
-			}
-
-			if let pathControl = control as? NSPathControl {
-				establishPathControl(pathControl, userDefaultsKey: name)
-				return
-			}
-
-			Swift.print("Unable to establish stored state for control \(control)")
 		}
 	}
 
@@ -236,22 +230,16 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 
 		// Per-machine controls.
 		self.applyToControls { (control: NSControl, name: String) in
-			if let popUp = control as? NSPopUpButton {
-				standardUserDefaults.set(popUp.selectedTag(), forKey: name)
-				return
+			switch control {
+				case let popUp as NSPopUpButton:
+					standardUserDefaults.set(popUp.selectedTag(), forKey: name)
+				case let button as NSButton:
+					standardUserDefaults.set(button.state == .on, forKey: name)
+				case let pathControl as NSPathControl:
+					storePathControl(pathControl, userDefaultsKey: name)
+				default:
+					Swift.print("Unable to store state for control \(control)")
 			}
-
-			if let button = control as? NSButton {
-				standardUserDefaults.set(button.state == .on, forKey: name)
-				return
-			}
-
-			if let pathControl = control as? NSPathControl {
-				storePathControl(pathControl, userDefaultsKey: name)
-				return
-			}
-
-			Swift.print("Unable to store state for control \(control)")
 		}
 	}
 
