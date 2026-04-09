@@ -129,13 +129,13 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 			// CPC
 			"cpcModel": cpcModelTypeButton,
 
-			// Electron settings
+			// Electron
 			"electronDFS": electronDFSButton,
 			"electronADFS": electronADFSButton,
 			"electronAP6": electronAP6Button,
 			"electronSidewaysRAM": electronSidewaysRAMButton,
 
-			// Enterprise settings
+			// Enterprise
 			"enterpriseModel": enterpriseModelButton,
 			"enterpriseSpeed": enterpriseSpeedButton,
 			"enterpriseEXOSVersion": enterpriseEXOSButton,
@@ -144,33 +144,33 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 			"enterpriseExposeLocalPath": enterpriseExposePathButton,
 			"enterpriseExposedLocalPath": enterprisePathControl,
 
-			// Macintosh settings
+			// Macintosh
 			"new.macintoshModel": macintoshModelTypeButton,
 
-			// MSX settings
+			// MSX
 			"msxModel": msxModelButton,
 			"msxRegion": msxRegionButton,
 			"msxDiskDrive": msxHasDiskDriveButton,
 			"msxMSXMUSIC": msxHasMSXMUSICButton,
 
-			// Oric settings
+			// Oric
 			"oricDiskInterface": oricDiskInterfaceButton,
 			"oricModel": oricModelTypeButton,
 
-			// Plus 4 settings
+			// Plus 4
 			"plus4C1541": plus4HasC1541Button,
 
-			// PC settings
+			// PC
 			"pcVideoAdaptor": pcVideoAdaptorButton,
 			"pcSpeed": pcSpeedButton,
 
-			// Spectrum settings
+			// Spectrum
 			"spectrumModel": spectrumModelTypeButton,
 
-			// Thomson settings
+			// Thomson MO
 			"thomsonDiskDrive": thomsonDiskButton,
 
-			// Vic-20 settings
+			// Vic-20
 			"vic20Region": vic20RegionButton,
 			"vic20MemorySize": vic20MemorySizeButton,
 			"vic20C1540": vic20HasC1540Button,
