@@ -15,7 +15,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// Check for at least one Metal-capable GPU; this check
 		// will become unnecessary if/when the minimum OS version
 		// that this project supports reascends to 10.14.
-		if (MTLCopyAllDevices().count == 0) {
+		if MTLCopyAllDevices().isEmpty {
 			let alert = NSAlert()
 			alert.messageText = "This application requires a Metal-capable GPU."
 			alert.addButton(withTitle: "Quit")
