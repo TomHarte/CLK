@@ -101,7 +101,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 
 	// MARK: - Preferences
 
-	private func applyToControls(_ function: (_: Any, _: String) -> Void) {
+	private func applyToControls(_ function: (_: NSControl, _: String) -> Void) {
 		// Amiga settings
 		function(amigaChipRAMButton!, "new.amigaChipRAM")
 		function(amigaFastRAMButton!, "new.amigaFastRAM")
@@ -208,7 +208,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 		}
 
 		// Per-machine controls.
-		self.applyToControls { (control: Any, name: String) in
+		self.applyToControls { (control: NSControl, name: String) in
 			if let popUp = control as? NSPopUpButton {
 				popUp.selectItem(withTag: standardUserDefaults.integer(forKey: name))
 				return
@@ -235,7 +235,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 		standardUserDefaults.set(machineSelector.selectedTabViewItem!.identifier as! String, forKey: "new.machine")
 
 		// Per-machine controls.
-		self.applyToControls { (control: Any, name: String) in
+		self.applyToControls { (control: NSControl, name: String) in
 			if let popUp = control as? NSPopUpButton {
 				standardUserDefaults.set(popUp.selectedTag(), forKey: name)
 				return
