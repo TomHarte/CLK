@@ -34,8 +34,9 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 			// Cf. https://pulkomandy.tk/wiki/doku.php?id=documentations:monitor:tape.format for leader block format;
 			// my parser provides block type separately and length implicitly so the type at offset 0xd is at 0xb
 			// in ->data.
-			if(!first->type && first->data.size() >= 11) {
-				if(!first->data[0xb]) {	// File type; 0 = BASIC, 1 = DATA; 2 = binary.
+			static constexpr size_t TypeOffset = 0xb;
+			if(!first->type && first->data.size() > TypeOffset) {
+				if(!first->data[TypeOffset]) {	// File type; 0 = BASIC, 1 = DATA; 2 = binary.
 					target->loading_command = "RUN\"\n";
 				} else {
 					target->loading_command = "LOADM\"\",,R\n";
