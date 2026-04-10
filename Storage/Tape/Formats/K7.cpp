@@ -62,7 +62,8 @@ void K7::Serialiser::set_target_platforms(const TargetPlatform::Type type) {
 
 void K7::Serialiser::reset() {
 	file_.seek(0, Whence::SET);
-	state_ = State::Seeking;
+	state_ = State::LeadIn;
+	state_length_ = 0;
 }
 
 uint8_t K7::Serialiser::next() {
@@ -71,6 +72,15 @@ uint8_t K7::Serialiser::next() {
 	//
 	// This attempts to ameliorate for that.
 	switch(state_) {
+		// Some files fail to start with enough synchronisation bytes.
+		case State::LeadIn: {
+			++state_length_;
+			if(state_length_ == 10) {
+				state_ = State::Seeking;
+			}
+			return 0x01;
+		} break;
+
 		case State::Seeking: {
 			const uint8_t byte = file_.get();
 			byte_history_ = uint16_t((byte_history_ << 8) | byte);

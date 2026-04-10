@@ -41,11 +41,12 @@ private:
 
 		uint8_t next();
 		enum class State {
+			LeadIn,
 			Seeking,
 			Header,
 			Body,
 			PostBodyPause,
-		} state_;
+		} state_ = State::LeadIn;
 		int state_length_ = 0;
 		uint16_t byte_history_ = 0;
 	};
