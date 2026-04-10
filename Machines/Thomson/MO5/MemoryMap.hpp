@@ -123,7 +123,18 @@ public:
 
 	template <uint16_t address>
 	uint8_t read() {
-		Log::Logger<Log::Source::MO5>::info().append("Unhandled read from %04x", address);
+		switch(address) {
+			default:
+				Log::Logger<Log::Source::MO5>::info().append("Unhandled read from %04x", address);
+			break;
+
+			case 0xa7e4:
+				if(access_mode_ == AccessMode::System) {
+					return uint8_t(ram_page_);
+				}
+			break;
+		}
+
 		return 0xff;
 	}
 
@@ -154,8 +165,11 @@ public:
 				ram_page_ = value & 0b11111;
 				update_commutable_ram();
 			break;
-		}
 
+			case 0xa7e4:
+				access_mode_ = AccessMode(value & 1);
+			break;
+		}
 	}
 
 private:
@@ -222,14 +236,18 @@ private:
 	std::vector<uint8_t> rom_;
 	std::vector<uint8_t> cartridge_;
 
-	// TODO: the following is my latest guess about appropriate state; update as and when hardware details solidify.
-	size_t rom_page_ = is_mo6 ? 1 : 0;
+	size_t rom_page_ = 0;
 	size_t ram_page_ = 1;
 	enum class B000Page {
 		Empty,
 		BASIC128,
 		Cartridge,
 	} b000page_ = B000Page::Empty;
+
+	enum class AccessMode {
+		System = 0,
+		LightPen = 1,
+	} access_mode_ = AccessMode::LightPen;
 };
 
 }
