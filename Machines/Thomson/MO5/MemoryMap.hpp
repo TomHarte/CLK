@@ -166,7 +166,7 @@ private:
 	std::vector<uint8_t> cartridge_;
 
 	// TODO: the following is my latest guess about appropriate state; update as and when hardware details solidify.
-	size_t monitor_page_ = 0;
+	size_t monitor_page_ = is_mo6 ? 1 : 0;
 	size_t basic128_page_ = 0;
 	enum class B000Page {
 		Empty,
