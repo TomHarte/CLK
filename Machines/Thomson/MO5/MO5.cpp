@@ -205,6 +205,7 @@ struct ConcreteMachine:
 
 					case 0xa7e4:	if(is_mo6) access<0xa7e4, read_write>(memory_, value); else unmapped();		break;
 					case 0xa7e5:	if(is_mo6) access<0xa7e5, read_write>(memory_, value); else unmapped();		break;
+					case 0xa7e6:	if(is_mo6) access<0xa7e6, read_write>(memory_, value); else unmapped();		break;	// TODO: impute some sort of graphics information too.
 					case 0xa7dd:	if(is_mo6) access<0xa7dd, read_write>(memory_, value); else unmapped();		break;
 
 					// MO6:

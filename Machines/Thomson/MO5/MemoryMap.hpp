@@ -134,6 +134,13 @@ public:
 				}
 			break;
 
+			case 0xa7e6:
+				// This is possibly cartridge paging???
+				if(access_mode_ == AccessMode::System) {
+					return 0;
+				}
+			break;
+
 			case 0xa7e7:
 			return uint8_t(access_mode_);	// TODO: b1, b6 and b7 are lightpen related.
 		}
@@ -164,14 +171,20 @@ public:
 				update_commutable_rom();
 			break;
 
+			case 0xa7e4:
+				access_mode_ = AccessMode(value & 1);
+			break;
+
 			case 0xa7e5:
 				ram_page_ = value & 0b11111;
 				update_commutable_ram();
 			break;
 
-			case 0xa7e4:
-				access_mode_ = AccessMode(value & 1);
-			break;
+//			case 0xa7e6:
+//				// ???
+//				if(access_mode_ == AccessMode::System) {
+//				}
+//			break;
 		}
 	}
 
