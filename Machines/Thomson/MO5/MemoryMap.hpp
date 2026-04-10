@@ -133,6 +133,9 @@ public:
 					return uint8_t(ram_page_);
 				}
 			break;
+
+			case 0xa7e7:
+			return uint8_t(access_mode_);	// TODO: b1, b6 and b7 are lightpen related.
 		}
 
 		return 0xff;

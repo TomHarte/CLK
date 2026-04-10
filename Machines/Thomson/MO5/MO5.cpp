@@ -185,7 +185,11 @@ struct ConcreteMachine:
 
 					case 0xa7e7:
 						if constexpr (CPU::M6809::is_read(read_write)) {
-							value = video_->sync();
+							if constexpr (is_mo6) {
+								value = video_->sync() | memory_.template read<0xa7e7>();
+							} else {
+								value = video_->sync();
+							}
 						}
 					break;
 
