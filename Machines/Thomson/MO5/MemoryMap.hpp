@@ -76,6 +76,18 @@ public:
 		set_readwrite(0x1, base + 0x1000);
 	}
 
+	void page_monitor(const bool page) {
+		if(!is_mo6) {
+			return;
+		}
+
+		// TODO: I'm really unsure about this.
+		if(monitor_page_ != page) {
+			monitor_page_ = page;
+			update_commutable_rom();
+		}
+	}
+
 	void page_ram() {
 		// TODO: should be pageable.
 		for(size_t c = 0x0; c < 0x8; c++) {

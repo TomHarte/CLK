@@ -316,7 +316,8 @@ private:
 				//		b1–4: border colour;
 				//		b5: MO6 only ROM paging control?
 				//		b6: tape output
-				machine_.memory_.page_video(value & 1);
+				machine_.memory_.page_video(value & 0x01);
+				machine_.memory_.page_monitor(value & 0x20);
 				machine_.video_->set_border_colour((value >> 1) & 0xf);
 			}
 
