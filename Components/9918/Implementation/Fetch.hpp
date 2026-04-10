@@ -324,7 +324,9 @@ struct SMSFetcher {
 		const int scrolled_row = (y + storage->latched_vertical_scroll_) % (is_tall_mode ? 256 : 224);
 
 		const auto fill = [&](RowInfo &target, const int row) {
-			target.pattern_address_base = (pattern_name_address & bits<11>(AddressT((row & ~7) << 3))) - pattern_name_offset;
+			target.pattern_address_base = (
+				pattern_name_address & bits<11>(AddressT((row & ~7) << 3))
+			) - pattern_name_offset;
 			target.sub_row[0] = AddressT((row & 7) << 2);
 			target.sub_row[1] = AddressT(28 ^ ((row & 7) << 2));
 		};
@@ -356,7 +358,7 @@ struct SMSFetcher {
 		sprite_buffer.active_sprites[sprite].image[3] = base->ram_[graphic_location+3];
 	}
 
-	void fetch_tile_name(int column) {
+	void fetch_tile_name(const int column) {
 		const RowInfo &row_info = column < 24 ? scrolled_row_info : static_row_info;
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;
 		const size_t address = row_info.pattern_address_base + (scrolled_column << 1);
@@ -368,7 +370,7 @@ struct SMSFetcher {
 		) + row_info.sub_row[(line_buffer.tiles.flags[column]&4) >> 2];
 	}
 
-	void fetch_tile_pattern(int column) {
+	void fetch_tile_pattern(const int column) {
 		auto &line_buffer = *base->fetch_line_buffer_;
 		line_buffer.tiles.patterns[column][0] = base->ram_[base->tile_offset_];
 		line_buffer.tiles.patterns[column][1] = base->ram_[base->tile_offset_+1];
