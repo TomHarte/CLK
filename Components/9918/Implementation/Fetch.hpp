@@ -322,14 +322,19 @@ struct SMSFetcher {
 		// Determine row info for the screen both (i) if vertical scrolling is applied; and (ii) if it isn't.
 		// The programmer can opt out of applying vertical scrolling to the right-hand portion of the display.
 		const int scrolled_row = (y + storage->latched_vertical_scroll_) % (is_tall_mode ? 256 : 224);
-		scrolled_row_info.pattern_address_base = (pattern_name_address & bits<11>(AddressT((scrolled_row & ~7) << 3))) - pattern_name_offset;
-		scrolled_row_info.sub_row[0] = AddressT((scrolled_row & 7) << 2);
-		scrolled_row_info.sub_row[1] = AddressT(28 ^ ((scrolled_row & 7) << 2));
+
+		const auto fill = [&](RowInfo &target, const int row) {
+			target.pattern_address_base = (pattern_name_address & bits<11>(AddressT((row & ~7) << 3))) - pattern_name_offset;
+			target.sub_row[0] = AddressT((row & 7) << 2);
+			target.sub_row[1] = AddressT(28 ^ ((row & 7) << 2));
+		};
+
+		fill(scrolled_row_info, scrolled_row);
 		if(storage->vertical_scroll_lock_) {
-			static_row_info.pattern_address_base = bits<11>(AddressT(pattern_name_address & ((y & ~7) << 3))) - pattern_name_offset;
-			static_row_info.sub_row[0] = AddressT((y & 7) << 2);
-			static_row_info.sub_row[1] = 28 ^ AddressT((y & 7) << 2);
-		} else static_row_info = scrolled_row_info;
+			fill(scrolled_row_info, y);
+		} else {
+			static_row_info = scrolled_row_info;
+		}
 	}
 
 	void fetch_sprite(int sprite) {
