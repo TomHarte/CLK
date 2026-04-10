@@ -27,19 +27,13 @@ namespace Thomson::MO5 {
 //
 //	The MO6 images are 64kb in total:
 //
-//	* the first 12kb is the BASIC 1 portion;
-//	* the next 12 kb is <something>, possibly the GUI?
-//	* what is possibly a 4kb gap then follows — it's less than 300 bytes of content, then filler — though it ends in C000 which could be a vector?;
-//	* there are then probably two meaningful pages of a full 16kb each (the first of which is definitely to do with BASIC 128, presumably the second also); and
-//	* the final 4kb is the monitor, which resides permanently at $f000–;
+//	* the first 32kb is the BASIC 1 portion: two 16kb pages that might appear from 0xc000, including the monitor;
+//	* the next 32kb is the BASIC 128 portion: two 16kb pages that might appear from 0xb000 or might not appear at all.
 
 template <bool is_mo6>
 struct MemoryMap {
 public:
 	MemoryMap() {
-		// Install monitor at 0xf000.
-		set_read(0xf, monitor_.data());
-
 		// Install RAM.
 		page_video(false);
 		page_ram();
@@ -51,22 +45,15 @@ public:
 
 	// MARK: - ROM installation and connection for video.
 
-	template <typename IteratorT>
-	void set_monitor(const IteratorT begin, const IteratorT end) {
-		assert(std::distance(begin, end) == 0x1000);
-		std::copy(begin, end, monitor_.begin());
-	}
-
-	template <typename IteratorT>
-	void set_rom(const IteratorT begin, const IteratorT end) {
-		rom_ = std::vector<uint8_t>(begin, end);
+	void set_rom(const std::vector<uint8_t> &rom) {
+		rom_ = rom;
 		update_commutable_rom();
 	}
 
 	void set_cartridge(const std::vector<uint8_t> &cartridge) {
 		cartridge_ = cartridge;
 		if constexpr (!is_mo6) {
-			cartridge_is_paged_ = true;
+			b000page_ = B000Page::Cartridge;
 			rom_.clear();
 		}
 		update_commutable_rom();
@@ -146,26 +133,20 @@ private:
 			}
 		};
 
-		if(cartridge_is_paged_) {
-			// TODO: there's some sort of paging here, too.
-			set_range(0xb, 0x4, cartridge_.data());
-			return;
-		}
+		set_range(0xc, 0x4, rom_.data() + monitor_page_ * 0x4000);
 
-		switch(paged_rom_) {
-			case PagedROM::FirstBank12kb:
+		switch(b000page_) {
+			default:
 				set_read(0xb, nullptr);
-				set_range(0xc, 0x3, rom_.data());
 			break;
-			case PagedROM::SecondBank12kb:
-				set_read(0xb, nullptr);
-				set_range(0xc, 0x3, rom_.data() + 12*1024);
+
+			case B000Page::Cartridge:
+				// TODO: there's some sort of internal paging here, too.
+				set_range(0xb, 0x4, cartridge_.data());
 			break;
-			case PagedROM::ThirdBank16kb:
-				set_range(0xb, 0x4, rom_.data() + 28*1024);
-			break;
-			case PagedROM::FourthBank16kb:
-				set_range(0xb, 0x4, rom_.data() + 44*1024);
+
+			case B000Page::BASIC128:
+				set_range(0xb, 0x4, rom_.data() + 0x8000 + basic128_page_ * 0x4000);
 			break;
 		}
 	}
@@ -181,19 +162,17 @@ private:
 	std::array<uint8_t, 0x4000> video_;
 	std::array<uint8_t, (is_mo6 ? (128 * 1024) : (32 * 1024))> ram_;
 	std::array<uint8_t, 0x7c0> floppy_rom_;
-	std::array<uint8_t, 0x1000> monitor_;
 	std::vector<uint8_t> rom_;
 	std::vector<uint8_t> cartridge_;
 
-	// TODO: the following are entirely invented by me. Probably will need adjusting to
-	// whatever the hardware registers model, if I ever figure it out.
-	enum class PagedROM {
-		FirstBank12kb = 0,
-		SecondBank12kb = 1,
-		ThirdBank16kb = 2,
-		FourthBank16kb = 3,
-	} paged_rom_ = is_mo6 ? PagedROM::SecondBank12kb : PagedROM::FirstBank12kb;
-	bool cartridge_is_paged_ = false;
+	// TODO: the following is my latest guess about appropriate state; update as and when hardware details solidify.
+	size_t monitor_page_ = 0;
+	size_t basic128_page_ = 0;
+	enum class B000Page {
+		Empty,
+		BASIC128,
+		Cartridge,
+	} b000page_ = B000Page::Empty;
 };
 
 }

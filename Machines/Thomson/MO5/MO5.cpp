@@ -93,8 +93,7 @@ struct ConcreteMachine:
 
 		{
 			auto rom = roms.find(BasicROM)->second;
-			memory_.set_monitor(rom.end() - 0x1000, rom.end());
-			memory_.set_rom(rom.begin(), rom.end() - 0x1000);
+			memory_.set_rom(rom);
 		}
 
 		if(has_floppy) {
