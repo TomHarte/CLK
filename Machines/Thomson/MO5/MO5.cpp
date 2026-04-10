@@ -199,8 +199,11 @@ struct ConcreteMachine:
 					//	A7E5 = ROM paging (?)
 					//	A7E4 = RAM paging (?)
 
-					case 0xa7e4:	if(is_mo6) access<0xa7e4, read_write>(memory_, value); else unmapped();		break;
 					case 0xa7e5:	if(is_mo6) access<0xa7e5, read_write>(memory_, value); else unmapped();		break;
+					case 0xa7dd:	if(is_mo6) access<0xa7dd, read_write>(memory_, value); else unmapped();		break;
+
+					// MO6:
+					// a7da = palette?
 
 					default:
 						unmapped();

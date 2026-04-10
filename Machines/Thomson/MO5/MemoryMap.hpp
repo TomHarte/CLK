@@ -36,7 +36,12 @@ public:
 	MemoryMap() {
 		// Install RAM.
 		page_video(false);
-		page_ram();
+
+		// Put fixed RAM into memory.
+		for(size_t c = 0x0; c < 0x4; c++) {
+			set_readwrite(c + 0x2, ram_.data() + (c << 12));
+		}
+		update_commutable_ram();
 
 		// Set RAM to an undefined state.
 		Memory::Fuzz(ram_);
@@ -82,16 +87,9 @@ public:
 		}
 
 		// TODO: I'm really unsure about this.
-		if(monitor_page_ != page) {
-			monitor_page_ = page;
+		if(rom_page_ != page) {
+			rom_page_ = page;
 			update_commutable_rom();
-		}
-	}
-
-	void page_ram() {
-		// TODO: should be pageable.
-		for(size_t c = 0x0; c < 0x8; c++) {
-			set_readwrite(c + 0x2, ram_.data() + (c << 12));
 		}
 	}
 
@@ -131,12 +129,52 @@ public:
 
 	template <uint16_t address>
 	void write(const uint8_t value) {
-		Log::Logger<Log::Source::MO5>::info().append("Unhandled write of %02x to %04x", value, address);
+		switch(address) {
+			default:
+				Log::Logger<Log::Source::MO5>::info().append("Unhandled write of %02x to %04x", value, address);
+			break;
+
+			case 0xa7dd:
+				// "The GATE MODE PAGE (IW18) HANDLES:
+				//	- selection between the BASIC 1 [(IW01) EPROM 27256] or the BASIC 128
+				//	[(IW02) EPROM 27256]. This is set on bit D4 of A7DD.
+				//	- Masking or unmasking of optional ROM cartridges through bit D5 of A7DD.
+				//	(refer to GATE MODE PAGE REGISTERS (page: 22)).
+				if(!(value & 0x20)) {
+					b000page_ = B000Page::Cartridge;
+				} else if(value & 0x10) {
+					b000page_ = B000Page::BASIC128;
+				} else {
+					b000page_ = B000Page::Empty;
+				}
+				update_commutable_rom();
+			break;
+
+			case 0xa7e5:
+				ram_page_ = value & 0b11111;
+				update_commutable_ram();
+			break;
+		}
+
 	}
 
 private:
 	uint8_t *write_[0x10]{};
 	const uint8_t *read_[0x10]{};
+
+	void update_commutable_ram() {
+		const auto offset = ram_page_ * 16384;
+		if(offset < ram_.size()) {
+			uint8_t *const page = &ram_[offset];
+			for(size_t c = 0x0; c < 0x4; c++) {
+				set_readwrite(c + 0x6, page + (c << 12));
+			}
+		} else {
+			for(size_t c = 0x0; c < 0x4; c++) {
+				set_read(c + 0x6, nullptr);
+			}
+		}
+	}
 
 	void update_commutable_rom() {
 		const auto set_range = [&](const size_t start, const size_t length, const uint8_t *source) {
@@ -145,7 +183,7 @@ private:
 			}
 		};
 
-		set_range(0xc, 0x4, rom_.data() + monitor_page_ * 0x4000);
+		set_range(0xc, 0x4, rom_.data() + rom_page_ * 0x4000);
 
 		switch(b000page_) {
 			default:
@@ -153,12 +191,19 @@ private:
 			break;
 
 			case B000Page::Cartridge:
-				// TODO: there's some sort of internal paging here, too.
-				set_range(0xb, 0x4, cartridge_.data());
+				if(cartridge_.empty()) {
+					set_read(0xb, nullptr);
+					set_read(0xc, nullptr);
+					set_read(0xd, nullptr);
+					set_read(0xe, nullptr);
+				} else {
+					// TODO: there's some sort of internal paging here, too.
+					set_range(0xb, 0x4, cartridge_.data());
+				}
 			break;
 
 			case B000Page::BASIC128:
-				set_range(0xb, 0x4, rom_.data() + 0x8000 + basic128_page_ * 0x4000);
+				set_range(0xb, 0x4, rom_.data() + 0x8000 + rom_page_ * 0x4000);
 			break;
 		}
 	}
@@ -178,8 +223,8 @@ private:
 	std::vector<uint8_t> cartridge_;
 
 	// TODO: the following is my latest guess about appropriate state; update as and when hardware details solidify.
-	size_t monitor_page_ = is_mo6 ? 1 : 0;
-	size_t basic128_page_ = 0;
+	size_t rom_page_ = is_mo6 ? 1 : 0;
+	size_t ram_page_ = 1;
 	enum class B000Page {
 		Empty,
 		BASIC128,
