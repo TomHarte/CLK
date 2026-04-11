@@ -183,16 +183,6 @@ struct ConcreteMachine:
 					case 0xa7ce:	access<0xa7ce, read_write>(sound_and_game_pia_, value);		break;
 					case 0xa7cf:	access<0xa7cf, read_write>(sound_and_game_pia_, value);		break;
 
-					case 0xa7e7:
-						if constexpr (CPU::M6809::is_read(read_write)) {
-							if constexpr (is_mo6) {
-								value = video_->sync() | memory_.template read<0xa7e7>();
-							} else {
-								value = video_->sync();
-							}
-						}
-					break;
-
 					case 0xa7d0:	if(has_floppy) access<0xa7d0, read_write>(fdc_, value); else unmapped();	break;
 					case 0xa7d1:	if(has_floppy) access<0xa7d1, read_write>(fdc_, value);	else unmapped();	break;
 					case 0xa7d2:	if(has_floppy) access<0xa7d2, read_write>(fdc_, value);	else unmapped();	break;
@@ -205,8 +195,32 @@ struct ConcreteMachine:
 
 					case 0xa7e4:	if(is_mo6) access<0xa7e4, read_write>(memory_, value); else unmapped();		break;
 					case 0xa7e5:	if(is_mo6) access<0xa7e5, read_write>(memory_, value); else unmapped();		break;
-					case 0xa7e6:	if(is_mo6) access<0xa7e6, read_write>(memory_, value); else unmapped();		break;	// TODO: impute some sort of graphics information too.
-					case 0xa7dd:	if(is_mo6) access<0xa7dd, read_write>(memory_, value); else unmapped();		break;
+					case 0xa7e6:
+						if constexpr (is_mo6) {
+							if(memory_.access_mode() == AccessMode::System) {
+								access<0xa7e6, read_write>(memory_, value);
+							} else {
+								if constexpr (CPU::M6809::is_read(read_write)) {
+									value = video_->horizontal_state();
+								} else {
+									memory_.template write<0xa7e6>(value);
+								}
+							}
+						} else {
+							unmapped();
+						}
+					break;
+					case 0xa7e7:
+						if constexpr (CPU::M6809::is_read(read_write)) {
+							if constexpr (is_mo6) {
+								value = video_->vertical_state() & memory_.template read<0xa7e7>();
+							} else {
+								value = video_->vertical_state();
+							}
+						}
+					break;
+
+					case 0xa7dd:	if(is_mo6) access<0xa7dd, read_write>(memory_, value); else unmapped();
 
 					// MO6:
 					// a7da = palette?

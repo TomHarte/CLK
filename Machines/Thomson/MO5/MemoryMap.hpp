@@ -19,6 +19,11 @@
 
 namespace Thomson::MO5 {
 
+enum class AccessMode {
+	System = 0,
+	LightPen = 1,
+};
+
 //
 // Notes on the layout of the standard MO ROM images:
 //
@@ -142,7 +147,7 @@ public:
 			break;
 
 			case 0xa7e7:
-			return uint8_t(access_mode_);	// TODO: b1, b6 and b7 are lightpen related.
+			return 0xfe | uint8_t(access_mode_);	// Other bits come from video.
 		}
 
 		return 0xff;
@@ -169,6 +174,8 @@ public:
 					b000page_ = B000Page::Empty;
 				}
 				update_commutable_rom();
+
+				printf("A7DD: %02x\n", value);
 			break;
 
 			case 0xa7e4:
@@ -186,6 +193,10 @@ public:
 //				}
 //			break;
 		}
+	}
+
+	AccessMode access_mode() const {
+		return access_mode_;
 	}
 
 private:
@@ -260,10 +271,7 @@ private:
 		Cartridge,
 	} b000page_ = B000Page::Empty;
 
-	enum class AccessMode {
-		System = 0,
-		LightPen = 1,
-	} access_mode_ = AccessMode::LightPen;
+	AccessMode access_mode_ = AccessMode::LightPen;
 };
 
 }

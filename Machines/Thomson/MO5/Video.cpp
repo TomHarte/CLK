@@ -62,18 +62,28 @@ void Video::run_for(const Cycles cycles) {
 	);
 }
 
-uint8_t Video::sync() const {
-	// !!Guesswork!! here:
+uint8_t Video::vertical_state() const {
+	// This is 0xa7e7 in the MO6 documentation, i.e.
 	//
-	// Enduro Racer spins for as long as the value read from here is negative.
-	//
-	// There'd be no point spinning on vertical sync because there's an IRQ for that. So it's probably to do with
-	// the active area?
-	//
-	// Ditto, the border zone is more usual to want to wait for. So probably active low for the border?
+	//	b7: 0 = in upper or lower edge; 1 = in pixel zone (instantaneous)
+	//	b6: latched version of b7 (but latched by what event?)
+	//	b5: 0 = outside window; 1 = inside window (i.e. probably horizontal as well?)
+
 	const auto line = position_.segment();
-	return line >= TotalPixelLines ? 0x00 : 0x80;
+	return
+		0x01 |		// Leave lower bit for population elsewhere
+		(line >= TotalPixelLines ? 0x00 : 0x80);
 }
+
+uint8_t Video::horizontal_state() const {
+	// 0xa7e4 in MO6 terms, so:
+	//
+	//	flying spot is:
+	//	b7: [LT3] 0 on left-hand edge; 1 on right-hand edge.
+	//	b6: [IMIL or possibly /INIL] 0 outside window; 1 inside window.
+	return 0x00;
+}
+
 
 void Video::vsync_line(const int, const int line_end) {
 	// TODO: resolve coupling here.
