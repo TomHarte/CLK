@@ -305,7 +305,7 @@ struct SMSFetcher {
 	using AddressT = typename Base<personality>::AddressT;
 	struct RowInfo {
 		AddressT pattern_address_base;
-		AddressT sub_row[2];
+		AddressT sub_row[2]{};
 	};
 
 	SMSFetcher(Base<personality> *base, uint8_t y) :
