@@ -72,6 +72,7 @@ uint8_t Video::vertical_state() const {
 	const auto line = position_.segment();
 	return
 		0x01 |		// Leave lower bit for population elsewhere
+		(line >= TotalPixelLines ? 0x00 : 0x20) |	// TODO: real test.
 		(line >= TotalPixelLines ? 0x00 : 0x80);
 }
 

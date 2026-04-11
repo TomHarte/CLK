@@ -220,7 +220,7 @@ struct ConcreteMachine:
 						}
 					break;
 
-					case 0xa7dd:	if(is_mo6) access<0xa7dd, read_write>(memory_, value); else unmapped();
+					case 0xa7dd:	if(is_mo6) access<0xa7dd, read_write>(memory_, value); else unmapped();	break;
 
 					// MO6:
 					// a7da = palette?
