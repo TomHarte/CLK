@@ -263,9 +263,6 @@ struct ConcreteMachine:
 						}
 					break;
 
-					// MO6:
-					// a7da = palette?
-
 					default:
 						unmapped();
 					break;
