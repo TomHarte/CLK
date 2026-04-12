@@ -36,6 +36,50 @@ public:
 	uint8_t palette_index() const;
 	uint8_t palette();
 
+	// MARK: - Address-based access.
+
+	template <uint16_t address>
+	uint8_t read() {
+		switch(address) {
+			case 0xa7e4:	return 0;	// TODO: MSB of lightpen counter.
+			case 0xa7e5:	return 0;	// TODO: LSB of lightpen counter.
+			case 0xa7e6:	return horizontal_state();
+			case 0xa7e7:	return vertical_state();
+
+			case 0xa7da:	return palette();
+			case 0xa7db:	return palette_index();
+
+			default:		break;
+		}
+		return 0xff;
+	}
+
+	template <uint16_t address>
+	void write(const uint8_t value) {
+		switch(address) {
+			case 0xa7e5:
+				// TODO: enable (0) or disable (1) video mode access at 0xa7dc.
+			break;
+			case 0xa7e7:
+				// TODO: b5 = 1 => 525-line output; 0 = 625-line output.
+			break;
+
+			case 0xa7da:	set_palette(value);			break;
+			case 0xa7db:	set_palette_index(value);	break;
+			case 0xa7dc:
+				// TODO:
+				//
+				//	b6, b5: video data organisation
+				//	b4, b3: data frequency
+				//	b2, b1, b0: display mode
+			break;
+			case 0xa7dd:	set_border_colour(value);	break;
+
+			default:
+			break;
+		}
+	}
+
 	// MARK: - Standard boilerplate.
 
 	void set_scan_target(Outputs::Display::ScanTarget *const target) {

@@ -119,9 +119,17 @@ struct ConcreteMachine:
 	>
 	static void access(ComponentT &component, CPU::M6809::data_t<read_write> value) {
 		if constexpr (CPU::M6809::is_read(read_write)) {
-			value = component.template read<address>();
+			if constexpr (requires { component.operator->(); }) {
+				value = component->template read<address>();
+			} else {
+				value = component.template read<address>();
+			}
 		} else {
-			component.template write<address>(value);
+			if constexpr (requires { component.operator->(); }) {
+				component->template write<address>(value);
+			} else {
+				component.template write<address>(value);
+			}
 		}
 	}
 
@@ -191,15 +199,13 @@ struct ConcreteMachine:
 
 					case 0xa7e4:	if(is_mo6) access<0xa7e4, read_write>(memory_, value); else unmapped();		break;
 
-					// TODO: try to apply `access` pattern below.
-
 					case 0xa7e5:
 						if constexpr (is_mo6) {
 							if(memory_.access_mode() == AccessMode::System) {
 								access<0xa7e5, read_write>(memory_, value);
 							} else {
 								if constexpr (CPU::M6809::is_read(read_write)) {
-									value = 0;	// TODO: MSB of light-pen counter.
+									access<0xa7e5, read_write>(video_, value);
 								} else {
 									memory_.template write<0xa7e5>(value);
 								}
@@ -238,30 +244,14 @@ struct ConcreteMachine:
 					case 0xa7dd:
 						if(is_mo6) {
 							access<0xa7dd, read_write>(memory_, value);
-							if constexpr (!CPU::M6809::is_read(read_write)) {
-								video_->set_border_colour(value);
-								// TODO: top two bits are "Number of display RAM page".
-							}
+							access<0xa7dd, read_write>(video_, value);
 						} else {
 							unmapped();
 						}
 					break;
 
-					case 0xa7da:
-						if constexpr (CPU::M6809::is_read(read_write)) {
-							value = video_->palette();
-						} else {
-							video_->set_palette(value);
-						}
-					break;
-
-					case 0xa7db:
-						if constexpr (CPU::M6809::is_read(read_write)) {
-							value = video_->palette_index();
-						} else {
-							video_->set_palette_index(value);
-						}
-					break;
+					case 0xa7da: 	if(is_mo6) access<0xa7da, read_write>(video_, value); else unmapped();	break;
+					case 0xa7db:	if(is_mo6) access<0xa7da, read_write>(video_, value); else unmapped();	break;
 
 					default:
 						unmapped();
