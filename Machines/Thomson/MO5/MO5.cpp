@@ -113,27 +113,6 @@ struct ConcreteMachine:
 	}
 
 	template <
-		int address,
-		CPU::M6809::ReadWrite read_write,
-		typename ComponentT
-	>
-	static void access(ComponentT &component, CPU::M6809::data_t<read_write> value) {
-		if constexpr (CPU::M6809::is_read(read_write)) {
-			if constexpr (requires { component.operator->(); }) {
-				value = component->template read<address>();
-			} else {
-				value = component.template read<address>();
-			}
-		} else {
-			if constexpr (requires { component.operator->(); }) {
-				component->template write<address>(value);
-			} else {
-				component.template write<address>(value);
-			}
-		}
-	}
-
-	template <
 		CPU::M6809::BusPhase bus_phase,
 		CPU::M6809::LIC lic,
 		CPU::M6809::ReadWrite read_write,
@@ -181,6 +160,9 @@ struct ConcreteMachine:
 				};
 
 				switch(address) {
+					// TODO: Is there a simpler way to use `namespace`?
+					using namespace CPU::M6809;
+
 					case 0xa7c0:	access<0xa7c0, read_write>(system_pia_, value);				break;
 					case 0xa7c1:	access<0xa7c1, read_write>(system_pia_, value);				break;
 					case 0xa7c2:	access<0xa7c2, read_write>(system_pia_, value);				break;
@@ -199,6 +181,7 @@ struct ConcreteMachine:
 
 					case 0xa7e4:	if(is_mo6) access<0xa7e4, read_write>(memory_, value); else unmapped();		break;
 
+					// TODO: consolidate below.
 					case 0xa7e5:
 						if constexpr (is_mo6) {
 							if(memory_.access_mode() == AccessMode::System) {
@@ -220,7 +203,7 @@ struct ConcreteMachine:
 								access<0xa7e6, read_write>(memory_, value);
 							} else {
 								if constexpr (CPU::M6809::is_read(read_write)) {
-									value = video_->horizontal_state();
+									access<0xa7e6, read_write>(video_, value);
 								} else {
 									memory_.template write<0xa7e6>(value);
 								}

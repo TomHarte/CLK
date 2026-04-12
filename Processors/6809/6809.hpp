@@ -95,7 +95,6 @@ static constexpr Timescale duration([[maybe_unused]] const BusPhase phase) {
 	}
 }
 
-
 enum class Line {
 	Halt,
 	DMABusReq,
@@ -156,6 +155,32 @@ using NoValue = Bus::Data::NoValue<uint8_t>;
 
 template <ReadWrite read_write>
 using data_t = Bus::Data::data_t<uint8_t, false, access_type(read_write)>;
+
+// MARK: - Bus-access helper.
+
+/*!
+	Interprets @c read_write to perform either a `read<address>` or a `write<address>` on `component`.
+*/
+template <
+	int address,
+	ReadWrite read_write,
+	typename ComponentT
+>
+static void access(ComponentT &component, CPU::M6809::data_t<read_write> value) {
+	if constexpr (CPU::M6809::is_read(read_write)) {
+		if constexpr (requires { component.operator->(); }) {
+			value = component->template read<address>();
+		} else {
+			value = component.template read<address>();
+		}
+	} else {
+		if constexpr (requires { component.operator->(); }) {
+			component->template write<address>(value);
+		} else {
+			component.template write<address>(value);
+		}
+	}
+}
 
 // MARK: - Code-generation choices.
 
