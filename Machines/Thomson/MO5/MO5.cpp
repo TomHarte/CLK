@@ -217,6 +217,8 @@ struct ConcreteMachine:
 							} else {
 								value = video_->vertical_state();
 							}
+						} else {
+							unmapped();
 						}
 					break;
 

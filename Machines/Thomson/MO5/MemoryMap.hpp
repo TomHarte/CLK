@@ -91,9 +91,9 @@ public:
 			return;
 		}
 
-		// TODO: I'm really unsure about this.
 		if(rom_page_ != page) {
 			rom_page_ = page;
+			printf("Monitor: %d\n", int(rom_page_));
 			update_commutable_rom();
 		}
 	}
@@ -155,6 +155,8 @@ public:
 
 	template <uint16_t address>
 	void write(const uint8_t value) {
+		printf("%04x: %02x\n", address, value);
+
 		switch(address) {
 			default:
 				Log::Logger<Log::Source::MO5>::info().append("Unhandled write of %02x to %04x", value, address);
@@ -166,7 +168,9 @@ public:
 				//	[(IW02) EPROM 27256]. This is set on bit D4 of A7DD.
 				//	- Masking or unmasking of optional ROM cartridges through bit D5 of A7DD.
 				//	(refer to GATE MODE PAGE REGISTERS (page: 22)).
-				if(!(value & 0x20)) {
+				if(!(value & 0x20) && !cartridge_.empty()) {
+					// TODO: The test on a cartridge being present is empirical;
+					// figure out whether it's genuine or an unrelated stab in the dark.
 					b000page_ = B000Page::Cartridge;
 				} else if(value & 0x10) {
 					b000page_ = B000Page::BASIC128;
@@ -174,8 +178,6 @@ public:
 					b000page_ = B000Page::Empty;
 				}
 				update_commutable_rom();
-
-				printf("A7DD: %02x\n", value);
 			break;
 
 			case 0xa7e4:
@@ -218,13 +220,14 @@ private:
 	}
 
 	void update_commutable_rom() {
-		const auto set_range = [&](const size_t start, const size_t length, const uint8_t *source) {
-			for(size_t c = 0x0; c < length; c++) {
-				set_read(c + start, source + (c << 12));
+		const auto set_16kbrange = [&](const size_t start, const uint8_t *source) {
+			for(size_t c = 0; c < 4; c++) {
+				set_read(c + start, source ? source + (c << 12) : nullptr);
 			}
 		};
 
-		set_range(0xc, 0x4, rom_.data() + rom_page_ * 0x4000);
+		// Establish both correct monitor paging and a default of BASIC 1.
+		set_16kbrange(0xc, rom_.data() + rom_page_ * 0x4000);
 
 		switch(b000page_) {
 			default:
@@ -233,19 +236,17 @@ private:
 
 			case B000Page::Cartridge:
 				if(cartridge_.empty()) {
-					set_read(0xb, nullptr);
-					set_read(0xc, nullptr);
-					set_read(0xd, nullptr);
-					set_read(0xe, nullptr);
+					set_16kbrange(0xb, nullptr);
 				} else {
 					// TODO: there's some sort of internal paging here, too.
-					set_range(0xb, 0x4, cartridge_.data());
+					set_16kbrange(0xb, cartridge_.data());
 				}
 			break;
 
-			case B000Page::BASIC128:
-				set_range(0xb, 0x4, rom_.data() + 0x8000 + rom_page_ * 0x4000);
-			break;
+			case B000Page::BASIC128: {
+				const uint8_t *const basic128 = rom_.data() + 0x8000;
+				set_16kbrange(0xb, basic128 + rom_page_ * 0x4000);
+			} break;
 		}
 	}
 
