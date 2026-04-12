@@ -141,7 +141,7 @@ public:
 				if(access_mode_ == AccessMode::System) {
 					// TODO: b6, b7: displayed RAM page number;
 					return
-						(cartridge_.empty() ? 0x00 : 0x20) |
+						((b000page_ == B000Page::Cartridge) ? 0x00 : 0x20) |
 						(basic_selection_ ? 0x10 : 0x00);
 				}
 			break;
@@ -183,9 +183,7 @@ public:
 				//	(refer to GATE MODE PAGE REGISTERS (page: 22)).
 
 				basic_selection_ = value & 0x10;
-				if(!(value & 0x20) && !cartridge_.empty()) {
-					// TODO: The test on a cartridge being present is empirical;
-					// figure out whether it's genuine or an unrelated stab in the dark.
+				if(!(value & 0x20)) {
 					b000page_ = B000Page::Cartridge;
 				} else if(basic_selection_) {
 					b000page_ = B000Page::BASIC128;
