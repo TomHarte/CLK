@@ -549,6 +549,7 @@ Cycles perform(
 		case LEAX:	lea<R16::X>(registers, word);			return 1;
 		case LEAY:	lea<R16::Y>(registers, word);			return 1;
 		case LEAS:	lea<R16::S>(registers, word);			return 1;
+		case JMP:	lea<R16::PC>(registers, word);			return 0;
 
 		case MUL:	mul(registers);							return 9;	// Per 6809cyc.txt; might need more research.
 
@@ -559,8 +560,6 @@ Cycles perform(
 		case TSTA:	tst<R8::A>(registers);					return 0;
 		case TSTB:	tst<R8::B>(registers);					return 0;
 		case TST:	tst(registers, byte);					return 2;	// Weird, but seemingly true (?)
-
-		case JMP:	registers.pc.full = word;				return 0;
 
 		// Flow control that requires stack access.
 		case JSR:	case BSR:	case LBSR:
