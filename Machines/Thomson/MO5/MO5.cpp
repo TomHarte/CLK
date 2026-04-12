@@ -222,7 +222,16 @@ struct ConcreteMachine:
 						}
 					break;
 
-					case 0xa7dd:	if(is_mo6) access<0xa7dd, read_write>(memory_, value); else unmapped();	break;
+					case 0xa7dd:
+						if(is_mo6) {
+							access<0xa7dd, read_write>(memory_, value);
+							if constexpr (!CPU::M6809::is_read(read_write)) {
+								video_->set_border_colour(value);
+							}
+						} else {
+							unmapped();
+						}
+					break;
 
 					// MO6:
 					// a7da = palette?
@@ -337,13 +346,22 @@ private:
 		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::A) {
 				//	Port A outputs:
+				//
 				//		b0 = lower 8kb RAM paging;
+				//		b6: tape output.
+				//
+				//	Plus MO5:
 				//		b1–4: border colour;
-				//		b5: MO6 only ROM paging control?
-				//		b6: tape output
+				//
+				//	MO6:
+				//		b5: ROM page selection
+				//
 				machine_.memory_.page_video(value & 0x01);
 				machine_.memory_.page_monitor(value & 0x20);
-				machine_.video_->set_border_colour((value >> 1) & 0xf);
+
+				if constexpr (!is_mo6) {
+					machine_.video_->set_border_colour((value >> 1) & 0xf);
+				}
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
