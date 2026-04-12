@@ -72,28 +72,35 @@ private:
 	uint8_t palette_[32];
 	Numeric::SizedInt<5> palette_index_ = 0;
 
-	// Total frame size.
-	static constexpr int CyclesPerLine = 64;
-	static constexpr int TotalLines = 312;
-	static constexpr int FrameLength = TotalLines * CyclesPerLine;
+	// Line layout: [sync][border][pixels][border].
+	struct Line {
+		static constexpr int EndOfSync = 4;
+		static constexpr int EndOfLeftBorder = 14;
+		static constexpr int EndOfPixels = 54;
+		static constexpr int TotalCycles = 64;
 
-	// Line placement; pixel lines begin with internal line 0.
-	static constexpr int TotalPixelLines = 200;
-	static constexpr int VerticalSyncLine = 256;
-	static constexpr int VerticalSyncLength = 3;
+		static constexpr int TotalPixels = 320;
+	};
+
+	// Total frame size.
+	struct Frame {
+		static constexpr int TotalLines = 312;
+		static constexpr int TotalCycles = TotalLines * Line::TotalCycles;
+
+		// Line placement; pixel lines begin with internal line 0.
+		static constexpr int TotalPixelLines = 200;
+		static constexpr int VerticalSyncLine = 256;
+		static constexpr int VerticalSyncLength = 3;
+	};
 
 	// IRQ placement.
-	static constexpr int IRQCycle = 256 * CyclesPerLine;
-	static constexpr int IRQLength = 8;
-
-	// Line layout: [sync][border][pixels][border].
-	static constexpr int EndOfSync = 4;
-	static constexpr int EndOfLeftBorder = 14;
-	static constexpr int EndOfPixels = 54;
-	static constexpr int PixelsPerLine = 320;
+	struct IRQ {
+		static constexpr int Cycle = 256 * Line::TotalCycles;
+		static constexpr int Length = 8;
+	};
 
 	// Frame position counter.
-	Numeric::DividingAccumulator<CyclesPerLine, TotalLines> position_;
+	Numeric::DividingAccumulator<Line::TotalCycles, Frame::TotalLines> position_;
 };
 
 }

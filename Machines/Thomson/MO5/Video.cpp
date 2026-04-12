@@ -33,7 +33,7 @@ constexpr uint16_t mo5_palette[] = {
 Video::Video(const uint8_t *const pixels, const uint8_t *const attributes) :
 	pixels_(pixels), attributes_(attributes),
 	crt_(
-		CyclesPerLine,
+		Line::TotalCycles,
 		1,
 		Outputs::Display::Type::SECAM,
 		Outputs::Display::InputDataType::Red4Green4Blue4
@@ -48,9 +48,9 @@ void Video::run_for(const Cycles cycles) {
 	position_.advance(
 		cycles.as<int>(),
 		[&] (const int line, const int begin, const int end) {
-			if(line >= VerticalSyncLine && line < VerticalSyncLine + VerticalSyncLength) {
+			if(line >= Frame::VerticalSyncLine && line < Frame::VerticalSyncLine + Frame::VerticalSyncLength) {
 				vsync_line(begin, end);
-			} else if(line >= TotalPixelLines) {
+			} else if(line >= Frame::TotalPixelLines) {
 				border_line(begin, end);
 			} else {
 				pixel_line(begin, end);
@@ -69,11 +69,11 @@ uint8_t Video::vertical_state() const {
 	//	b6: latched version of b7 (but latched by what event?)
 	//	b5: 0 = outside window; 1 = inside window (i.e. probably horizontal as well?)
 
-	static constexpr int StartPixelRegion = EndOfLeftBorder;
-	static constexpr int EndPixelRegion = (TotalPixelLines - 1) * CyclesPerLine + EndOfPixels;
+	static constexpr int StartPixelRegion = Line::EndOfLeftBorder;
+	static constexpr int EndPixelRegion = (Frame::TotalPixelLines - 1) * Line::TotalCycles + Line::EndOfPixels;
 
 	const bool b7 = position_.absolute() >= StartPixelRegion && position_.absolute() < EndPixelRegion;
-	const bool b5 = b7 && position_.subsegment() >= EndOfLeftBorder && position_.subsegment() < EndOfPixels;
+	const bool b5 = b7 && position_.subsegment() >= Line::EndOfLeftBorder && position_.subsegment() < Line::EndOfPixels;
 
 	return
 		0x01 |		// Leave lower bit for population elsewhere
@@ -94,30 +94,30 @@ uint8_t Video::horizontal_state() const {
 void Video::vsync_line(const int, const int line_end) {
 	// TODO: resolve coupling here.
 	// Supplying sync as it comes to the CRT seems to trigger a fault in retrace start time.
-	if(line_end == CyclesPerLine) {
-		crt_.output_sync(CyclesPerLine); //line_end - line_begin);
+	if(line_end == Line::TotalCycles) {
+		crt_.output_sync(Line::TotalCycles); //line_end - line_begin);
 	}
 }
 
 void Video::border_line(const int line_begin, const int line_end) {
-	Numeric::clamp<0, EndOfSync>(line_begin, line_end, [&](const int begin, const int end) {
+	Numeric::clamp<0, Line::EndOfSync>(line_begin, line_end, [&](const int begin, const int end) {
 		crt_.output_sync(end - begin);
 	});
-	Numeric::clamp<EndOfSync, CyclesPerLine>(line_begin, line_end, [&](const int begin, const int end) {
+	Numeric::clamp<Line::EndOfSync, Line::TotalCycles>(line_begin, line_end, [&](const int begin, const int end) {
 		crt_.output_level(end - begin, border_);
 	});
 }
 
 void Video::pixel_line(const int line_begin, const int line_end) {
-	Numeric::clamp<0, EndOfSync>(line_begin, line_end, [&](const int begin, const int end) {
+	Numeric::clamp<0, Line::EndOfSync>(line_begin, line_end, [&](const int begin, const int end) {
 		crt_.output_sync(end - begin);
 	});
-	Numeric::clamp<EndOfSync, EndOfLeftBorder>(line_begin, line_end, [&](const int begin, const int end) {
+	Numeric::clamp<Line::EndOfSync, Line::EndOfLeftBorder>(line_begin, line_end, [&](const int begin, const int end) {
 		crt_.output_level(end - begin, border_);
 	});
-	Numeric::clamp<EndOfLeftBorder, EndOfPixels>(line_begin, line_end, [&](const int begin, const int end) {
-		if(begin == EndOfLeftBorder) {
-			output_ = reinterpret_cast<uint16_t *>(crt_.begin_data(PixelsPerLine));
+	Numeric::clamp<Line::EndOfLeftBorder, Line::EndOfPixels>(line_begin, line_end, [&](const int begin, const int end) {
+		if(begin == Line::EndOfLeftBorder) {
+			output_ = reinterpret_cast<uint16_t *>(crt_.begin_data(Line::TotalPixels));
 		}
 
 		if(output_) {
@@ -145,12 +145,12 @@ void Video::pixel_line(const int line_begin, const int line_end) {
 			source_address_ += end - begin;
 		}
 
-		if(end == EndOfPixels) {
-			crt_.output_data(EndOfPixels - EndOfLeftBorder, PixelsPerLine);
+		if(end == Line::EndOfPixels) {
+			crt_.output_data(Line::EndOfPixels - Line::EndOfLeftBorder, Line::TotalPixels);
 			output_ = nullptr;
 		}
 	});
-	Numeric::clamp<EndOfPixels, CyclesPerLine>(line_begin, line_end, [&](const int begin, const int end) {
+	Numeric::clamp<Line::EndOfPixels, Line::TotalCycles>(line_begin, line_end, [&](const int begin, const int end) {
 		crt_.output_level(end - begin, border_);
 	});
 }
@@ -162,13 +162,13 @@ Cycles Video::next_sequence_point() const {
 	// trailing-edge during the pulse, which probably doesn't happen in any real software.
 	//
 	// Would be nice to know the real number though.
-	if(position_.absolute() < IRQCycle) return IRQCycle - position_.absolute();
-	if(position_.absolute() < IRQCycle + IRQLength) return IRQCycle + IRQLength - position_.absolute();
-	return FrameLength - position_.absolute() + IRQCycle;
+	if(position_.absolute() < IRQ::Cycle) return IRQ::Cycle - position_.absolute();
+	if(position_.absolute() < IRQ::Cycle + IRQ::Length) return IRQ::Cycle + IRQ::Length - position_.absolute();
+	return Frame::TotalCycles - position_.absolute() + IRQ::Cycle;
 }
 
 bool Video::irq() const {
-	return position_.absolute() >= IRQCycle && position_.absolute() < (IRQCycle + IRQLength);
+	return position_.absolute() >= IRQ::Cycle && position_.absolute() < (IRQ::Cycle + IRQ::Length);
 }
 
 void Video::set_border_colour(const uint8_t colour) {
