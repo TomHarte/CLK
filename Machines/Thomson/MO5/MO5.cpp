@@ -190,10 +190,24 @@ struct ConcreteMachine:
 					case 0xa7d8:	if(has_floppy) access<0xa7d8, read_write>(fdc_, value);	else unmapped();	break;
 
 					case 0xa7e4:	if(is_mo6) access<0xa7e4, read_write>(memory_, value); else unmapped();		break;
-					case 0xa7e5:	if(is_mo6) access<0xa7e5, read_write>(memory_, value); else unmapped();		break;
 
 					// TODO: try to apply `access` pattern below.
 
+					case 0xa7e5:
+						if constexpr (is_mo6) {
+							if(memory_.access_mode() == AccessMode::System) {
+								access<0xa7e5, read_write>(memory_, value);
+							} else {
+								if constexpr (CPU::M6809::is_read(read_write)) {
+									value = 0;	// TODO: MSB of light-pen counter.
+								} else {
+									memory_.template write<0xa7e5>(value);
+								}
+							}
+						} else {
+							unmapped();
+						}
+					break;
 					case 0xa7e6:
 						if constexpr (is_mo6) {
 							if(memory_.access_mode() == AccessMode::System) {

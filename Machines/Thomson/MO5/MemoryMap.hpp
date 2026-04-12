@@ -24,6 +24,11 @@ enum class AccessMode {
 	LightPen = 1,
 };
 
+enum class GraphicsModeAccess {
+	Authorised = 0,
+	Inhibited = 1,
+};
+
 //
 // Notes on the layout of the standard MO ROM images:
 //
@@ -133,6 +138,12 @@ public:
 			break;
 
 			case 0xa7e4:
+				if(access_mode_ == AccessMode::System) {
+					return uint8_t(ram_page_);
+				}
+			break;
+
+			case 0xa7e5:
 				if(access_mode_ == AccessMode::System) {
 					return uint8_t(ram_page_);
 				}
