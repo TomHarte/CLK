@@ -69,11 +69,16 @@ uint8_t Video::vertical_state() const {
 	//	b6: latched version of b7 (but latched by what event?)
 	//	b5: 0 = outside window; 1 = inside window (i.e. probably horizontal as well?)
 
-	const auto line = position_.segment();
+	static constexpr int StartPixelRegion = EndOfLeftBorder;
+	static constexpr int EndPixelRegion = (TotalPixelLines - 1) * CyclesPerLine + EndOfPixels;
+
+	const bool b7 = position_.absolute() >= StartPixelRegion && position_.absolute() < EndPixelRegion;
+	const bool b5 = b7 && position_.subsegment() >= EndOfLeftBorder && position_.subsegment() < EndOfPixels;
+
 	return
 		0x01 |		// Leave lower bit for population elsewhere
-		(line >= TotalPixelLines ? 0x00 : 0x20) |	// TODO: real test.
-		(line >= TotalPixelLines ? 0x00 : 0x80);
+		(b5 ? 0x00 : 0x20) |
+		(b7 ? 0x00 : 0x80);
 }
 
 uint8_t Video::horizontal_state() const {
@@ -95,7 +100,6 @@ void Video::vsync_line(const int, const int line_end) {
 }
 
 void Video::border_line(const int line_begin, const int line_end) {
-	static constexpr int EndOfSync = 4;
 	Numeric::clamp<0, EndOfSync>(line_begin, line_end, [&](const int begin, const int end) {
 		crt_.output_sync(end - begin);
 	});
@@ -105,12 +109,6 @@ void Video::border_line(const int line_begin, const int line_end) {
 }
 
 void Video::pixel_line(const int line_begin, const int line_end) {
-	// Layout: [sync][border][pixels][border].
-	static constexpr int EndOfSync = 4;
-	static constexpr int EndOfLeftBorder = 14;
-	static constexpr int EndOfPixels = 54;
-	static constexpr int PixelsPerLine = 320;
-
 	Numeric::clamp<0, EndOfSync>(line_begin, line_end, [&](const int begin, const int end) {
 		crt_.output_sync(end - begin);
 	});

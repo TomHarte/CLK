@@ -58,31 +58,27 @@ private:
 	void border_line(int, int);
 	void pixel_line(int, int);
 
-	// Video timing, as far as auto-translate lets me figure it out:
-	//
-	//	64 cycles/line;
-	//	56 lines post signalled vsync, then 200 of video, then 56 more, for 312 total.
-	//
-	// Start of vsync is connected to CPU IRQ.
-	//
-	// Within a line: ??? Who knows ???
-	//
-	// Have rationalised as 4 cycles of sync and the rest as appropriate colours. Via IRQCycle the interrupt can be placed
-	// arbitrarily within the frame so I think any implementation within a line is valid as long as I place the interrupt
-	// appropriately. TODO: where is the interrupt placed?
-	//
+	// Total frame size.
 	static constexpr int CyclesPerLine = 64;
 	static constexpr int TotalLines = 312;
+	static constexpr int FrameLength = TotalLines * CyclesPerLine;
 
+	// Line placement; pixel lines begin with internal line 0.
 	static constexpr int TotalPixelLines = 200;
 	static constexpr int VerticalSyncLine = 256;
 	static constexpr int VerticalSyncLength = 3;
 
+	// IRQ placement.
 	static constexpr int IRQCycle = 256 * CyclesPerLine;
 	static constexpr int IRQLength = 8;
 
-	static constexpr int FrameLength = TotalLines * CyclesPerLine;
+	// Line layout: [sync][border][pixels][border].
+	static constexpr int EndOfSync = 4;
+	static constexpr int EndOfLeftBorder = 14;
+	static constexpr int EndOfPixels = 54;
+	static constexpr int PixelsPerLine = 320;
 
+	// Frame position counter.
 	Numeric::DividingAccumulator<CyclesPerLine, TotalLines> position_;
 };
 
