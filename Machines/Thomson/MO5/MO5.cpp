@@ -227,6 +227,7 @@ struct ConcreteMachine:
 							access<0xa7dd, read_write>(memory_, value);
 							if constexpr (!CPU::M6809::is_read(read_write)) {
 								video_->set_border_colour(value);
+								// TODO: top two bits are "Number of display RAM page".
 							}
 						} else {
 							unmapped();
