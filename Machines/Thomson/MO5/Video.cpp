@@ -23,7 +23,7 @@ constexpr uint16_t rgb(const uint16_t code) {
 }
 
 // Per https://pulkomandy.tk/wiki/doku.php?id=documentations:devices:gate.arrays#video_generation
-constexpr uint16_t palette[] = {
+constexpr uint16_t mo5_palette[] = {
 	rgb(0x000),	rgb(0xf55),	rgb(0x0f0),	rgb(0xff0),	rgb(0x55f),	rgb(0xf0f),	rgb(0x5ff),	rgb(0xfff),
 	rgb(0xaaa),	rgb(0xfaa),	rgb(0xafa),	rgb(0xffa),	rgb(0x5af),	rgb(0xfaf),	rgb(0xaff),	rgb(0xfa5),
 };
@@ -127,8 +127,8 @@ void Video::pixel_line(const int line_begin, const int line_end) {
 				++source_address_;
 
 				const uint16_t colours[] = {
-					palette[attributes & 0xf],
-					palette[attributes >> 4],
+					mo5_palette[attributes & 0xf],
+					mo5_palette[attributes >> 4],
 				};
 
 				output_[0] = colours[(pixels >> 7) & 1];
@@ -172,5 +172,24 @@ bool Video::irq() const {
 }
 
 void Video::set_border_colour(const uint8_t colour) {
-	border_ = palette[colour & 0xf];
+	border_ = mo5_palette[colour & 0xf];
+}
+
+uint8_t Video::palette_index() const {
+	return palette_index_.get();
+}
+
+void Video::set_palette_index(const uint8_t index) {
+	palette_index_ = index;
+}
+
+uint8_t Video::palette() {
+	const auto result = palette_[palette_index_.get()];
+	++palette_index_;
+	return result;
+}
+
+void Video::set_palette(const uint8_t value) {
+	palette_[palette_index_.get()] = value;
+	++palette_index_;
 }

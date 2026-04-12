@@ -189,12 +189,11 @@ struct ConcreteMachine:
 					case 0xa7d3:	if(has_floppy) access<0xa7d3, read_write>(fdc_, value);	else unmapped();	break;
 					case 0xa7d8:	if(has_floppy) access<0xa7d8, read_write>(fdc_, value);	else unmapped();	break;
 
-					// MO6 notes:
-					//	A7E5 = ROM paging (?)
-					//	A7E4 = RAM paging (?)
-
 					case 0xa7e4:	if(is_mo6) access<0xa7e4, read_write>(memory_, value); else unmapped();		break;
 					case 0xa7e5:	if(is_mo6) access<0xa7e5, read_write>(memory_, value); else unmapped();		break;
+
+					// TODO: try to apply `access` pattern below.
+
 					case 0xa7e6:
 						if constexpr (is_mo6) {
 							if(memory_.access_mode() == AccessMode::System) {
@@ -231,6 +230,22 @@ struct ConcreteMachine:
 							}
 						} else {
 							unmapped();
+						}
+					break;
+
+					case 0xa7da:
+						if constexpr (CPU::M6809::is_read(read_write)) {
+							value = video_->palette();
+						} else {
+							video_->set_palette(value);
+						}
+					break;
+
+					case 0xa7db:
+						if constexpr (CPU::M6809::is_read(read_write)) {
+							value = video_->palette_index();
+						} else {
+							video_->set_palette_index(value);
 						}
 					break;
 

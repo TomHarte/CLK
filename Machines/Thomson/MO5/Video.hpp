@@ -11,6 +11,7 @@
 
 #include "ClockReceiver/ClockReceiver.hpp"
 #include "Numeric/SegmentCounter.hpp"
+#include "Numeric/SizedInt.hpp"
 #include "Outputs/CRT/CRT.hpp"
 
 namespace Thomson::MO5 {
@@ -20,12 +21,20 @@ public:
 	Video(const uint8_t *pixels, const uint8_t *attributes);
 	void run_for(Cycles);
 	Cycles next_sequence_point() const;
+	bool irq() const;
+
+	// MARK: - Writes.
 
 	void set_border_colour(uint8_t);
-	bool irq() const;
+	void set_palette_index(uint8_t);
+	void set_palette(uint8_t);
+
+	// MARK: - Reads.
 
 	uint8_t vertical_state() const;
 	uint8_t horizontal_state() const;
+	uint8_t palette_index() const;
+	uint8_t palette();
 
 	// MARK: - Standard boilerplate.
 
@@ -54,9 +63,14 @@ private:
 	uint16_t border_ = 0;
 	uint16_t *output_ = nullptr;
 
+	// Pixel outputters.
 	void vsync_line(int, int);
 	void border_line(int, int);
 	void pixel_line(int, int);
+
+	// Gate array version only: palette.
+	uint8_t palette_[32];
+	Numeric::SizedInt<5> palette_index_ = 0;
 
 	// Total frame size.
 	static constexpr int CyclesPerLine = 64;

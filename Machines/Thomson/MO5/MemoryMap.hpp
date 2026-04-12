@@ -93,7 +93,6 @@ public:
 
 		if(rom_page_ != page) {
 			rom_page_ = page;
-			printf("Monitor: %d\n", int(rom_page_));
 			update_commutable_rom();
 		}
 	}
@@ -155,7 +154,7 @@ public:
 
 	template <uint16_t address>
 	void write(const uint8_t value) {
-		printf("%04x: %02x\n", address, value);
+//		printf("%04x: %02x\n", address, value);
 
 		switch(address) {
 			default:
