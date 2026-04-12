@@ -139,7 +139,10 @@ public:
 
 			case 0xa7e4:
 				if(access_mode_ == AccessMode::System) {
-					return uint8_t(ram_page_);
+					// TODO: b6, b7: displayed RAM page number;
+					return
+						(cartridge_.empty() ? 0x00 : 0x20) |
+						(basic_selection_ ? 0x10 : 0x00);
 				}
 			break;
 
@@ -178,11 +181,13 @@ public:
 				//	[(IW02) EPROM 27256]. This is set on bit D4 of A7DD.
 				//	- Masking or unmasking of optional ROM cartridges through bit D5 of A7DD.
 				//	(refer to GATE MODE PAGE REGISTERS (page: 22)).
+
+				basic_selection_ = value & 0x10;
 				if(!(value & 0x20) && !cartridge_.empty()) {
 					// TODO: The test on a cartridge being present is empirical;
 					// figure out whether it's genuine or an unrelated stab in the dark.
 					b000page_ = B000Page::Cartridge;
-				} else if(value & 0x10) {
+				} else if(basic_selection_) {
 					b000page_ = B000Page::BASIC128;
 				} else {
 					b000page_ = B000Page::Empty;
@@ -198,12 +203,6 @@ public:
 				ram_page_ = value & 0b11111;
 				update_commutable_ram();
 			break;
-
-//			case 0xa7e6:
-//				// ???
-//				if(access_mode_ == AccessMode::System) {
-//				}
-//			break;
 		}
 	}
 
@@ -276,6 +275,7 @@ private:
 
 	size_t rom_page_ = 0;
 	size_t ram_page_ = 1;
+	bool basic_selection_ = false;
 	enum class B000Page {
 		Empty,
 		BASIC128,
