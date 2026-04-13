@@ -8,6 +8,7 @@
 
 #include "Video.hpp"
 
+#include <algorithm>
 #include <bit>
 
 using namespace Thomson::MO5;
@@ -26,6 +27,147 @@ constexpr uint16_t rgb(const uint16_t code) {
 constexpr uint16_t mo5_palette[] = {
 	rgb(0x000),	rgb(0xf55),	rgb(0x0f0),	rgb(0xff0),	rgb(0x55f),	rgb(0xf0f),	rgb(0x5ff),	rgb(0xfff),
 	rgb(0xaaa),	rgb(0xfaa),	rgb(0xafa),	rgb(0xffa),	rgb(0x5af),	rgb(0xfaf),	rgb(0xaff),	rgb(0xfa5),
+};
+
+// MARK: - Pixel generators.
+
+// TODO: all of the below ignore the bit ordering. Don't.
+
+template <PixelMode, DotClock, BitOrdering>
+struct PixelGenerator {
+	static void output(
+		[[maybe_unused]] uint8_t bank0,
+		[[maybe_unused]] uint8_t bank1,
+		[[maybe_unused]] uint16_t *target,
+		[[maybe_unused]] const std::array<uint16_t, 16> &palette
+	) {}
+};
+
+//
+// 40-column mode.
+//
+template <DotClock clock, BitOrdering ordering>
+struct PixelGenerator<PixelMode::Columns40, clock, ordering> {
+	static void output(
+		const uint8_t bank0,
+		const uint8_t bank1,
+		uint16_t *const target,
+		const std::array<uint16_t, 16> &palette
+	) {
+		const uint16_t colours[] = {
+			palette[bank1 & 0xf],
+			palette[bank1 >> 4],
+		};
+
+		target[0] = colours[(bank0 >> 7) & 1];
+		target[1] = colours[(bank0 >> 6) & 1];
+		target[2] = colours[(bank0 >> 5) & 1];
+		target[3] = colours[(bank0 >> 4) & 1];
+		if constexpr (pixels_per_column(clock) == 4) {
+			return;
+		}
+
+		target[4] = colours[(bank0 >> 3) & 1];
+		target[5] = colours[(bank0 >> 2) & 1];
+		target[6] = colours[(bank0 >> 1) & 1];
+		target[7] = colours[(bank0 >> 0) & 1];
+		if constexpr (pixels_per_column(clock) == 8) {
+			return;
+		}
+
+		std::fill_n(&target[8], 8, colours[0]);
+	}
+};
+
+//
+// 80-column mode.
+//
+template <DotClock clock, BitOrdering ordering>
+struct PixelGenerator<PixelMode::Columns80, clock, ordering> {
+	static void output(
+		const uint8_t bank0,
+		const uint8_t bank1,
+		uint16_t *const target,
+		const std::array<uint16_t, 16> &palette
+	) {
+		target[0] = palette[(bank0 >> 7) & 1];
+		target[1] = palette[(bank1 >> 7) & 1];
+		target[2] = palette[(bank0 >> 6) & 1];
+		target[3] = palette[(bank1 >> 6) & 1];
+		if constexpr (pixels_per_column(clock) == 4) {
+			return;
+		}
+
+		target[4] = palette[(bank0 >> 5) & 1];
+		target[5] = palette[(bank1 >> 5) & 1];
+		target[6] = palette[(bank0 >> 4) & 1];
+		target[7] = palette[(bank1 >> 4) & 1];
+		if constexpr (pixels_per_column(clock) == 8) {
+			return;
+		}
+
+		target[8] = palette[(bank0 >> 3) & 1];
+		target[9] = palette[(bank1 >> 3) & 1];
+		target[10] = palette[(bank0 >> 2) & 1];
+		target[11] = palette[(bank1 >> 2) & 1];
+		target[12] = palette[(bank0 >> 1) & 1];
+		target[13] = palette[(bank1 >> 1) & 1];
+		target[14] = palette[(bank0 >> 0) & 1];
+		target[15] = palette[(bank1 >> 0) & 1];
+	}
+};
+
+//
+// 2bpp mode.
+//
+template <DotClock clock, BitOrdering ordering>
+struct PixelGenerator<PixelMode::Bitmap4, clock, ordering> {
+	static void output(
+		const uint8_t bank0,
+		const uint8_t bank1,
+		uint16_t *const target,
+		const std::array<uint16_t, 16> &palette
+	) {
+		target[0] = palette[(bank0 >> 6) & 0x03];
+		target[1] = palette[(bank0 >> 4) & 0x03];
+		target[2] = palette[(bank0 >> 2) & 0x03];
+		target[3] = palette[(bank0 >> 0) & 0x03];
+		if constexpr (pixels_per_column(clock) == 4) {
+			return;
+		}
+
+		target[4] = palette[(bank1 >> 6) & 0x03];
+		target[5] = palette[(bank1 >> 4) & 0x03];
+		target[6] = palette[(bank1 >> 2) & 0x03];
+		target[7] = palette[(bank1 >> 0) & 0x03];
+		if constexpr (pixels_per_column(clock) == 8) {
+			return;
+		}
+
+		std::fill_n(&target[8], 8, palette[0]);
+	}
+};
+
+//
+// 4bpp mode.
+//
+template <DotClock clock, BitOrdering ordering>
+struct PixelGenerator<PixelMode::Bitmap16, clock, ordering> {
+	static void output(
+		const uint8_t bank0,
+		const uint8_t bank1,
+		uint16_t *const target,
+		const std::array<uint16_t, 16> &palette
+	) {
+		target[0] = palette[(bank0 >> 4) & 0x0f];
+		target[1] = palette[(bank0 >> 0) & 0x0f];
+		target[2] = palette[(bank1 >> 4) & 0x0f];
+		target[3] = palette[(bank1 >> 0) & 0x0f];
+
+		if constexpr (pixels_per_column(clock) > 4) {
+			std::fill_n(&target[4], pixels_per_column(clock) - 4, palette[0]);
+		}
+	}
 };
 
 }
@@ -141,44 +283,42 @@ void Video::pixel_line(const int line_begin, const int line_end) {
 		crt_.output_level(end - begin, mapped_border_);
 	});
 	Numeric::clamp<Line::EndOfLeftBorder, Line::EndOfPixels>(line_begin, line_end, [&](const int begin, const int end) {
-		// TODO: evaluate mode for:
-		//
-		//	b6, b5: video data organisation
-		//	b4, b3: data frequency
-		//	b2, b1, b0: display mode
+		const auto flush_pixels = [&] {
+			crt_.output_data(Line::EndOfPixels - output_begin_column_, size_t(output_ - output_begin_));
+			output_ = output_begin_ = nullptr;
+		};
 
-		if(begin == Line::EndOfLeftBorder) {
-			output_ = reinterpret_cast<uint16_t *>(crt_.begin_data(Line::TotalPixels));
+		// Flush existing pixels if the pixel rate has changed.
+		static constexpr auto pixel_rate = pixels_per_column(mode);
+		if(output_ && pixel_rate != output_pixel_rate_) {
+			flush_pixels();
+		}
+
+		// Try to grab a buffer if without one.
+		if(!output_) {
+			output_ = output_begin_ = reinterpret_cast<uint16_t *>(crt_.begin_data(size_t(pixel_rate * 40)));
+			output_begin_column_ = begin;
+			output_pixel_rate_ = pixel_rate;
 		}
 
 		if(output_) {
 			for(int c = begin; c < end; c++) {
-				const uint8_t pixels = pixels_[source_address_];
-				const uint8_t attributes = attributes_[source_address_];
+				PixelGenerator<pixel_mode(mode), dot_clock(mode), bit_ordering(mode)>::output(
+					pixels_[source_address_],
+					attributes_[source_address_],
+					output_,
+					mapped_palette_
+				);
 				++source_address_;
+				output_ += pixel_rate;
+			}
 
-				const uint16_t colours[] = {
-					mapped_palette_[attributes & 0xf],
-					mapped_palette_[attributes >> 4],
-				};
-
-				output_[0] = colours[(pixels >> 7) & 1];
-				output_[1] = colours[(pixels >> 6) & 1];
-				output_[2] = colours[(pixels >> 5) & 1];
-				output_[3] = colours[(pixels >> 4) & 1];
-				output_[4] = colours[(pixels >> 3) & 1];
-				output_[5] = colours[(pixels >> 2) & 1];
-				output_[6] = colours[(pixels >> 1) & 1];
-				output_[7] = colours[(pixels >> 0) & 1];
-				output_ += 8;
+			if(end == Line::EndOfPixels) {
+				flush_pixels();
 			}
 		} else {
 			source_address_ += end - begin;
-		}
-
-		if(end == Line::EndOfPixels) {
-			crt_.output_data(Line::EndOfPixels - Line::EndOfLeftBorder, Line::TotalPixels);
-			output_ = nullptr;
+			crt_.output_data(end - begin, 1);
 		}
 	});
 	Numeric::clamp<Line::EndOfPixels, Line::TotalCycles>(line_begin, line_end, [&](const int begin, const int end) {
