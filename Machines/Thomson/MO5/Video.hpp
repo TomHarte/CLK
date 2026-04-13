@@ -110,6 +110,7 @@ private:
 	// Pixel outputters.
 	void vsync_line(int, int);
 	void border_line(int, int);
+	template <uint8_t mode>
 	void pixel_line(int, int);
 
 	// For gate array support: palette and mode.

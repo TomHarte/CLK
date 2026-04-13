@@ -56,7 +56,28 @@ void Video::run_for(const Cycles cycles) {
 			} else if(line >= Frame::TotalPixelLines) {
 				border_line(begin, end);
 			} else {
-				pixel_line(begin, end);
+				#define Opt(x)		case x: pixel_line<x>(begin, end);	break;
+				#define Opt2(x)		Opt(x + 0x00);		Opt(x + 0x01);
+				#define Opt4(x)		Opt2(x + 0x00);		Opt2(x + 0x02);
+				#define Opt8(x)		Opt4(x + 0x00);		Opt4(x + 0x04);
+				#define Opt16(x)	Opt8(x + 0x00);		Opt8(x + 0x08);
+				#define Opt32(x)	Opt16(x + 0x00);	Opt16(x + 0x10);
+				#define Opt64(x)	Opt32(x + 0x00);	Opt32(x + 0x20);
+				#define Opt128(x)	Opt64(x + 0x00);	Opt64(x + 0x40);
+
+				switch(mode_ & 0x7f) {
+					Opt128(0);
+				}
+
+				#undef Opt
+				#undef Opt2
+				#undef Opt4
+				#undef Opt8
+				#undef Opt16
+				#undef Opt32
+				#undef Opt64
+				#undef Opt128
+
 			}
 		},
 		[&] {
@@ -111,6 +132,7 @@ void Video::border_line(const int line_begin, const int line_end) {
 	});
 }
 
+template <uint8_t mode>
 void Video::pixel_line(const int line_begin, const int line_end) {
 	Numeric::clamp<0, Line::EndOfSync>(line_begin, line_end, [&](const int begin, const int end) {
 		crt_.output_sync(end - begin);
@@ -119,6 +141,12 @@ void Video::pixel_line(const int line_begin, const int line_end) {
 		crt_.output_level(end - begin, mapped_border_);
 	});
 	Numeric::clamp<Line::EndOfLeftBorder, Line::EndOfPixels>(line_begin, line_end, [&](const int begin, const int end) {
+		// TODO: evaluate mode for:
+		//
+		//	b6, b5: video data organisation
+		//	b4, b3: data frequency
+		//	b2, b1, b0: display mode
+
 		if(begin == Line::EndOfLeftBorder) {
 			output_ = reinterpret_cast<uint16_t *>(crt_.begin_data(Line::TotalPixels));
 		}
@@ -213,12 +241,3 @@ void Video::set_palette(const uint8_t value) {
 void Video::set_mode(const uint8_t value) {
 	mode_ = value;
 }
-//				// TODO:
-//				//
-//				//	b6, b5: video data organisation
-//				//	b4, b3: data frequency
-//				//	b2, b1, b0: display mode
-//				printf("TODO: Video mode: %d\n", value & 7);
-//				printf("TODO: Video frequency: %d\n", (value >> 3) & 3);
-//				printf("TODO: Video organisation: %d\n", (value >> 5) & 3);
-//			break;
