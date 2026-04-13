@@ -224,6 +224,9 @@ struct ConcreteMachine:
 						}
 					break;
 
+					case 0xa7da: 	if(is_mo6) access<0xa7da, read_write>(video_, value); else unmapped();	break;
+					case 0xa7db:	if(is_mo6) access<0xa7db, read_write>(video_, value); else unmapped();	break;
+					case 0xa7dc:	if(is_mo6) access<0xa7dc, read_write>(video_, value); else unmapped();	break;
 					case 0xa7dd:
 						if(is_mo6) {
 							access<0xa7dd, read_write>(memory_, value);
@@ -233,8 +236,6 @@ struct ConcreteMachine:
 						}
 					break;
 
-					case 0xa7da: 	if(is_mo6) access<0xa7da, read_write>(video_, value); else unmapped();	break;
-					case 0xa7db:	if(is_mo6) access<0xa7da, read_write>(video_, value); else unmapped();	break;
 
 					default:
 						unmapped();

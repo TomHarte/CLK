@@ -72,6 +72,7 @@ public:
 				//	b6, b5: video data organisation
 				//	b4, b3: data frequency
 				//	b2, b1, b0: display mode
+				printf("TODO: Video mode: %02x\n", value);
 			break;
 			case 0xa7dd:	set_border_colour(value);	break;
 
