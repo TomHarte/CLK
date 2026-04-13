@@ -16,7 +16,7 @@
 
 #include <array>
 
-namespace Thomson::MO5 {
+namespace Thomson {
 
 enum class BitOrdering {
 	Legacy = 0b00,
@@ -168,7 +168,7 @@ private:
 		return DotClock((mode >> 3) & 0b11);
 	}
 	static constexpr int pixels_per_column(const uint8_t mode) {
-		return Thomson::MO5::pixels_per_column(dot_clock(mode));
+		return Thomson::pixels_per_column(dot_clock(mode));
 	}
 	static constexpr PixelMode pixel_mode(const uint8_t mode) {
 		return PixelMode(mode & 0b111);

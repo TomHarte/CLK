@@ -17,7 +17,7 @@
 #include "Machines/Utility/MemoryFuzzer.hpp"
 #include "Outputs/Log.hpp"
 
-namespace Thomson::MO5 {
+namespace Thomson::MO {
 
 enum class AccessMode {
 	System = 0,

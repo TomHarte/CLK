@@ -15,7 +15,7 @@
 
 #include <memory>
 
-namespace Thomson::MO5 {
+namespace Thomson::MO {
 
 struct Machine {
 	virtual ~Machine() = default;

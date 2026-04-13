@@ -1,12 +1,12 @@
 //
-//  MO5.cpp
+//  MO.cpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 04/03/2026.
 //  Copyright © 2026 Thomas Harte. All rights reserved.
 //
 
-#include "MO5.hpp"
+#include "MO.hpp"
 
 #include "CD90-640.hpp"
 #include "Keyboard.hpp"
@@ -28,7 +28,7 @@
 #include "Analyser/Static/Thomson/Target.hpp"
 
 
-using namespace Thomson::MO5;
+using namespace Thomson::MO;
 
 namespace {
 
@@ -51,7 +51,7 @@ struct ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
 	public Machine,
-	public Utility::TypeRecipient<CharacterMapper>
+	public Utility::TypeRecipient<Thomson::MO5::CharacterMapper>
 {
 	ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6809_(*this),
@@ -547,7 +547,7 @@ private:
 	SoundAndGamePIAPortHandler sound_and_game_pia_port_handler_;
 	Motorola::MC6821::MC6821<SoundAndGamePIAPortHandler, 2, 1> sound_and_game_pia_;
 
-	JustInTimeActor<Video, Cycles> video_;
+	JustInTimeActor<Thomson::Video, Cycles> video_;
 
 	// MARK: - Tape and disk.
 
@@ -622,11 +622,11 @@ private:
 	}
 
 	void type_string(const std::string &string) final {
-		Utility::TypeRecipient<CharacterMapper>::add_typer(string);
+		Utility::TypeRecipient<Thomson::MO5::CharacterMapper>::add_typer(string);
 	}
 
 	bool can_type(char c) const final {
-		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
+		return Utility::TypeRecipient<Thomson::MO5::CharacterMapper>::can_type(c);
 	}
 
 	HalfCycles get_typer_delay(const std::string &) const final {
