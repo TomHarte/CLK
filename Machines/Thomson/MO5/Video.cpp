@@ -42,6 +42,9 @@ Video::Video(const uint8_t *const pixels, const uint8_t *const attributes) :
 		run_for(Cycles(10'000));
 	});
 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
+
+	// Set default palette.
+	std::copy(std::begin(mo5_palette), std::end(mo5_palette), std::begin(mapped_palette_));
 }
 
 void Video::run_for(const Cycles cycles) {
@@ -104,7 +107,7 @@ void Video::border_line(const int line_begin, const int line_end) {
 		crt_.output_sync(end - begin);
 	});
 	Numeric::clamp<Line::EndOfSync, Line::TotalCycles>(line_begin, line_end, [&](const int begin, const int end) {
-		crt_.output_level(end - begin, border_);
+		crt_.output_level(end - begin, mapped_border_);
 	});
 }
 
@@ -113,7 +116,7 @@ void Video::pixel_line(const int line_begin, const int line_end) {
 		crt_.output_sync(end - begin);
 	});
 	Numeric::clamp<Line::EndOfSync, Line::EndOfLeftBorder>(line_begin, line_end, [&](const int begin, const int end) {
-		crt_.output_level(end - begin, border_);
+		crt_.output_level(end - begin, mapped_border_);
 	});
 	Numeric::clamp<Line::EndOfLeftBorder, Line::EndOfPixels>(line_begin, line_end, [&](const int begin, const int end) {
 		if(begin == Line::EndOfLeftBorder) {
@@ -127,8 +130,8 @@ void Video::pixel_line(const int line_begin, const int line_end) {
 				++source_address_;
 
 				const uint16_t colours[] = {
-					mo5_palette[attributes & 0xf],
-					mo5_palette[attributes >> 4],
+					mapped_palette_[attributes & 0xf],
+					mapped_palette_[attributes >> 4],
 				};
 
 				output_[0] = colours[(pixels >> 7) & 1];
@@ -151,7 +154,7 @@ void Video::pixel_line(const int line_begin, const int line_end) {
 		}
 	});
 	Numeric::clamp<Line::EndOfPixels, Line::TotalCycles>(line_begin, line_end, [&](const int begin, const int end) {
-		crt_.output_level(end - begin, border_);
+		crt_.output_level(end - begin, mapped_border_);
 	});
 }
 
@@ -172,7 +175,8 @@ bool Video::irq() const {
 }
 
 void Video::set_border_colour(const uint8_t colour) {
-	border_ = mo5_palette[colour & 0xf];
+	border_ = colour & 0xf;
+	update_mapped_border();
 }
 
 uint8_t Video::palette_index() const {
@@ -190,6 +194,31 @@ uint8_t Video::palette() {
 }
 
 void Video::set_palette(const uint8_t value) {
-	palette_[palette_index_.get()] = value;
+	// Update internal store.
+	const auto index = palette_index_.get();
 	++palette_index_;
+	palette_[index] = value;
+
+	// Update output colour.
+	const auto rg = palette_[index & ~1];
+	const auto b = palette_[index | 1];
+	mapped_palette_[index >> 1] = rgb(uint16_t(
+		((rg & 0x0f) << 8) |
+		(rg & 0xf0) |
+		(b & 0x0f)
+	));
+	update_mapped_border();
 }
+
+void Video::set_mode(const uint8_t value) {
+	mode_ = value;
+}
+//				// TODO:
+//				//
+//				//	b6, b5: video data organisation
+//				//	b4, b3: data frequency
+//				//	b2, b1, b0: display mode
+//				printf("TODO: Video mode: %d\n", value & 7);
+//				printf("TODO: Video frequency: %d\n", (value >> 3) & 3);
+//				printf("TODO: Video organisation: %d\n", (value >> 5) & 3);
+//			break;

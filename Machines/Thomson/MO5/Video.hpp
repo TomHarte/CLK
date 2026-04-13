@@ -28,6 +28,7 @@ public:
 	void set_border_colour(uint8_t);
 	void set_palette_index(uint8_t);
 	void set_palette(uint8_t);
+	void set_mode(uint8_t);
 
 	// MARK: - Reads.
 
@@ -66,14 +67,7 @@ public:
 
 			case 0xa7da:	set_palette(value);			break;
 			case 0xa7db:	set_palette_index(value);	break;
-			case 0xa7dc:
-				// TODO:
-				//
-				//	b6, b5: video data organisation
-				//	b4, b3: data frequency
-				//	b2, b1, b0: display mode
-				printf("TODO: Video mode: %02x\n", value);
-			break;
+			case 0xa7dc:	set_mode(value);			break;
 			case 0xa7dd:	set_border_colour(value);	break;
 
 			default:
@@ -105,17 +99,24 @@ private:
 	Outputs::CRT::CRT crt_;
 
 	uint16_t source_address_ = 0;
-	uint16_t border_ = 0;
 	uint16_t *output_ = nullptr;
+
+	uint16_t mapped_palette_[16];
+	uint16_t mapped_border_ = 0;
+	void update_mapped_border() {
+		mapped_border_ = mapped_palette_[border_];
+	}
 
 	// Pixel outputters.
 	void vsync_line(int, int);
 	void border_line(int, int);
 	void pixel_line(int, int);
 
-	// Gate array version only: palette.
+	// For gate array support: palette and mode.
 	uint8_t palette_[32];
+	uint8_t border_;
 	Numeric::SizedInt<5> palette_index_ = 0;
+	uint8_t mode_ = 0b0'01'00'000;	// Direct mode byte translation, 8 Mhz clock, 40-column output.
 
 	// Line layout: [sync][border][pixels][border].
 	struct Line {
