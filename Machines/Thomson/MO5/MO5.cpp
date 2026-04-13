@@ -9,11 +9,12 @@
 #include "MO5.hpp"
 
 #include "CD90-640.hpp"
+#include "Keyboard.hpp"
+#include "MemoryMap.hpp"
 #include "Video.hpp"
 
 #include "Activity/Source.hpp"
 #include "Machines/MachineTypes.hpp"
-#include "Machines/Utility/MemoryFuzzer.hpp"
 #include "Processors/6809/6809.hpp"
 #include "Components/6821/6821.hpp"
 #include "ClockReceiver/JustInTime.hpp"
@@ -26,7 +27,6 @@
 #include "Storage/Tape/Parsers/ThomsonMO.hpp"
 #include "Analyser/Static/Thomson/Target.hpp"
 
-#include "Keyboard.hpp"
 
 using namespace Thomson::MO5;
 
@@ -39,7 +39,7 @@ static constexpr uint8_t MusicExpansionMask = 63;
 
 using Target = Analyser::Static::Thomson::MOTarget;
 
-template <bool has_floppy>
+template <bool has_floppy, bool is_mo6>
 struct ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
@@ -59,7 +59,7 @@ struct ConcreteMachine:
 		system_pia_(system_pia_port_handler_),
 		sound_and_game_pia_port_handler_(*this),
 		sound_and_game_pia_(sound_and_game_pia_port_handler_),
-		video_(video_page(true), video_page(false)),
+		video_(memory_.video(true), memory_.video(false)),
 		tape_player_(ClockRate),
 		audio_(audio_queue_, MusicExpansionMask),
 		speaker_(audio_)
@@ -91,15 +91,15 @@ struct ConcreteMachine:
 			throw ROMMachine::Error::MissingROMs;
 		}
 
-		const auto &rom = roms.find(BasicROM)->second;
-		std::copy_n(rom.begin(), rom.size(), rom_.begin() + 0x1000);
-
-		if(has_floppy) {
-			const auto &floppy_rom = roms.find(ROM::Name::ThomsonCD90_640)->second;
-			std::copy_n(floppy_rom.begin(), floppy_rom.size(), floppy_rom_.begin());
+		{
+			auto rom = roms.find(BasicROM)->second;
+			memory_.set_rom(rom);
 		}
 
-		Memory::Fuzz(ram_);
+		if(has_floppy) {
+			memory_.set_floppy_rom(roms.find(ROM::Name::ThomsonCD90_640)->second);
+		}
+
 		system_pia_.refresh();
 
 		insert_media(target.media);
@@ -110,19 +110,6 @@ struct ConcreteMachine:
 
 	~ConcreteMachine() {
 		audio_queue_.lock_flush();
-	}
-
-	template <
-		int address,
-		CPU::M6809::ReadWrite read_write,
-		typename ComponentT
-	>
-	static void access(ComponentT &component, CPU::M6809::data_t<read_write> value) {
-		if constexpr (CPU::M6809::is_read(read_write)) {
-			value = component.template read<address>();
-		} else {
-			component.template write<address>(value);
-		}
 	}
 
 	template <
@@ -173,6 +160,9 @@ struct ConcreteMachine:
 				};
 
 				switch(address) {
+					// TODO: Is there a simpler way to use `namespace`?
+					using namespace CPU::M6809;
+
 					case 0xa7c0:	access<0xa7c0, read_write>(system_pia_, value);				break;
 					case 0xa7c1:	access<0xa7c1, read_write>(system_pia_, value);				break;
 					case 0xa7c2:	access<0xa7c2, read_write>(system_pia_, value);				break;
@@ -183,17 +173,69 @@ struct ConcreteMachine:
 					case 0xa7ce:	access<0xa7ce, read_write>(sound_and_game_pia_, value);		break;
 					case 0xa7cf:	access<0xa7cf, read_write>(sound_and_game_pia_, value);		break;
 
-					case 0xa7e7:
-						if constexpr (CPU::M6809::is_read(read_write)) {
-							value = video_->sync();
-						}
-					break;
-
 					case 0xa7d0:	if(has_floppy) access<0xa7d0, read_write>(fdc_, value); else unmapped();	break;
 					case 0xa7d1:	if(has_floppy) access<0xa7d1, read_write>(fdc_, value);	else unmapped();	break;
 					case 0xa7d2:	if(has_floppy) access<0xa7d2, read_write>(fdc_, value);	else unmapped();	break;
 					case 0xa7d3:	if(has_floppy) access<0xa7d3, read_write>(fdc_, value);	else unmapped();	break;
 					case 0xa7d8:	if(has_floppy) access<0xa7d8, read_write>(fdc_, value);	else unmapped();	break;
+
+					case 0xa7e4:	if(is_mo6) access<0xa7e4, read_write>(memory_, value); else unmapped();		break;
+
+					// TODO: consolidate below.
+					case 0xa7e5:
+						if constexpr (is_mo6) {
+							if(memory_.access_mode() == AccessMode::System) {
+								access<0xa7e5, read_write>(memory_, value);
+							} else {
+								if constexpr (CPU::M6809::is_read(read_write)) {
+									access<0xa7e5, read_write>(video_, value);
+								} else {
+									memory_.template write<0xa7e5>(value);
+								}
+							}
+						} else {
+							unmapped();
+						}
+					break;
+					case 0xa7e6:
+						if constexpr (is_mo6) {
+							if(memory_.access_mode() == AccessMode::System) {
+								access<0xa7e6, read_write>(memory_, value);
+							} else {
+								if constexpr (CPU::M6809::is_read(read_write)) {
+									access<0xa7e6, read_write>(video_, value);
+								} else {
+									memory_.template write<0xa7e6>(value);
+								}
+							}
+						} else {
+							unmapped();
+						}
+					break;
+					case 0xa7e7:
+						if constexpr (CPU::M6809::is_read(read_write)) {
+							if constexpr (is_mo6) {
+								value = video_->vertical_state() & memory_.template read<0xa7e7>();
+							} else {
+								value = video_->vertical_state();
+							}
+						} else {
+							unmapped();
+						}
+					break;
+
+					case 0xa7da: 	if(is_mo6) access<0xa7da, read_write>(video_, value); else unmapped();	break;
+					case 0xa7db:	if(is_mo6) access<0xa7db, read_write>(video_, value); else unmapped();	break;
+					case 0xa7dc:	if(is_mo6) access<0xa7dc, read_write>(video_, value); else unmapped();	break;
+					case 0xa7dd:
+						if(is_mo6) {
+							access<0xa7dd, read_write>(memory_, value);
+							access<0xa7dd, read_write>(video_, value);
+						} else {
+							unmapped();
+						}
+					break;
+
 
 					default:
 						unmapped();
@@ -201,74 +243,60 @@ struct ConcreteMachine:
 				}
 			} else {
 				if constexpr (CPU::M6809::is_read(read_write)) {
-					if(address < 0x2000) {
-						value = start_pointer_[address];
-					} else if(address >= 0xa000 && address < 0xa7c0) {
-						value = has_floppy ? floppy_rom_[address - 0xa000] : 0xff;
-					} else if(address >= 0xb000) {
-						value = rom_[address - 0xb000];
+					value = memory_.read(address);
 
-						if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
-							// Catch RDBITS.
-							if(allow_fast_tape_hack_ && address == 0xf168) {
-								// Inputs:
-								//
-								//	M0044 = current tape polarity (complement if applicable).
-								//	M0045 = byte in progress; ROL new bit into here.
-								//
-								// Additional output:
-								//
-								//	A = 00 or FF as per bit detected.
-								//
-								[&] {
-									auto *const serialiser = tape_player_.serialiser();
-									if(!serialiser) return;
+					if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
+						// Catch RDBITS.
+						if(allow_fast_tape_hack_ && address == 0xf168) {
+							// Inputs:
+							//
+							//	M0044 = current tape polarity (complement if applicable).
+							//	M0045 = byte in progress; ROL new bit into here.
+							//
+							// Additional output:
+							//
+							//	A = 00 or FF as per bit detected.
+							//
+							[&] {
+								auto *const serialiser = tape_player_.serialiser();
+								if(!serialiser) return;
 
-									Storage::Tape::Thomson::MO::Parser parser;
-									const auto dp = m6809_.registers().template reg<CPU::M6809::R8::DP>();
-									auto &polarity = ram_[size_t((dp << 8) | 0x44)];
-									auto &data =  ram_[size_t((dp << 8) | 0x45)];
+								Storage::Tape::Thomson::MO::Parser parser;
+								const auto dp = m6809_.registers().template reg<CPU::M6809::R8::DP>();
+								auto &polarity = memory_[size_t((dp << 8) | 0x44)];
+								auto &data = memory_[size_t((dp << 8) | 0x45)];
 
-									parser.seed_level(
-										polarity & 0x80 ? Storage::Tape::Pulse::Low : Storage::Tape::Pulse::High
-									);
+								parser.seed_level(
+									polarity & 0x80 ? Storage::Tape::Pulse::Low : Storage::Tape::Pulse::High
+								);
 
-									const auto offset = serialiser->offset();
-									const auto bit = parser.bit(*serialiser);
-									if(!bit.has_value()) {
-										serialiser->set_offset(offset);
-										return;
-									}
+								const auto offset = serialiser->offset();
+								const auto bit = parser.bit(*serialiser);
+								if(!bit.has_value()) {
+									serialiser->set_offset(offset);
+									return;
+								}
 
-									data = uint8_t((data << 1) | uint8_t(*bit));
-									if(!*bit) {
-										polarity ^= 0xff;
-									}
-									m6809_.registers().template reg<CPU::M6809::R8::A>() = *bit ? 0xff : 0x00;
+								data = uint8_t((data << 1) | uint8_t(*bit));
+								if(!*bit) {
+									polarity ^= 0xff;
+								}
+								m6809_.registers().template reg<CPU::M6809::R8::A>() = *bit ? 0xff : 0x00;
 
-									// The parser reads up to the end of the bit. The ROM routine ends about two-thirds
-									// of the way through the bit. So 'rewind' the tape a little.
-									tape_player_.add_delay(Cycles(200));
+								// The parser reads up to the end of the bit. The ROM routine ends about two-thirds
+								// of the way through the bit. So 'rewind' the tape a little.
+								tape_player_.add_delay(Cycles(200));
 
-									value = 0x39;	// RTS
-								} ();
-							}
+								value = 0x39;	// RTS
+							} ();
 						}
-					} else {
-						value = ram_[address];
 					}
 				} else {
-					if(address < 0x2000) {
-						if(address < 40*200) video_.flush();
-						start_pointer_[address] = value;
-					} else {
-						if constexpr (!CPU::M6809::is_read(read_write)) {
-							if(address >= 0xa000) {
-								Log::info().append("ROM write at %04x", +address);
-							}
-						}
-						ram_[address] = value;
+					if(address < 40*200) {
+						video_.flush();
 					}
+
+					memory_.write(address, value);
 				}
 			}
 		}
@@ -282,19 +310,7 @@ private:
 		using BusHandlerT = ConcreteMachine;
 	};
 	CPU::M6809::Processor<M6809Traits> m6809_;
-
-	std::array<uint8_t, 0x10000 + 0x2000> ram_;
-	std::array<uint8_t, 0x5000> rom_{0xff};
-	std::array<uint8_t, 0x7c0> floppy_rom_;
-	uint8_t *start_pointer_ = nullptr;
-
-	uint8_t *video_page(const bool pixels) {
-		return &ram_[pixels ? 0 : 0x1'0000];
-	}
-
-	void page_lower(const bool pixels) {
-		start_pointer_ = video_page(pixels);
-	}
+	MemoryMap<is_mo6> memory_;
 
 	friend struct SystemPIAPortHandler;
 	struct SystemPIAPortHandler {
@@ -331,11 +347,22 @@ private:
 		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::A) {
 				//	Port A outputs:
+				//
 				//		b0 = lower 8kb RAM paging;
+				//		b6: tape output.
+				//
+				//	Plus MO5:
 				//		b1–4: border colour;
-				//		b6: tape output
-				machine_.page_lower(value & 1);
-				machine_.video_->set_border_colour((value >> 1) & 0xf);
+				//
+				//	MO6:
+				//		b5: ROM page selection
+				//
+				machine_.memory_.page_video(value & 0x01);
+				machine_.memory_.page_monitor(value & 0x20);
+
+				if constexpr (!is_mo6) {
+					machine_.video_->set_border_colour((value >> 1) & 0xf);
+				}
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
@@ -622,8 +649,11 @@ private:
 		}
 
 		if(!media.cartridges.empty()) {
-			auto segment = media.cartridges.front()->segments().front();
-			std::copy_n(segment.data.begin(), std::min<size_t>(segment.data.size(), 16384), rom_.begin());
+			auto rom = media.cartridges.front()->segments().front().data;
+			if(rom.size() < 16384) {
+				rom.resize(16384);
+			}
+			memory_.set_cartridge(rom);
 		}
 
 		if(has_floppy) {
@@ -678,15 +708,25 @@ private:
 
 }
 
+namespace {
+template <bool is_mo6>
+std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	switch(target.floppy) {
+		using enum Target::Floppy;
+		case None:		return std::make_unique<ConcreteMachine<false, is_mo6>>(target, rom_fetcher);
+		case CD90_640:	return std::make_unique<ConcreteMachine<true, is_mo6>>(target, rom_fetcher);
+	}
+}
+}
+
 std::unique_ptr<Machine> Machine::ThomsonMO(
 	const Analyser::Static::Target *target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	using Target = Analyser::Static::Thomson::MOTarget;
 	const Target *const thomson_target = dynamic_cast<const Target *>(target);
-
-	switch(thomson_target->floppy) {
-		case Target::Floppy::None:		return std::make_unique<ConcreteMachine<false>>(*thomson_target, rom_fetcher);
-		case Target::Floppy::CD90_640:	return std::make_unique<ConcreteMachine<true>>(*thomson_target, rom_fetcher);
+	if(Analyser::Static::Thomson::is_mo6(thomson_target->model)) {
+		return machine<true>(*thomson_target, rom_fetcher);
+	} else {
+		return machine<false>(*thomson_target, rom_fetcher);
 	}
 }

@@ -11,6 +11,7 @@
 
 #include "ClockReceiver/ClockReceiver.hpp"
 #include "Numeric/SegmentCounter.hpp"
+#include "Numeric/SizedInt.hpp"
 #include "Outputs/CRT/CRT.hpp"
 
 namespace Thomson::MO5 {
@@ -20,10 +21,65 @@ public:
 	Video(const uint8_t *pixels, const uint8_t *attributes);
 	void run_for(Cycles);
 	Cycles next_sequence_point() const;
+	bool irq() const;
+
+	// MARK: - Writes.
 
 	void set_border_colour(uint8_t);
-	bool irq() const;
-	uint8_t sync() const;
+	void set_palette_index(uint8_t);
+	void set_palette(uint8_t);
+
+	// MARK: - Reads.
+
+	uint8_t vertical_state() const;
+	uint8_t horizontal_state() const;
+	uint8_t palette_index() const;
+	uint8_t palette();
+
+	// MARK: - Address-based access.
+
+	template <uint16_t address>
+	uint8_t read() {
+		switch(address) {
+			case 0xa7e4:	return 0;	// TODO: MSB of lightpen counter.
+			case 0xa7e5:	return 0;	// TODO: LSB of lightpen counter.
+			case 0xa7e6:	return horizontal_state();
+			case 0xa7e7:	return vertical_state();
+
+			case 0xa7da:	return palette();
+			case 0xa7db:	return palette_index();
+
+			default:		break;
+		}
+		return 0xff;
+	}
+
+	template <uint16_t address>
+	void write(const uint8_t value) {
+		switch(address) {
+			case 0xa7e5:
+				// TODO: enable (0) or disable (1) video mode access at 0xa7dc.
+			break;
+			case 0xa7e7:
+				// TODO: b5 = 1 => 525-line output; 0 = 625-line output.
+			break;
+
+			case 0xa7da:	set_palette(value);			break;
+			case 0xa7db:	set_palette_index(value);	break;
+			case 0xa7dc:
+				// TODO:
+				//
+				//	b6, b5: video data organisation
+				//	b4, b3: data frequency
+				//	b2, b1, b0: display mode
+				printf("TODO: Video mode: %02x\n", value);
+			break;
+			case 0xa7dd:	set_border_colour(value);	break;
+
+			default:
+			break;
+		}
+	}
 
 	// MARK: - Standard boilerplate.
 
@@ -52,36 +108,44 @@ private:
 	uint16_t border_ = 0;
 	uint16_t *output_ = nullptr;
 
+	// Pixel outputters.
 	void vsync_line(int, int);
 	void border_line(int, int);
 	void pixel_line(int, int);
 
-	// Video timing, as far as auto-translate lets me figure it out:
-	//
-	//	64 cycles/line;
-	//	56 lines post signalled vsync, then 200 of video, then 56 more, for 312 total.
-	//
-	// Start of vsync is connected to CPU IRQ.
-	//
-	// Within a line: ??? Who knows ???
-	//
-	// Have rationalised as 4 cycles of sync and the rest as appropriate colours. Via IRQCycle the interrupt can be placed
-	// arbitrarily within the frame so I think any implementation within a line is valid as long as I place the interrupt
-	// appropriately. TODO: where is the interrupt placed?
-	//
-	static constexpr int CyclesPerLine = 64;
-	static constexpr int TotalLines = 312;
+	// Gate array version only: palette.
+	uint8_t palette_[32];
+	Numeric::SizedInt<5> palette_index_ = 0;
 
-	static constexpr int TotalPixelLines = 200;
-	static constexpr int VerticalSyncLine = 256;
-	static constexpr int VerticalSyncLength = 3;
+	// Line layout: [sync][border][pixels][border].
+	struct Line {
+		static constexpr int EndOfSync = 4;
+		static constexpr int EndOfLeftBorder = 14;
+		static constexpr int EndOfPixels = 54;
+		static constexpr int TotalCycles = 64;
 
-	static constexpr int IRQCycle = 256 * CyclesPerLine;
-	static constexpr int IRQLength = 8;
+		static constexpr int TotalPixels = 320;
+	};
 
-	static constexpr int FrameLength = TotalLines * CyclesPerLine;
+	// Total frame size.
+	struct Frame {
+		static constexpr int TotalLines = 312;
+		static constexpr int TotalCycles = TotalLines * Line::TotalCycles;
 
-	Numeric::DividingAccumulator<CyclesPerLine, TotalLines> position_;
+		// Line placement; pixel lines begin with internal line 0.
+		static constexpr int TotalPixelLines = 200;
+		static constexpr int VerticalSyncLine = 256;
+		static constexpr int VerticalSyncLength = 3;
+	};
+
+	// IRQ placement.
+	struct IRQ {
+		static constexpr int Cycle = 256 * Line::TotalCycles;
+		static constexpr int Length = 8;
+	};
+
+	// Frame position counter.
+	Numeric::DividingAccumulator<Line::TotalCycles, Frame::TotalLines> position_;
 };
 
 }

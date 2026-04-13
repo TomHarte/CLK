@@ -46,6 +46,7 @@ struct SizedInt {
 		value_ &= offset.value_;
 		return *this;
 	}
+
 	SizedInt &operator |=(const SizedInt offset) {
 		value_ |= offset.value_;
 		return *this;
@@ -94,11 +95,13 @@ struct SizedInt {
 		value_ |= IntT((value << begin) & mask);
 	}
 
+	/// Replaces bits starting from @c begin with all of those from @c value.
 	template <int begin, typename IntT>
 	void load(const IntT value) {
 		load<begin, begin + sizeof(IntT)*8>(value);
 	}
 
+	/// @returns Bit at @c index.
 	template <int index>
 	requires (index < bits)
 	bool bit() const {

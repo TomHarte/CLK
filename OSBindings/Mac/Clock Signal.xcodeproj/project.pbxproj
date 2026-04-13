@@ -1511,6 +1511,7 @@
 		4B1B88C6202E469300B67DFF /* MultiJoystickMachine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MultiJoystickMachine.cpp; sourceTree = "<group>"; };
 		4B1B88C7202E469300B67DFF /* MultiJoystickMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MultiJoystickMachine.hpp; sourceTree = "<group>"; };
 		4B1D08051E0F7A1100763741 /* TimeTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TimeTests.mm; sourceTree = "<group>"; };
+		4B1D82F82F86E35300CBCFBE /* MemoryMap.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MemoryMap.hpp; sourceTree = "<group>"; };
 		4B1E857B1D174DEC001EF87D /* 6532.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6532.hpp; sourceTree = "<group>"; };
 		4B1E85801D176468001EF87D /* 6532Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6532Tests.swift; sourceTree = "<group>"; };
 		4B1EC714255398B000A1F44B /* Sound.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Sound.cpp; sourceTree = "<group>"; };
@@ -5367,6 +5368,7 @@
 				4BBC7DC02F6D94E500E71794 /* Video.cpp */,
 				4B062D182F81427D00472717 /* CD90-640.hpp */,
 				4BBC7DC52F70BAFB00E71794 /* Keyboard.hpp */,
+				4B1D82F82F86E35300CBCFBE /* MemoryMap.hpp */,
 				4BCA6FA82F589C0C000B9537 /* MO5.hpp */,
 				4BBC7DBF2F6D94E500E71794 /* Video.hpp */,
 			);

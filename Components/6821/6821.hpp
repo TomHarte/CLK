@@ -26,8 +26,6 @@ enum class Control {
 	CB1,	CB2,
 };
 
-// TODO: CB2/CA2 output.
-
 template <typename PortHandlerT, int RS0Mask = 1, int RS1Mask = 2>
 class MC6821 {
 public:
