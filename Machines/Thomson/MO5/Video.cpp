@@ -8,6 +8,7 @@
 
 #include "Video.hpp"
 
+#include <algorithm>
 #include <bit>
 
 using namespace Thomson::MO5;
@@ -28,6 +29,147 @@ constexpr uint16_t mo5_palette[] = {
 	rgb(0xaaa),	rgb(0xfaa),	rgb(0xafa),	rgb(0xffa),	rgb(0x5af),	rgb(0xfaf),	rgb(0xaff),	rgb(0xfa5),
 };
 
+// MARK: - Pixel generators.
+
+// TODO: all of the below ignore the bit ordering. Don't.
+
+template <PixelMode, DotClock, BitOrdering>
+struct PixelGenerator {
+	static void output(
+		[[maybe_unused]] uint8_t bank0,
+		[[maybe_unused]] uint8_t bank1,
+		[[maybe_unused]] uint16_t *target,
+		[[maybe_unused]] const std::array<uint16_t, 16> &palette
+	) {}
+};
+
+//
+// 40-column mode.
+//
+template <DotClock clock, BitOrdering ordering>
+struct PixelGenerator<PixelMode::Columns40, clock, ordering> {
+	static void output(
+		const uint8_t bank0,
+		const uint8_t bank1,
+		uint16_t *const target,
+		const std::array<uint16_t, 16> &palette
+	) {
+		const uint16_t colours[] = {
+			palette[bank1 & 0xf],
+			palette[bank1 >> 4],
+		};
+
+		target[0] = colours[(bank0 >> 7) & 1];
+		target[1] = colours[(bank0 >> 6) & 1];
+		target[2] = colours[(bank0 >> 5) & 1];
+		target[3] = colours[(bank0 >> 4) & 1];
+		if constexpr (pixels_per_column(clock) == 4) {
+			return;
+		}
+
+		target[4] = colours[(bank0 >> 3) & 1];
+		target[5] = colours[(bank0 >> 2) & 1];
+		target[6] = colours[(bank0 >> 1) & 1];
+		target[7] = colours[(bank0 >> 0) & 1];
+		if constexpr (pixels_per_column(clock) == 8) {
+			return;
+		}
+
+		std::fill_n(&target[8], 8, colours[0]);
+	}
+};
+
+//
+// 80-column mode.
+//
+template <DotClock clock, BitOrdering ordering>
+struct PixelGenerator<PixelMode::Columns80, clock, ordering> {
+	static void output(
+		const uint8_t bank0,
+		const uint8_t bank1,
+		uint16_t *const target,
+		const std::array<uint16_t, 16> &palette
+	) {
+		target[0] = palette[(bank0 >> 7) & 1];
+		target[1] = palette[(bank1 >> 7) & 1];
+		target[2] = palette[(bank0 >> 6) & 1];
+		target[3] = palette[(bank1 >> 6) & 1];
+		if constexpr (pixels_per_column(clock) == 4) {
+			return;
+		}
+
+		target[4] = palette[(bank0 >> 5) & 1];
+		target[5] = palette[(bank1 >> 5) & 1];
+		target[6] = palette[(bank0 >> 4) & 1];
+		target[7] = palette[(bank1 >> 4) & 1];
+		if constexpr (pixels_per_column(clock) == 8) {
+			return;
+		}
+
+		target[8] = palette[(bank0 >> 3) & 1];
+		target[9] = palette[(bank1 >> 3) & 1];
+		target[10] = palette[(bank0 >> 2) & 1];
+		target[11] = palette[(bank1 >> 2) & 1];
+		target[12] = palette[(bank0 >> 1) & 1];
+		target[13] = palette[(bank1 >> 1) & 1];
+		target[14] = palette[(bank0 >> 0) & 1];
+		target[15] = palette[(bank1 >> 0) & 1];
+	}
+};
+
+//
+// 2bpp mode.
+//
+template <DotClock clock, BitOrdering ordering>
+struct PixelGenerator<PixelMode::Bitmap4, clock, ordering> {
+	static void output(
+		const uint8_t bank0,
+		const uint8_t bank1,
+		uint16_t *const target,
+		const std::array<uint16_t, 16> &palette
+	) {
+		target[0] = palette[(bank0 >> 6) & 0x03];
+		target[1] = palette[(bank0 >> 4) & 0x03];
+		target[2] = palette[(bank0 >> 2) & 0x03];
+		target[3] = palette[(bank0 >> 0) & 0x03];
+		if constexpr (pixels_per_column(clock) == 4) {
+			return;
+		}
+
+		target[4] = palette[(bank1 >> 6) & 0x03];
+		target[5] = palette[(bank1 >> 4) & 0x03];
+		target[6] = palette[(bank1 >> 2) & 0x03];
+		target[7] = palette[(bank1 >> 0) & 0x03];
+		if constexpr (pixels_per_column(clock) == 8) {
+			return;
+		}
+
+		std::fill_n(&target[8], 8, palette[0]);
+	}
+};
+
+//
+// 4bpp mode.
+//
+template <DotClock clock, BitOrdering ordering>
+struct PixelGenerator<PixelMode::Bitmap16, clock, ordering> {
+	static void output(
+		const uint8_t bank0,
+		const uint8_t bank1,
+		uint16_t *const target,
+		const std::array<uint16_t, 16> &palette
+	) {
+		target[0] = palette[(bank0 >> 4) & 0x0f];
+		target[1] = palette[(bank0 >> 0) & 0x0f];
+		target[2] = palette[(bank1 >> 4) & 0x0f];
+		target[3] = palette[(bank1 >> 0) & 0x0f];
+
+		if constexpr (pixels_per_column(clock) > 4) {
+			std::fill_n(&target[4], pixels_per_column(clock) - 4, palette[0]);
+		}
+	}
+};
+
 }
 
 Video::Video(const uint8_t *const pixels, const uint8_t *const attributes) :
@@ -42,6 +184,9 @@ Video::Video(const uint8_t *const pixels, const uint8_t *const attributes) :
 		run_for(Cycles(10'000));
 	});
 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
+
+	// Set default palette.
+	std::copy(std::begin(mo5_palette), std::end(mo5_palette), std::begin(mapped_palette_));
 }
 
 void Video::run_for(const Cycles cycles) {
@@ -53,7 +198,28 @@ void Video::run_for(const Cycles cycles) {
 			} else if(line >= Frame::TotalPixelLines) {
 				border_line(begin, end);
 			} else {
-				pixel_line(begin, end);
+				#define Opt(x)		case x: pixel_line<x>(begin, end);	break;
+				#define Opt2(x)		Opt(x + 0x00);		Opt(x + 0x01);
+				#define Opt4(x)		Opt2(x + 0x00);		Opt2(x + 0x02);
+				#define Opt8(x)		Opt4(x + 0x00);		Opt4(x + 0x04);
+				#define Opt16(x)	Opt8(x + 0x00);		Opt8(x + 0x08);
+				#define Opt32(x)	Opt16(x + 0x00);	Opt16(x + 0x10);
+				#define Opt64(x)	Opt32(x + 0x00);	Opt32(x + 0x20);
+				#define Opt128(x)	Opt64(x + 0x00);	Opt64(x + 0x40);
+
+				switch(mode_ & 0x7f) {
+					Opt128(0);
+				}
+
+				#undef Opt
+				#undef Opt2
+				#undef Opt4
+				#undef Opt8
+				#undef Opt16
+				#undef Opt32
+				#undef Opt64
+				#undef Opt128
+
 			}
 		},
 		[&] {
@@ -104,54 +270,59 @@ void Video::border_line(const int line_begin, const int line_end) {
 		crt_.output_sync(end - begin);
 	});
 	Numeric::clamp<Line::EndOfSync, Line::TotalCycles>(line_begin, line_end, [&](const int begin, const int end) {
-		crt_.output_level(end - begin, border_);
+		crt_.output_level(end - begin, mapped_border_);
 	});
 }
 
+template <uint8_t mode>
 void Video::pixel_line(const int line_begin, const int line_end) {
 	Numeric::clamp<0, Line::EndOfSync>(line_begin, line_end, [&](const int begin, const int end) {
 		crt_.output_sync(end - begin);
 	});
 	Numeric::clamp<Line::EndOfSync, Line::EndOfLeftBorder>(line_begin, line_end, [&](const int begin, const int end) {
-		crt_.output_level(end - begin, border_);
+		crt_.output_level(end - begin, mapped_border_);
 	});
 	Numeric::clamp<Line::EndOfLeftBorder, Line::EndOfPixels>(line_begin, line_end, [&](const int begin, const int end) {
-		if(begin == Line::EndOfLeftBorder) {
-			output_ = reinterpret_cast<uint16_t *>(crt_.begin_data(Line::TotalPixels));
+		const auto flush_pixels = [&] {
+			crt_.output_data(Line::EndOfPixels - output_begin_column_, size_t(output_ - output_begin_));
+			output_ = output_begin_ = nullptr;
+		};
+
+		// Flush existing pixels if the pixel rate has changed.
+		static constexpr auto pixel_rate = pixels_per_column(mode);
+		if(output_ && pixel_rate != output_pixel_rate_) {
+			flush_pixels();
+		}
+
+		// Try to grab a buffer if without one.
+		if(!output_) {
+			output_ = output_begin_ = reinterpret_cast<uint16_t *>(crt_.begin_data(size_t(pixel_rate * 40)));
+			output_begin_column_ = begin;
+			output_pixel_rate_ = pixel_rate;
 		}
 
 		if(output_) {
 			for(int c = begin; c < end; c++) {
-				const uint8_t pixels = pixels_[source_address_];
-				const uint8_t attributes = attributes_[source_address_];
+				PixelGenerator<pixel_mode(mode), dot_clock(mode), bit_ordering(mode)>::output(
+					pixels_[source_address_],
+					attributes_[source_address_],
+					output_,
+					mapped_palette_
+				);
 				++source_address_;
+				output_ += pixel_rate;
+			}
 
-				const uint16_t colours[] = {
-					mo5_palette[attributes & 0xf],
-					mo5_palette[attributes >> 4],
-				};
-
-				output_[0] = colours[(pixels >> 7) & 1];
-				output_[1] = colours[(pixels >> 6) & 1];
-				output_[2] = colours[(pixels >> 5) & 1];
-				output_[3] = colours[(pixels >> 4) & 1];
-				output_[4] = colours[(pixels >> 3) & 1];
-				output_[5] = colours[(pixels >> 2) & 1];
-				output_[6] = colours[(pixels >> 1) & 1];
-				output_[7] = colours[(pixels >> 0) & 1];
-				output_ += 8;
+			if(end == Line::EndOfPixels) {
+				flush_pixels();
 			}
 		} else {
 			source_address_ += end - begin;
-		}
-
-		if(end == Line::EndOfPixels) {
-			crt_.output_data(Line::EndOfPixels - Line::EndOfLeftBorder, Line::TotalPixels);
-			output_ = nullptr;
+			crt_.output_data(end - begin, 1);
 		}
 	});
 	Numeric::clamp<Line::EndOfPixels, Line::TotalCycles>(line_begin, line_end, [&](const int begin, const int end) {
-		crt_.output_level(end - begin, border_);
+		crt_.output_level(end - begin, mapped_border_);
 	});
 }
 
@@ -172,7 +343,8 @@ bool Video::irq() const {
 }
 
 void Video::set_border_colour(const uint8_t colour) {
-	border_ = mo5_palette[colour & 0xf];
+	border_ = colour & 0xf;
+	update_mapped_border();
 }
 
 uint8_t Video::palette_index() const {
@@ -190,6 +362,22 @@ uint8_t Video::palette() {
 }
 
 void Video::set_palette(const uint8_t value) {
-	palette_[palette_index_.get()] = value;
+	// Update internal store.
+	const auto index = palette_index_.get();
 	++palette_index_;
+	palette_[index] = value;
+
+	// Update output colour.
+	const auto rg = palette_[index & ~1];
+	const auto b = palette_[index | 1];
+	mapped_palette_[index >> 1] = rgb(uint16_t(
+		((rg & 0x0f) << 8) |
+		(rg & 0xf0) |
+		(b & 0x0f)
+	));
+	update_mapped_border();
+}
+
+void Video::set_mode(const uint8_t value) {
+	mode_ = value;
 }

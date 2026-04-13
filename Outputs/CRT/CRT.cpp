@@ -137,8 +137,14 @@ void CRT::set_dynamic_framing(
 
 void CRT::set_fixed_framing(const std::function<void()> &advance) {
 	framing_ = Framing::CalibratingAutomaticFixed;
-	while(framing_ == Framing::CalibratingAutomaticFixed) {
+
+	static constexpr int MaxSpins = 1000;
+	int spin = 0;
+	while(framing_ == Framing::CalibratingAutomaticFixed && ++spin < MaxSpins) {
 		advance();
+	}
+	if(spin == MaxSpins) {
+		Logger::info().append("CRT failed to calibrate after %d spins", spin);
 	}
 }
 

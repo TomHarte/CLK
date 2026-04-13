@@ -14,7 +14,41 @@
 #include "Numeric/SizedInt.hpp"
 #include "Outputs/CRT/CRT.hpp"
 
+#include <array>
+
 namespace Thomson::MO5 {
+
+enum class BitOrdering {
+	Legacy = 0b00,
+	Direct = 0b01,
+	Special = 0b10,
+	Transposed = 0b11,
+};
+enum class DotClock {
+	EightMhz1 = 0b00,
+	EightMhz2 = 0b10,
+	FourMhz = 0b11,
+	SixteenMhz = 0b01,
+};
+constexpr int pixels_per_column(const DotClock clock) {
+	switch(clock) {
+		default: __builtin_unreachable();
+		case DotClock::FourMhz:		return 4;
+		case DotClock::EightMhz1:
+		case DotClock::EightMhz2:	return 8;
+		case DotClock::SixteenMhz:	return 16;
+	}
+}
+enum class PixelMode {
+	Columns40 = 0b000,
+	Bitmap4 = 0b001,
+	Columns80 = 0b010,
+	Bitmap16 = 0b011,
+	Page1 = 0b100,
+	Page2 = 0b101,
+	Overprint = 0b110,
+	TripleOverprint = 0b11,
+};
 
 struct Video {
 public:
@@ -28,6 +62,7 @@ public:
 	void set_border_colour(uint8_t);
 	void set_palette_index(uint8_t);
 	void set_palette(uint8_t);
+	void set_mode(uint8_t);
 
 	// MARK: - Reads.
 
@@ -58,7 +93,7 @@ public:
 	void write(const uint8_t value) {
 		switch(address) {
 			case 0xa7e5:
-				// TODO: enable (0) or disable (1) video mode access at 0xa7dc.
+				enable_mode_access_ = !(value & 0x80);
 			break;
 			case 0xa7e7:
 				// TODO: b5 = 1 => 525-line output; 0 = 625-line output.
@@ -67,12 +102,9 @@ public:
 			case 0xa7da:	set_palette(value);			break;
 			case 0xa7db:	set_palette_index(value);	break;
 			case 0xa7dc:
-				// TODO:
-				//
-				//	b6, b5: video data organisation
-				//	b4, b3: data frequency
-				//	b2, b1, b0: display mode
-				printf("TODO: Video mode: %02x\n", value);
+				if(enable_mode_access_) {
+					set_mode(value);
+				}
 			break;
 			case 0xa7dd:	set_border_colour(value);	break;
 
@@ -105,17 +137,42 @@ private:
 	Outputs::CRT::CRT crt_;
 
 	uint16_t source_address_ = 0;
-	uint16_t border_ = 0;
-	uint16_t *output_ = nullptr;
+	uint16_t *output_ = nullptr, *output_begin_ = nullptr;
+	int output_begin_column_ = 0;
+	int output_pixel_rate_ = 0;
+
+	std::array<uint16_t, 16> mapped_palette_;
+	uint16_t mapped_border_ = 0;
+	void update_mapped_border() {
+		mapped_border_ = mapped_palette_[border_];
+	}
 
 	// Pixel outputters.
 	void vsync_line(int, int);
 	void border_line(int, int);
+	template <uint8_t mode>
 	void pixel_line(int, int);
 
-	// Gate array version only: palette.
-	uint8_t palette_[32];
+	// For gate array support: palette and mode.
+	std::array<uint8_t, 32> palette_;
+	uint8_t border_;
 	Numeric::SizedInt<5> palette_index_ = 0;
+
+	bool enable_mode_access_ = true;
+	uint8_t mode_ = 0b0'01'00'000;	// Direct mode byte translation, 8 Mhz clock, 40-column output.
+
+	static constexpr BitOrdering bit_ordering(const uint8_t mode) {
+		return BitOrdering((mode >> 5) & 0b11);
+	}
+	static constexpr DotClock dot_clock(const uint8_t mode) {
+		return DotClock((mode >> 3) & 0b11);
+	}
+	static constexpr int pixels_per_column(const uint8_t mode) {
+		return Thomson::MO5::pixels_per_column(dot_clock(mode));
+	}
+	static constexpr PixelMode pixel_mode(const uint8_t mode) {
+		return PixelMode(mode & 0b111);
+	}
 
 	// Line layout: [sync][border][pixels][border].
 	struct Line {
