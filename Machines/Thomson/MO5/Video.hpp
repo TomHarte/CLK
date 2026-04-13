@@ -102,9 +102,9 @@ public:
 			case 0xa7da:	set_palette(value);			break;
 			case 0xa7db:	set_palette_index(value);	break;
 			case 0xa7dc:
-//				if(enable_mode_access_) {
+				if(enable_mode_access_) {
 					set_mode(value);
-//				}
+				}
 			break;
 			case 0xa7dd:	set_border_colour(value);	break;
 
@@ -158,7 +158,7 @@ private:
 	uint8_t border_;
 	Numeric::SizedInt<5> palette_index_ = 0;
 
-	bool enable_mode_access_ = false;
+	bool enable_mode_access_ = true;
 	uint8_t mode_ = 0b0'01'00'000;	// Direct mode byte translation, 8 Mhz clock, 40-column output.
 
 	static constexpr BitOrdering bit_ordering(const uint8_t mode) {
