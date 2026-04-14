@@ -30,10 +30,13 @@ enum Key: uint16_t {
 	// The ZX80 and ZX81 keyboards have a full stop; the ZX Spectrum replaces that key with symbol shift.
 	KeyDot	= 0x0700 | 0x02,		KeySymbolShift = KeyDot,
 
-	// Add some virtual keys; these do not exist on a real ZX80, ZX81 or early Spectrum, those all were added to the 128kb Spectrums.
-	// Either way, they're a convenience.
+	// Add some virtual keys; these do not exist on a real ZX80, ZX81 or early Spectrum,
+	// all were added to the 128kb Spectrums.
 	KeyDelete	= 0x0801,
 	KeyBreak, KeyLeft, KeyRight, KeyUp, KeyDown, KeyEdit, KeySpectrumDot, KeyComma,
+
+	// The ZX Spectrum uses a complicated modal input for some symbols; this captures that.
+	KeyExtendedMode,
 };
 
 class Keyboard {
@@ -62,10 +65,10 @@ private:
 
 class CharacterMapper: public ::Utility::CharacterMapper {
 public:
-	CharacterMapper(Machine machine);
-	const uint16_t *sequence_for_character(char character) const override;
+	CharacterMapper(Machine);
+	const std::vector<uint16_t> *sequence_for_character(wchar_t) const override;
 
-	bool needs_pause_after_key(uint16_t key) const override;
+	bool needs_pause_after_key(uint16_t) const override;
 
 private:
 	const Machine machine_;

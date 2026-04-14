@@ -660,20 +660,21 @@ private:
 public:
 
 	// MARK: - Typer.
-	HalfCycles get_typer_delay(const std::string &) const override {
+	HalfCycles typer_delay(const std::wstring &) const override {
 		return z80_.get_is_resetting() ? Cycles(7'000'000) : Cycles(0);
 	}
 
-	HalfCycles get_typer_frequency() const override{
+	HalfCycles typer_frequency() const override{
 		return Cycles(70'908);
 	}
 
-	KeyboardMapper *get_keyboard_mapper() override {
+	KeyboardMapper *keyboard_mapper() override {
 		return &keyboard_mapper_;
 	}
 
 	// MARK: - Keyboard.
 	void set_key_state(uint16_t key, bool is_pressed) override {
+		// TODO: Handle KeyExtendedMode.
 		keyboard_.set_key_state(key, is_pressed);
 	}
 
