@@ -50,7 +50,8 @@ template <> struct TaskQueueStorage<void> {
 	to be performed serially and asynchronously from the caller.
 
 	If @c perform_automatically is true, functions will be performed as soon as is possible,
-	at the cost of thread synchronisation.
+	at the cost of thread synchronisation. If false then they'll be enqueued but not performed until
+	either: (i) the queue becomes quite long; or (ii) an explicit perform is requested.
 
 	If @c perform_automatically is false, functions will be queued up but not dispatched
 	until a call to perform().
@@ -94,6 +95,10 @@ public:
 
 		if constexpr (perform_automatically) {
 			condition_.notify_all();
+		} else {
+			if(actions_.size() > 1000) {
+				condition_.notify_all();
+			}
 		}
 	}
 
