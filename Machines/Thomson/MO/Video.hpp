@@ -47,7 +47,7 @@ enum class PixelMode {
 	Page1 = 0b100,
 	Page2 = 0b101,
 	Overprint = 0b110,
-	TripleOverprint = 0b11,
+	TripleOverprint = 0b111,
 };
 
 struct Video {

@@ -36,51 +36,72 @@ constexpr uint16_t mo5_palette[] = {
 template <PixelMode, DotClock, BitOrdering>
 struct PixelGenerator {
 	static void output(
-		[[maybe_unused]] uint8_t bank0,
-		[[maybe_unused]] uint8_t bank1,
-		[[maybe_unused]] uint16_t *target,
-		[[maybe_unused]] const std::array<uint16_t, 16> &palette
-	) {}
-};
-
-//
-// 40-column mode.
-//
-template <DotClock clock, BitOrdering ordering>
-struct PixelGenerator<PixelMode::Columns40, clock, ordering> {
-	static void output(
-		const uint8_t bank0,
-		const uint8_t bank1,
-		uint16_t *const target,
+		uint8_t bank0,
+		uint8_t bank1,
+		uint16_t *target,
 		const std::array<uint16_t, 16> &palette
-	) {
-		const uint16_t colours[] = {
-			palette[bank1 & 0xf],
-			palette[bank1 >> 4],
-		};
-
-		target[0] = colours[(bank0 >> 7) & 1];
-		target[1] = colours[(bank0 >> 6) & 1];
-		target[2] = colours[(bank0 >> 5) & 1];
-		target[3] = colours[(bank0 >> 4) & 1];
-		if constexpr (pixels_per_column(clock) == 4) {
-			return;
-		}
-
-		target[4] = colours[(bank0 >> 3) & 1];
-		target[5] = colours[(bank0 >> 2) & 1];
-		target[6] = colours[(bank0 >> 1) & 1];
-		target[7] = colours[(bank0 >> 0) & 1];
-		if constexpr (pixels_per_column(clock) == 8) {
-			return;
-		}
-
-		std::fill_n(&target[8], 8, colours[0]);
-	}
+	);
 };
 
 //
-// 80-column mode.
+// 40-column, and Pages 1 and 2.
+//
+template <PixelMode mode, DotClock clock, BitOrdering ordering>
+void PixelGenerator<mode, clock, ordering>::output(
+	const uint8_t bank0,
+	const uint8_t bank1,
+	uint16_t *const target,
+	const std::array<uint16_t, 16> &palette
+) {
+	const std::array<uint16_t, 2> colours = [&] () -> std::array<uint16_t, 2> {
+		switch(mode) {
+			case PixelMode::Page1:
+				return {
+					palette[8],
+					palette[9],
+				};
+
+			case PixelMode::Page2:
+				return {
+					palette[8],
+					palette[10],
+				};
+
+			case PixelMode::Columns40:
+				return {
+					palette[bank1 & 0xf],
+					palette[bank1 >> 4],
+				};
+
+			default:
+				__builtin_unreachable();
+		}
+	} ();
+
+	const uint8_t pixels = mode == PixelMode::Page2 ? bank1 : bank0;
+
+	target[0] = colours[(pixels >> 7) & 1];
+	target[1] = colours[(pixels >> 6) & 1];
+	target[2] = colours[(pixels >> 5) & 1];
+	target[3] = colours[(pixels >> 4) & 1];
+	if constexpr (pixels_per_column(clock) == 4) {
+		return;
+	}
+
+	target[4] = colours[(pixels >> 3) & 1];
+	target[5] = colours[(pixels >> 2) & 1];
+	target[6] = colours[(pixels >> 1) & 1];
+	target[7] = colours[(pixels >> 0) & 1];
+	if constexpr (pixels_per_column(clock) == 8) {
+		return;
+	}
+
+	std::fill_n(&target[8], 8, colours[0]);
+}
+
+
+//
+// 80-column.
 //
 template <DotClock clock, BitOrdering ordering>
 struct PixelGenerator<PixelMode::Columns80, clock, ordering> {
@@ -118,7 +139,7 @@ struct PixelGenerator<PixelMode::Columns80, clock, ordering> {
 };
 
 //
-// 2bpp mode.
+// 2bpp.
 //
 template <DotClock clock, BitOrdering ordering>
 struct PixelGenerator<PixelMode::Bitmap4, clock, ordering> {
@@ -149,7 +170,7 @@ struct PixelGenerator<PixelMode::Bitmap4, clock, ordering> {
 };
 
 //
-// 4bpp mode.
+// 4bpp.
 //
 template <DotClock clock, BitOrdering ordering>
 struct PixelGenerator<PixelMode::Bitmap16, clock, ordering> {
@@ -163,13 +184,98 @@ struct PixelGenerator<PixelMode::Bitmap16, clock, ordering> {
 		target[1] = palette[(bank0 >> 0) & 0x0f];
 		target[2] = palette[(bank1 >> 4) & 0x0f];
 		target[3] = palette[(bank1 >> 0) & 0x0f];
-
-		if constexpr (pixels_per_column(clock) > 4) {
-			std::fill_n(&target[4], pixels_per_column(clock) - 4, palette[0]);
+		if constexpr (pixels_per_column(clock) == 4) {
+			return;
 		}
+
+		std::fill_n(&target[4], pixels_per_column(clock) - 4, palette[0]);
 	}
 };
 
+//
+// Overprint.
+//
+template <DotClock clock, BitOrdering ordering>
+struct PixelGenerator<PixelMode::Overprint, clock, ordering> {
+	static void output(
+		uint8_t bank0,
+		uint8_t bank1,
+		uint16_t *const target,
+		const std::array<uint16_t, 16> &palette
+	) {
+		const uint16_t colours[] = {
+			palette[8],
+			palette[10],
+			palette[9],
+		};
+
+		// Bank 0 appears on top of bank 1.
+		bank1 &= ~bank0;
+
+		uint32_t spread = uint32_t((bank0 << 16) | bank1);		// -> 00000000 aaaaaaaa 00000000 bbbbbbbb
+		spread = (spread | (spread << 8)) & 0x0f0f0f0f;			// -> 0000aaaa 0000aaaa 0000bbbb 0000bbbb
+		spread = (spread | (spread << 4)) & 0x33333333;			// -> 00aa00aa 00aa00aa 00bb00bb 00bb00bb
+		spread = (spread | (spread << 2)) & 0x55555555;			// -> 0a0a0a0a 0a0a0a0a 0b0b0b0b 0b0b0b0b
+
+		const uint16_t mix = uint16_t((spread >> 15) | spread);	// -> abababab abababab
+
+		target[0] = colours[(mix >> 14) & 3];
+		target[1] = colours[(mix >> 12) & 3];
+		target[2] = colours[(mix >> 10) & 3];
+		target[3] = colours[(mix >> 8) & 3];
+		if constexpr (pixels_per_column(clock) == 4) {
+			return;
+		}
+
+		target[0] = colours[(mix >> 6) & 3];
+		target[1] = colours[(mix >> 4) & 3];
+		target[2] = colours[(mix >> 2) & 3];
+		target[3] = colours[(mix >> 0) & 3];
+		if constexpr (pixels_per_column(clock) == 8) {
+			return;
+		}
+
+		std::fill_n(&target[8], 8, palette[8]);
+	}
+};
+
+
+//
+// Triple overprint.
+//
+template <DotClock clock, BitOrdering ordering>
+struct PixelGenerator<PixelMode::TripleOverprint, clock, ordering> {
+	static void output(
+		uint8_t bank0,
+		uint8_t bank1,
+		uint16_t *const target,
+		const std::array<uint16_t, 16> &palette
+	) {
+		// Stated rule per https://pulkomandy.tk/wiki/doku.php?id=documentations:devices:gate.arrays is as below:
+		//
+		//	* Colors 0-7 all become color 0
+		//	* Colors 12-15 all become color 12
+		//	* Color 11 becomes color 10.
+		const uint16_t colours[16] = {
+			palette[0],	palette[0],	palette[0],	palette[0],	palette[0],	palette[0],	palette[0],
+			palette[8],
+			palette[9],
+			palette[10],
+			palette[10],
+			palette[12], palette[12], palette[12], palette[12]
+		};
+
+		target[0] = colours[(bank0 >> 4) & 0x0f];
+		target[1] = colours[(bank0 >> 0) & 0x0f];
+		target[2] = colours[(bank1 >> 4) & 0x0f];
+		target[3] = colours[(bank1 >> 0) & 0x0f];
+		if constexpr (pixels_per_column(clock) == 4) {
+			return;
+		}
+
+		std::fill_n(&target[4], pixels_per_column(clock) - 4, palette[0]);
+	}
+};
 }
 
 Video::Video(const uint8_t *const pixels, const uint8_t *const attributes) :
