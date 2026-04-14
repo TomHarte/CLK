@@ -97,6 +97,9 @@ public:
 			break;
 			case 0xa7e7:
 				// TODO: b5 = 1 => 525-line output; 0 = 625-line output.
+				if(value & 0x20) {
+					printf("UNIMPLEMENTED: 525-line output\n");
+				}
 			break;
 
 			case 0xa7da:	set_palette(value);			break;
