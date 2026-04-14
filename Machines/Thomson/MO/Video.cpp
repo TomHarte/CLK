@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <bit>
 
-using namespace Thomson::MO5;
+using namespace Thomson;
 
 namespace {
 
