@@ -85,6 +85,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 	@IBOutlet var spectrumModelTypeButton: NSPopUpButton!
 
 	// MARK: - Thomson
+	@IBOutlet var thomsonModelTypeButton: NSPopUpButton!
 	@IBOutlet var thomsonDiskButton: NSButton!
 
 	// MARK: - Vic-20 properties
@@ -168,6 +169,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 			"spectrumModel": spectrumModelTypeButton,
 
 			// Thomson MO
+			"thomsonModel": thomsonModelTypeButton,
 			"thomsonDiskDrive": thomsonDiskButton,
 
 			// Vic-20
@@ -489,7 +491,13 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 				return CSStaticAnalyser(spectrumModel: model)
 
 			case "thomsonmo":
-				return CSStaticAnalyser(thomsonMOHasDiskDrive: thomsonDiskButton.state == .on)
+				var model: CSMachineThomsonModel = .MO5
+				switch thomsonModelTypeButton.selectedTag() {
+					case 5:		model = .MO5
+					case 6:		model = .MO6
+					default:	break
+				}
+				return CSStaticAnalyser(thomsonMOModel: model, hasDiskDrive: thomsonDiskButton.state == .on)
 
 			case "vic20":
 				let memorySize = Kilobytes(vic20MemorySizeButton.selectedTag())

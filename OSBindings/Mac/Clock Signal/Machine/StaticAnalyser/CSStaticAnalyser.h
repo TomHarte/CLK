@@ -154,6 +154,11 @@ typedef NS_ENUM(NSInteger, CSPCCompatibleVideoAdaptor) {
 	CSPCCompatibleVideoAdaptorCGA,
 };
 
+typedef NS_ENUM(NSInteger, CSMachineThomsonModel) {
+	CSMachineThomsonModelMO5,
+	CSMachineThomsonModelMO6,
+};
+
 typedef int Kilobytes;
 
 @interface CSStaticAnalyser : NSObject
@@ -210,7 +215,7 @@ typedef int Kilobytes;
 
 - (instancetype)initWithSpectrumModel:(CSMachineSpectrumModel)model;
 
-- (instancetype)initWithThomsonMOHasDiskDrive:(BOOL)hasDiskDrive;
+- (instancetype)initWithThomsonMOModel:(CSMachineThomsonModel)model hasDiskDrive:(BOOL)hasDiskDrive;
 
 - (instancetype)initWithVic20Region:(CSMachineVic20Region)region
 	memorySize:(Kilobytes)memorySize
