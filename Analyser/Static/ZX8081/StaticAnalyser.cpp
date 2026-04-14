@@ -64,9 +64,9 @@ Analyser::Static::TargetList Analyser::Static::ZX8081::GetTargets(
 
 			// TODO: how to run software once loaded? Might require a BASIC detokeniser.
 			if(target->is_ZX81) {
-				target->loading_command = "J\"\"\n";
+				target->loading_command = L"J\"\"\n";
 			} else {
-				target->loading_command = "W\n";
+				target->loading_command = L"W\n";
 			}
 
 		}

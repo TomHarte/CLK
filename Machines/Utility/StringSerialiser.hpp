@@ -15,13 +15,13 @@ namespace Utility {
 
 class StringSerialiser {
 public:
-	StringSerialiser(const std::string &source, bool use_linefeed_only = false);
+	StringSerialiser(const std::wstring &source, bool use_linefeed_only = false);
 
-	uint8_t head();
+	wchar_t head();
 	bool advance();
 
 private:
-	std::string input_string_;
+	std::wstring input_string_;
 	std::size_t input_string_pointer_ = 0;
 };
 

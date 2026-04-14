@@ -231,7 +231,7 @@ public:
 		insert_media(target.media);
 		if(!target.loading_command.empty()) {
 			// Prefix a space as a delaying technique.
-			type_string(std::string(" ") + target.loading_command);
+			type_string(L" " + target.loading_command);
 		}
 	}
 
@@ -664,16 +664,16 @@ private:
 	}
 
 	// MARK: - MappedKeyboardMachine.
-	MappedKeyboardMachine::KeyboardMapper *get_keyboard_mapper() override {
+	MappedKeyboardMachine::KeyboardMapper *keyboard_mapper() override {
 		static Plus4::KeyboardMapper keyboard_mapper_;
 		return &keyboard_mapper_;
 	}
 
-	void type_string(const std::string &string) final {
+	void type_string(const std::wstring &string) final {
 		Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 	}
 
-	bool can_type(const char c) const final {
+	bool can_type(const wchar_t c) const final {
 		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 	}
 

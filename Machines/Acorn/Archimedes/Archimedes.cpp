@@ -535,7 +535,7 @@ private:
 	}
 
 	// MARK: - MappedKeyboardMachine.
-	MappedKeyboardMachine::KeyboardMapper *get_keyboard_mapper() override {
+	MappedKeyboardMachine::KeyboardMapper *keyboard_mapper() override {
 		return &keyboard_mapper_;
 	}
 	Archimedes::KeyboardMapper keyboard_mapper_;

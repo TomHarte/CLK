@@ -58,79 +58,85 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 }
 
-const uint16_t *CharacterMapper::sequence_for_character(char character) const {
-	static constexpr KeySequence X = { MachineTypes::MappedKeyboardMachine::KeyNotMapped };
-	const auto key = [](Key k) -> KeySequence {
-		return { k, MachineTypes::MappedKeyboardMachine::KeyEndSequence };
-	};
-	const auto shift = [](Key k) -> KeySequence {
-		return { Key::Shift, k, MachineTypes::MappedKeyboardMachine::KeyEndSequence };
-	};
+namespace {
+const std::unordered_map<wchar_t, const std::vector<uint16_t>> sequences = {
+};
+}
 
-	static KeySequence key_sequences[] = {
-		/* NUL */	X,							/* SOH */	X,
-		/* STX */	X,							/* ETX */	X,
-		/* EOT */	X,							/* ENQ */	X,
-		/* ACK */	X,							/* BEL */	X,
-		/* BS */	key(Key::InsDel),			/* HT */	X,
-		/* LF */	key(Key::Return),			/* VT */	X,
-		/* FF */	X,							/* CR */	X,
-		/* SO */	X,							/* SI */	X,
-		/* DLE */	X,							/* DC1 */	X,
-		/* DC2 */	X,							/* DC3 */	X,
-		/* DC4 */	X,							/* NAK */	X,
-		/* SYN */	X,							/* ETB */	X,
-		/* CAN */	X,							/* EM */	X,
-		/* SUB */	X,							/* ESC */	X,
-		/* FS */	X,							/* GS */	X,
-		/* RS */	X,							/* US */	X,
-		/* space */	key(Key::Space),			/* ! */		shift(Key::k1),
-		/* " */		shift(Key::k2),				/* # */		shift(Key::k3),
-		/* $ */		shift(Key::k4),				/* % */		shift(Key::k5),
-		/* & */		shift(Key::k6),				/* ' */		shift(Key::k7),
-		/* ( */		shift(Key::k8),				/* ) */		shift(Key::k9),
-		/* * */		key(Key::Asterisk),		/* + */		key(Key::Plus),
-		/* , */		key(Key::Comma),			/* - */		key(Key::Minus),
-		/* . */		key(Key::FullStop),		/* / */		key(Key::Slash),
-		/* 0 */		key(Key::k0),				/* 1 */		key(Key::k1),
-		/* 2 */		key(Key::k2),				/* 3 */		key(Key::k3),
-		/* 4 */		key(Key::k4),				/* 5 */		key(Key::k5),
-		/* 6 */		key(Key::k6),				/* 7 */		key(Key::k7),
-		/* 8 */		key(Key::k8),				/* 9 */		key(Key::k9),
-		/* : */		key(Key::Colon),			/* ; */		key(Key::Semicolon),
-		/* < */		shift(Key::Comma),			/* = */		key(Key::Equals),
-		/* > */		shift(Key::FullStop),		/* ? */		shift(Key::Slash),
-		/* @ */		key(Key::At),				/* A */		key(Key::A),
-		/* B */		key(Key::B),				/* C */		key(Key::C),
-		/* D */		key(Key::D),				/* E */		key(Key::E),
-		/* F */		key(Key::F),				/* G */		key(Key::G),
-		/* H */		key(Key::H),				/* I */		key(Key::I),
-		/* J */		key(Key::J),				/* K */		key(Key::K),
-		/* L */		key(Key::L),				/* M */		key(Key::M),
-		/* N */		key(Key::N),				/* O */		key(Key::O),
-		/* P */		key(Key::P),				/* Q */		key(Key::Q),
-		/* R */		key(Key::R),				/* S */		key(Key::S),
-		/* T */		key(Key::T),				/* U */		key(Key::U),
-		/* V */		key(Key::V),				/* W */		key(Key::W),
-		/* X */		key(Key::X),				/* Y */		key(Key::Y),
-		/* Z */		key(Key::Z),				/* [ */		shift(Key::Colon),
-		/* \ */		X,							/* ] */		shift(Key::Semicolon),
-		/* ^ */		X,							/* _ */		X,
-		/* ` */		X,							/* a */		key(Key::A),
-		/* b */		key(Key::B),				/* c */		key(Key::C),
-		/* d */		key(Key::D),				/* e */		key(Key::E),
-		/* f */		key(Key::F),				/* g */		key(Key::G),
-		/* h */		key(Key::H),				/* i */		key(Key::I),
-		/* j */		key(Key::J),				/* k */		key(Key::K),
-		/* l */		key(Key::L),				/* m */		key(Key::M),
-		/* n */		key(Key::N),				/* o */		key(Key::O),
-		/* p */		key(Key::P),				/* q */		key(Key::Q),
-		/* r */		key(Key::R),				/* s */		key(Key::S),
-		/* t */		key(Key::T),				/* u */		key(Key::U),
-		/* v */		key(Key::V),				/* w */		key(Key::W),
-		/* x */		key(Key::X),				/* y */		key(Key::Y),
-		/* z */		key(Key::Z)
-	};
-
-	return table_lookup_sequence_for_character(key_sequences, character);
+const std::vector<uint16_t> *CharacterMapper::sequence_for_character(const wchar_t character) const {
+	return lookup_sequence(sequences, character);
+//	static constexpr KeySequence X = { MachineTypes::MappedKeyboardMachine::KeyNotMapped };
+//	const auto key = [](Key k) -> KeySequence {
+//		return { k, MachineTypes::MappedKeyboardMachine::KeyEndSequence };
+//	};
+//	const auto shift = [](Key k) -> KeySequence {
+//		return { Key::Shift, k, MachineTypes::MappedKeyboardMachine::KeyEndSequence };
+//	};
+//
+//	static KeySequence key_sequences[] = {
+//		/* NUL */	X,							/* SOH */	X,
+//		/* STX */	X,							/* ETX */	X,
+//		/* EOT */	X,							/* ENQ */	X,
+//		/* ACK */	X,							/* BEL */	X,
+//		/* BS */	key(Key::InsDel),			/* HT */	X,
+//		/* LF */	key(Key::Return),			/* VT */	X,
+//		/* FF */	X,							/* CR */	X,
+//		/* SO */	X,							/* SI */	X,
+//		/* DLE */	X,							/* DC1 */	X,
+//		/* DC2 */	X,							/* DC3 */	X,
+//		/* DC4 */	X,							/* NAK */	X,
+//		/* SYN */	X,							/* ETB */	X,
+//		/* CAN */	X,							/* EM */	X,
+//		/* SUB */	X,							/* ESC */	X,
+//		/* FS */	X,							/* GS */	X,
+//		/* RS */	X,							/* US */	X,
+//		/* space */	key(Key::Space),			/* ! */		shift(Key::k1),
+//		/* " */		shift(Key::k2),				/* # */		shift(Key::k3),
+//		/* $ */		shift(Key::k4),				/* % */		shift(Key::k5),
+//		/* & */		shift(Key::k6),				/* ' */		shift(Key::k7),
+//		/* ( */		shift(Key::k8),				/* ) */		shift(Key::k9),
+//		/* * */		key(Key::Asterisk),		/* + */		key(Key::Plus),
+//		/* , */		key(Key::Comma),			/* - */		key(Key::Minus),
+//		/* . */		key(Key::FullStop),		/* / */		key(Key::Slash),
+//		/* 0 */		key(Key::k0),				/* 1 */		key(Key::k1),
+//		/* 2 */		key(Key::k2),				/* 3 */		key(Key::k3),
+//		/* 4 */		key(Key::k4),				/* 5 */		key(Key::k5),
+//		/* 6 */		key(Key::k6),				/* 7 */		key(Key::k7),
+//		/* 8 */		key(Key::k8),				/* 9 */		key(Key::k9),
+//		/* : */		key(Key::Colon),			/* ; */		key(Key::Semicolon),
+//		/* < */		shift(Key::Comma),			/* = */		key(Key::Equals),
+//		/* > */		shift(Key::FullStop),		/* ? */		shift(Key::Slash),
+//		/* @ */		key(Key::At),				/* A */		key(Key::A),
+//		/* B */		key(Key::B),				/* C */		key(Key::C),
+//		/* D */		key(Key::D),				/* E */		key(Key::E),
+//		/* F */		key(Key::F),				/* G */		key(Key::G),
+//		/* H */		key(Key::H),				/* I */		key(Key::I),
+//		/* J */		key(Key::J),				/* K */		key(Key::K),
+//		/* L */		key(Key::L),				/* M */		key(Key::M),
+//		/* N */		key(Key::N),				/* O */		key(Key::O),
+//		/* P */		key(Key::P),				/* Q */		key(Key::Q),
+//		/* R */		key(Key::R),				/* S */		key(Key::S),
+//		/* T */		key(Key::T),				/* U */		key(Key::U),
+//		/* V */		key(Key::V),				/* W */		key(Key::W),
+//		/* X */		key(Key::X),				/* Y */		key(Key::Y),
+//		/* Z */		key(Key::Z),				/* [ */		shift(Key::Colon),
+//		/* \ */		X,							/* ] */		shift(Key::Semicolon),
+//		/* ^ */		X,							/* _ */		X,
+//		/* ` */		X,							/* a */		key(Key::A),
+//		/* b */		key(Key::B),				/* c */		key(Key::C),
+//		/* d */		key(Key::D),				/* e */		key(Key::E),
+//		/* f */		key(Key::F),				/* g */		key(Key::G),
+//		/* h */		key(Key::H),				/* i */		key(Key::I),
+//		/* j */		key(Key::J),				/* k */		key(Key::K),
+//		/* l */		key(Key::L),				/* m */		key(Key::M),
+//		/* n */		key(Key::N),				/* o */		key(Key::O),
+//		/* p */		key(Key::P),				/* q */		key(Key::Q),
+//		/* r */		key(Key::R),				/* s */		key(Key::S),
+//		/* t */		key(Key::T),				/* u */		key(Key::U),
+//		/* v */		key(Key::V),				/* w */		key(Key::W),
+//		/* x */		key(Key::X),				/* y */		key(Key::Y),
+//		/* z */		key(Key::Z)
+//	};
+//
+//	return table_lookup_sequence_for_character(key_sequences, character);
 }

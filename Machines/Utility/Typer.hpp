@@ -87,8 +87,8 @@ public:
 	/// Adds the contents of @c str to the end of the current string.
 	void append(const std::wstring &);
 
-	static constexpr char BeginString = 0x02;	// i.e. ASCII start of text.
-	static constexpr char EndString = 0x03;		// i.e. ASCII end of text.
+	static constexpr wchar_t BeginString = 0x02;	// i.e. ASCII start of text.
+	static constexpr wchar_t EndString = 0x03;		// i.e. ASCII end of text.
 
 private:
 	std::wstring string_;

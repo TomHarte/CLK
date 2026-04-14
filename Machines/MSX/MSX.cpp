@@ -451,7 +451,7 @@ public:
 		return true;
 	}
 
-	void type_string(const std::string &string) final {
+	void type_string(const std::wstring &string) final {
 		std::transform(
 			string.begin(),
 			string.end(),
@@ -460,7 +460,7 @@ public:
 		);
 	}
 
-	bool can_type(char c) const final {
+	bool can_type(const wchar_t c) const final {
 		// Make an effort to type the entire printable ASCII range.
 		return c >= 32 && c < 127;
 	}
@@ -807,7 +807,7 @@ public:
 		if(is_pressed) key_states_[line] &= ~mask; else key_states_[line] |= mask;
 	}
 
-	KeyboardMapper *get_keyboard_mapper() final {
+	KeyboardMapper *keyboard_mapper() final {
 		return &keyboard_mapper_;
 	}
 

@@ -570,7 +570,7 @@ public:
 		evaluate_interrupts();
 	}
 
-	HalfCycles get_typer_delay(const std::string &text) const final {
+	HalfCycles get_typer_delay(const std::wstring &text) const final {
 		if(!m6502_.get_is_resetting()) {
 			return Cycles(0);
 		}
@@ -587,15 +587,15 @@ public:
 		return Cycles(60'000);
 	}
 
-	void type_string(const std::string &string) final {
+	void type_string(const std::wstring &string) final {
 		Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 	}
 
-	bool can_type(char c) const final {
+	bool can_type(const wchar_t c) const final {
 		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 	}
 
-	KeyboardMapper *get_keyboard_mapper() final {
+	KeyboardMapper *keyboard_mapper() final {
 		return &keyboard_mapper_;
 	}
 

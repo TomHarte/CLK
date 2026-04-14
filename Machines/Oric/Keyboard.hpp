@@ -40,7 +40,7 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 };
 
 struct CharacterMapper: public ::Utility::CharacterMapper {
-	const uint16_t *sequence_for_character(char character) const final;
+	const std::vector<uint16_t> *sequence_for_character(wchar_t) const final;
 };
 
 }

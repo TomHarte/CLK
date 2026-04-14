@@ -48,11 +48,11 @@ enum Key: uint16_t {
 };
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
-	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;
+	uint16_t mapped_key_for_key(Inputs::Keyboard::Key) const final;
 };
 
 struct CharacterMapper: public ::Utility::CharacterMapper {
-	const uint16_t *sequence_for_character(char character) const final;
+	const std::vector<uint16_t> *sequence_for_character(wchar_t) const final;
 };
 
 }

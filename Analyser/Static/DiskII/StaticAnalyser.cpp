@@ -41,7 +41,7 @@ Analyser::Static::Target *OricTarget(const Storage::Encodings::AppleGCR::Sector 
 	auto *const target = new Target;
 	target->rom = Target::ROM::Pravetz;
 	target->disk_interface = Target::DiskInterface::Pravetz;
-	target->loading_command = "CALL 800\n";
+	target->loading_command = L"CALL 800\n";
 	return target;
 }
 

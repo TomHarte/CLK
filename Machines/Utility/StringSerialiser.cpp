@@ -10,7 +10,7 @@
 
 using namespace Utility;
 
-StringSerialiser::StringSerialiser(const std::string &source, bool use_linefeed_only) {
+StringSerialiser::StringSerialiser(const std::wstring &source, const bool use_linefeed_only) {
 	if(!use_linefeed_only) {
 		input_string_ = source;
 	} else {
@@ -31,7 +31,7 @@ StringSerialiser::StringSerialiser(const std::string &source, bool use_linefeed_
 	}
 }
 
-uint8_t StringSerialiser::head() {
+wchar_t StringSerialiser::head() {
 	if(input_string_pointer_ == input_string_.size())
 		return '\0';
 	return uint8_t(input_string_[input_string_pointer_]);

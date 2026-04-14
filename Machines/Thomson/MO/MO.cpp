@@ -614,7 +614,7 @@ private:
 	// MARK: - MappedKeyboardMachine.
 
 	Thomson::MO5::KeyboardMapper keyboard_mapper_;
-	KeyboardMapper *get_keyboard_mapper() final {
+	KeyboardMapper *keyboard_mapper() final {
 		return &keyboard_mapper_;
 	}
 
@@ -626,15 +626,15 @@ private:
 		system_pia_port_handler_.clear_all_keys();
 	}
 
-	void type_string(const std::string &string) final {
+	void type_string(const std::wstring &string) final {
 		Utility::TypeRecipient<Thomson::MO5::CharacterMapper>::add_typer(string);
 	}
 
-	bool can_type(char c) const final {
+	bool can_type(const wchar_t c) const final {
 		return Utility::TypeRecipient<Thomson::MO5::CharacterMapper>::can_type(c);
 	}
 
-	HalfCycles get_typer_delay(const std::string &) const final {
+	HalfCycles typer_delay(const std::wstring &) const final {
 		if(m6809_.template get<CPU::M6809::Line::PowerOnReset>()) {
 			return Cycles(1'000'000);
 		} else {
@@ -642,7 +642,7 @@ private:
 		}
 	}
 
-	HalfCycles get_typer_frequency() const final {
+	HalfCycles typer_frequency() const final {
 		return Cycles(20'000);
 	}
 

@@ -649,11 +649,11 @@ private:
 		if(typer_) typer_->run_for(duration);
 	}
 
-	void type_string(const std::string &string) override {
+	void type_string(const std::wstring &string) override {
 		Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 	}
 
-	bool can_type(char c) const override {
+	bool can_type(const wchar_t c) const override {
 		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 	}
 

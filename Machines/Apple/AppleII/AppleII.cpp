@@ -1034,15 +1034,15 @@ public:
 		return is_iie(model);
 	}
 
-	Inputs::Keyboard &get_keyboard() final {
+	Inputs::Keyboard &keyboard() final {
 		return keyboard_;
 	}
 
-	void type_string(const std::string &string) final {
+	void type_string(const std::wstring &string) final {
 		keyboard_.set_string_serialiser(std::make_unique<Utility::StringSerialiser>(string, true));
 	}
 
-	bool can_type(char c) const final {
+	bool can_type(const wchar_t c) const final {
 		// Make an effort to type the entire printable ASCII range.
 		return c >= 32 && c < 127;
 	}

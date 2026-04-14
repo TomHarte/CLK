@@ -19,7 +19,7 @@ bool MappedKeyboardMachine::keyboard_did_change_key(
 	const Inputs::Keyboard::Key key,
 	const bool is_pressed
 ) {
-	const uint16_t mapped_key = get_keyboard_mapper()->mapped_key_for_key(key);
+	const uint16_t mapped_key = keyboard_mapper()->mapped_key_for_key(key);
 	if(mapped_key == KeyNotMapped) return false;
 	set_key_state(mapped_key, is_pressed);
 	return true;
@@ -30,13 +30,13 @@ void MappedKeyboardMachine::reset_all_keys(Inputs::Keyboard &) {
 	clear_all_keys();
 }
 
-Inputs::Keyboard &MappedKeyboardMachine::get_keyboard() {
+Inputs::Keyboard &MappedKeyboardMachine::keyboard() {
 	return keyboard_;
 }
 
-void KeyboardMachine::type_string(const std::string &) {
+void KeyboardMachine::type_string(const std::wstring &) {
 }
 
-MappedKeyboardMachine::KeyboardMapper *MappedKeyboardMachine::get_keyboard_mapper() {
+MappedKeyboardMachine::KeyboardMapper *MappedKeyboardMachine::keyboard_mapper() {
 	return nullptr;
 }
