@@ -240,8 +240,8 @@ FileAnalysis analyse_files(const Analyser::Static::Media &media) {
 	return analysis;
 }
 
-std::string loading_command(const FileAnalysis &file_analysis) {
-	std::ostringstream string_stream;
+std::wstring loading_command(const FileAnalysis &file_analysis) {
+	std::wostringstream string_stream;
 	string_stream << "LOAD\"" << (file_analysis.is_disk ? "*" : "") << "\"," << file_analysis.device;
 
 	const auto analysis = analyse(file_analysis.files[0]);

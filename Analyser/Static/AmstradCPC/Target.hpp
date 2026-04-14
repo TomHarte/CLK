@@ -18,7 +18,7 @@ namespace Analyser::Static::AmstradCPC {
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(Model, CPC464, CPC664, CPC6128);
 	Model model = Model::CPC464;
-	std::string loading_command;
+	std::wstring loading_command;
 
 //	ReflectableEnum(CRTCType, Type0, Type1, Type2, Type3);
 //	CRTCType crtc_type = CRTCType::Type2;

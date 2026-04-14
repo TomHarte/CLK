@@ -28,7 +28,7 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	BASICVersion basic_version = BASICVersion::None;
 	DOS dos = DOS::None;
 	Speed speed = Speed::FourMHz;
-	std::string loading_command;
+	std::wstring loading_command;
 
 	Target() : Analyser::Static::Target(Machine::Enterprise) {}
 

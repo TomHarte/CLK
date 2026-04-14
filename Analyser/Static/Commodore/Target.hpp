@@ -17,7 +17,7 @@ namespace Analyser::Static::Commodore {
 
 struct Plus4Target: public Analyser::Static::Target, public Reflection::StructImpl<Plus4Target> {
 	// TODO: region, etc.
-	std::string loading_command;
+	std::wstring loading_command;
 	bool has_c1541 = false;
 
 	Plus4Target() : Analyser::Static::Target(Machine::Plus4) {}
@@ -66,7 +66,7 @@ struct Vic20Target: public Analyser::Static::Target, public Reflection::StructIm
 
 	Region region = Region::European;
 	bool has_c1540 = false;
-	std::string loading_command;
+	std::wstring loading_command;
 
 	Vic20Target() : Analyser::Static::Target(Machine::Vic20) {}
 

@@ -22,7 +22,7 @@ struct ElectronTarget: public ::Analyser::Static::Target, public Reflection::Str
 	bool has_ap6_rom = false;
 	bool has_sideways_ram = false;
 	bool should_shift_restart = false;
-	std::string loading_command;
+	std::wstring loading_command;
 
 	ElectronTarget() : Analyser::Static::Target(Machine::Electron) {}
 
@@ -38,7 +38,7 @@ private:
 };
 
 struct BBCMicroTarget: public ::Analyser::Static::Target, public Reflection::StructImpl<BBCMicroTarget> {
-	std::string loading_command;
+	std::wstring loading_command;
 	bool should_shift_restart = false;
 
 	bool has_1770dfs = false;
