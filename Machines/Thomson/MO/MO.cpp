@@ -220,7 +220,12 @@ struct ConcreteMachine:
 								value = video_->vertical_state();
 							}
 						} else {
-							unmapped();
+							if constexpr (is_mo6) {
+								access<0xa7e7, read_write>(video_, value);
+								access<0xa7e7, read_write>(memory_, value);
+							} else {
+								unmapped();
+							}
 						}
 					break;
 

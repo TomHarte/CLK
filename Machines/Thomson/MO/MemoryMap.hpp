@@ -201,6 +201,15 @@ public:
 				ram_page_ = value & 0b11111;
 				update_commutable_ram();
 			break;
+
+			case 0xa7e7:
+				// b7: disable internal floppy
+				// b6: 1 = enable RAM-in-cartridge space banking via a7e6. 0 = "RAM works like the MO5 64K expansion"?
+				// b5: 1 = 525 lines/frame; 0 = 625.
+				// b4: 1 = enable RAM banking via a7e5. 0 = "the braindead system using the two PIAs"?
+				// b3, b2: computer type (might affect pixel mappings?) [00 = MO6; 01 = TO9+; 11 = TO8]
+				// b1, b0: RAM type (00 = 64x1; 10 = 128x1; 00 = 256x1)
+			break;
 		}
 	}
 

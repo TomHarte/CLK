@@ -47,7 +47,7 @@ enum class PixelMode {
 	Page1 = 0b100,
 	Page2 = 0b101,
 	Overprint = 0b110,
-	TripleOverprint = 0b11,
+	TripleOverprint = 0b111,
 };
 
 struct Video {
@@ -97,6 +97,9 @@ public:
 			break;
 			case 0xa7e7:
 				// TODO: b5 = 1 => 525-line output; 0 = 625-line output.
+				if(value & 0x20) {
+					printf("UNIMPLEMENTED: 525-line output\n");
+				}
 			break;
 
 			case 0xa7da:	set_palette(value);			break;
