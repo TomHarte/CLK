@@ -367,8 +367,15 @@ struct ActivityObserver: public Activity::Observer {
 - (void)paste:(NSString *)paste {
 	auto keyboardMachine = _machine->keyboard_machine();
 	if(keyboardMachine) {
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-		keyboardMachine->type_string(converter.from_bytes(paste.UTF8String));
+		// Baked-in macOS assumptions.
+		static_assert(sizeof(wchar_t) == 4);
+		static_assert(TARGET_RT_LITTLE_ENDIAN);
+
+		NSData *const data = [paste dataUsingEncoding:NSUTF32LittleEndianStringEncoding];
+		if(data) {
+			std::wstring text(static_cast<const wchar_t *>(data.bytes), data.length / sizeof(wchar_t));
+			keyboardMachine->type_string(text);
+		}
 	}
 }
 
