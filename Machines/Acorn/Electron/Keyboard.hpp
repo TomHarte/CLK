@@ -43,7 +43,7 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 };
 
 struct CharacterMapper: public ::Utility::CharacterMapper {
-	const std::vector<uint16_t> *sequence_for_character(wchar_t) const override;
+	std::span<const uint16_t> sequence_for_character(wchar_t) const override;
 
 	bool needs_pause_after_reset_all_keys() const override	{ return false; }
 	bool needs_pause_after_key(uint16_t key) const override;

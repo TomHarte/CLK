@@ -518,7 +518,7 @@ private:
 
 		uint8_t get_keyboard_input() {
 			if(string_serialiser_) {
-				return string_serialiser_->head() | 0x80;
+				return uint8_t(string_serialiser_->head()) | 0x80;
 			} else {
 				return keyboard_input_;
 			}

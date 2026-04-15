@@ -145,7 +145,7 @@ private:
 };
 
 struct CharacterMapper: public ::Utility::CharacterMapper {
-	const std::vector<uint16_t> *sequence_for_character(const wchar_t character) const override {
+	std::span<const uint16_t> sequence_for_character(const wchar_t character) const override {
 		return lookup_sequence(sequences, character);
 	}
 

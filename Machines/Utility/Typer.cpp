@@ -22,10 +22,10 @@ Typer::Typer(
 		delegate_(delegate),
 		character_mapper_(character_mapper) {
 	// Retain only those characters that actually map to something.
-	if(sequence_for_character(Typer::BeginString)) {
+	if(!sequence_for_character(Typer::BeginString).empty()) {
 		string_ += Typer::BeginString;
 	}
-	if(sequence_for_character(Typer::EndString)) {
+	if(!sequence_for_character(Typer::EndString).empty()) {
 		string_ += Typer::EndString;
 	}
 
@@ -69,21 +69,21 @@ void Typer::append(const std::wstring &string) {
 
 	string_.reserve(string_.size() + string.size());
 	for(const auto c : string) {
-		if(sequence_for_character(c)) {
+		if(!sequence_for_character(c).empty()) {
 			string_.insert(string_.begin() + insertion_position, c);
 			++insertion_position;
 		}
 	}
 }
 
-const std::vector<uint16_t> *Typer::sequence_for_character(const wchar_t c) const {
+std::span<const uint16_t> Typer::sequence_for_character(const wchar_t c) const {
 	return character_mapper_.sequence_for_character(c);
 }
 
 uint16_t Typer::try_type_next_character() {
-	const auto *sequence = sequence_for_character(string_[string_pointer_]);
+	const auto sequence = sequence_for_character(string_[string_pointer_]);
 
-	if(!sequence) {
+	if(sequence.empty()) {
 		return 0;
 	}
 
@@ -104,10 +104,10 @@ uint16_t Typer::try_type_next_character() {
 	}
 
 	// Potentially generate ::KeyEndSequence.
-	if(phase_ - 2 >= sequence->size()) {
+	if(phase_ - 2 >= sequence.size()) {
 		return MachineTypes::MappedKeyboardMachine::KeyEndSequence;
 	}
-	const auto next = (*sequence)[phase_ - 2];
+	const auto next = sequence[phase_ - 2];
 	delegate_->set_key_state(next, true);
 	return next;
 }

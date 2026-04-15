@@ -14,6 +14,7 @@
 #include <array>
 #include <cwchar>
 #include <memory>
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -29,7 +30,7 @@ public:
 	virtual ~CharacterMapper() = default;
 
 	/// @returns The EndSequence-terminated sequence of keys that would cause @c character to be typed.
-	virtual const std::vector<uint16_t> *sequence_for_character(wchar_t) const = 0;
+	virtual std::span<const uint16_t> sequence_for_character(wchar_t) const = 0;
 
 	/// The typer will automatically reset all keys in between each sequence that it types.
 	/// By default it will pause for one key's duration when doing so. Character mappers
@@ -44,7 +45,7 @@ public:
 	virtual bool needs_pause_after_key([[maybe_unused]] uint16_t) const	{ return true; }
 
 protected:
-	const std::vector<uint16_t> *lookup_sequence(
+	std::span<const uint16_t> lookup_sequence(
 		const std::unordered_map<wchar_t, const std::vector<uint16_t>> &sequences,
 		const wchar_t key
 	) const {
@@ -52,7 +53,8 @@ protected:
 		if(it == sequences.end()) {
 			it = sequences.find(std::tolower(key));
 		}
-		return it == sequences.end() ? nullptr : &it->second;
+		return
+			it == sequences.end() ? std::span<const uint16_t>{} : std::span(it->second.data(), it->second.size());
 	}
 };
 
@@ -104,7 +106,7 @@ private:
 	CharacterMapper &character_mapper_;
 
 	uint16_t try_type_next_character();
-	const std::vector<uint16_t> *sequence_for_character(wchar_t) const;
+	std::span<const uint16_t> sequence_for_character(wchar_t) const;
 };
 
 /*!
@@ -130,7 +132,7 @@ protected:
 	*/
 	bool can_type(const wchar_t c) const {
 		const auto sequence = character_mapper.sequence_for_character(c);
-		return sequence != nullptr;
+		return !sequence.empty();
 	}
 
 	/*!

@@ -579,8 +579,8 @@ public:
 		// empirically this seems to be a requirement, in order to avoid a collision with
 		// the system's built-in modifier-at-startup test (e.g. to perform shift+break).
 		CharacterMapper test_mapper;
-		const auto *sequence = test_mapper.sequence_for_character(text[0]);
-		return is_modifier(Key((*sequence)[0])) ? Cycles(1'000'000) : Cycles(750'000);
+		const auto sequence = test_mapper.sequence_for_character(text[0]);
+		return is_modifier(Key(sequence[0])) ? Cycles(1'000'000) : Cycles(750'000);
 	}
 
 	HalfCycles typer_frequency() const final {

@@ -118,7 +118,7 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 };
 
 struct CharacterMapper: public ::Utility::CharacterMapper {
-	const std::vector<uint16_t> *sequence_for_character(const wchar_t character) const final {
+	std::span<const uint16_t> sequence_for_character(const wchar_t character) const final {
 		return lookup_sequence(mo5_sequences, character);
 	}
 private:

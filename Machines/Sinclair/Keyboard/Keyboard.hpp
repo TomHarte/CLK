@@ -66,7 +66,7 @@ private:
 class CharacterMapper: public ::Utility::CharacterMapper {
 public:
 	CharacterMapper(Machine);
-	const std::vector<uint16_t> *sequence_for_character(wchar_t) const override;
+	std::span<const uint16_t> sequence_for_character(wchar_t) const override;
 
 	bool needs_pause_after_key(uint16_t) const override;
 

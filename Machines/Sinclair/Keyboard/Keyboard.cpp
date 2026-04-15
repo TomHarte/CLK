@@ -213,7 +213,7 @@ const std::unordered_map<wchar_t, const std::vector<uint16_t>> spectrum_key_sequ
 };
 }
 
-const std::vector<uint16_t> *CharacterMapper::sequence_for_character(const wchar_t character) const {
+std::span<const uint16_t> CharacterMapper::sequence_for_character(const wchar_t character) const {
 	switch(machine_) {
 		case Machine::ZX80:			return lookup_sequence(zx80_key_sequences, character);
 		case Machine::ZX81:			return lookup_sequence(zx81_key_sequences, character);

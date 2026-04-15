@@ -55,7 +55,7 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 };
 
 struct CharacterMapper: public ::Utility::CharacterMapper {
-	const std::vector<uint16_t> *sequence_for_character(wchar_t) const override;
+	std::span<const uint16_t> sequence_for_character(wchar_t) const override;
 };
 
 }

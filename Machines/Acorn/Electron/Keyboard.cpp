@@ -133,7 +133,7 @@ const std::unordered_map<wchar_t, const std::vector<uint16_t>> sequences = {
 };
 }
 
-const std::vector<uint16_t> *CharacterMapper::sequence_for_character(const wchar_t character) const {
+std::span<const uint16_t> CharacterMapper::sequence_for_character(const wchar_t character) const {
 	return lookup_sequence(sequences, character);
 }
 
