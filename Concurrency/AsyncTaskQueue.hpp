@@ -124,7 +124,7 @@ public:
 	/// The queue cannot be restarted; this is a destructive action.
 	void stop() {
 		if(thread_.joinable()) {
-			should_quit_.store(true, std::memory_order_relaxed);
+			should_quit_.test_and_set(std::memory_order_relaxed);
 			enqueue([] {});
 			if constexpr (!perform_automatically) {
 				perform();
@@ -166,17 +166,17 @@ public:
 	/// until all scheduled work has been performed, placing a memory barrier
 	/// in between.
 	void spin_flush() {
-		std::atomic<bool> has_run = false;
+		std::atomic_flag has_run = ATOMIC_FLAG_INIT;
 
 		enqueue([&has_run] () {
-			has_run.store(true, std::memory_order::release);
+			has_run.test_and_set(std::memory_order::release);
 		});
 
 		if constexpr (!perform_automatically) {
 			perform();
 		}
 
-		while(!has_run.load(std::memory_order::acquire));
+		while(!has_run.test(std::memory_order::acquire));
 	}
 
 	~AsyncTaskQueue() {
@@ -190,11 +190,11 @@ private:
 				ActionVector actions;
 
 				// Continue until told to quit.
-				while(!should_quit_.load(std::memory_order_relaxed)) {
+				while(!should_quit_.test(std::memory_order_relaxed)) {
 					// Wait for new actions to be signalled, and grab them.
 					std::unique_lock lock(condition_mutex_);
 					condition_.wait(lock, [&] {
-						return !actions_.empty() || should_quit_.load(std::memory_order_relaxed);
+						return !actions_.empty() || should_quit_.test(std::memory_order_relaxed);
 					});
 					std::swap(actions, actions_);
 					lock.unlock();
@@ -218,7 +218,7 @@ private:
 	ActionVector actions_;
 
 	// Necessary synchronisation parts.
-	std::atomic<bool> should_quit_ = false;
+	std::atomic_flag should_quit_ = ATOMIC_FLAG_INIT;
 	std::mutex condition_mutex_;
 	std::condition_variable condition_;
 
