@@ -382,7 +382,7 @@ void MainWindow::launchMachine() {
 	// Add an 'input' menu if justified (i.e. machine has both a keyboard and joystick input, and the keyboard is exclusive).
 	auto keyboardMachine = machine->keyboard_machine();
 	auto joystickMachine = machine->joystick_machine();
-	if(keyboardMachine && joystickMachine && keyboardMachine->get_keyboard().is_exclusive()) {
+	if(keyboardMachine && joystickMachine && keyboardMachine->keyboard().is_exclusive()) {
 		inputMenu = menuBar()->addMenu(tr("&Input"));
 
 		QAction *const asKeyboardAction = new QAction(tr("Use Keyboard as Keyboard"), this);
@@ -947,7 +947,7 @@ bool MainWindow::processEvent(QKeyEvent *const event) {
 			const auto keyboardMachine = machine->keyboard_machine();
 			if(!keyboardMachine) return true;
 
-			auto &keyboard = keyboardMachine->get_keyboard();
+			auto &keyboard = keyboardMachine->keyboard();
 			const auto text = event->text();
 			keyboard.set_key_pressed(*key, event->text().size() ? text[0].toLatin1() : '\0', isPressed, event->isAutoRepeat());
 			if(keyboard.is_exclusive() || keyboard.observed_keys().find(*key) != keyboard.observed_keys().end()) {
