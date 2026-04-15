@@ -23,6 +23,7 @@ static constexpr uint8_t mask(const uint16_t key) {
 	return uint8_t(key >> 3);
 }
 
+namespace Key {
 enum Key: uint16_t {
 	InsDel		= key(0, 0x01),		Return		= key(0, 0x02),
 	GBP			= key(0, 0x04),		Help_F7		= key(0, 0x08),
@@ -70,6 +71,7 @@ enum Key: uint16_t {
 	F6			= 0xfe02,
 	F7			= 0xfe03,
 };
+}
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
 	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;
