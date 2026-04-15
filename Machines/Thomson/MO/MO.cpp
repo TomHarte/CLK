@@ -580,9 +580,15 @@ private:
 	bool audio_enabled_ = false;
 	uint8_t audio_level_ = MusicExpansionMask;
 	void set_audio(const std::optional<bool> enabled, const std::optional<uint8_t> level) {
+		const auto new_audio_enabled = enabled.value_or(audio_enabled_);
+		const auto new_audio_level = level.value_or(audio_level_);
+		if(new_audio_level == audio_level_ && new_audio_enabled == audio_enabled_) {
+			return;
+		}
+
+		audio_level_ = new_audio_level;
+		audio_enabled_ = new_audio_enabled;
 		update_audio();
-		audio_enabled_ = enabled.value_or(audio_enabled_);
-		audio_level_ = level.value_or(audio_level_);
 		audio_.set_output(audio_enabled_ ? audio_level_ : 0);
 	}
 
