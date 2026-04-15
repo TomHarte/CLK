@@ -38,7 +38,7 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	ROM rom = ROM::BASIC11;
 	DiskInterface disk_interface = DiskInterface::None;
 	Processor processor = Processor::MOS6502;
-	std::string loading_command;
+	std::wstring loading_command;
 	bool should_start_jasmin = false;
 
 	Target(): Analyser::Static::Target(Machine::Oric) {}

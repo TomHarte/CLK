@@ -77,81 +77,65 @@ uint16_t KeyboardMapper::mapped_key_for_key(const Inputs::Keyboard::Key key) con
 	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 }
 
-const uint16_t *CharacterMapper::sequence_for_character(const char character) const {
-#define KEYS(...)	{__VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
-#define SHIFT(...)	{KeyShift, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
-#define X			{MachineTypes::MappedKeyboardMachine::KeyNotMapped}
-	static KeySequence key_sequences[] = {
-		/* NUL */	X,							/* SOH */	X,
-		/* STX */	X,							/* ETX */	X,
-		/* EOT */	X,							/* ENQ */	X,
-		/* ACK */	X,							/* BEL */	X,
-		/* BS */	KEYS(KeyDelete),			/* HT */	X,
-		/* LF */	KEYS(KeyReturn),			/* VT */	X,
-		/* FF */	X,							/* CR */	KEYS(KeyReturn),
-		/* SO */	X,							/* SI */	X,
-		/* DLE */	X,							/* DC1 */	X,
-		/* DC2 */	X,							/* DC3 */	X,
-		/* DC4 */	X,							/* NAK */	X,
-		/* SYN */	X,							/* ETB */	X,
-		/* CAN */	X,							/* EM */	X,
-		/* SUB */	X,							/* ESC */	X,
-		/* FS */	X,							/* GS */	X,
-		/* RS */	X,							/* US */	X,
-		/* space */	KEYS(KeySpace),				/* ! */		SHIFT(Key1),
-		/* " */		SHIFT(Key2),				/* # */		SHIFT(Key3),
-		/* $ */		SHIFT(Key4),				/* % */		SHIFT(Key5),
-		/* & */		SHIFT(Key6),				/* ' */		SHIFT(Key7),
-		/* ( */		SHIFT(Key8),				/* ) */		SHIFT(Key9),
-		/* * */		SHIFT(KeyColon),			/* + */		SHIFT(KeySemicolon),
-		/* , */		KEYS(KeyComma),				/* - */		KEYS(KeyMinus),
-		/* . */		KEYS(KeyFullStop),			/* / */		KEYS(KeyForwardSlash),
-		/* 0 */		KEYS(Key0),					/* 1 */		KEYS(Key1),
-		/* 2 */		KEYS(Key2),					/* 3 */		KEYS(Key3),
-		/* 4 */		KEYS(Key4),					/* 5 */		KEYS(Key5),
-		/* 6 */		KEYS(Key6),					/* 7 */		KEYS(Key7),
-		/* 8 */		KEYS(Key8),					/* 9 */		KEYS(Key9),
-		/* : */		KEYS(KeyColon),				/* ; */		KEYS(KeySemicolon),
-		/* < */		SHIFT(KeyComma),			/* = */		SHIFT(KeyMinus),
-		/* > */		SHIFT(KeyFullStop),			/* ? */		SHIFT(KeyForwardSlash),
-		/* @ */		SHIFT(KeyAt),				/* A */		SHIFT(KeyA),
-		/* B */		SHIFT(KeyB),				/* C */		SHIFT(KeyC),
-		/* D */		SHIFT(KeyD),				/* E */		SHIFT(KeyE),
-		/* F */		SHIFT(KeyF),				/* G */		SHIFT(KeyG),
-		/* H */		SHIFT(KeyH),				/* I */		SHIFT(KeyI),
-		/* J */		SHIFT(KeyJ),				/* K */		SHIFT(KeyK),
-		/* L */		SHIFT(KeyL),				/* M */		SHIFT(KeyM),
-		/* N */		SHIFT(KeyN),				/* O */		SHIFT(KeyO),
-		/* P */		SHIFT(KeyP),				/* Q */		SHIFT(KeyQ),
-		/* R */		SHIFT(KeyR),				/* S */		SHIFT(KeyS),
-		/* T */		SHIFT(KeyT),				/* U */		SHIFT(KeyU),
-		/* V */		SHIFT(KeyV),				/* W */		SHIFT(KeyW),
-		/* X */		SHIFT(KeyX),				/* Y */		SHIFT(KeyY),
-		/* Z */		SHIFT(KeyZ),				/* [ */		KEYS(KeyLeftSquareBracket),
-		/* \ */		KEYS(KeyBackSlash),			/* ] */		KEYS(KeyRightSquareBracket),
-		/* ^ */		SHIFT(KeyCaret),			/* _ */		SHIFT(Key0),
-		/* ` */		X,							/* a */		KEYS(KeyA),
-		/* b */		KEYS(KeyB),					/* c */		KEYS(KeyC),
-		/* d */		KEYS(KeyD),					/* e */		KEYS(KeyE),
-		/* f */		KEYS(KeyF),					/* g */		KEYS(KeyG),
-		/* h */		KEYS(KeyH),					/* i */		KEYS(KeyI),
-		/* j */		KEYS(KeyJ),					/* k */		KEYS(KeyK),
-		/* l */		KEYS(KeyL),					/* m */		KEYS(KeyM),
-		/* n */		KEYS(KeyN),					/* o */		KEYS(KeyO),
-		/* p */		KEYS(KeyP),					/* q */		KEYS(KeyQ),
-		/* r */		KEYS(KeyR),					/* s */		KEYS(KeyS),
-		/* t */		KEYS(KeyT),					/* u */		KEYS(KeyU),
-		/* v */		KEYS(KeyV),					/* w */		KEYS(KeyW),
-		/* x */		KEYS(KeyX),					/* y */		KEYS(KeyY),
-		/* z */		KEYS(KeyZ),					/* { */		SHIFT(KeyLeftSquareBracket),
-		/* | */		SHIFT(KeyAt),				/* } */		SHIFT(KeyRightSquareBracket),
-		/* ~ */		X
-	};
-#undef KEYS
-#undef SHIFT
-#undef X
+namespace {
+const std::unordered_map<wchar_t, const std::vector<uint16_t>> sequences = {
+	{L'\b', {KeyDelete}},
+	{L'\n', {KeyReturn}},	{L'\r', {KeyReturn}},
+	{L' ', {KeySpace}},
 
-	return table_lookup_sequence_for_character(key_sequences, character);
+	{L'!', {KeyShift, Key1}},
+	{L'"', {KeyShift, Key2}},
+	{L'#', {KeyShift, Key3}},
+	{L'$', {KeyShift, Key4}},
+	{L'%', {KeyShift, Key5}},
+	{L'&', {KeyShift, Key6}},
+	{L'\'', {KeyShift, Key7}},
+	{L'(', {KeyShift, Key8}},
+	{L')', {KeyShift, Key9}},
+	{L'_', {KeyShift, Key0}},
+
+	{L'=', {KeyShift, KeyMinus}},		{L'-', {KeyMinus}},
+	{L'£', {KeyShift, KeyCaret}},		{L'↑', {KeyCaret}},
+
+	{L'|', {KeyShift, KeyAt}},					{L'@', {KeyAt}},
+	{L'{', {KeyShift, KeyLeftSquareBracket}},	{L'[', {KeyLeftSquareBracket}},
+
+	{L'*', {KeyShift, KeyColon}},				{L':', {KeyColon}},
+	{L'+', {KeyShift, KeySemicolon}},			{L';', {KeySemicolon}},
+	{L'}', {KeyShift, KeyRightSquareBracket}},	{L']', {KeyRightSquareBracket}},
+
+	{L'<', {KeyShift, KeyComma}},				{L',', {KeyComma}},
+	{L'>', {KeyShift, KeyFullStop}},			{L'.', {KeyFullStop}},
+	{L'?', {KeyShift, KeyForwardSlash}},		{L'/', {KeyForwardSlash}},
+	{L'\\', {KeyBackSlash}},
+
+	{L'0', {Key0}},	{L'1', {Key1}},	{L'2', {Key2}},	{L'3', {Key3}},	{L'4', {Key4}},
+	{L'5', {Key5}},	{L'6', {Key6}},	{L'7', {Key7}},	{L'8', {Key8}},	{L'9', {Key9}},
+
+	{L'A', {KeyShift, KeyA}},	{L'B', {KeyShift, KeyB}},	{L'C', {KeyShift, KeyC}},
+	{L'D', {KeyShift, KeyD}},	{L'E', {KeyShift, KeyE}},	{L'F', {KeyShift, KeyF}},
+	{L'G', {KeyShift, KeyG}},	{L'H', {KeyShift, KeyH}},	{L'I', {KeyShift, KeyI}},
+	{L'J', {KeyShift, KeyJ}},	{L'K', {KeyShift, KeyK}},	{L'L', {KeyShift, KeyL}},
+	{L'M', {KeyShift, KeyM}},	{L'N', {KeyShift, KeyN}},	{L'O', {KeyShift, KeyO}},
+	{L'P', {KeyShift, KeyP}},	{L'Q', {KeyShift, KeyQ}},	{L'R', {KeyShift, KeyR}},
+	{L'S', {KeyShift, KeyS}},	{L'T', {KeyShift, KeyT}},	{L'U', {KeyShift, KeyU}},
+	{L'V', {KeyShift, KeyV}},	{L'W', {KeyShift, KeyW}},	{L'X', {KeyShift, KeyX}},
+	{L'Y', {KeyShift, KeyY}},	{L'Z', {KeyShift, KeyZ}},
+
+	{L'a', {KeyA}},	{L'b', {KeyB}},	{L'c', {KeyC}},
+	{L'd', {KeyD}},	{L'e', {KeyE}},	{L'f', {KeyF}},
+	{L'g', {KeyG}},	{L'h', {KeyH}},	{L'i', {KeyI}},
+	{L'j', {KeyJ}},	{L'k', {KeyK}},	{L'l', {KeyL}},
+	{L'm', {KeyM}},	{L'n', {KeyN}},	{L'o', {KeyO}},
+	{L'p', {KeyP}},	{L'q', {KeyQ}},	{L'r', {KeyR}},
+	{L's', {KeyS}},	{L't', {KeyT}},	{L'u', {KeyU}},
+	{L'v', {KeyV}},	{L'w', {KeyW}},	{L'x', {KeyX}},
+	{L'y', {KeyY}},	{L'z', {KeyZ}},
+};
+}
+
+std::span<const uint16_t> CharacterMapper::sequence_for_character(const wchar_t character) const {
+	return lookup_sequence(sequences, character);
 }
 
 bool CharacterMapper::needs_pause_after_key(const uint16_t key) const {

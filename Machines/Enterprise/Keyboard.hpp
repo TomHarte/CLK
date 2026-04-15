@@ -13,7 +13,8 @@
 
 namespace Enterprise {
 
-enum class Key: uint16_t {
+namespace Key {
+enum Key: uint16_t {
 	N		= 0x0000 | 0x01,	Backslash	= 0x0000 | 0x02,	B		= 0x0000 | 0x04,	C			= 0x0000 | 0x08,
 	V		= 0x0000 | 0x10,	X			= 0x0000 | 0x20,	Z		= 0x0000 | 0x40,	LeftShift	= 0x0000 | 0x80,
 
@@ -47,13 +48,14 @@ enum class Key: uint16_t {
 	P		= 0x0900 | 0x10,
 	OpenSquareBracket		= 0x0900 | 0x20
 };
+}
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
 	uint16_t mapped_key_for_key(Inputs::Keyboard::Key) const final;
 };
 
 struct CharacterMapper: public ::Utility::CharacterMapper {
-	const uint16_t *sequence_for_character(char) const override;
+	std::span<const uint16_t> sequence_for_character(wchar_t) const override;
 };
 
 }

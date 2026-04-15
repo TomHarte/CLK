@@ -92,7 +92,7 @@ public:
 	}
 
 	// Keyboard and mouse exposure.
-	Keyboard &get_keyboard() {
+	Keyboard &keyboard() {
 		return keyboard_;
 	}
 

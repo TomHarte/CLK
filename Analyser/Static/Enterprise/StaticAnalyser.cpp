@@ -76,12 +76,15 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(
 			}
 
 			if(!has_exdos_ini) {
-				if(did_pick_file) {
-					target->loading_command =
-						std::string("run \"") + selected_file->name + "." + selected_file->extension + "\"\n";
-				} else {
-					target->loading_command = ":dir\n";
-				}
+				const auto loading_command = [&]() -> std::string {
+					if(did_pick_file) {
+						return
+							std::string("run \"") + selected_file->name + "." + selected_file->extension + "\"\n";
+					} else {
+						return ":dir\n";
+					}
+				} ();
+				target->loading_command = std::wstring(loading_command.begin(), loading_command.end());
 			}
 		}
 	}
@@ -106,7 +109,7 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(
 			if((type != FileType::COM && type != FileType::BAS) || size > file.stats().st_size - 16) {
 				target->media.file_bundles.clear();
 			} else {
-				target->loading_command = "run \"file:\"\n";
+				target->loading_command = L"run \"file:\"\n";
 			}
 		}
 

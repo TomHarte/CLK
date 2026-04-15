@@ -251,7 +251,9 @@ public:
 				}
 
 				if(should_autorun_ && address == finished_load_address_) {
-					type_string(is_zx81 ? "r \n" : "r\n ");	// Spaces here are not especially scientific; they merely ensure sufficient pauses for both the ZX80 and 81, empirically.
+					// Spaces here are not especially scientific; they merely ensure
+					// sufficient pauses for both the ZX80 and 81, empirically.
+					type_string(is_zx81 ? L"r \n" : L"r\n ");
 					should_autorun_ = false;
 				}
 
@@ -330,11 +332,11 @@ public:
 		return !media.tapes.empty();
 	}
 
-	void type_string(const std::string &string) final {
+	void type_string(const std::wstring &string) final {
 		Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 	}
 
-	bool can_type(char c) const final {
+	bool can_type(const wchar_t c) const final {
 		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 	}
 
@@ -369,15 +371,15 @@ public:
 	}
 
 	// MARK: - Typer timing
-	HalfCycles get_typer_delay(const std::string &) const final {
+	HalfCycles typer_delay(const std::wstring &) const final {
 		return z80_.get_is_resetting() ? Cycles(7'000'000) : Cycles(0);
 	}
 
-	HalfCycles get_typer_frequency() const final {
+	HalfCycles typer_frequency() const final {
 		return Cycles(159'961);
 	}
 
-	KeyboardMapper *get_keyboard_mapper() final {
+	KeyboardMapper *keyboard_mapper() final {
 		return &keyboard_mapper_;
 	}
 

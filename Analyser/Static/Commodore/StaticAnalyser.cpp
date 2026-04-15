@@ -163,9 +163,9 @@ std::optional<BASICAnalysis> analyse(const File &file) {
 template <typename TargetT>
 void set_loading_command(TargetT &target) {
 	if(target.media.disks.empty()) {
-		target.loading_command = "LOAD\"\",1,1\nRUN\n";
+		target.loading_command = L"LOAD\"\",1,1\nRUN\n";
 	} else {
-		target.loading_command = "LOAD\"*\",8,1\nRUN\n";
+		target.loading_command = L"LOAD\"*\",8,1\nRUN\n";
 	}
 }
 
@@ -240,8 +240,8 @@ FileAnalysis analyse_files(const Analyser::Static::Media &media) {
 	return analysis;
 }
 
-std::string loading_command(const FileAnalysis &file_analysis) {
-	std::ostringstream string_stream;
+std::wstring loading_command(const FileAnalysis &file_analysis) {
+	std::wostringstream string_stream;
 	string_stream << "LOAD\"" << (file_analysis.is_disk ? "*" : "") << "\"," << file_analysis.device;
 
 	const auto analysis = analyse(file_analysis.files[0]);

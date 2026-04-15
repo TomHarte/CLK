@@ -16,7 +16,7 @@
 namespace Analyser::Static::Thomson {
 
 struct MOTarget: public Analyser::Static::Target, public Reflection::StructImpl<MOTarget> {
-	std::string loading_command;
+	std::wstring loading_command;
 
 	ReflectableEnum(Floppy, None, CD90_640);
 	Floppy floppy = Floppy::None;

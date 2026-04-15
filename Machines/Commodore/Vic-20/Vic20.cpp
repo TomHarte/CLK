@@ -677,11 +677,11 @@ public:
 		m6502_.template set<CPU::MOS6502Mk2::Line::IRQ>(keyboard_via_.get_interrupt_line());
 	}
 
-	void type_string(const std::string &string) final {
+	void type_string(const std::wstring &string) final {
 		Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 	}
 
-	bool can_type(const char c) const final {
+	bool can_type(const wchar_t c) const final {
 		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 	}
 
@@ -689,7 +689,7 @@ public:
 		keyboard_via_.set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::One>(!tape.input());
 	}
 
-	KeyboardMapper *get_keyboard_mapper() final {
+	KeyboardMapper *keyboard_mapper() final {
 		return &keyboard_mapper_;
 	}
 

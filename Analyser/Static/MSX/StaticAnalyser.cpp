@@ -205,9 +205,9 @@ Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(
 		const std::vector<File> files_on_tape = GetFiles(tape);
 		if(!files_on_tape.empty()) {
 			switch(files_on_tape.front().type) {
-				case File::Type::ASCII:				target->loading_command = "RUN\"CAS:\r";		break;
-				case File::Type::TokenisedBASIC:	target->loading_command = "CLOAD\rRUN\r";		break;
-				case File::Type::Binary:			target->loading_command = "BLOAD\"CAS:\",R\r";	break;
+				case File::Type::ASCII:				target->loading_command = L"RUN\"CAS:\r";		break;
+				case File::Type::TokenisedBASIC:	target->loading_command = L"CLOAD\rRUN\r";		break;
+				case File::Type::Binary:			target->loading_command = L"BLOAD\"CAS:\",R\r";	break;
 				default: break;
 			}
 			target->media.tapes.push_back(tape);

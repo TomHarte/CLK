@@ -37,9 +37,9 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 			static constexpr size_t TypeOffset = 0xb;
 			if(!first->type && first->data.size() > TypeOffset) {
 				if(!first->data[TypeOffset]) {	// File type; 0 = BASIC, 1 = DATA; 2 = binary.
-					target->loading_command = "RUN\"\n";
+					target->loading_command = L"RUN\"\n";
 				} else {
-					target->loading_command = "LOADM\"\",,R\n";
+					target->loading_command = L"LOADM\"\",,R\n";
 				}
 			}
 		}

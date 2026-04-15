@@ -554,7 +554,7 @@ public:
 		// read rather than the decode and write: (i) nothing is lost while BASIC is parsing; and
 		// (ii) keyboard input is much more rapid.
 		if(string_serialiser_ && address == 0x02df && operation == CPU::MOS6502::BusOperation::Read) {
-			*value = string_serialiser_->head() | 0x80;
+			*value = uint8_t(string_serialiser_->head()) | 0x80;
 			if(!string_serialiser_->advance()) string_serialiser_.reset();
 		}
 
@@ -650,11 +650,11 @@ public:
 	}
 
 	// for Utility::TypeRecipient::Delegate
-	void type_string(const std::string &string) final {
+	void type_string(const std::wstring &string) final {
 		string_serialiser_ = std::make_unique<Utility::StringSerialiser>(string, true);
 	}
 
-	bool can_type(char c) const final {
+	bool can_type(const wchar_t c) const final {
 		// Make an effort to type the entire printable ASCII range.
 		return c >= 32 && c < 127;
 	}
@@ -683,7 +683,7 @@ public:
 		set_interrupt_line();
 	}
 
-	KeyboardMapper *get_keyboard_mapper() final {
+	KeyboardMapper *keyboard_mapper() final {
 		return &keyboard_mapper_;
 	}
 

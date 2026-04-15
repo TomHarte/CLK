@@ -48,9 +48,9 @@ public:
 	// Below is the standard KeyboardMachine::Machine interface; see there for documentation.
 	void clear_all_keys() final;
 	void set_key_state(uint16_t key, bool is_pressed) final;
-	void type_string(const std::string &) final;
-	bool can_type(char c) const final;
-	Inputs::Keyboard &get_keyboard() final;
+	void type_string(const std::wstring &) final;
+	bool can_type(wchar_t) const final;
+	Inputs::Keyboard &keyboard() final;
 };
 
 }

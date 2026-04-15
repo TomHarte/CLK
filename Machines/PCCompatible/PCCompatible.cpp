@@ -1021,7 +1021,7 @@ public:
 	}
 
 	// MARK: - MappedKeyboardMachine.
-	MappedKeyboardMachine::KeyboardMapper *get_keyboard_mapper() final {
+	MappedKeyboardMachine::KeyboardMapper *keyboard_mapper() final {
 		return &keyboard_mapper_;
 	}
 

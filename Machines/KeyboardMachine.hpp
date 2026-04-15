@@ -47,17 +47,17 @@ struct KeyboardMachine: public KeyActions {
 
 		This is best effort. Success or failure is permitted to be a function of machine and current state.
 	*/
-	virtual void type_string(const std::string &);
+	virtual void type_string(const std::wstring &);
 
 	/*!
 		@returns @c true if this machine can type the character @c c as part of a @c type_string; @c false otherwise.
 	*/
-	virtual bool can_type([[maybe_unused]] char c) const { return false; }
+	virtual bool can_type(wchar_t) const { return false; }
 
 	/*!
 		Provides a destination for keyboard input.
 	*/
-	virtual Inputs::Keyboard &get_keyboard() = 0;
+	virtual Inputs::Keyboard &keyboard() = 0;
 
 	/*!
 		Provides a standard bundle of logic for hosts that are able to correlate typed symbols
@@ -80,7 +80,7 @@ struct KeyboardMachine: public KeyActions {
 		const bool is_repeat,
 		const bool map_logically
 	) {
-		Inputs::Keyboard &keyboard = get_keyboard();
+		auto &keyboard = this->keyboard();
 
 		if(!map_logically) {
 			// Try a regular keypress first, and stop if that works.
@@ -90,7 +90,7 @@ struct KeyboardMachine: public KeyActions {
 
 			// That having failed, if a symbol has been supplied then try typing it.
 			if(is_pressed && symbol && can_type(symbol)) {
-				char string[2] = { symbol, 0 };
+				const wchar_t string[2] = { symbol, 0 };
 				type_string(string);
 				return true;
 			}
@@ -99,7 +99,7 @@ struct KeyboardMachine: public KeyActions {
 		} else {
 			// Try to type first.
 			if(is_pressed && symbol && can_type(symbol)) {
-				char string[2] = { symbol, 0 };
+				const wchar_t string[2] = { symbol, 0 };
 				type_string(string);
 				return true;
 			}
@@ -147,13 +147,13 @@ public:
 		Allows individual machines to provide the mapping between host keys
 		as per Inputs::Keyboard and their native scheme.
 	*/
-	virtual KeyboardMapper *get_keyboard_mapper();
+	virtual KeyboardMapper *keyboard_mapper();
 
 	/*!
 		Provides a keyboard that obtains this machine's keyboard mapper, maps
 		the key and supplies it via the KeyActions.
 	*/
-	virtual Inputs::Keyboard &get_keyboard() override;
+	virtual Inputs::Keyboard &keyboard() override;
 
 private:
 	bool keyboard_did_change_key(Inputs::Keyboard &, Inputs::Keyboard::Key, bool is_pressed) override;

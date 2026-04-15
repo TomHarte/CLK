@@ -52,7 +52,7 @@ void right_trim(std::string &string) {
 	}).base(), string.end());
 }
 
-std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
+std::wstring RunCommandFor(const Storage::Disk::CPM::File &file) {
 	// Trim spaces from the name.
 	std::string name = file.name;
 	right_trim(name);
@@ -68,7 +68,8 @@ std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
 	}
 
 	// Add a newline and return.
-	return command + "\n";
+	command += "\n";
+	return std::wstring(command.begin(), command.end());
 }
 
 void InspectCatalogue(
@@ -189,9 +190,10 @@ void InspectCatalogue(
 	} ();
 
 	if(run_name.has_value()) {
-		target->loading_command = "run\"" + rtrimmed(*run_name) + "\n";
+		const std::string loading_command = "run\"" + rtrimmed(*run_name) + "\n";
+		target->loading_command = std::wstring(loading_command.begin(), loading_command.end());
 	} else {
-		target->loading_command = "cat\n";
+		target->loading_command = L"cat\n";
 	}
 }
 
@@ -214,7 +216,7 @@ bool CheckBootSector(
 
 		// This is a system disk, then launch it as though it were CP/M.
 		if(!matched) {
-			target->loading_command = "|cpm\n";
+			target->loading_command = L"|cpm\n";
 			return true;
 		}
 	}
@@ -269,7 +271,7 @@ Analyser::Static::TargetList Analyser::Static::AmstradCPC::GetTargets(
 			// Ugliness flows here: assume the CPC isn't smart enough to pause between pressing
 			// enter and responding to the follow-on prompt to press a key, so just type for
 			// a while. Yuck!
-			target->loading_command = "|tape\nrun\"\n123";
+			target->loading_command = L"|tape\nrun\"\n123";
 		}
 	}
 

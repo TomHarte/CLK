@@ -30,13 +30,13 @@ void MultiKeyboardMachine::set_key_state(const uint16_t key, const bool is_press
 	}
 }
 
-void MultiKeyboardMachine::type_string(const std::string &string) {
+void MultiKeyboardMachine::type_string(const std::wstring &string) {
 	for(const auto &machine: machines_) {
 		machine->type_string(string);
 	}
 }
 
-bool MultiKeyboardMachine::can_type(const char c) const {
+bool MultiKeyboardMachine::can_type(const wchar_t c) const {
 	bool can_type = true;
 	for(const auto &machine: machines_) {
 		can_type &= machine->can_type(c);
@@ -44,7 +44,7 @@ bool MultiKeyboardMachine::can_type(const char c) const {
 	return can_type;
 }
 
-Inputs::Keyboard &MultiKeyboardMachine::get_keyboard() {
+Inputs::Keyboard &MultiKeyboardMachine::keyboard() {
 	return *keyboard_;
 }
 
@@ -52,10 +52,10 @@ MultiKeyboardMachine::MultiKeyboard::MultiKeyboard(const std::vector<::MachineTy
 	: machines_(machines) {
 	for(const auto &machine: machines_) {
 		observed_keys_.insert(
-			machine->get_keyboard().observed_keys().begin(),
-			machine->get_keyboard().observed_keys().end()
+			machine->keyboard().observed_keys().begin(),
+			machine->keyboard().observed_keys().end()
 		);
-		is_exclusive_ |= machine->get_keyboard().is_exclusive();
+		is_exclusive_ |= machine->keyboard().is_exclusive();
 	}
 }
 
@@ -67,14 +67,14 @@ bool MultiKeyboardMachine::MultiKeyboard::set_key_pressed(
 ) {
 	bool was_consumed = false;
 	for(const auto &machine: machines_) {
-		was_consumed |= machine->get_keyboard().set_key_pressed(key, value, is_pressed, is_repeat);
+		was_consumed |= machine->keyboard().set_key_pressed(key, value, is_pressed, is_repeat);
 	}
 	return was_consumed;
 }
 
 void MultiKeyboardMachine::MultiKeyboard::reset_all_keys() {
 	for(const auto &machine: machines_) {
-		machine->get_keyboard().reset_all_keys();
+		machine->keyboard().reset_all_keys();
 	}
 }
 
