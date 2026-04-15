@@ -31,6 +31,7 @@
 #import "NSData+StdVector.h"
 
 #include <cassert>
+#include <codecvt>
 #include <atomic>
 #include <bitset>
 #include <locale>
@@ -365,8 +366,10 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)paste:(NSString *)paste {
 	auto keyboardMachine = _machine->keyboard_machine();
-	if(keyboardMachine)
-		keyboardMachine->type_string([paste UTF8String]);
+	if(keyboardMachine) {
+		std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+		keyboardMachine->type_string(converter.from_bytes(paste.UTF8String));
+	}
 }
 
 - (NSBitmapImageRep *)imageRepresentation {

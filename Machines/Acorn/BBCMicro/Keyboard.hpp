@@ -94,7 +94,7 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 
 private:
 	using CLKKey = Inputs::Keyboard::Key;
-	static inline const std::unordered_map<CLKKey, Key> key_map{
+	static inline const std::unordered_map<CLKKey, Key::Key> key_map{
 		{CLKKey::Escape, Key::Escape},
 		{CLKKey::F12, Key::Break},
 
@@ -151,7 +151,7 @@ struct CharacterMapper: public ::Utility::CharacterMapper {
 
 	bool needs_pause_after_reset_all_keys() const override	{ return false; }
 	bool needs_pause_after_key(const uint16_t key) const override {
-		return !is_modifier(Key(key));
+		return !is_modifier(Key::Key(key));
 	}
 
 private:

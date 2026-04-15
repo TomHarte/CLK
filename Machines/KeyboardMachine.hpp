@@ -80,7 +80,7 @@ struct KeyboardMachine: public KeyActions {
 		const bool is_repeat,
 		const bool map_logically
 	) {
-		auto &keyboard = KeyboardMachine::keyboard();
+		auto &keyboard = this->keyboard();
 
 		if(!map_logically) {
 			// Try a regular keypress first, and stop if that works.

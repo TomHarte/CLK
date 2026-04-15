@@ -1193,11 +1193,11 @@ public:
 		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 	}
 
-	HalfCycles get_typer_delay(const std::wstring &) const final {
+	HalfCycles typer_delay(const std::wstring &) const final {
 		return z80_.get_is_resetting() ? Cycles(3'400'000) : Cycles(0);
 	}
 
-	HalfCycles get_typer_frequency() const final {
+	HalfCycles typer_frequency() const final {
 		return Cycles(160'000);	// Perform one key transition per frame and a half.
 	}
 
