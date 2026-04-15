@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <codecvt>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -1124,7 +1125,10 @@ int main(int argc, char *argv[]) {
 						// Syphon off the key-press if it's control+shift+V (paste).
 						if(event.key.keysym.sym == SDLK_v && (SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {
 							if(keyboard_machine) {
-								keyboard_machine->type_string(SDL_GetClipboardText());
+								char *const utf8 = SDL_GetClipboardText();
+								std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+								keyboard_machine->type_string(converter.from_bytes(utf8));
+								SDL_free(utf8);
 								break;
 							}
 						}
