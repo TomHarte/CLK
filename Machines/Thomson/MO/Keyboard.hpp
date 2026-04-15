@@ -11,7 +11,7 @@
 #include "Machines/KeyboardMachine.hpp"
 #include "Machines/Utility/Typer.hpp"
 
-namespace Thomson::MO5 {
+namespace Thomson::MO {
 
 enum Key: uint16_t {
 	Key0	= 0x1e,		Key1	= 0x2f,		Key2	= 0x27,		Key3 	= 0x1f,
@@ -118,8 +118,10 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 };
 
 struct CharacterMapper: public ::Utility::CharacterMapper {
+	CharacterMapper(const bool is_mo6) : is_mo6_(is_mo6) {}
+
 	std::span<const uint16_t> sequence_for_character(const wchar_t character) const final {
-		return lookup_sequence(mo5_sequences, character);
+		return lookup_sequence(is_mo6_ ? mo6_sequences : mo5_sequences, character);
 	}
 private:
 	static inline std::unordered_map<wchar_t, const std::vector<uint16_t>> mo5_sequences = {
@@ -170,6 +172,52 @@ private:
 		{L'v', {KeyV}},	{L'w', {KeyW}},	{L'x', {KeyX}},
 		{L'y', {KeyY}},	{L'z', {KeyZ}},
 	};
+
+	static inline std::unordered_map<wchar_t, const std::vector<uint16_t>> mo6_sequences = {
+		{L'\n', {KeyEnter}},	{L'\r', {KeyEnter}},
+		{L' ', {KeySpace}},
+
+		{L'#', {KeyShift, KeyAt}},	{L'@', {KeyAt}},
+
+		{L'*', {KeyShift, Key1}},
+		{L'é', {KeyShift, Key2}},
+		{L'"', {KeyShift, Key3}},
+		{L'\'', {KeyShift, Key4}},
+		{L'(', {KeyShift, Key5}},
+		{L'_', {KeyShift, Key6}},
+		{L'è', {KeyShift, Key7}},
+		{L'!', {KeyShift, Key8}},
+		{L'ç', {KeyShift, Key9}},
+		{L'à', {KeyShift, Key0}},
+//		{L')', {KeyShift, KeyDegree}},
+//		{L'-', {KeyShift, KeyBackslash}},
+//		{L'+', {KeyShift, KeyEquals}},
+
+		{L'0', {Key0}},	{L'1', {Key1}},	{L'2', {Key2}},	{L'3', {Key3}},	{L'4', {Key4}},
+		{L'5', {Key5}},	{L'6', {Key6}},	{L'7', {Key7}},	{L'8', {Key8}},	{L'9', {Key9}},
+
+		{L'A', {KeyShift, KeyA}},	{L'B', {KeyShift, KeyB}},	{L'C', {KeyShift, KeyC}},
+		{L'D', {KeyShift, KeyD}},	{L'E', {KeyShift, KeyE}},	{L'F', {KeyShift, KeyF}},
+		{L'G', {KeyShift, KeyG}},	{L'H', {KeyShift, KeyH}},	{L'I', {KeyShift, KeyI}},
+		{L'J', {KeyShift, KeyJ}},	{L'K', {KeyShift, KeyK}},	{L'L', {KeyShift, KeyL}},
+		{L'M', {KeyShift, KeyM}},	{L'N', {KeyShift, KeyN}},	{L'O', {KeyShift, KeyO}},
+		{L'P', {KeyShift, KeyP}},	{L'Q', {KeyShift, KeyQ}},	{L'R', {KeyShift, KeyR}},
+		{L'S', {KeyShift, KeyS}},	{L'T', {KeyShift, KeyT}},	{L'U', {KeyShift, KeyU}},
+		{L'V', {KeyShift, KeyV}},	{L'W', {KeyShift, KeyW}},	{L'X', {KeyShift, KeyX}},
+		{L'Y', {KeyShift, KeyY}},	{L'Z', {KeyShift, KeyZ}},
+
+		{L'a', {KeyA}},	{L'b', {KeyB}},	{L'c', {KeyC}},
+		{L'd', {KeyD}},	{L'e', {KeyE}},	{L'f', {KeyF}},
+		{L'g', {KeyG}},	{L'h', {KeyH}},	{L'i', {KeyI}},
+		{L'j', {KeyJ}},	{L'k', {KeyK}},	{L'l', {KeyL}},
+		{L'm', {KeyM}},	{L'n', {KeyN}},	{L'o', {KeyO}},
+		{L'p', {KeyP}},	{L'q', {KeyQ}},	{L'r', {KeyR}},
+		{L's', {KeyS}},	{L't', {KeyT}},	{L'u', {KeyU}},
+		{L'v', {KeyV}},	{L'w', {KeyW}},	{L'x', {KeyX}},
+		{L'y', {KeyY}},	{L'z', {KeyZ}},
+	};
+
+	bool is_mo6_;
 };
 
 }
