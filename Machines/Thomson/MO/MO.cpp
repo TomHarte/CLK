@@ -333,8 +333,15 @@ private:
 		uint8_t input() {
 			if constexpr (port == Motorola::MC6821::Port::A) {
 				//	Port A inputs:
-				//		b4: light pen button
+				//
 				//		b7: tape input [and 0 = no tape; 1 = tape present]
+				//
+				//	MO5:
+				//		b4: light pen button
+				//
+				//	MO6:
+				//		b1: light pen button (maybe?)
+
 				return
 					(machine_.tape_player_.input() ? 0x00 : 0x80) |
 					0x10;	// Light pen button never pressed.
@@ -357,10 +364,13 @@ private:
 				//		b0 = lower 8kb RAM paging;
 				//		b6: tape output.
 				//
-				//	Plus MO5:
+				//	MO5:
 				//		b1–4: border colour;
 				//
 				//	MO6:
+				//		b2: "mute souris"
+				//		b3: additional keyboard line select
+				//		b4: a keyboard LED
 				//		b5: ROM page selection
 				//
 				machine_.memory_.page_video(value & 0x01);
@@ -368,15 +378,19 @@ private:
 
 				if constexpr (!is_mo6) {
 					machine_.video_->set_border_colour((value >> 1) & 0xf);
+				} else {
+					key_ = (key_ & 0b0'111'111) | ((value << 3) & 0b1'000'000);
+					printf("Extra bit [%d]; key: %02x\n", value & 0x8, key_);
 				}
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
 				// Port B outputs:
 				//		b0 = 1-bit sound output;
-				//		b1–3 = keyboard column;
-				//		b4–6: keyboard line;
-				key_ = (value >> 1) & 0b111'111;
+				//		b1–3 = keyboard line;
+				//		b4–6: keyboard column.
+				key_ = (key_ & 0b1'000'000) | ((value >> 1) & 0b0'111'111);
+				printf("Key: %02x\n", key_);
 				machine_.set_audio(value & 1, std::nullopt);
 			}
 		}
@@ -413,7 +427,7 @@ private:
 	private:
 		ConcreteMachine &machine_;
 		uint8_t key_ = 0;
-		bool key_states_[0x40]{};
+		bool key_states_[0x80]{};	// There are 64 key addresses on an MO5; 128 on an MO6.
 	};
 	SystemPIAPortHandler system_pia_port_handler_;
 	Motorola::MC6821::MC6821<SystemPIAPortHandler, 2, 1> system_pia_;
