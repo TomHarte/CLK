@@ -348,8 +348,8 @@ private:
 		//
 		//	b5 [output]: ROM page selection
 		//	b4 [output]: shift lock LED
-		//	b3 [output]: additional key select line
-		//	b2 [output]: "mute souris" (mute mouse?)
+		//	b3 [output]: additional bit for keyboard line
+		//	b2 [output]: "mute souris" (mute mouse? Probably related to the mouse and 6-bit DAC sharing lines.)
 		//	b1 [input]: light pen button (maybe?)
 		//
 
@@ -358,16 +358,15 @@ private:
 		//
 		//	b7 [input]: state of selected key
 		//	b4–6 [output]: keyboard column
-		//	b1–3 [output] = keyboard line
-		//	b0 [output] = 1-bit sound
+		//	b1–3 [output]: keyboard line
+		//	b0 [output]: 1-bit sound
 		//
 
 		template <Motorola::MC6821::Port port>
 		uint8_t input() {
 			if constexpr (port == Motorola::MC6821::Port::A) {
 				return
-					(machine_.tape_player_.input() ? 0x00 : 0x80) |
-					0x10;	// Light pen button never pressed.
+					(machine_.tape_player_.input() ? 0x00 : 0x80);
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
@@ -387,13 +386,13 @@ private:
 					machine_.video_->set_border_colour((value >> 1) & 0xf);
 				} else {
 					key_ = (key_ & 0b0'111'111) | ((value << 3) & 0b1'000'000);
-					printf("Extra bit [%d]; key: %02x\n", value & 0x8, key_);
+//					printf("Extra bit [%d]; key: %02x\n", value & 0x8, key_);
 				}
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
 				key_ = (key_ & 0b1'000'000) | ((value >> 1) & 0b0'111'111);
-				printf("Key: %02x\n", key_);
+//				printf("Key: %02x\n", key_);
 				machine_.set_audio(value & 1, std::nullopt);
 			}
 		}
