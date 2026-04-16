@@ -322,34 +322,55 @@ private:
 	struct SystemPIAPortHandler {
 		SystemPIAPortHandler(ConcreteMachine &machine) : machine_(machine) {}
 
-		// System PIA control lines:
+		//
+		// Control lines:
 		//
 		//	CA1: lightpen input
 		//	CA2: drive motor control output
 		//	CB1: 50Hz interrupt input
-		//	CB2: "Video encrustation"?
+		//	CB2: "Video incrustation"?
+		//
+
+		//
+		// Port A:
+		//
+		//	b7 [input]: tape data (high = tape attached but not running)
+		//	b6 [output]: tape data
+		//	b1–b5: ... machine specific ...
+		//	b0 [output]: lower 8kb paging
+		//
+		// MO5:
+		//
+		//	b5 [input]: light pen button
+		//	b1–b3 [output]: border colour
+		//
+		// MO6:
+		//
+		//	b5 [output]: ROM page selection
+		//	b4 [output]: shift lock LED
+		//	b3 [output]: additional key select line
+		//	b2 [output]: "mute souris" (mute mouse?)
+		//	b1 [input]: light pen button (maybe?)
+		//
+
+		//
+		// Port B:
+		//
+		//	b7 [input]: state of selected key
+		//	b4–6 [output]: keyboard column
+		//	b1–3 [output] = keyboard line
+		//	b0 [output] = 1-bit sound
+		//
 
 		template <Motorola::MC6821::Port port>
 		uint8_t input() {
 			if constexpr (port == Motorola::MC6821::Port::A) {
-				//	Port A inputs:
-				//
-				//		b7: tape input [and 0 = no tape; 1 = tape present]
-				//
-				//	MO5:
-				//		b4: light pen button
-				//
-				//	MO6:
-				//		b1: light pen button (maybe?)
-
 				return
 					(machine_.tape_player_.input() ? 0x00 : 0x80) |
 					0x10;	// Light pen button never pressed.
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
-				//	Port B inputs:
-				//		b7: status of key at that position.	[0 = pressed?]
 				return key_states_[key_] ? 0x00 : 0x80;
 			}
 
@@ -359,20 +380,6 @@ private:
 		template <Motorola::MC6821::Port port>
 		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::A) {
-				//	Port A outputs:
-				//
-				//		b0 = lower 8kb RAM paging;
-				//		b6: tape output.
-				//
-				//	MO5:
-				//		b1–4: border colour;
-				//
-				//	MO6:
-				//		b2: "mute souris"
-				//		b3: additional keyboard line select
-				//		b4: a keyboard LED
-				//		b5: ROM page selection
-				//
 				machine_.memory_.page_video(value & 0x01);
 				machine_.memory_.page_monitor(value & 0x20);
 
@@ -385,10 +392,6 @@ private:
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
-				// Port B outputs:
-				//		b0 = 1-bit sound output;
-				//		b1–3 = keyboard line;
-				//		b4–6: keyboard column.
 				key_ = (key_ & 0b1'000'000) | ((value >> 1) & 0b0'111'111);
 				printf("Key: %02x\n", key_);
 				machine_.set_audio(value & 1, std::nullopt);
