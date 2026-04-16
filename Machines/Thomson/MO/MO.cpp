@@ -387,6 +387,10 @@ private:
 				} else {
 					key_ = (key_ & 0b0'111'111) | ((value << 3) & 0b1'000'000);
 //					printf("Extra bit [%d]; key: %02x\n", value & 0x8, key_);
+
+					if(machine_.activity_observer_) {
+						machine_.activity_observer_->set_led_status(machine_.ShiftLED, value & 0x10);
+					}
 				}
 			}
 
@@ -702,11 +706,17 @@ private:
 	// MARK: - Activity Source.
 
 	void set_activity_observer(Activity::Observer *const observer) override {
+		if(is_mo6) {
+			activity_observer_ = observer;
+			activity_observer_->register_led(ShiftLED, Activity::Observer::LEDPresentation::Persistent);
+		}
 		tape_player_.set_activity_observer(observer);
 		if(has_floppy) {
 			fdc_.set_activity_observer(observer);
 		}
 	}
+	static constexpr std::string ShiftLED = "Shift Lock";
+	Activity::Observer *activity_observer_ = nullptr;
 
 	// MARK: - Configuration options.
 
