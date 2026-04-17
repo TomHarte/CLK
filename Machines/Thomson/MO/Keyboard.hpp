@@ -106,7 +106,7 @@ inline const std::unordered_map<wchar_t, const std::vector<uint16_t>> sequences 
 
 	{L'<', {Shift, Comma}},			{L',', {Comma}},
 	{L'>', {Shift, FullStop}},		{L'.', {FullStop}},
-	{L'^', {Shift, At}},				{L'@', {At}},
+	{L'^', {Shift, At}},			{L'@', {At}},
 };
 }
 
@@ -124,7 +124,7 @@ enum Key: uint16_t {
 	X	= 0x28,		C	= 0x32,		V	= 0x2a,		B	= 0x22,
 	N	= 0x00,		M	= 0x1a,
 
-	At				= 0x18,
+	Hash			= 0x18,
 	CloseBracket	= 0x50,
 	Minus			= 0x26,
 	Equals			= 0x2e,
@@ -193,8 +193,18 @@ static inline std::unordered_map<wchar_t, const std::vector<uint16_t>> sequences
 	{L'v', {V}},	{L'w', {W}},	{L'x', {X}},
 	{L'y', {Y}},	{L'z', {Z}},
 
-	{L'#', {Shift, At}},	{L'@', {At}},
+	{L'@', {Shift, Hash}},	{L'#', {Hash}},
+	{L'à', {Shift, k0}},	{L'*', {Shift, k1}},	{L'é', {Shift, k2}},	{L'"', {Shift, k3}},	{L'\'', {Shift, k4}},
+	{L'(', {Shift, k5}},	{L'_', {Shift, k6}},	{L'è', {Shift, k7}},	{L'!', {Shift, k8}},	{L'ç', {Shift, k9}},
 
+	{L'º', {Shift, CloseBracket}},	{L')', {CloseBracket}},
+	{L'\\', {Shift, Minus}},		{L'-', {Minus}},
+	{L'=', {Shift, Equals}},		{L'+', {Equals}},
+
+	{L'¨', {Shift, Caret}},				{L'^', {Caret}},
+	{L'$', {Shift, Dollar}},			{L'&', {Dollar}},
+	{L'{', {Shift, OpenSquareBracket}},	{L'[', {OpenSquareBracket}},
+//	{L'ù', {Shift, }},	{L'[', {OpenSquareBracket}},
 };
 }
 
@@ -204,62 +214,99 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 	uint16_t mapped_key_for_key(const Inputs::Keyboard::Key key) const {
 		using In = Inputs::Keyboard::Key;
 
-		switch(key) {
-			default:	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
+		switch(machine_) {
+			case Machine::MO5:
+				switch(key) {
+					default:	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 
-			using enum MO5::Key;
-			case In::k0:	return k0;		case In::k1:	return k1;
-			case In::k2:	return k2;		case In::k3:	return k3;
-			case In::k4:	return k4;		case In::k5:	return k5;
-			case In::k6:	return k6;		case In::k7:	return k7;
-			case In::k8:	return k8;		case In::k9:	return k9;
+					using enum MO5::Key;
+					case In::k0:	return k0;		case In::k1:	return k1;
+					case In::k2:	return k2;		case In::k3:	return k3;
+					case In::k4:	return k4;		case In::k5:	return k5;
+					case In::k6:	return k6;		case In::k7:	return k7;
+					case In::k8:	return k8;		case In::k9:	return k9;
 
-			case In::Q:		return A;		case In::W:		return Z;
-			case In::E:		return E;		case In::R:		return R;
-			case In::T:		return T;		case In::Y:		return Y;
-			case In::U:		return U;		case In::I:		return I;
-			case In::O:		return O;		case In::P:		return P;
-			case In::A:		return Q;		case In::S:		return S;
-			case In::D:		return D;		case In::F:		return F;
-			case In::G:		return G;		case In::H:		return H;
-			case In::J:		return J;		case In::K:		return K;
-			case In::L:		return L;		case In::Z:		return W;
-			case In::X:		return X;		case In::C:		return C;
-			case In::V:		return V;		case In::B:		return B;
-			case In::N:		return N;		case In::M:		return M;
+					case In::Q:		return A;		case In::W:		return Z;
+					case In::E:		return E;		case In::R:		return R;
+					case In::T:		return T;		case In::Y:		return Y;
+					case In::U:		return U;		case In::I:		return I;
+					case In::O:		return O;		case In::P:		return P;
+					case In::A:		return Q;		case In::S:		return S;
+					case In::D:		return D;		case In::F:		return F;
+					case In::G:		return G;		case In::H:		return H;
+					case In::J:		return J;		case In::K:		return K;
+					case In::L:		return L;		case In::Z:		return W;
+					case In::X:		return X;		case In::C:		return C;
+					case In::V:		return V;		case In::B:		return B;
+					case In::N:		return N;		case In::M:		return M;
 
-			case In::FullStop:	return FullStop;
-			case In::Comma:		return Comma;
-			case In::Hyphen:	return Minus;
-			case In::Equals:	return Plus;
+					case In::FullStop:	return FullStop;
+					case In::Comma:		return Comma;
+					case In::Hyphen:	return Minus;
+					case In::Equals:	return Plus;
 
-			case In::OpenSquareBracket:	return At;
-			case In::Semicolon:			return M;
-			case In::ForwardSlash:		return ForwardSlash;
+					case In::OpenSquareBracket:	return At;
+					case In::Semicolon:			return M;
+					case In::ForwardSlash:		return ForwardSlash;
 
-			case In::CloseSquareBracket:
-			case In::Quote:		return Asterisk;
+					case In::CloseSquareBracket:
+					case In::Quote:		return Asterisk;
 
-			case In::Space:		return Space;
-			case In::Enter:		return Enter;
-			case In::Backspace:	return ACC;
-			case In::Escape:	return Stop;
+					case In::Space:		return Space;
+					case In::Enter:		return Enter;
+					case In::Backspace:	return ACC;
+					case In::Escape:	return Stop;
 
-			case In::Up:		return Up;		case In::Down:	return Down;
-			case In::Left:		return Left;	case In::Right:	return Right;
+					case In::Up:		return Up;		case In::Down:	return Down;
+					case In::Left:		return Left;	case In::Right:	return Right;
 
-			case In::LeftShift:
-			case In::RightShift:	return Shift;
-			case In::Tab:
-			case In::LeftControl:
-			case In::RightControl:	return Control;
-			case In::LeftOption:
-			case In::RightOption:	return BASIC;
-			case In::LeftMeta:
-			case In::RightMeta:		return RAZ;
+					case In::LeftShift:
+					case In::RightShift:	return Shift;
+					case In::Tab:
+					case In::LeftControl:
+					case In::RightControl:	return Control;
+					case In::LeftOption:
+					case In::RightOption:	return BASIC;
+					case In::LeftMeta:
+					case In::RightMeta:		return RAZ;
 
-			case In::Insert:		return INS;
-			case In::Home:			return EFF;
+					case In::Insert:		return INS;
+					case In::Home:			return EFF;
+				}
+			break;
+
+			case Machine::MO6:
+				switch(key) {
+					default:	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
+
+					using enum MO6::Key;
+					case In::k0:	return k0;		case In::k1:	return k1;
+					case In::k2:	return k2;		case In::k3:	return k3;
+					case In::k4:	return k4;		case In::k5:	return k5;
+					case In::k6:	return k6;		case In::k7:	return k7;
+					case In::k8:	return k8;		case In::k9:	return k9;
+
+					case In::Q:		return A;		case In::W:		return Z;
+					case In::E:		return E;		case In::R:		return R;
+					case In::T:		return T;		case In::Y:		return Y;
+					case In::U:		return U;		case In::I:		return I;
+					case In::O:		return O;		case In::P:		return P;
+					case In::A:		return Q;		case In::S:		return S;
+					case In::D:		return D;		case In::F:		return F;
+					case In::G:		return G;		case In::H:		return H;
+					case In::J:		return J;		case In::K:		return K;
+					case In::L:		return L;		case In::Z:		return W;
+					case In::X:		return X;		case In::C:		return C;
+					case In::V:		return V;		case In::B:		return B;
+					case In::N:		return N;		case In::M:		return M;
+
+					case In::Quote:	return Hash;
+
+					case In::Space:	return UGrave;
+				}
+			break;
+
+			default: __builtin_unreachable();
 		}
 	}
 
