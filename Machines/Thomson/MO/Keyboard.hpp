@@ -11,52 +11,14 @@
 #include "Machines/KeyboardMachine.hpp"
 #include "Machines/Utility/Typer.hpp"
 
-namespace Thomson::MO {
+namespace Thomson::MO::Keyboard {
 
-enum Key: uint16_t {
-	Key0	= 0x1e,		Key1	= 0x2f,		Key2	= 0x27,		Key3 	= 0x1f,
-	Key4	= 0x17,		Key5	= 0x0f,		Key6	= 0x07,		Key7 	= 0x06,
-	Key8	= 0x0e,		Key9	= 0x16,
-
-	KeyA 	= 0x2d,		KeyZ	= 0x25,		KeyE 	= 0x1d,		KeyR	= 0x15,
-	KeyT	= 0x0d,		KeyY	= 0x05,		KeyU	= 0x04,		KeyI	= 0x0c,
-	KeyO	= 0x14,		KeyP	= 0x1c,		KeyQ	= 0x2b,		KeyS	= 0x23,
-	KeyD	= 0x1b,		KeyF	= 0x13,		KeyG	= 0x0b,		KeyH	= 0x03,
-	KeyJ	= 0x02,		KeyK	= 0x0a,		KeyL	= 0x12,		KeyW	= 0x30,
-	KeyX	= 0x28,		KeyC	= 0x32,		KeyV	= 0x2a,		KeyB	= 0x22,
-	KeyN	= 0x00,		KeyM	= 0x1a,
-
-	KeyComma	=	0x08,
-	KeyFullStop	=	0x10,
-	KeyAt		=	0x18,
-	KeyAsterisk =	0x2c,
-	KeyMinus	=	0x26,
-	KeyPlus		= 	0x2e,
-
-	KeyShift	=	0x38,	// On a real MO: a yellow triangle.
-	KeyBASIC	=	0x39,
-	KeyControl	=	0x35,
-	KeyRAZ		=	0x33,
-
-	KeySpace	= 	0x20,
-	KeyEnter	=	0x34,
-
-	KeyUp		=	0x31,
-	KeyDown		=	0x21,
-	KeyLeft		=	0x29,
-	KeyRight	=	0x19,
-
-	KeyINS		=	0x09,
-	KeyEFF		=	0x11,
-
-	KeyACC		=	0x36,
-	KeyStop		=	0x37,
-
-	KeyForwardSlash	= 0x24,
+enum class Machine {
+	MO5, MO6
 };
 
-namespace KeyMO6 {
-enum KeyMO6: uint16_t {
+namespace MO5 {
+enum Key: uint16_t {
 	k0	= 0x1e,		k1	= 0x2f,		k2	= 0x27,		k3 	= 0x1f,
 	k4	= 0x17,		k5	= 0x0f,		k6	= 0x07,		k7 	= 0x06,
 	k8	= 0x0e,		k9	= 0x16,
@@ -69,208 +31,251 @@ enum KeyMO6: uint16_t {
 	X	= 0x28,		C	= 0x32,		V	= 0x2a,		B	= 0x22,
 	N	= 0x00,		M	= 0x1a,
 
-	UGrave		=	0x60,	// ù
+	Comma		=	0x08,
+	FullStop	=	0x10,
+	At			=	0x18,
+	Asterisk	=	0x2c,
+	Minus		=	0x26,
+	Plus		= 	0x2e,
 
-	ACC			=	0x36,
-	Stop		=	0x37,
-	Enter		=	0x34,
-	Space		= 	0x20,
-	Semicolon	=	0x10,
-	CloseBracket	= 0x50,
-	Colon		= 0x24,
-	Slash		= 0x11,
-	CloseSquareBracket = 0x48,
-	Dollar = 0x2c,
-	Hash	= 0x18,
-	Comma	= 0x08,
-	Equals		= 0x2e,
-	Caret		= 0x58,
-	INS		=	0x09,
+	Shift	=	0x38,	// On a real MO: a yellow triangle.
+	BASIC	=	0x39,
+	Control	=	0x35,
 	RAZ		=	0x33,
-	CloseAngleBracket = 0x11,
-	OpenSquareBracket = 0x40,
 
-	KeyUp		=	0x31,
-	KeyDown		=	0x21,
-	KeyLeft		=	0x29,
-	KeyRight	=	0x19,
+	Space	= 	0x20,
+	Enter	=	0x34,
 
-	F1	= 0x3b,
+	Up		=	0x31,
+	Down	=	0x21,
+	Left	=	0x29,
+	Right	=	0x19,
+
+	INS		=	0x09,
+	EFF		=	0x11,
+
+	ACC		=	0x36,
+	Stop	=	0x37,
+
+	ForwardSlash	= 0x24,
+};
+
+inline const std::unordered_map<wchar_t, const std::vector<uint16_t>> sequences = {
+	{L'\n', {Enter}},	{L'\r', {Enter}},
+	{L' ', {Space}},
+
+	{L'0', {k0}},	{L'1', {k1}},	{L'2', {k2}},	{L'3', {k3}},	{L'4', {k4}},
+	{L'5', {k5}},	{L'6', {k6}},	{L'7', {k7}},	{L'8', {k8}},	{L'9', {k9}},
+
+	{L'A', {Shift, A}},	{L'B', {Shift, B}},	{L'C', {Shift, C}},
+	{L'D', {Shift, D}},	{L'E', {Shift, E}},	{L'F', {Shift, F}},
+	{L'G', {Shift, G}},	{L'H', {Shift, H}},	{L'I', {Shift, I}},
+	{L'J', {Shift, J}},	{L'K', {Shift, K}},	{L'L', {Shift, L}},
+	{L'M', {Shift, M}},	{L'N', {Shift, N}},	{L'O', {Shift, O}},
+	{L'P', {Shift, P}},	{L'Q', {Shift, Q}},	{L'R', {Shift, R}},
+	{L'S', {Shift, S}},	{L'T', {Shift, T}},	{L'U', {Shift, U}},
+	{L'V', {Shift, V}},	{L'W', {Shift, W}},	{L'X', {Shift, X}},
+	{L'Y', {Shift, Y}},	{L'Z', {Shift, Z}},
+
+	{L'a', {A}},	{L'b', {B}},	{L'c', {C}},
+	{L'd', {D}},	{L'e', {E}},	{L'f', {F}},
+	{L'g', {G}},	{L'h', {H}},	{L'i', {I}},
+	{L'j', {J}},	{L'k', {K}},	{L'l', {L}},
+	{L'm', {M}},	{L'n', {N}},	{L'o', {O}},
+	{L'p', {P}},	{L'q', {Q}},	{L'r', {R}},
+	{L's', {S}},	{L't', {T}},	{L'u', {U}},
+	{L'v', {V}},	{L'w', {W}},	{L'x', {X}},
+	{L'y', {Y}},	{L'z', {Z}},
+
+	{L'!', {Shift, k1}},
+	{L'"', {Shift, k2}},
+	{L'#', {Shift, k3}},
+	{L'$', {Shift, k4}},
+	{L'%', {Shift, k5}},
+	{L'&', {Shift, k6}},
+	{L'\'', {Shift, k7}},
+	{L'(', {Shift, k8}},
+	{L')', {Shift, k9}},
+	{L'\\', {Shift, k0}},
+
+	{L'=', {Shift, Minus}},			{L'-', {Minus}},
+	{L';', {Shift, Plus}},			{L'+', {Plus}},
+
+	{L'?', {Shift, ForwardSlash}},	{L'/', {ForwardSlash}},
+	{L':', {Shift, Asterisk}},		{L'*', {Asterisk}},
+
+	{L'<', {Shift, Comma}},			{L',', {Comma}},
+	{L'>', {Shift, FullStop}},		{L'.', {FullStop}},
+	{L'^', {Shift, At}},				{L'@', {At}},
+};
+}
+
+namespace MO6 {
+enum Key: uint16_t {
+	k0	= 0x1e,		k1	= 0x2f,		k2	= 0x27,		k3 	= 0x1f,
+	k4	= 0x17,		k5	= 0x0f,		k6	= 0x07,		k7 	= 0x06,
+	k8	= 0x0e,		k9	= 0x16,
+
+	A 	= 0x2d,		Z	= 0x25,		E 	= 0x1d,		R	= 0x15,
+	T	= 0x0d,		Y	= 0x05,		U	= 0x04,		I	= 0x0c,
+	O	= 0x14,		P	= 0x1c,		Q	= 0x2b,		S	= 0x23,
+	D	= 0x1b,		F	= 0x13,		G	= 0x0b,		H	= 0x03,
+	J	= 0x02,		K	= 0x0a,		L	= 0x12,		W	= 0x30,
+	X	= 0x28,		C	= 0x32,		V	= 0x2a,		B	= 0x22,
+	N	= 0x00,		M	= 0x1a,
+
+	At				= 0x18,
+	CloseBracket	= 0x50,
+	Minus			= 0x26,
+	Equals			= 0x2e,
+	ACC				= 0x36,
+
+	Stop			= 0x37,
+	Caret			= 0x58,
+	Dollar 			= 0x2c,
+
+	OpenSquareBracket	= 0x40,
+	UGrave				= 0x60,	// ù
+	CloseSquareBracket	= 0x48,
+
+	Comma				= 0x08,
+	Semicolon			= 0x10,
+	Colon				= 0x24,
+	CloseAngleBracket	= 0x11,
+	RAZ					= 0x33,
+	INS					= 0x09,
+	EFF					= 0x01,
+
+	Enter		= 0x34,
+	Space		= 0x20,
+
+	KeyUp		= 0x31,
+	KeyDown		= 0x21,
+	KeyLeft		= 0x29,
+	KeyRight	= 0x19,
+
+	F1 = 0x3b,
 	F2 = 0x3c,
 	F3 = 0x3d,
 	F4 = 0x3e,
 	F5 = 0x3f,
 
-	ShiftLock = 0x3a,
-	BASIC = 0x39,
-	Shift = 0x38,
-	Control = 0x35,
+	ShiftLock	= 0x3a,
+	BASIC		= 0x39,
+	Shift		= 0x38,
+	Control		= 0x35,
+};
+
+static inline std::unordered_map<wchar_t, const std::vector<uint16_t>> sequences = {
+	{L'\n', {Enter}},	{L'\r', {Enter}},
+	{L' ', {Space}},
+
+	{L'0', {k0}},	{L'1', {k1}},	{L'2', {k2}},	{L'3', {k3}},	{L'4', {k4}},
+	{L'5', {k5}},	{L'6', {k6}},	{L'7', {k7}},	{L'8', {k8}},	{L'9', {k9}},
+
+	{L'A', {Shift, A}},	{L'B', {Shift, B}},	{L'C', {Shift, C}},
+	{L'D', {Shift, D}},	{L'E', {Shift, E}},	{L'F', {Shift, F}},
+	{L'G', {Shift, G}},	{L'H', {Shift, H}},	{L'I', {Shift, I}},
+	{L'J', {Shift, J}},	{L'K', {Shift, K}},	{L'L', {Shift, L}},
+	{L'M', {Shift, M}},	{L'N', {Shift, N}},	{L'O', {Shift, O}},
+	{L'P', {Shift, P}},	{L'Q', {Shift, Q}},	{L'R', {Shift, R}},
+	{L'S', {Shift, S}},	{L'T', {Shift, T}},	{L'U', {Shift, U}},
+	{L'V', {Shift, V}},	{L'W', {Shift, W}},	{L'X', {Shift, X}},
+	{L'Y', {Shift, Y}},	{L'Z', {Shift, Z}},
+
+	{L'a', {A}},	{L'b', {B}},	{L'c', {C}},
+	{L'd', {D}},	{L'e', {E}},	{L'f', {F}},
+	{L'g', {G}},	{L'h', {H}},	{L'i', {I}},
+	{L'j', {J}},	{L'k', {K}},	{L'l', {L}},
+	{L'm', {M}},	{L'n', {N}},	{L'o', {O}},
+	{L'p', {P}},	{L'q', {Q}},	{L'r', {R}},
+	{L's', {S}},	{L't', {T}},	{L'u', {U}},
+	{L'v', {V}},	{L'w', {W}},	{L'x', {X}},
+	{L'y', {Y}},	{L'z', {Z}},
+
+	{L'#', {Shift, At}},	{L'@', {At}},
+
 };
 }
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
+	KeyboardMapper(const Machine machine) : machine_(machine) {}
+
 	uint16_t mapped_key_for_key(const Inputs::Keyboard::Key key) const {
+		using In = Inputs::Keyboard::Key;
+
 		switch(key) {
 			default:	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 
-			using enum Inputs::Keyboard::Key;
-			case k0:	return Key0;		case k1:	return Key1;
-			case k2:	return Key2;		case k3:	return Key3;
-			case k4:	return Key4;		case k5:	return Key5;
-			case k6:	return Key6;		case k7:	return Key7;
-			case k8:	return Key8;		case k9:	return Key9;
+			using enum MO5::Key;
+			case In::k0:	return k0;		case In::k1:	return k1;
+			case In::k2:	return k2;		case In::k3:	return k3;
+			case In::k4:	return k4;		case In::k5:	return k5;
+			case In::k6:	return k6;		case In::k7:	return k7;
+			case In::k8:	return k8;		case In::k9:	return k9;
 
-			case Q:		return KeyA;		case W:		return KeyZ;
-			case E:		return KeyE;		case R:		return KeyR;
-			case T:		return KeyT;		case Y:		return KeyY;
-			case U:		return KeyU;		case I:		return KeyI;
-			case O:		return KeyO;		case P:		return KeyP;
-			case A:		return KeyQ;		case S:		return KeyS;
-			case D:		return KeyD;		case F:		return KeyF;
-			case G:		return KeyG;		case H:		return KeyH;
-			case J:		return KeyJ;		case K:		return KeyK;
-			case L:		return KeyL;		case Z:		return KeyW;
-			case X:		return KeyX;		case C:		return KeyC;
-			case V:		return KeyV;		case B:		return KeyB;
-			case N:		return KeyN;		case M:		return KeyM;
+			case In::Q:		return A;		case In::W:		return Z;
+			case In::E:		return E;		case In::R:		return R;
+			case In::T:		return T;		case In::Y:		return Y;
+			case In::U:		return U;		case In::I:		return I;
+			case In::O:		return O;		case In::P:		return P;
+			case In::A:		return Q;		case In::S:		return S;
+			case In::D:		return D;		case In::F:		return F;
+			case In::G:		return G;		case In::H:		return H;
+			case In::J:		return J;		case In::K:		return K;
+			case In::L:		return L;		case In::Z:		return W;
+			case In::X:		return X;		case In::C:		return C;
+			case In::V:		return V;		case In::B:		return B;
+			case In::N:		return N;		case In::M:		return M;
 
-			case FullStop:	return KeyFullStop;
-			case Comma:		return KeyComma;
-			case Hyphen:	return KeyMinus;
-			case Equals:	return KeyPlus;
+			case In::FullStop:	return FullStop;
+			case In::Comma:		return Comma;
+			case In::Hyphen:	return Minus;
+			case In::Equals:	return Plus;
 
-			case OpenSquareBracket:	return KeyAt;
-			case Semicolon:			return KeyM;
-			case ForwardSlash:		return KeyForwardSlash;
+			case In::OpenSquareBracket:	return At;
+			case In::Semicolon:			return M;
+			case In::ForwardSlash:		return ForwardSlash;
 
-			case CloseSquareBracket:
-			case Quote:		return KeyAsterisk;
+			case In::CloseSquareBracket:
+			case In::Quote:		return Asterisk;
 
-			case Space:		return KeySpace;
-			case Enter:		return KeyEnter;
-			case Backspace:	return KeyACC;
-			case Escape:	return KeyStop;
+			case In::Space:		return Space;
+			case In::Enter:		return Enter;
+			case In::Backspace:	return ACC;
+			case In::Escape:	return Stop;
 
-			case Up:		return KeyUp;	case Down:	return KeyDown;
-			case Left:		return KeyLeft;	case Right:	return KeyRight;
+			case In::Up:		return Up;		case In::Down:	return Down;
+			case In::Left:		return Left;	case In::Right:	return Right;
 
-			case LeftShift:
-			case RightShift:	return KeyShift;
-			case Tab:
-			case LeftControl:
-			case RightControl:	return KeyControl;
-			case LeftOption:
-			case RightOption:	return KeyBASIC;
-			case LeftMeta:
-			case RightMeta:		return KeyRAZ;
+			case In::LeftShift:
+			case In::RightShift:	return Shift;
+			case In::Tab:
+			case In::LeftControl:
+			case In::RightControl:	return Control;
+			case In::LeftOption:
+			case In::RightOption:	return BASIC;
+			case In::LeftMeta:
+			case In::RightMeta:		return RAZ;
 
-			case Insert:		return KeyINS;
-			case Home:			return KeyEFF;
+			case In::Insert:		return INS;
+			case In::Home:			return EFF;
 		}
 	}
+
+private:
+	Machine machine_;
 };
 
 struct CharacterMapper: public ::Utility::CharacterMapper {
-	CharacterMapper(const bool is_mo6) : is_mo6_(is_mo6) {}
+	CharacterMapper(const Machine machine) : machine_(machine) {}
 
 	std::span<const uint16_t> sequence_for_character(const wchar_t character) const final {
-		return lookup_sequence(is_mo6_ ? mo6_sequences : mo5_sequences, character);
+		return lookup_sequence(machine_ == Machine::MO6 ? MO6::sequences : MO5::sequences, character);
 	}
+
 private:
-	static inline std::unordered_map<wchar_t, const std::vector<uint16_t>> mo5_sequences = {
-		{L'\n', {KeyEnter}},	{L'\r', {KeyEnter}},
-		{L' ', {KeySpace}},
-
-		{L'!', {KeyShift, Key1}},
-		{L'"', {KeyShift, Key2}},
-		{L'#', {KeyShift, Key3}},
-		{L'$', {KeyShift, Key4}},
-		{L'%', {KeyShift, Key5}},
-		{L'&', {KeyShift, Key6}},
-		{L'\'', {KeyShift, Key7}},
-		{L'(', {KeyShift, Key8}},
-		{L')', {KeyShift, Key9}},
-		{L'\\', {KeyShift, Key0}},
-
-		{L'=', {KeyShift, KeyMinus}},			{L'-', {KeyMinus}},
-		{L';', {KeyShift, KeyPlus}},			{L'+', {KeyPlus}},
-
-		{L'?', {KeyShift, KeyForwardSlash}},	{L'/', {KeyForwardSlash}},
-		{L':', {KeyShift, KeyAsterisk}},		{L'*', {KeyAsterisk}},
-
-		{L'<', {KeyShift, KeyComma}},			{L',', {KeyComma}},
-		{L'>', {KeyShift, KeyFullStop}},		{L'.', {KeyFullStop}},
-		{L'^', {KeyShift, KeyAt}},				{L'@', {KeyAt}},
-
-		{L'0', {Key0}},	{L'1', {Key1}},	{L'2', {Key2}},	{L'3', {Key3}},	{L'4', {Key4}},
-		{L'5', {Key5}},	{L'6', {Key6}},	{L'7', {Key7}},	{L'8', {Key8}},	{L'9', {Key9}},
-
-		{L'A', {KeyShift, KeyA}},	{L'B', {KeyShift, KeyB}},	{L'C', {KeyShift, KeyC}},
-		{L'D', {KeyShift, KeyD}},	{L'E', {KeyShift, KeyE}},	{L'F', {KeyShift, KeyF}},
-		{L'G', {KeyShift, KeyG}},	{L'H', {KeyShift, KeyH}},	{L'I', {KeyShift, KeyI}},
-		{L'J', {KeyShift, KeyJ}},	{L'K', {KeyShift, KeyK}},	{L'L', {KeyShift, KeyL}},
-		{L'M', {KeyShift, KeyM}},	{L'N', {KeyShift, KeyN}},	{L'O', {KeyShift, KeyO}},
-		{L'P', {KeyShift, KeyP}},	{L'Q', {KeyShift, KeyQ}},	{L'R', {KeyShift, KeyR}},
-		{L'S', {KeyShift, KeyS}},	{L'T', {KeyShift, KeyT}},	{L'U', {KeyShift, KeyU}},
-		{L'V', {KeyShift, KeyV}},	{L'W', {KeyShift, KeyW}},	{L'X', {KeyShift, KeyX}},
-		{L'Y', {KeyShift, KeyY}},	{L'Z', {KeyShift, KeyZ}},
-
-		{L'a', {KeyA}},	{L'b', {KeyB}},	{L'c', {KeyC}},
-		{L'd', {KeyD}},	{L'e', {KeyE}},	{L'f', {KeyF}},
-		{L'g', {KeyG}},	{L'h', {KeyH}},	{L'i', {KeyI}},
-		{L'j', {KeyJ}},	{L'k', {KeyK}},	{L'l', {KeyL}},
-		{L'm', {KeyM}},	{L'n', {KeyN}},	{L'o', {KeyO}},
-		{L'p', {KeyP}},	{L'q', {KeyQ}},	{L'r', {KeyR}},
-		{L's', {KeyS}},	{L't', {KeyT}},	{L'u', {KeyU}},
-		{L'v', {KeyV}},	{L'w', {KeyW}},	{L'x', {KeyX}},
-		{L'y', {KeyY}},	{L'z', {KeyZ}},
-	};
-
-	static inline std::unordered_map<wchar_t, const std::vector<uint16_t>> mo6_sequences = {
-		{L'\n', {KeyEnter}},	{L'\r', {KeyEnter}},
-		{L' ', {KeySpace}},
-
-		{L'#', {KeyShift, KeyAt}},	{L'@', {KeyAt}},
-
-		{L'*', {KeyShift, Key1}},
-		{L'é', {KeyShift, Key2}},
-		{L'"', {KeyShift, Key3}},
-		{L'\'', {KeyShift, Key4}},
-		{L'(', {KeyShift, Key5}},
-		{L'_', {KeyShift, Key6}},
-		{L'è', {KeyShift, Key7}},
-		{L'!', {KeyShift, Key8}},
-		{L'ç', {KeyShift, Key9}},
-		{L'à', {KeyShift, Key0}},
-//		{L')', {KeyShift, KeyDegree}},
-//		{L'-', {KeyShift, KeyBackslash}},
-//		{L'+', {KeyShift, KeyEquals}},
-
-		{L'0', {Key0}},	{L'1', {Key1}},	{L'2', {Key2}},	{L'3', {Key3}},	{L'4', {Key4}},
-		{L'5', {Key5}},	{L'6', {Key6}},	{L'7', {Key7}},	{L'8', {Key8}},	{L'9', {Key9}},
-
-		{L'A', {KeyShift, KeyA}},	{L'B', {KeyShift, KeyB}},	{L'C', {KeyShift, KeyC}},
-		{L'D', {KeyShift, KeyD}},	{L'E', {KeyShift, KeyE}},	{L'F', {KeyShift, KeyF}},
-		{L'G', {KeyShift, KeyG}},	{L'H', {KeyShift, KeyH}},	{L'I', {KeyShift, KeyI}},
-		{L'J', {KeyShift, KeyJ}},	{L'K', {KeyShift, KeyK}},	{L'L', {KeyShift, KeyL}},
-		{L'M', {KeyShift, KeyM}},	{L'N', {KeyShift, KeyN}},	{L'O', {KeyShift, KeyO}},
-		{L'P', {KeyShift, KeyP}},	{L'Q', {KeyShift, KeyQ}},	{L'R', {KeyShift, KeyR}},
-		{L'S', {KeyShift, KeyS}},	{L'T', {KeyShift, KeyT}},	{L'U', {KeyShift, KeyU}},
-		{L'V', {KeyShift, KeyV}},	{L'W', {KeyShift, KeyW}},	{L'X', {KeyShift, KeyX}},
-		{L'Y', {KeyShift, KeyY}},	{L'Z', {KeyShift, KeyZ}},
-
-		{L'a', {KeyA}},	{L'b', {KeyB}},	{L'c', {KeyC}},
-		{L'd', {KeyD}},	{L'e', {KeyE}},	{L'f', {KeyF}},
-		{L'g', {KeyG}},	{L'h', {KeyH}},	{L'i', {KeyI}},
-		{L'j', {KeyJ}},	{L'k', {KeyK}},	{L'l', {KeyL}},
-		{L'm', {KeyM}},	{L'n', {KeyN}},	{L'o', {KeyO}},
-		{L'p', {KeyP}},	{L'q', {KeyQ}},	{L'r', {KeyR}},
-		{L's', {KeyS}},	{L't', {KeyT}},	{L'u', {KeyU}},
-		{L'v', {KeyV}},	{L'w', {KeyW}},	{L'x', {KeyX}},
-		{L'y', {KeyY}},	{L'z', {KeyZ}},
-	};
-
-	bool is_mo6_;
+	Machine machine_;
 };
 
 }

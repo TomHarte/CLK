@@ -51,10 +51,10 @@ struct ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
 	public Machine,
-	public Utility::TypeRecipient<Thomson::MO::CharacterMapper>
+	public Utility::TypeRecipient<Thomson::MO::Keyboard::CharacterMapper>
 {
 	ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-		Utility::TypeRecipient<Thomson::MO::CharacterMapper>(is_mo6),
+		Utility::TypeRecipient<Thomson::MO::Keyboard::CharacterMapper>(is_mo6 ? Thomson::MO::Keyboard::Machine::MO6 : Thomson::MO::Keyboard::Machine::MO5),
 		m6809_(*this),
 		system_pia_port_handler_(*this),
 		system_pia_(system_pia_port_handler_),
@@ -63,7 +63,8 @@ struct ConcreteMachine:
 		video_(memory_.video(true), memory_.video(false)),
 		tape_player_(ClockRate),
 		audio_(audio_queue_, MusicExpansionMask),
-		speaker_(audio_)
+		speaker_(audio_),
+		keyboard_mapper_(is_mo6 ? Thomson::MO::Keyboard::Machine::MO6 : Thomson::MO::Keyboard::Machine::MO5)
 	{
 		set_clock_rate(ClockRate);
 		speaker_.set_input_rate(ClockRate);
@@ -643,7 +644,7 @@ private:
 
 	// MARK: - MappedKeyboardMachine.
 
-	Thomson::MO::KeyboardMapper keyboard_mapper_;
+	Thomson::MO::Keyboard::KeyboardMapper keyboard_mapper_;
 	KeyboardMapper *keyboard_mapper() final {
 		return &keyboard_mapper_;
 	}
@@ -657,11 +658,11 @@ private:
 	}
 
 	void type_string(const std::wstring &string) final {
-		Utility::TypeRecipient<Thomson::MO::CharacterMapper>::add_typer(string);
+		Utility::TypeRecipient<Thomson::MO::Keyboard::CharacterMapper>::add_typer(string);
 	}
 
 	bool can_type(const wchar_t c) const final {
-		return Utility::TypeRecipient<Thomson::MO::CharacterMapper>::can_type(c);
+		return Utility::TypeRecipient<Thomson::MO::Keyboard::CharacterMapper>::can_type(c);
 	}
 
 	HalfCycles typer_delay(const std::wstring &) const final {
