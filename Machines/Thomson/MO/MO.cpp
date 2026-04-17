@@ -389,7 +389,7 @@ private:
 					// TODO: incorporate extra bit in key addressing.
 					// At present this doesn't seem to match expectations, not least because the monitor seems to be
 					// toggling it in and out of being an output as far as the 6821 can see. Definitely research required.
-//					key_ = (key_ & 0b0'111'111) | ((value << 3) & 0b1'000'000);
+					key_ = (key_ & 0b0'111'111) | ((value << 3) & 0b1'000'000);
 //					printf("Extra bit [%d]; key: %02x\n", value & 0x8, key_);
 
 					if(machine_.activity_observer_) {
