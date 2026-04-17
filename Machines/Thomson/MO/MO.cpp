@@ -715,7 +715,7 @@ private:
 			fdc_.set_activity_observer(observer);
 		}
 	}
-	static constexpr std::string ShiftLED = "Shift Lock";
+	static constexpr char ShiftLED[] = "Shift Lock";
 	Activity::Observer *activity_observer_ = nullptr;
 
 	// MARK: - Configuration options.
