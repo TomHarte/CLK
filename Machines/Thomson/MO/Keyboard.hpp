@@ -149,10 +149,10 @@ enum Key: uint16_t {
 	Enter		= 0x34,
 	Space		= 0x20,
 
-	KeyUp		= 0x31,
-	KeyDown		= 0x21,
-	KeyLeft		= 0x29,
-	KeyRight	= 0x19,
+	Up		= 0x31,
+	Down	= 0x21,
+	Left	= 0x29,
+	Right	= 0x19,
 
 	F1 = 0x3b,
 	F2 = 0x3c,
@@ -201,10 +201,16 @@ static inline std::unordered_map<wchar_t, const std::vector<uint16_t>> sequences
 	{L'\\', {Shift, Minus}},		{L'-', {Minus}},
 	{L'=', {Shift, Equals}},		{L'+', {Equals}},
 
-	{L'¨', {Shift, Caret}},				{L'^', {Caret}},
-	{L'$', {Shift, Dollar}},			{L'&', {Dollar}},
-	{L'{', {Shift, OpenSquareBracket}},	{L'[', {OpenSquareBracket}},
-//	{L'ù', {Shift, }},	{L'[', {OpenSquareBracket}},
+	{L'¨', {Shift, Caret}},					{L'^', {Caret}},
+	{L'$', {Shift, Dollar}},				{L'&', {Dollar}},
+	{L'{', {Shift, OpenSquareBracket}},		{L'[', {OpenSquareBracket}},
+	{L'%', {Shift, UGrave}},				{L'ù', {UGrave}},
+	{L'}', {Shift, CloseSquareBracket}},	{L']', {CloseSquareBracket}},
+
+	{L'?', {Shift, Comma}},					{L',', {Comma}},
+	{L'.', {Shift, Semicolon}},				{L';', {Semicolon}},
+	{L'/', {Shift, Colon}},					{L':', {Colon}},
+	{L'<', {Shift, CloseAngleBracket}},		{L'>', {CloseAngleBracket}},
 };
 }
 
@@ -300,9 +306,48 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 					case In::V:		return V;		case In::B:		return B;
 					case In::N:		return N;		case In::M:		return M;
 
-					case In::Quote:	return Hash;
+					case In::Space:	return Space;
 
-					case In::Space:	return UGrave;
+					case In::BackTick:	return Hash;
+					case In::Backslash:	return CloseBracket;
+					case In::Hyphen:	return Minus;
+					case In::Equals:	return Equals;
+
+					case In::OpenSquareBracket:		return Caret;
+					case In::CloseSquareBracket:	return Dollar;
+
+					// TODO: locate OpenSquareBracket somewhere.
+					case In::Semicolon:		return UGrave;
+					case In::Quote:			return CloseSquareBracket;
+
+					case In::Comma:			return Comma;
+					case In::FullStop:		return Semicolon;
+					case In::ForwardSlash:	return Colon;
+					// TODO: locate CloseAngleBracket.
+
+					case In::Up:		return Up;		case In::Down:	return Down;
+					case In::Left:		return Left;	case In::Right:	return Right;
+
+					case In::Backspace:		return ACC;
+					case In::Insert:		return INS;
+					case In::Delete:		return EFF;
+
+					case In::LeftShift:
+					case In::RightShift:	return Shift;
+					case In::Tab:
+					case In::LeftControl:
+					case In::RightControl:	return Control;
+					case In::LeftOption:
+					case In::RightOption:	return BASIC;
+					case In::LeftMeta:
+					case In::RightMeta:		return RAZ;
+					case In::CapsLock:		return ShiftLock;
+
+					case In::F1:	return F1;
+					case In::F2:	return F2;
+					case In::F3:	return F3;
+					case In::F4:	return F4;
+					case In::F5:	return F5;
 				}
 			break;
 

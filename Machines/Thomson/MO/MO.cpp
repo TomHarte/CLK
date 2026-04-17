@@ -386,11 +386,8 @@ private:
 				if constexpr (!is_mo6) {
 					machine_.video_->set_border_colour((value >> 1) & 0xf);
 				} else {
-					// TODO: incorporate extra bit in key addressing.
-					// At present this doesn't seem to match expectations, not least because the monitor seems to be
-					// toggling it in and out of being an output as far as the 6821 can see. Definitely research required.
-					key_ = (key_ & 0b0'111'111) | ((value << 3) & 0b1'000'000);
-//					printf("Extra bit [%d]; key: %02x\n", value & 0x8, key_);
+					// TODO: determine why I'm having to invert this bit.
+					key_ = (key_ & 0b0'111'111) | ((~value << 3) & 0b1'000'000);
 
 					if(machine_.activity_observer_) {
 						machine_.activity_observer_->set_led_status(machine_.ShiftLED, value & 0x10);
@@ -400,7 +397,6 @@ private:
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
 				key_ = (key_ & 0b1'000'000) | ((value >> 1) & 0b0'111'111);
-//				printf("Key: %02x\n", key_);
 				machine_.set_audio(value & 1, std::nullopt);
 			}
 		}
