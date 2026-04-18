@@ -371,6 +371,9 @@ private:
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
+				// Cf. R118, R119 and T21 from the schematic; if PA3 (stored here as bit 6) is active then
+				// the output of PB1–3 (here bits 0 to 2) is ineffective.
+				const auto key = key_ & 0x40 ? key_ & ~7 : key_;
 				return key_states_[key_] ? 0x00 : 0x80;
 			}
 
