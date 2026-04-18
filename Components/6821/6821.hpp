@@ -26,8 +26,6 @@ enum class Control {
 	CB1,	CB2,
 };
 
-// TODO: CB2/CA2 output.
-
 template <typename PortHandlerT, int RS0Mask = 1, int RS1Mask = 2>
 class MC6821 {
 public:
@@ -57,11 +55,7 @@ public:
 				ports_[port].direction = value;
 			}
 
-			const uint8_t output = ports_[port].output();
-			if(output != ports_[port].previous_output) {
-				ports_[port].previous_output = output;
-				port_handler_.template output<Port(port)>(output);
-			}
+			update_output<Port(port)>();
 		}
 	}
 
@@ -116,7 +110,22 @@ public:
 		}
 	}
 
+	template <Port port>
+	void set_floating(const uint8_t value) {
+		ports_[int(port)].floating = value;
+		update_output<port>();
+	}
+
 private:
+	template <Port port>
+	void update_output() {
+		const uint8_t output = ports_[int(port)].output();
+		if(output != ports_[int(port)].previous_output) {
+			ports_[int(port)].previous_output = output;
+			port_handler_.template output<port>(output);
+		}
+	}
+
 	PortHandlerT &port_handler_;
 	bool inputs_[4]{};
 
@@ -141,6 +150,7 @@ private:
 		uint8_t control = 0;
 		uint8_t data = 0;
 		uint8_t direction = 0;	// Per bit: 0 = input; 1 = output.
+		uint8_t floating = 0xff;
 
 		void apply_irq(const uint8_t mask) {
 			control |= mask;
@@ -164,7 +174,10 @@ private:
 
 		mutable uint8_t previous_output = 0x00;
 		uint8_t output() const {
-			return uint8_t(data | ~direction);
+			return uint8_t(
+				(data & direction) |
+				(floating & ~direction)
+			);
 		}
 		uint8_t input(const uint8_t bus) const {
 			return (data & direction) | (bus & ~direction);

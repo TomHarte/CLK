@@ -25,7 +25,7 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	MemoryModel memory_model = MemoryModel::Unexpanded;
 	bool is_ZX81 = false;
 	bool ZX80_uses_ZX81_ROM = false;
-	std::string loading_command;
+	std::wstring loading_command;
 
 	Target(): Analyser::Static::Target(Machine::ZX8081) {}
 

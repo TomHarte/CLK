@@ -212,7 +212,7 @@ Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(
 			}
 
 			target->media.tapes.push_back(tape);
-			target->loading_command = "CLOAD\"\"\n";
+			target->loading_command = L"CLOAD\"\"\n";
 		}
 	}
 

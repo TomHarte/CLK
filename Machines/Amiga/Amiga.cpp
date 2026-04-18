@@ -233,16 +233,16 @@ private:
 	// MARK: - Keyboard.
 
 	Amiga::KeyboardMapper keyboard_mapper_;
-	KeyboardMapper *get_keyboard_mapper() {
+	KeyboardMapper *keyboard_mapper() {
 		return &keyboard_mapper_;
 	}
 
 	void set_key_state(uint16_t key, bool is_pressed) {
-		chipset_.get_keyboard().set_key_state(key, is_pressed);
+		chipset_.keyboard().set_key_state(key, is_pressed);
 	}
 
 	void clear_all_keys() {
-		chipset_.get_keyboard().clear_all_keys();
+		chipset_.keyboard().clear_all_keys();
 	}
 };
 

@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <codecvt>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -1124,7 +1125,10 @@ int main(int argc, char *argv[]) {
 						// Syphon off the key-press if it's control+shift+V (paste).
 						if(event.key.keysym.sym == SDLK_v && (SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {
 							if(keyboard_machine) {
-								keyboard_machine->type_string(SDL_GetClipboardText());
+								char *const utf8 = SDL_GetClipboardText();
+								std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+								keyboard_machine->type_string(converter.from_bytes(utf8));
+								SDL_free(utf8);
 								break;
 							}
 						}
@@ -1191,7 +1195,7 @@ int main(int argc, char *argv[]) {
 						// Announce a potential discontinuity in keyboard input.
 						const auto keyboard_machine = machine->keyboard_machine();
 						if(keyboard_machine) {
-							keyboard_machine->get_keyboard().reset_all_keys();
+							keyboard_machine->keyboard().reset_all_keys();
 						}
 						break;
 					}
@@ -1300,7 +1304,7 @@ int main(int argc, char *argv[]) {
 						// This is a slightly terrible way of obtaining a symbol for the key, e.g. for letters it will always return
 						// the capital letter version, at least empirically. But it'll have to do for now.
 						const char *key_name = SDL_GetKeyName(keypress.keycode);
-						if(keyboard_machine->get_keyboard().set_key_pressed(key, (strlen(key_name) == 1) ? key_name[0] : 0, keypress.is_down, keypress.repeat)) {
+						if(keyboard_machine->keyboard().set_key_pressed(key, (strlen(key_name) == 1) ? key_name[0] : 0, keypress.is_down, keypress.repeat)) {
 							continue;
 						}
 					}

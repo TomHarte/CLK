@@ -29,7 +29,7 @@
 #include "Machines/MSX/MSX.hpp"
 #include "Machines/Oric/Oric.hpp"
 #include "Machines/PCCompatible/PCCompatible.hpp"
-#include "Machines/Thomson/MO5/MO5.hpp"
+#include "Machines/Thomson/MO/MO.hpp"
 #include "Machines/Sinclair/ZX8081/ZX8081.hpp"
 #include "Machines/Sinclair/ZXSpectrum/ZXSpectrum.hpp"
 
@@ -93,7 +93,7 @@ std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTarget(
 			BindD(Sega::MasterSystem, MasterSystem)
 			BindD(Sinclair::ZX8081, ZX8081)
 			BindD(Sinclair::ZXSpectrum, ZXSpectrum)
-			BindD(Thomson::MO5, ThomsonMO)
+			BindD(Thomson::MO, ThomsonMO)
 
 			default:
 				error = Machine::Error::UnknownMachine;
@@ -269,7 +269,7 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsBy
 	Emplace(Oric, Oric::Machine);
 	Emplace(Plus4, Commodore::Plus4::Machine);
 	Emplace(PCCompatible, PCCompatible::Machine);
-	Emplace(ThomsonMO, Thomson::MO5::Machine);
+	Emplace(ThomsonMO, Thomson::MO::Machine);
 	Emplace(Vic20, Commodore::Vic20::Machine);
 	Emplace(ZX8081, Sinclair::ZX8081::Machine);
 	Emplace(ZXSpectrum, Sinclair::ZXSpectrum::Machine);

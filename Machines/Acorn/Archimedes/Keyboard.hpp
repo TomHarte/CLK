@@ -75,7 +75,7 @@ struct Key {
 struct Keyboard {
 	Keyboard(HalfDuplexSerial &serial) : serial_(serial), mouse_(*this) {}
 
-	void set_key_state(uint16_t key, bool is_pressed) {
+	void set_key_state(const uint16_t key, const bool is_pressed) {
 		states_[key] = is_pressed;
 
 		if(!scan_keyboard_) {
@@ -91,7 +91,7 @@ struct Keyboard {
 		consider_dequeue();
 	}
 
-	void set_mouse_button(uint8_t button, bool is_pressed) {
+	void set_mouse_button(const uint8_t button, const bool is_pressed) {
 		if(!scan_mouse_) {
 			return;
 		}

@@ -404,7 +404,7 @@ public:
 	}
 
 	// MARK: - Keyboard (i.e. the pause and reset buttons).
-	Inputs::Keyboard &get_keyboard() final {
+	Inputs::Keyboard &keyboard() final {
 		return keyboard_;
 	}
 

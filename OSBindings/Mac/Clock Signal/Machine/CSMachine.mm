@@ -31,6 +31,7 @@
 #import "NSData+StdVector.h"
 
 #include <cassert>
+#include <codecvt>
 #include <atomic>
 #include <bitset>
 #include <locale>
@@ -214,7 +215,7 @@ struct ActivityObserver: public Activity::Observer {
 
 	// Use the keyboard as a joystick if the machine has no keyboard, or if it has a 'non-exclusive' keyboard.
 	_inputMode =
-		(_machine->keyboard_machine() && _machine->keyboard_machine()->get_keyboard().is_exclusive())
+		(_machine->keyboard_machine() && _machine->keyboard_machine()->keyboard().is_exclusive())
 			? CSMachineKeyboardInputModeKeyboardPhysical : CSMachineKeyboardInputModeJoystick;
 
 	_joystickMachine = _machine->joystick_machine();
@@ -365,8 +366,17 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)paste:(NSString *)paste {
 	auto keyboardMachine = _machine->keyboard_machine();
-	if(keyboardMachine)
-		keyboardMachine->type_string([paste UTF8String]);
+	if(keyboardMachine) {
+		// Baked-in macOS assumptions.
+		static_assert(sizeof(wchar_t) == 4);
+		static_assert(TARGET_RT_LITTLE_ENDIAN);
+
+		NSData *const data = [paste dataUsingEncoding:NSUTF32LittleEndianStringEncoding];
+		if(data) {
+			std::wstring text(static_cast<const wchar_t *>(data.bytes), data.length / sizeof(wchar_t));
+			keyboardMachine->type_string(text);
+		}
+	}
 }
 
 - (NSBitmapImageRep *)imageRepresentation {
@@ -431,7 +441,7 @@ struct ActivityObserver: public Activity::Observer {
 - (void)setKey:(uint16_t)key characters:(NSString *)characters isPressed:(BOOL)isPressed isRepeat:(BOOL)isRepeat {
 	[self applyInputEvent:^{
 		auto keyboard_machine = self->_machine->keyboard_machine();
-		if(keyboard_machine && (self.inputMode != CSMachineKeyboardInputModeJoystick || !keyboard_machine->get_keyboard().is_exclusive())) {
+		if(keyboard_machine && (self.inputMode != CSMachineKeyboardInputModeJoystick || !keyboard_machine->keyboard().is_exclusive())) {
 			Inputs::Keyboard::Key mapped_key = Inputs::Keyboard::Key::Help;	// Make an innocuous default guess.
 #define BIND(source, dest) case source: mapped_key = Inputs::Keyboard::Key::dest; break;
 			// Connect the Carbon-era Mac keyboard scancodes to Clock Signal's 'universal' enumeration in order
@@ -555,7 +565,7 @@ struct ActivityObserver: public Activity::Observer {
 	const auto keyboard_machine = _machine->keyboard_machine();
 	if(keyboard_machine) {
 		[self applyInputEvent:^{
-			keyboard_machine->get_keyboard().reset_all_keys();
+			keyboard_machine->keyboard().reset_all_keys();
 		}];
 	}
 
@@ -733,13 +743,13 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (BOOL)hasExclusiveKeyboard {
-	return !!_machine->keyboard_machine() && _machine->keyboard_machine()->get_keyboard().is_exclusive();
+	return !!_machine->keyboard_machine() && _machine->keyboard_machine()->keyboard().is_exclusive();
 }
 
 - (BOOL)shouldUsurpCommand {
 	if(!_machine->keyboard_machine()) return NO;
 
-	const auto essential_modifiers = _machine->keyboard_machine()->get_keyboard().get_essential_modifiers();
+	const auto essential_modifiers = _machine->keyboard_machine()->keyboard().get_essential_modifiers();
 	return	essential_modifiers.find(Inputs::Keyboard::Key::LeftMeta) != essential_modifiers.end() ||
 			essential_modifiers.find(Inputs::Keyboard::Key::RightMeta) != essential_modifiers.end();
 }

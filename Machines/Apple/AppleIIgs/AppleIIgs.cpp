@@ -912,7 +912,7 @@ public:
 	}
 
 	// MARK: - Input.
-	KeyboardMapper *get_keyboard_mapper() final {
+	KeyboardMapper *keyboard_mapper() final {
 		return &keyboard_mapper_;
 	}
 

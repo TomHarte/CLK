@@ -547,11 +547,12 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithThomsonMOHasDiskDrive:(BOOL)hasDiskDrive {
+- (instancetype)initWithThomsonMOModel:(CSMachineThomsonModel)model hasDiskDrive:(BOOL)hasDiskDrive {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Thomson::MOTarget;
 		auto target = std::make_unique<Target>();
+		target->model = model == CSMachineThomsonModelMO5 ? Target::Model::MO5v11 : Target::Model::MO6v3;
 		target->floppy = hasDiskDrive ? Target::Floppy::CD90_640 : Target::Floppy::None;
 		_targets.push_back(std::move(target));
 	}

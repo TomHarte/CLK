@@ -760,7 +760,7 @@ private:
 
 	// MARK: - KeyboardMachine
 	Enterprise::KeyboardMapper keyboard_mapper_;
-	KeyboardMapper *get_keyboard_mapper() final {
+	KeyboardMapper *keyboard_mapper() final {
 		return &keyboard_mapper_;
 	}
 
@@ -779,7 +779,7 @@ private:
 	}
 
 	// MARK: - Utility::TypeRecipient
-	void type_string(const std::string &string) final {
+	void type_string(const std::wstring &string) final {
 		Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 
 		if(z80_.get_is_resetting()) {
@@ -791,7 +791,7 @@ private:
 		}
 	}
 
-	bool can_type(const char c) const final {
+	bool can_type(const wchar_t c) const final {
 		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 	}
 

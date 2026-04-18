@@ -1,19 +1,20 @@
 //
-//  MO5.cpp
+//  MO.cpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 04/03/2026.
 //  Copyright © 2026 Thomas Harte. All rights reserved.
 //
 
-#include "MO5.hpp"
+#include "MO.hpp"
 
 #include "CD90-640.hpp"
+#include "Keyboard.hpp"
+#include "MemoryMap.hpp"
 #include "Video.hpp"
 
 #include "Activity/Source.hpp"
 #include "Machines/MachineTypes.hpp"
-#include "Machines/Utility/MemoryFuzzer.hpp"
 #include "Processors/6809/6809.hpp"
 #include "Components/6821/6821.hpp"
 #include "ClockReceiver/JustInTime.hpp"
@@ -26,9 +27,8 @@
 #include "Storage/Tape/Parsers/ThomsonMO.hpp"
 #include "Analyser/Static/Thomson/Target.hpp"
 
-#include "Keyboard.hpp"
 
-using namespace Thomson::MO5;
+using namespace Thomson::MO;
 
 namespace {
 
@@ -39,7 +39,7 @@ static constexpr uint8_t MusicExpansionMask = 63;
 
 using Target = Analyser::Static::Thomson::MOTarget;
 
-template <bool has_floppy>
+template <bool has_floppy, bool is_mo6>
 struct ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
@@ -51,18 +51,20 @@ struct ConcreteMachine:
 	public MachineTypes::TimedMachine,
 	public MachineTypes::ScanProducer,
 	public Machine,
-	public Utility::TypeRecipient<CharacterMapper>
+	public Utility::TypeRecipient<Thomson::MO::Keyboard::CharacterMapper>
 {
 	ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+		Utility::TypeRecipient<Thomson::MO::Keyboard::CharacterMapper>(is_mo6 ? Thomson::MO::Keyboard::Machine::MO6 : Thomson::MO::Keyboard::Machine::MO5),
 		m6809_(*this),
 		system_pia_port_handler_(*this),
 		system_pia_(system_pia_port_handler_),
 		sound_and_game_pia_port_handler_(*this),
 		sound_and_game_pia_(sound_and_game_pia_port_handler_),
-		video_(video_page(true), video_page(false)),
+		video_(memory_.video(true), memory_.video(false)),
 		tape_player_(ClockRate),
 		audio_(audio_queue_, MusicExpansionMask),
-		speaker_(audio_)
+		speaker_(audio_),
+		keyboard_mapper_(is_mo6 ? Thomson::MO::Keyboard::Machine::MO6 : Thomson::MO::Keyboard::Machine::MO5)
 	{
 		set_clock_rate(ClockRate);
 		speaker_.set_input_rate(ClockRate);
@@ -91,15 +93,15 @@ struct ConcreteMachine:
 			throw ROMMachine::Error::MissingROMs;
 		}
 
-		const auto &rom = roms.find(BasicROM)->second;
-		std::copy_n(rom.begin(), rom.size(), rom_.begin() + 0x1000);
-
-		if(has_floppy) {
-			const auto &floppy_rom = roms.find(ROM::Name::ThomsonCD90_640)->second;
-			std::copy_n(floppy_rom.begin(), floppy_rom.size(), floppy_rom_.begin());
+		{
+			auto rom = roms.find(BasicROM)->second;
+			memory_.set_rom(rom);
 		}
 
-		Memory::Fuzz(ram_);
+		if(has_floppy) {
+			memory_.set_floppy_rom(roms.find(ROM::Name::ThomsonCD90_640)->second);
+		}
+
 		system_pia_.refresh();
 
 		insert_media(target.media);
@@ -110,19 +112,6 @@ struct ConcreteMachine:
 
 	~ConcreteMachine() {
 		audio_queue_.lock_flush();
-	}
-
-	template <
-		int address,
-		CPU::M6809::ReadWrite read_write,
-		typename ComponentT
-	>
-	static void access(ComponentT &component, CPU::M6809::data_t<read_write> value) {
-		if constexpr (CPU::M6809::is_read(read_write)) {
-			value = component.template read<address>();
-		} else {
-			component.template write<address>(value);
-		}
 	}
 
 	template <
@@ -173,6 +162,9 @@ struct ConcreteMachine:
 				};
 
 				switch(address) {
+					// TODO: Is there a simpler way to use `namespace`?
+					using namespace CPU::M6809;
+
 					case 0xa7c0:	access<0xa7c0, read_write>(system_pia_, value);				break;
 					case 0xa7c1:	access<0xa7c1, read_write>(system_pia_, value);				break;
 					case 0xa7c2:	access<0xa7c2, read_write>(system_pia_, value);				break;
@@ -183,17 +175,74 @@ struct ConcreteMachine:
 					case 0xa7ce:	access<0xa7ce, read_write>(sound_and_game_pia_, value);		break;
 					case 0xa7cf:	access<0xa7cf, read_write>(sound_and_game_pia_, value);		break;
 
-					case 0xa7e7:
-						if constexpr (CPU::M6809::is_read(read_write)) {
-							value = video_->sync();
-						}
-					break;
-
 					case 0xa7d0:	if(has_floppy) access<0xa7d0, read_write>(fdc_, value); else unmapped();	break;
 					case 0xa7d1:	if(has_floppy) access<0xa7d1, read_write>(fdc_, value);	else unmapped();	break;
 					case 0xa7d2:	if(has_floppy) access<0xa7d2, read_write>(fdc_, value);	else unmapped();	break;
 					case 0xa7d3:	if(has_floppy) access<0xa7d3, read_write>(fdc_, value);	else unmapped();	break;
 					case 0xa7d8:	if(has_floppy) access<0xa7d8, read_write>(fdc_, value);	else unmapped();	break;
+
+					case 0xa7e4:	if(is_mo6) access<0xa7e4, read_write>(memory_, value); else unmapped();		break;
+
+					// TODO: consolidate below.
+					case 0xa7e5:
+						if constexpr (is_mo6) {
+							if(memory_.access_mode() == AccessMode::System) {
+								access<0xa7e5, read_write>(memory_, value);
+							} else {
+								if constexpr (CPU::M6809::is_read(read_write)) {
+									access<0xa7e5, read_write>(video_, value);
+								} else {
+									memory_.template write<0xa7e5>(value);
+								}
+							}
+						} else {
+							unmapped();
+						}
+					break;
+					case 0xa7e6:
+						if constexpr (is_mo6) {
+							if(memory_.access_mode() == AccessMode::System) {
+								access<0xa7e6, read_write>(memory_, value);
+							} else {
+								if constexpr (CPU::M6809::is_read(read_write)) {
+									access<0xa7e6, read_write>(video_, value);
+								} else {
+									memory_.template write<0xa7e6>(value);
+								}
+							}
+						} else {
+							unmapped();
+						}
+					break;
+					case 0xa7e7:
+						if constexpr (CPU::M6809::is_read(read_write)) {
+							if constexpr (is_mo6) {
+								value = video_->vertical_state() & memory_.template read<0xa7e7>();
+							} else {
+								value = video_->vertical_state();
+							}
+						} else {
+							if constexpr (is_mo6) {
+								access<0xa7e7, read_write>(video_, value);
+								access<0xa7e7, read_write>(memory_, value);
+							} else {
+								unmapped();
+							}
+						}
+					break;
+
+					case 0xa7da: 	if(is_mo6) access<0xa7da, read_write>(video_, value); else unmapped();	break;
+					case 0xa7db:	if(is_mo6) access<0xa7db, read_write>(video_, value); else unmapped();	break;
+					case 0xa7dc:	if(is_mo6) access<0xa7dc, read_write>(video_, value); else unmapped();	break;
+					case 0xa7dd:
+						if(is_mo6) {
+							access<0xa7dd, read_write>(memory_, value);
+							access<0xa7dd, read_write>(video_, value);
+						} else {
+							unmapped();
+						}
+					break;
+
 
 					default:
 						unmapped();
@@ -201,74 +250,60 @@ struct ConcreteMachine:
 				}
 			} else {
 				if constexpr (CPU::M6809::is_read(read_write)) {
-					if(address < 0x2000) {
-						value = start_pointer_[address];
-					} else if(address >= 0xa000 && address < 0xa7c0) {
-						value = has_floppy ? floppy_rom_[address - 0xa000] : 0xff;
-					} else if(address >= 0xb000) {
-						value = rom_[address - 0xb000];
+					value = memory_.read(address);
 
-						if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
-							// Catch RDBITS.
-							if(allow_fast_tape_hack_ && address == 0xf168) {
-								// Inputs:
-								//
-								//	M0044 = current tape polarity (complement if applicable).
-								//	M0045 = byte in progress; ROL new bit into here.
-								//
-								// Additional output:
-								//
-								//	A = 00 or FF as per bit detected.
-								//
-								[&] {
-									auto *const serialiser = tape_player_.serialiser();
-									if(!serialiser) return;
+					if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
+						// Catch RDBITS.
+						if(allow_fast_tape_hack_ && address == 0xf168) {
+							// Inputs:
+							//
+							//	M0044 = current tape polarity (complement if applicable).
+							//	M0045 = byte in progress; ROL new bit into here.
+							//
+							// Additional output:
+							//
+							//	A = 00 or FF as per bit detected.
+							//
+							[&] {
+								auto *const serialiser = tape_player_.serialiser();
+								if(!serialiser) return;
 
-									Storage::Tape::Thomson::MO::Parser parser;
-									const auto dp = m6809_.registers().template reg<CPU::M6809::R8::DP>();
-									auto &polarity = ram_[size_t((dp << 8) | 0x44)];
-									auto &data =  ram_[size_t((dp << 8) | 0x45)];
+								Storage::Tape::Thomson::MO::Parser parser;
+								const auto dp = m6809_.registers().template reg<CPU::M6809::R8::DP>();
+								auto &polarity = memory_[size_t((dp << 8) | 0x44)];
+								auto &data = memory_[size_t((dp << 8) | 0x45)];
 
-									parser.seed_level(
-										polarity & 0x80 ? Storage::Tape::Pulse::Low : Storage::Tape::Pulse::High
-									);
+								parser.seed_level(
+									polarity & 0x80 ? Storage::Tape::Pulse::Low : Storage::Tape::Pulse::High
+								);
 
-									const auto offset = serialiser->offset();
-									const auto bit = parser.bit(*serialiser);
-									if(!bit.has_value()) {
-										serialiser->set_offset(offset);
-										return;
-									}
+								const auto offset = serialiser->offset();
+								const auto bit = parser.bit(*serialiser);
+								if(!bit.has_value()) {
+									serialiser->set_offset(offset);
+									return;
+								}
 
-									data = uint8_t((data << 1) | uint8_t(*bit));
-									if(!*bit) {
-										polarity ^= 0xff;
-									}
-									m6809_.registers().template reg<CPU::M6809::R8::A>() = *bit ? 0xff : 0x00;
+								data = uint8_t((data << 1) | uint8_t(*bit));
+								if(!*bit) {
+									polarity ^= 0xff;
+								}
+								m6809_.registers().template reg<CPU::M6809::R8::A>() = *bit ? 0xff : 0x00;
 
-									// The parser reads up to the end of the bit. The ROM routine ends about two-thirds
-									// of the way through the bit. So 'rewind' the tape a little.
-									tape_player_.add_delay(Cycles(200));
+								// The parser reads up to the end of the bit. The ROM routine ends about two-thirds
+								// of the way through the bit. So 'rewind' the tape a little.
+								tape_player_.add_delay(Cycles(200));
 
-									value = 0x39;	// RTS
-								} ();
-							}
+								value = 0x39;	// RTS
+							} ();
 						}
-					} else {
-						value = ram_[address];
 					}
 				} else {
-					if(address < 0x2000) {
-						if(address < 40*200) video_.flush();
-						start_pointer_[address] = value;
-					} else {
-						if constexpr (!CPU::M6809::is_read(read_write)) {
-							if(address >= 0xa000) {
-								Log::info().append("ROM write at %04x", +address);
-							}
-						}
-						ram_[address] = value;
+					if(address < 40*200) {
+						video_.flush();
 					}
+
+					memory_.write(address, value);
 				}
 			}
 		}
@@ -282,45 +317,63 @@ private:
 		using BusHandlerT = ConcreteMachine;
 	};
 	CPU::M6809::Processor<M6809Traits> m6809_;
-
-	std::array<uint8_t, 0x10000 + 0x2000> ram_;
-	std::array<uint8_t, 0x5000> rom_{0xff};
-	std::array<uint8_t, 0x7c0> floppy_rom_;
-	uint8_t *start_pointer_ = nullptr;
-
-	uint8_t *video_page(const bool pixels) {
-		return &ram_[pixels ? 0 : 0x1'0000];
-	}
-
-	void page_lower(const bool pixels) {
-		start_pointer_ = video_page(pixels);
-	}
+	MemoryMap<is_mo6> memory_;
 
 	friend struct SystemPIAPortHandler;
 	struct SystemPIAPortHandler {
 		SystemPIAPortHandler(ConcreteMachine &machine) : machine_(machine) {}
 
-		// System PIA control lines:
+		//
+		// Control lines:
 		//
 		//	CA1: lightpen input
 		//	CA2: drive motor control output
 		//	CB1: 50Hz interrupt input
-		//	CB2: "Video encrustation"?
+		//	CB2: "Video incrustation"?
+		//
+
+		//
+		// Port A:
+		//
+		//	b7 [input]: tape data (high = tape attached but not running)
+		//	b6 [output]: tape data
+		//	b1–b5: ... machine specific ...
+		//	b0 [output]: lower 8kb paging
+		//
+		// MO5:
+		//
+		//	b5 [input]: light pen button
+		//	b1–b3 [output]: border colour
+		//
+		// MO6:
+		//
+		//	b5 [output]: ROM page selection
+		//	b4 [output]: shift lock LED
+		//	b3 [output]: additional bit for keyboard line
+		//	b2 [output]: "mute souris" (mute mouse? Probably related to the mouse and 6-bit DAC sharing lines.)
+		//	b1 [input]: light pen button (maybe?)
+		//
+
+		//
+		// Port B:
+		//
+		//	b7 [input]: state of selected key
+		//	b4–6 [output]: keyboard column
+		//	b1–3 [output]: keyboard line
+		//	b0 [output]: 1-bit sound
+		//
 
 		template <Motorola::MC6821::Port port>
 		uint8_t input() {
 			if constexpr (port == Motorola::MC6821::Port::A) {
-				//	Port A inputs:
-				//		b4: light pen button
-				//		b7: tape input [and 0 = no tape; 1 = tape present]
 				return
-					(machine_.tape_player_.input() ? 0x00 : 0x80) |
-					0x10;	// Light pen button never pressed.
+					(machine_.tape_player_.input() ? 0x00 : 0x80);
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
-				//	Port B inputs:
-				//		b7: status of key at that position.	[0 = pressed?]
+				// Cf. R118, R119 and T21 from the schematic; if PA3 (stored here as bit 6) is active then
+				// the output of PB1–3 (here bits 0 to 2) is ineffective.
+				const auto key = key_ & 0x40 ? key_ & ~7 : key_;
 				return key_states_[key_] ? 0x00 : 0x80;
 			}
 
@@ -330,20 +383,23 @@ private:
 		template <Motorola::MC6821::Port port>
 		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::A) {
-				//	Port A outputs:
-				//		b0 = lower 8kb RAM paging;
-				//		b1–4: border colour;
-				//		b6: tape output
-				machine_.page_lower(value & 1);
-				machine_.video_->set_border_colour((value >> 1) & 0xf);
+				machine_.memory_.page_video(value & 0x01);
+				machine_.memory_.page_monitor(value & 0x20);
+
+				if constexpr (!is_mo6) {
+					machine_.video_->set_border_colour((value >> 1) & 0xf);
+				} else {
+					// TODO: determine why I'm having to invert this bit.
+					key_ = (key_ & 0b0'111'111) | ((~value << 3) & 0b1'000'000);
+
+					if(machine_.activity_observer_) {
+						machine_.activity_observer_->set_led_status(machine_.ShiftLED, value & 0x10);
+					}
+				}
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
-				// Port B outputs:
-				//		b0 = 1-bit sound output;
-				//		b1–3 = keyboard column;
-				//		b4–6: keyboard line;
-				key_ = (value >> 1) & 0b111'111;
+				key_ = (key_ & 0b1'000'000) | ((value >> 1) & 0b0'111'111);
 				machine_.set_audio(value & 1, std::nullopt);
 			}
 		}
@@ -380,7 +436,7 @@ private:
 	private:
 		ConcreteMachine &machine_;
 		uint8_t key_ = 0;
-		bool key_states_[0x40]{};
+		bool key_states_[0x80]{};	// There are 64 key addresses on an MO5; 128 on an MO6.
 	};
 	SystemPIAPortHandler system_pia_port_handler_;
 	Motorola::MC6821::MC6821<SystemPIAPortHandler, 2, 1> system_pia_;
@@ -520,7 +576,7 @@ private:
 	SoundAndGamePIAPortHandler sound_and_game_pia_port_handler_;
 	Motorola::MC6821::MC6821<SoundAndGamePIAPortHandler, 2, 1> sound_and_game_pia_;
 
-	JustInTimeActor<Video, Cycles> video_;
+	JustInTimeActor<Thomson::Video, Cycles> video_;
 
 	// MARK: - Tape and disk.
 
@@ -548,9 +604,15 @@ private:
 	bool audio_enabled_ = false;
 	uint8_t audio_level_ = MusicExpansionMask;
 	void set_audio(const std::optional<bool> enabled, const std::optional<uint8_t> level) {
+		const auto new_audio_enabled = enabled.value_or(audio_enabled_);
+		const auto new_audio_level = level.value_or(audio_level_);
+		if(new_audio_level == audio_level_ && new_audio_enabled == audio_enabled_) {
+			return;
+		}
+
+		audio_level_ = new_audio_level;
+		audio_enabled_ = new_audio_enabled;
 		update_audio();
-		audio_enabled_ = enabled.value_or(audio_enabled_);
-		audio_level_ = level.value_or(audio_level_);
 		audio_.set_output(audio_enabled_ ? audio_level_ : 0);
 	}
 
@@ -581,8 +643,8 @@ private:
 
 	// MARK: - MappedKeyboardMachine.
 
-	Thomson::MO5::KeyboardMapper keyboard_mapper_;
-	KeyboardMapper *get_keyboard_mapper() final {
+	Thomson::MO::Keyboard::KeyboardMapper keyboard_mapper_;
+	KeyboardMapper *keyboard_mapper() final {
 		return &keyboard_mapper_;
 	}
 
@@ -594,15 +656,15 @@ private:
 		system_pia_port_handler_.clear_all_keys();
 	}
 
-	void type_string(const std::string &string) final {
-		Utility::TypeRecipient<CharacterMapper>::add_typer(string);
+	void type_string(const std::wstring &string) final {
+		Utility::TypeRecipient<Thomson::MO::Keyboard::CharacterMapper>::add_typer(string);
 	}
 
-	bool can_type(char c) const final {
-		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
+	bool can_type(const wchar_t c) const final {
+		return Utility::TypeRecipient<Thomson::MO::Keyboard::CharacterMapper>::can_type(c);
 	}
 
-	HalfCycles get_typer_delay(const std::string &) const final {
+	HalfCycles typer_delay(const std::wstring &) const final {
 		if(m6809_.template get<CPU::M6809::Line::PowerOnReset>()) {
 			return Cycles(1'000'000);
 		} else {
@@ -610,7 +672,7 @@ private:
 		}
 	}
 
-	HalfCycles get_typer_frequency() const final {
+	HalfCycles typer_frequency() const final {
 		return Cycles(20'000);
 	}
 
@@ -622,8 +684,11 @@ private:
 		}
 
 		if(!media.cartridges.empty()) {
-			auto segment = media.cartridges.front()->segments().front();
-			std::copy_n(segment.data.begin(), std::min<size_t>(segment.data.size(), 16384), rom_.begin());
+			auto rom = media.cartridges.front()->segments().front().data;
+			if(rom.size() < 16384) {
+				rom.resize(16384);
+			}
+			memory_.set_cartridge(rom);
 		}
 
 		if(has_floppy) {
@@ -644,11 +709,17 @@ private:
 	// MARK: - Activity Source.
 
 	void set_activity_observer(Activity::Observer *const observer) override {
+		if(is_mo6) {
+			activity_observer_ = observer;
+			activity_observer_->register_led(ShiftLED, Activity::Observer::LEDPresentation::Persistent);
+		}
 		tape_player_.set_activity_observer(observer);
 		if(has_floppy) {
 			fdc_.set_activity_observer(observer);
 		}
 	}
+	static constexpr char ShiftLED[] = "Shift Lock";
+	Activity::Observer *activity_observer_ = nullptr;
 
 	// MARK: - Configuration options.
 
@@ -678,15 +749,25 @@ private:
 
 }
 
+namespace {
+template <bool is_mo6>
+std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	switch(target.floppy) {
+		using enum Target::Floppy;
+		case None:		return std::make_unique<ConcreteMachine<false, is_mo6>>(target, rom_fetcher);
+		case CD90_640:	return std::make_unique<ConcreteMachine<true, is_mo6>>(target, rom_fetcher);
+	}
+}
+}
+
 std::unique_ptr<Machine> Machine::ThomsonMO(
 	const Analyser::Static::Target *target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	using Target = Analyser::Static::Thomson::MOTarget;
 	const Target *const thomson_target = dynamic_cast<const Target *>(target);
-
-	switch(thomson_target->floppy) {
-		case Target::Floppy::None:		return std::make_unique<ConcreteMachine<false>>(*thomson_target, rom_fetcher);
-		case Target::Floppy::CD90_640:	return std::make_unique<ConcreteMachine<true>>(*thomson_target, rom_fetcher);
+	if(Analyser::Static::Thomson::is_mo6(thomson_target->model)) {
+		return machine<true>(*thomson_target, rom_fetcher);
+	} else {
+		return machine<false>(*thomson_target, rom_fetcher);
 	}
 }

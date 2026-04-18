@@ -11,7 +11,7 @@
 using namespace Utility;
 
 Typer::Typer(
-	const std::string &string,
+	const std::wstring &string,
 	const HalfCycles delay,
 	const HalfCycles frequency,
 	CharacterMapper &character_mapper,
@@ -22,10 +22,10 @@ Typer::Typer(
 		delegate_(delegate),
 		character_mapper_(character_mapper) {
 	// Retain only those characters that actually map to something.
-	if(sequence_for_character(Typer::BeginString)) {
+	if(!sequence_for_character(Typer::BeginString).empty()) {
 		string_ += Typer::BeginString;
 	}
-	if(sequence_for_character(Typer::EndString)) {
+	if(!sequence_for_character(Typer::EndString).empty()) {
 		string_ += Typer::EndString;
 	}
 
@@ -52,7 +52,7 @@ void Typer::run_for(const HalfCycles duration) {
 	}
 }
 
-void Typer::append(const std::string &string) {
+void Typer::append(const std::wstring &string) {
 	// Remove any characters that are already completely done;
 	// otherwise things may accumulate here indefinitely.
 	// Note that sequence_for_character may seek to look one backwards,
@@ -68,26 +68,22 @@ void Typer::append(const std::string &string) {
 	if(!string_.empty() && string_.back() == Typer::EndString) --insertion_position;
 
 	string_.reserve(string_.size() + string.size());
-	for(const char c : string) {
-		if(sequence_for_character(c)) {
+	for(const auto c : string) {
+		if(!sequence_for_character(c).empty()) {
 			string_.insert(string_.begin() + insertion_position, c);
 			++insertion_position;
 		}
 	}
 }
 
-const uint16_t *Typer::sequence_for_character(const char c) const {
-	const uint16_t *const sequence = character_mapper_.sequence_for_character(c);
-	if(!sequence || sequence[0] == MachineTypes::MappedKeyboardMachine::KeyNotMapped) {
-		return nullptr;
-	}
-	return sequence;
+std::span<const uint16_t> Typer::sequence_for_character(const wchar_t c) const {
+	return character_mapper_.sequence_for_character(c);
 }
 
 uint16_t Typer::try_type_next_character() {
-	const uint16_t *const sequence = sequence_for_character(string_[string_pointer_]);
+	const auto sequence = sequence_for_character(string_[string_pointer_]);
 
-	if(!sequence) {
+	if(sequence.empty()) {
 		return 0;
 	}
 
@@ -107,11 +103,12 @@ uint16_t Typer::try_type_next_character() {
 		++phase_;
 	}
 
-	// Don't forward ::KeyEndSequence.
-	const auto next = sequence[phase_ - 2];
-	if(next != MachineTypes::MappedKeyboardMachine::KeyEndSequence) {
-		delegate_->set_key_state(sequence[phase_ - 2], true);
+	// Potentially generate ::KeyEndSequence.
+	if(phase_ - 2 >= sequence.size()) {
+		return MachineTypes::MappedKeyboardMachine::KeyEndSequence;
 	}
+	const auto next = sequence[phase_ - 2];
+	delegate_->set_key_state(next, true);
 	return next;
 }
 

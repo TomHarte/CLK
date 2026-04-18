@@ -649,31 +649,32 @@ private:
 		if(typer_) typer_->run_for(duration);
 	}
 
-	void type_string(const std::string &string) override {
+	void type_string(const std::wstring &string) override {
 		Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 	}
 
-	bool can_type(char c) const override {
+	bool can_type(const wchar_t c) const override {
 		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 	}
 
 public:
 
 	// MARK: - Typer.
-	HalfCycles get_typer_delay(const std::string &) const override {
+	HalfCycles typer_delay(const std::wstring &) const override {
 		return z80_.get_is_resetting() ? Cycles(7'000'000) : Cycles(0);
 	}
 
-	HalfCycles get_typer_frequency() const override{
+	HalfCycles typer_frequency() const override{
 		return Cycles(70'908);
 	}
 
-	KeyboardMapper *get_keyboard_mapper() override {
+	KeyboardMapper *keyboard_mapper() override {
 		return &keyboard_mapper_;
 	}
 
 	// MARK: - Keyboard.
 	void set_key_state(uint16_t key, bool is_pressed) override {
+		// TODO: Handle KeyExtendedMode.
 		keyboard_.set_key_state(key, is_pressed);
 	}
 

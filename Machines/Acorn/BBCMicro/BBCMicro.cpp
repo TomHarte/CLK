@@ -1105,12 +1105,12 @@ private:
 
 	// MARK: - KeyboardMachine.
 	BBCMicro::KeyboardMapper mapper_;
-	KeyboardMapper *get_keyboard_mapper() override {
+	KeyboardMapper *keyboard_mapper() override {
 		return &mapper_;
 	}
 
 	void set_key_state(const uint16_t key, const bool is_pressed) override {
-		switch(Key(key)) {
+		switch(key) {
 			case Key::SwitchOffCaps:
 				// Store current caps lock state for a potential restore; press caps lock
 				// now if there's a need to exit caps lock mode.
@@ -1150,7 +1150,7 @@ private:
 		}
 	}
 
-	HalfCycles get_typer_delay(const std::string &text) const final {
+	HalfCycles typer_delay(const std::wstring &text) const final {
 		if(!m6502_.is_resetting()) {
 			return Cycles(0);
 		}
@@ -1159,19 +1159,19 @@ private:
 		// empirically this seems to be a requirement, in order to avoid a collision with
 		// the system's built-in modifier-at-startup test (e.g. to perform shift+break).
 		CharacterMapper test_mapper;
-		const uint16_t *const sequence = test_mapper.sequence_for_character(text[0]);
-		return is_modifier(Key(sequence[0])) ? Cycles(1'000'000) : Cycles(750'000);
+		const auto front = test_mapper.sequence_for_character(text[0])[0];
+		return is_modifier(Key::Key(front)) ? Cycles(1'000'000) : Cycles(750'000);
 	}
 
-	HalfCycles get_typer_frequency() const final {
+	HalfCycles typer_frequency() const final {
 		return Cycles(60'000);
 	}
 
-	void type_string(const std::string &string) final {
+	void type_string(const std::wstring &string) final {
 		Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 	}
 
-	bool can_type(const char c) const final {
+	bool can_type(const wchar_t c) const final {
 		return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 	}
 
