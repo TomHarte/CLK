@@ -308,11 +308,14 @@ struct SMSFetcher {
 		AddressT sub_row[2]{};
 	};
 
-	SMSFetcher(Base<personality> *base, uint8_t y) :
+	SMSFetcher(Base<personality> *const base, const uint8_t y) :
 		base(base),
 		storage(static_cast<Storage<personality> *>(base)),
 		y(y),
-		horizontal_offset((y >= 16 || !storage->horizontal_scroll_lock_) ? (base->fetch_line_buffer_->latched_horizontal_scroll >> 3) : 0)
+		horizontal_offset(
+			(y >= 16 || !storage->horizontal_scroll_lock_) ?
+				(base->fetch_line_buffer_->latched_horizontal_scroll >> 3) : 0
+		)
 	{
 		// Limit address bits in use if this is a SMS2 mode.
 		const bool is_tall_mode = base->mode_timing_.pixel_lines != 192;
@@ -333,13 +336,13 @@ struct SMSFetcher {
 
 		fill(scrolled_row_info, scrolled_row);
 		if(storage->vertical_scroll_lock_) {
-			fill(scrolled_row_info, y);
+			fill(static_row_info, y);
 		} else {
 			static_row_info = scrolled_row_info;
 		}
 	}
 
-	void fetch_sprite(int sprite) {
+	void fetch_sprite(const int sprite) {
 		auto &sprite_buffer = *base->fetch_sprite_buffer_;
 		sprite_buffer.active_sprites[sprite].x =
 			base->ram_[
@@ -352,6 +355,7 @@ struct SMSFetcher {
 		const AddressT graphic_location =
 			storage->sprite_generator_table_address_ &
 			bits<13>(AddressT((name << 5) | (sprite_buffer.active_sprites[sprite].row << 2)));
+		assert(graphic_location < 16384 - 4);
 		sprite_buffer.active_sprites[sprite].image[0] = base->ram_[graphic_location];
 		sprite_buffer.active_sprites[sprite].image[1] = base->ram_[graphic_location+1];
 		sprite_buffer.active_sprites[sprite].image[2] = base->ram_[graphic_location+2];
@@ -368,6 +372,7 @@ struct SMSFetcher {
 		base->tile_offset_ = AddressT(
 			(((line_buffer.tiles.flags[column]&1) << 8) | base->ram_[address]) << 5
 		) + row_info.sub_row[(line_buffer.tiles.flags[column]&4) >> 2];
+		assert(base->tile_offset_ < 16384 - 4);
 	}
 
 	void fetch_tile_pattern(const int column) {
