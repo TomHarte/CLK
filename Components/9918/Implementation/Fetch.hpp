@@ -305,14 +305,17 @@ struct SMSFetcher {
 	using AddressT = typename Base<personality>::AddressT;
 	struct RowInfo {
 		AddressT pattern_address_base;
-		AddressT sub_row[2];
+		AddressT sub_row[2]{};
 	};
 
-	SMSFetcher(Base<personality> *base, uint8_t y) :
+	SMSFetcher(Base<personality> *const base, const uint8_t y) :
 		base(base),
 		storage(static_cast<Storage<personality> *>(base)),
 		y(y),
-		horizontal_offset((y >= 16 || !storage->horizontal_scroll_lock_) ? (base->fetch_line_buffer_->latched_horizontal_scroll >> 3) : 0)
+		horizontal_offset(
+			(y >= 16 || !storage->horizontal_scroll_lock_) ?
+				(base->fetch_line_buffer_->latched_horizontal_scroll >> 3) : 0
+		)
 	{
 		// Limit address bits in use if this is a SMS2 mode.
 		const bool is_tall_mode = base->mode_timing_.pixel_lines != 192;
@@ -322,17 +325,24 @@ struct SMSFetcher {
 		// Determine row info for the screen both (i) if vertical scrolling is applied; and (ii) if it isn't.
 		// The programmer can opt out of applying vertical scrolling to the right-hand portion of the display.
 		const int scrolled_row = (y + storage->latched_vertical_scroll_) % (is_tall_mode ? 256 : 224);
-		scrolled_row_info.pattern_address_base = (pattern_name_address & bits<11>(AddressT((scrolled_row & ~7) << 3))) - pattern_name_offset;
-		scrolled_row_info.sub_row[0] = AddressT((scrolled_row & 7) << 2);
-		scrolled_row_info.sub_row[1] = AddressT(28 ^ ((scrolled_row & 7) << 2));
+
+		const auto fill = [&](RowInfo &target, const int row) {
+			target.pattern_address_base = (
+				pattern_name_address & bits<11>(AddressT((row & ~7) << 3))
+			) - pattern_name_offset;
+			target.sub_row[0] = AddressT((row & 7) << 2);
+			target.sub_row[1] = AddressT(28 ^ ((row & 7) << 2));
+		};
+
+		fill(scrolled_row_info, scrolled_row);
 		if(storage->vertical_scroll_lock_) {
-			static_row_info.pattern_address_base = bits<11>(AddressT(pattern_name_address & ((y & ~7) << 3))) - pattern_name_offset;
-			static_row_info.sub_row[0] = AddressT((y & 7) << 2);
-			static_row_info.sub_row[1] = 28 ^ AddressT((y & 7) << 2);
-		} else static_row_info = scrolled_row_info;
+			fill(static_row_info, y);
+		} else {
+			static_row_info = scrolled_row_info;
+		}
 	}
 
-	void fetch_sprite(int sprite) {
+	void fetch_sprite(const int sprite) {
 		auto &sprite_buffer = *base->fetch_sprite_buffer_;
 		sprite_buffer.active_sprites[sprite].x =
 			base->ram_[
@@ -345,27 +355,29 @@ struct SMSFetcher {
 		const AddressT graphic_location =
 			storage->sprite_generator_table_address_ &
 			bits<13>(AddressT((name << 5) | (sprite_buffer.active_sprites[sprite].row << 2)));
-		sprite_buffer.active_sprites[sprite].image[0] = base->ram_[graphic_location];
+		assert(graphic_location <= 16384 - 4);
+		sprite_buffer.active_sprites[sprite].image[0] = base->ram_[graphic_location+0];
 		sprite_buffer.active_sprites[sprite].image[1] = base->ram_[graphic_location+1];
 		sprite_buffer.active_sprites[sprite].image[2] = base->ram_[graphic_location+2];
 		sprite_buffer.active_sprites[sprite].image[3] = base->ram_[graphic_location+3];
 	}
 
-	void fetch_tile_name(int column) {
+	void fetch_tile_name(const int column) {
 		const RowInfo &row_info = column < 24 ? scrolled_row_info : static_row_info;
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;
 		const size_t address = row_info.pattern_address_base + (scrolled_column << 1);
 		auto &line_buffer = *base->fetch_line_buffer_;
+		assert(address <= 16384 - 2);
 
 		line_buffer.tiles.flags[column] = base->ram_[address+1];
-		base->tile_offset_ = AddressT(
-			(((line_buffer.tiles.flags[column]&1) << 8) | base->ram_[address]) << 5
-		) + row_info.sub_row[(line_buffer.tiles.flags[column]&4) >> 2];
+		const auto tile_id = ((line_buffer.tiles.flags[column]&1) << 8) | base->ram_[address];
+		base->tile_offset_ = AddressT(tile_id << 5) + row_info.sub_row[(line_buffer.tiles.flags[column]&4) >> 2];
+		assert(base->tile_offset_ <= 16384 - 4);
 	}
 
-	void fetch_tile_pattern(int column) {
+	void fetch_tile_pattern(const int column) {
 		auto &line_buffer = *base->fetch_line_buffer_;
-		line_buffer.tiles.patterns[column][0] = base->ram_[base->tile_offset_];
+		line_buffer.tiles.patterns[column][0] = base->ram_[base->tile_offset_+0];
 		line_buffer.tiles.patterns[column][1] = base->ram_[base->tile_offset_+1];
 		line_buffer.tiles.patterns[column][2] = base->ram_[base->tile_offset_+2];
 		line_buffer.tiles.patterns[column][3] = base->ram_[base->tile_offset_+3];
