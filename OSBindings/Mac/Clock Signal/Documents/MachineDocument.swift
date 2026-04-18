@@ -76,7 +76,10 @@ class MachineDocument:
 
 			self.fileObserver = CSFileContentChangeObserver.init(url: url, handler: {
 				if let machine = self.machine {
-					DispatchQueue.main.async {
+					DispatchQueue.main.async { [weak self] in
+						guard let self = self else {
+							return
+						}
 						switch machine.effectForFile(atURLDidChange: url) {
 							case .reinsertMedia:	self.insertFile(url)
 							case .restartMachine:
@@ -281,8 +284,8 @@ class MachineDocument:
 		// running machine may not be able to stop running until it has been called
 		// (e.g. if it is currently trying to run_until an audio event). Break the
 		// deadlock with an async dispatch.
-		DispatchQueue.main.async {
-			self.setupAudioQueueClockRate()
+		DispatchQueue.main.async { [weak self] in
+			self?.setupAudioQueueClockRate()
 		}
 	}
 
@@ -571,7 +574,10 @@ class MachineDocument:
 		// Schedule the box to disappear.
 		self.animationCount = self.animationCount + 1
 		let capturedAnimationCount = animationCount
-		DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + .seconds(2)) {
+		DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + .seconds(2)) { [weak self] in
+			guard let self = self else {
+				return
+			}
 			if self.animationCount == capturedAnimationCount {
 				NSAnimationContext.beginGrouping()
 				NSAnimationContext.current.duration = 1.0
@@ -796,7 +802,7 @@ class MachineDocument:
 			return
 		}
 
-		DispatchQueue.main.async { [self] in
+		DispatchQueue.main.async { [weak self] in
 			// Do nothing for no change of state.
 			if led.isLit == isLit {
 				return
@@ -806,7 +812,7 @@ class MachineDocument:
 			led.isLit = isLit
 
 			// Possibly show or hide the activity subview.
-			self.updateActivityViewVisibility(false, changed: ledName)
+			self?.updateActivityViewVisibility(false, changed: ledName)
 		}
 	}
 
