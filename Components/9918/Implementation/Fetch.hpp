@@ -355,8 +355,8 @@ struct SMSFetcher {
 		const AddressT graphic_location =
 			storage->sprite_generator_table_address_ &
 			bits<13>(AddressT((name << 5) | (sprite_buffer.active_sprites[sprite].row << 2)));
-		assert(graphic_location < 16384 - 4);
-		sprite_buffer.active_sprites[sprite].image[0] = base->ram_[graphic_location];
+		assert(graphic_location <= 16384 - 4);
+		sprite_buffer.active_sprites[sprite].image[0] = base->ram_[graphic_location+0];
 		sprite_buffer.active_sprites[sprite].image[1] = base->ram_[graphic_location+1];
 		sprite_buffer.active_sprites[sprite].image[2] = base->ram_[graphic_location+2];
 		sprite_buffer.active_sprites[sprite].image[3] = base->ram_[graphic_location+3];
@@ -367,17 +367,17 @@ struct SMSFetcher {
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;
 		const size_t address = row_info.pattern_address_base + (scrolled_column << 1);
 		auto &line_buffer = *base->fetch_line_buffer_;
+		assert(address <= 16384 - 2);
 
 		line_buffer.tiles.flags[column] = base->ram_[address+1];
-		base->tile_offset_ = AddressT(
-			(((line_buffer.tiles.flags[column]&1) << 8) | base->ram_[address]) << 5
-		) + row_info.sub_row[(line_buffer.tiles.flags[column]&4) >> 2];
-		assert(base->tile_offset_ < 16384 - 4);
+		const auto tile_id = ((line_buffer.tiles.flags[column]&1) << 8) | base->ram_[address];
+		base->tile_offset_ = AddressT(tile_id << 5) + row_info.sub_row[(line_buffer.tiles.flags[column]&4) >> 2];
+		assert(base->tile_offset_ <= 16384 - 4);
 	}
 
 	void fetch_tile_pattern(const int column) {
 		auto &line_buffer = *base->fetch_line_buffer_;
-		line_buffer.tiles.patterns[column][0] = base->ram_[base->tile_offset_];
+		line_buffer.tiles.patterns[column][0] = base->ram_[base->tile_offset_+0];
 		line_buffer.tiles.patterns[column][1] = base->ram_[base->tile_offset_+1];
 		line_buffer.tiles.patterns[column][2] = base->ram_[base->tile_offset_+2];
 		line_buffer.tiles.patterns[column][3] = base->ram_[base->tile_offset_+3];
