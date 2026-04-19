@@ -23,7 +23,7 @@ namespace Storage::Tape {
 struct Pulse {
 	enum Type {
 		High, Low, Zero
-	} type;
+	} type = Type::High;
 	Time length;
 
 	Pulse(Type type, Time length) : type(type), length(length) {}

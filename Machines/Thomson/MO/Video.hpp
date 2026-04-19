@@ -158,7 +158,7 @@ private:
 
 	// For gate array support: palette and mode.
 	std::array<uint8_t, 32> palette_;
-	uint8_t border_;
+	uint8_t border_ = 0;
 	Numeric::SizedInt<5> palette_index_ = 0;
 
 	bool enable_mode_access_ = true;

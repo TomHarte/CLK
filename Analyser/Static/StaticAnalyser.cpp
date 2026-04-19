@@ -86,6 +86,7 @@
 #include "Storage/Tape/Formats/CommodoreTAP.hpp"
 #include "Storage/Tape/Formats/CSW.hpp"
 #include "Storage/Tape/Formats/K7.hpp"
+#include "Storage/Tape/Formats/LEP.hpp"
 #include "Storage/Tape/Formats/OricTAP.hpp"
 #include "Storage/Tape/Formats/TapePRG.hpp"
 #include "Storage/Tape/Formats/TapeUEF.hpp"
@@ -273,6 +274,8 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 
 	accumulator.try_standard<Tape::K7>(TargetPlatform::ThomsonMO | TargetPlatform::ThomsonTO, "k5");
 	accumulator.try_standard<Tape::K7>(TargetPlatform::ThomsonMO | TargetPlatform::ThomsonTO, "k7");
+
+	accumulator.try_standard<Tape::LEP>(TargetPlatform::ThomsonMO | TargetPlatform::ThomsonTO, "lep");
 
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::ThomsonMO, "m5");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::MOOF>>(TargetPlatform::Macintosh, "moof");
