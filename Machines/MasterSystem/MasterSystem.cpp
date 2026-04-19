@@ -511,8 +511,8 @@ private:
 	HalfCycles time_since_sn76489_update_;
 	HalfCycles time_until_debounce_;
 
-	std::array<uint8_t, 8*1024> ram_;
-	std::array<uint8_t, 8*1024> sram_;
+	std::array<uint8_t, 8*1024> ram_;		// Built-in RAM.
+	std::array<uint8_t, 32*1024> sram_;		// Cartridge-supplied save RAM.
 	std::array<uint8_t, 8*1024> bios_;
 	std::vector<uint8_t> cartridge_;
 
@@ -554,16 +554,35 @@ private:
 	} paging_;
 	uint8_t memory_control_ = 0;
 	void page_cartridge() {
+		if(paging_.control & 0x93) {
+			Logger::error().append("TODO: Unimplemented paging control bits in use: %02x", paging_.control);
+		}
+
 		// Either install the cartridge or don't; Japanese machines can't see
 		// anything but the cartridge.
 		if(!(memory_control_ & 0x40) || region_ == Target::Region::Japan) {
+			// Apply prima-facie ROM mapping.
 			for(size_t c = 0; c < 3; ++c) {
 				const size_t start_addr = (paging_.page[c] * 0x4000) % cartridge_.size();
 				map(
 					read_pointers_,
 					cartridge_.data() + start_addr,
 					std::min(size_t(0x4000), cartridge_.size() - start_addr),
-					c * 0x4000);
+					c * 0x4000
+				);
+				map(
+					write_pointers_,
+					nullptr,
+					0x4000,
+					c * 0x4000
+				);
+			}
+
+			// Override with RAM if selected.
+			if(paging_.control & 0x08) {
+				uint8_t *const base = sram_.data() + ((paging_.control & 0x04) ? 0x4000 : 0);
+				map(read_pointers_, base, 0x4000, 0x8000);
+				map(write_pointers_, base, 0x4000, 0x8000);
 			}
 
 			// The first 1kb doesn't page though, if this is the Sega paging scheme.
