@@ -857,6 +857,7 @@
 			<array>
 				<string>k5</string>
 				<string>k7</string>
+				<string>lep</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cassette</string>

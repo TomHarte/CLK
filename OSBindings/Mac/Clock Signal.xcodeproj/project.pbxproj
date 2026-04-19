@@ -55,6 +55,9 @@
 		4B03E83D2F8D914C008AF203 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B03E8352F8D914C008AF203 /* Video.cpp */; };
 		4B03E83E2F8D914C008AF203 /* MO.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B03E8332F8D914C008AF203 /* MO.cpp */; };
 		4B03E83F2F8D914C008AF203 /* CD90-640.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B03E82F2F8D914C008AF203 /* CD90-640.cpp */; };
+		4B03E8422F9528D4008AF203 /* LEP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B03E8412F9528D4008AF203 /* LEP.cpp */; };
+		4B03E8432F9528D4008AF203 /* LEP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B03E8412F9528D4008AF203 /* LEP.cpp */; };
+		4B03E8442F9528D4008AF203 /* LEP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B03E8412F9528D4008AF203 /* LEP.cpp */; };
 		4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B049CDC1DA3C82F00322067 /* BCDTest.swift */; };
 		4B04C899285E3DC800AA8FD6 /* 65816ComparativeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B04C898285E3DC800AA8FD6 /* 65816ComparativeTests.mm */; };
 		4B051C912669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
@@ -1391,6 +1394,8 @@
 		4B03E8332F8D914C008AF203 /* MO.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MO.cpp; sourceTree = "<group>"; };
 		4B03E8342F8D914C008AF203 /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
 		4B03E8352F8D914C008AF203 /* Video.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Video.cpp; sourceTree = "<group>"; };
+		4B03E8402F9528D4008AF203 /* LEP.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LEP.hpp; sourceTree = "<group>"; };
+		4B03E8412F9528D4008AF203 /* LEP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = LEP.cpp; sourceTree = "<group>"; };
 		4B046DC31CFE651500E9E45E /* ScanProducer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ScanProducer.hpp; sourceTree = "<group>"; };
 		4B047075201ABC180047AB0D /* Cartridge.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Cartridge.hpp; sourceTree = "<group>"; };
 		4B049CDC1DA3C82F00322067 /* BCDTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BCDTest.swift; sourceTree = "<group>"; };
@@ -3742,6 +3747,7 @@
 				4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */,
 				4B3BF5AE1F146264005B6C36 /* CSW.cpp */,
 				4BBC7DC72F7182CC00E71794 /* K7.cpp */,
+				4B03E8412F9528D4008AF203 /* LEP.cpp */,
 				4B59199A1DAC6C46005BB85C /* OricTAP.cpp */,
 				4B2BFC5D1D613E0200BA3AA9 /* TapePRG.cpp */,
 				4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */,
@@ -3752,6 +3758,7 @@
 				4BC91B821D1F160E00884B76 /* CommodoreTAP.hpp */,
 				4B3BF5AF1F146264005B6C36 /* CSW.hpp */,
 				4BBC7DC62F7182CC00E71794 /* K7.hpp */,
+				4B03E8402F9528D4008AF203 /* LEP.hpp */,
 				4B59199B1DAC6C46005BB85C /* OricTAP.hpp */,
 				4B2BFC5E1D613E0200BA3AA9 /* TapePRG.hpp */,
 				4B69FB431C4D941400B5F0AA /* TapeUEF.hpp */,
@@ -6657,6 +6664,7 @@
 				4BFF79132F7473C7003B9CB5 /* Acorn.cpp in Sources */,
 				4BFF79142F7473C7003B9CB5 /* Spectrum.cpp in Sources */,
 				4BFF79152F7473C7003B9CB5 /* MSX.cpp in Sources */,
+				4B03E8432F9528D4008AF203 /* LEP.cpp in Sources */,
 				4BFF79162F7473C7003B9CB5 /* ThomsonMO.cpp in Sources */,
 				4BFF79172F7473C7003B9CB5 /* Oric.cpp in Sources */,
 				4B0F1BB32602645900B85C66 /* StaticAnalyser.cpp in Sources */,
@@ -6848,6 +6856,7 @@
 				4B7F1897215486A200388727 /* StaticAnalyser.cpp in Sources */,
 				4B47F6C5241C87A100ED06F7 /* Struct.cpp in Sources */,
 				4B5FADBA1DE3151600AEC565 /* FileHolder.cpp in Sources */,
+				4B03E8442F9528D4008AF203 /* LEP.cpp in Sources */,
 				4B643F3A1D77AD1900D431D6 /* CSStaticAnalyser.mm in Sources */,
 				4B622AE5222E0AD5008B59F2 /* DisplayMetrics.cpp in Sources */,
 				4B6FD0362923B88F00EC4760 /* HDV.cpp in Sources */,
@@ -7283,6 +7292,7 @@
 				4B7C7A00282C3BCA002D6C0B /* 68000flamewingTests.mm in Sources */,
 				4B778F0223A5EBA40000D260 /* MFMSectorDump.cpp in Sources */,
 				4B7752BD28217F200073E2C5 /* Keyboard.cpp in Sources */,
+				4B03E8422F9528D4008AF203 /* LEP.cpp in Sources */,
 				4BFCA1271ECBE33200AC40C1 /* TestMachineZ80.mm in Sources */,
 				4B778F3E23A5F17C0000D260 /* IWM.cpp in Sources */,
 				4BD91D732401960C007BDC91 /* STX.cpp in Sources */,
