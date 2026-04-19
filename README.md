@@ -27,8 +27,9 @@ It currently contains emulations of the:
 * MSX 1 and 2;
 * Oric 1/Atmos;
 * Sega Master System;
-* Sinclair ZX80/81; and
-* Sinclair ZX Spectrum.
+* Sinclair ZX80/81;
+* Sinclair ZX Spectrum; and
+* Thomson MO5/6.
 
 Also present but very much upcoming are the:
 
