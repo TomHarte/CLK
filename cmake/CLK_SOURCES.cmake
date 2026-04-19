@@ -257,6 +257,7 @@ set(CLK_SOURCES
 	Storage/Tape/Formats/CSW.cpp
 	Storage/Tape/Formats/CommodoreTAP.cpp
 	Storage/Tape/Formats/K7.cpp
+	Storage/Tape/Formats/LEP.cpp
 	Storage/Tape/Formats/OricTAP.cpp
 	Storage/Tape/Formats/TZX.cpp
 	Storage/Tape/Formats/TapePRG.cpp
