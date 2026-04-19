@@ -28,6 +28,7 @@
 #include "Analyser/Static/Sega/Target.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <iostream>
 
@@ -93,7 +94,6 @@ template <Analyser::Static::Sega::Target::Model model> class ConcreteMachine:
 public:
 	ConcreteMachine(const Analyser::Static::Sega::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		region_(target.region),
-		paging_scheme_(target.paging_scheme),
 		z80_(*this),
 		sn76489_(
 			(target.model == Target::Model::SG1000) ? TI::SN76489::Personality::SN76489 : TI::SN76489::Personality::SMS,
@@ -102,7 +102,8 @@ public:
 		opll_(audio_queue_, audio_divider),
 		mixer_(sn76489_, opll_),
 		speaker_(mixer_),
-		keyboard_({Inputs::Keyboard::Key::Enter, Inputs::Keyboard::Key::Escape}, {}) {
+		keyboard_({Inputs::Keyboard::Key::Enter, Inputs::Keyboard::Key::Escape}, {}),
+		paging_(target.paging_scheme) {
 		// Pick the clock rate based on the region.
 		const double clock_rate = target.region == Target::Region::Europe ? 3546893.0 : 3579540.0;
 		speaker_.set_input_rate(float(clock_rate / audio_divider));
@@ -126,13 +127,6 @@ public:
 			cartridge_.resize(TargetSize, 0xff);
 		}
 
-		if(paging_scheme_ == Target::PagingScheme::Codemasters) {
-			// The Codemasters cartridges start with pages 0, 1 and 0 again initially visible.
-			paging_registers_[0] = 0;
-			paging_registers_[1] = 1;
-			paging_registers_[2] = 0;
-		}
-
 		// Load the BIOS if available.
 		//
 		// TODO: there's probably a million other versions of the Master System BIOS; try to build a
@@ -141,7 +135,8 @@ public:
 		//	0072ed54 = US/European BIOS 1.3
 		//	48d44a13 = Japanese BIOS 2.1
 		const bool is_japanese = target.region == Target::Region::Japan;
-		const ROM::Name bios_name = is_japanese ? ROM::Name::MasterSystemJapaneseBIOS : ROM::Name::MasterSystemWesternBIOS;
+		const ROM::Name bios_name =
+			is_japanese ? ROM::Name::MasterSystemJapaneseBIOS : ROM::Name::MasterSystemWesternBIOS;
 		ROM::Request request(bios_name, true);
 		auto roms = rom_fetcher(request);
 		request.validate(roms);
@@ -154,17 +149,21 @@ public:
 			std::cerr << "No BIOS found; attempting to start cartridge directly" << std::endl;
 		} else {
 			has_bios_ = true;
-			std::copy_n(rom->second.begin(), std::min(sizeof(bios_), rom->second.size()), bios_);
+			std::copy_n(
+				rom->second.begin(),
+				std::min(bios_.size(), rom->second.size()),
+				bios_.begin()
+			);
 		}
 		page_cartridge();
 
 		// Map RAM.
 		if constexpr (is_master_system(model)) {
-			map(read_pointers_, ram_, 8*1024, 0xc000, 0x10000);
-			map(write_pointers_, ram_, 8*1024, 0xc000, 0x10000);
+			map(read_pointers_, ram_.data(), 8*1024, 0xc000, 0x10000);
+			map(write_pointers_, ram_.data(), 8*1024, 0xc000, 0x10000);
 		} else {
-			map(read_pointers_, ram_, 1024, 0xc000, 0x10000);
-			map(write_pointers_, ram_, 1024, 0xc000, 0x10000);
+			map(read_pointers_, ram_.data(), 1024, 0xc000, 0x10000);
+			map(write_pointers_, ram_.data(), 1024, 0xc000, 0x10000);
 		}
 
 		// Apply a relatively low low-pass filter. More guidance needed here.
@@ -242,25 +241,28 @@ public:
 				break;
 
 				case CPU::Z80::PartialMachineCycle::Write:
-					if(paging_scheme_ == Target::PagingScheme::Sega) {
+					if(paging_.scheme == Target::PagingScheme::Sega) {
 						if(address >= 0xfffd && cartridge_.size() > 48*1024) {
-							if(paging_registers_[address - 0xfffd] != *cycle.value) {
-								paging_registers_[address - 0xfffd] = *cycle.value;
+							if(paging_.page[address - 0xfffd] != *cycle.value) {
+								paging_.page[address - 0xfffd] = *cycle.value;
 								page_cartridge();
 							}
+						} else if(address == 0xfffc) {
+							paging_.control = *cycle.value;
+							page_cartridge();
 						}
 					} else {
 						// i.e. this is the Codemasters paging scheme.
 						if(!(address&0x3fff) && address < 0xc000) {
-							if(paging_registers_[address >> 14] != *cycle.value) {
-								paging_registers_[address >> 14] = *cycle.value;
+							if(paging_.page[address >> 14] != *cycle.value) {
+								paging_.page[address >> 14] = *cycle.value;
 								page_cartridge();
 							}
 						}
 					}
 
 					if(write_pointers_[address >> 10]) write_pointers_[address >> 10][address & 1023] = *cycle.value;
-//					else Logger::info().append("Ignored write to ROM");
+//					else Logger::info().append("Ignored write to ROM at %04x", address);
 				break;
 
 				case CPU::Z80::PartialMachineCycle::Input:
@@ -492,7 +494,6 @@ private:
 
 	using Target = Analyser::Static::Sega::Target;
 	const Target::Region region_;
-	const Target::PagingScheme paging_scheme_;
 	CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 	JustInTimeActor<TI::TMS::TMS9918<tms_personality()>> vdp_;
 
@@ -510,8 +511,9 @@ private:
 	HalfCycles time_since_sn76489_update_;
 	HalfCycles time_until_debounce_;
 
-	uint8_t ram_[8*1024];
-	uint8_t bios_[8*1024];
+	std::array<uint8_t, 8*1024> ram_;		// Built-in RAM.
+	std::array<uint8_t, 32*1024> sram_;		// Cartridge-supplied save RAM.
+	std::array<uint8_t, 8*1024> bios_;
 	std::vector<uint8_t> cartridge_;
 
 	uint8_t io_port_control_ = 0x0f;
@@ -522,30 +524,69 @@ private:
 	// The memory map has a 1kb granularity; this is determined by the SG1000's 1kb of RAM.
 	const uint8_t *read_pointers_[64];
 	uint8_t *write_pointers_[64];
-	template <typename T> void map(T **target, uint8_t *source, size_t size, size_t start_address, size_t end_address = 0) {
+	template <typename T>
+	void map(T **target, uint8_t *source, size_t size, size_t start_address, size_t end_address = 0) {
 		if(!end_address) end_address = start_address + size;
 		for(auto address = start_address; address < end_address; address += 1024) {
 			target[address >> 10] = source ? &source[(address - start_address) & (size - 1)] : nullptr;
 		}
 	}
 
-	uint8_t paging_registers_[3] = {0, 1, 2};
+	struct Paging {
+		Paging(const Target::PagingScheme scheme) : scheme(scheme) {
+			switch(scheme) {
+				case Target::PagingScheme::Codemasters:
+					// The Codemasters cartridges start with pages 0, 1 and 0 again initially visible.
+					page[2] = 0;
+				break;
+
+				case Target::PagingScheme::Sega:
+					page[2] = 2;
+				break;
+
+				default: __builtin_unreachable();
+			}
+		}
+
+		uint8_t control = 0;
+		uint8_t page[3] = {0, 1, 2};
+		const Target::PagingScheme scheme;
+	} paging_;
 	uint8_t memory_control_ = 0;
 	void page_cartridge() {
+		if(paging_.control & 0x93) {
+			Logger::error().append("TODO: Unimplemented paging control bits in use: %02x", paging_.control);
+		}
+
 		// Either install the cartridge or don't; Japanese machines can't see
 		// anything but the cartridge.
 		if(!(memory_control_ & 0x40) || region_ == Target::Region::Japan) {
+			// Apply prima-facie ROM mapping.
 			for(size_t c = 0; c < 3; ++c) {
-				const size_t start_addr = (paging_registers_[c] * 0x4000) % cartridge_.size();
+				const size_t start_addr = (paging_.page[c] * 0x4000) % cartridge_.size();
 				map(
 					read_pointers_,
 					cartridge_.data() + start_addr,
 					std::min(size_t(0x4000), cartridge_.size() - start_addr),
-					c * 0x4000);
+					c * 0x4000
+				);
+				map(
+					write_pointers_,
+					nullptr,
+					0x4000,
+					c * 0x4000
+				);
+			}
+
+			// Override with RAM if selected.
+			if(paging_.control & 0x08) {
+				uint8_t *const base = sram_.data() + ((paging_.control & 0x04) ? 0x4000 : 0);
+				map(read_pointers_, base, 0x4000, 0x8000);
+				map(write_pointers_, base, 0x4000, 0x8000);
 			}
 
 			// The first 1kb doesn't page though, if this is the Sega paging scheme.
-			if(paging_scheme_ == Target::PagingScheme::Sega) {
+			if(paging_.scheme == Target::PagingScheme::Sega) {
 				map(read_pointers_, cartridge_.data(), 0x400, 0x0000);
 			}
 		} else {
@@ -554,7 +595,7 @@ private:
 
 		// Throw the BIOS on top if this machine has one and it isn't disabled.
 		if(has_bios_ && !(memory_control_ & 0x08)) {
-			map(read_pointers_, bios_, 8*1024, 0);
+			map(read_pointers_, bios_.data(), 8*1024, 0);
 		}
 	}
 	bool has_bios_ = true;
@@ -565,14 +606,20 @@ private:
 
 using namespace Sega::MasterSystem;
 
-std::unique_ptr<Machine> Machine::MasterSystem(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::MasterSystem(
+	const Analyser::Static::Target *target,
+	const ROMMachine::ROMFetcher &rom_fetcher
+) {
 	using Target = Analyser::Static::Sega::Target;
 	const Target *const sega_target = dynamic_cast<const Target *>(target);
 
 	switch(sega_target->model) {
-		case Target::Model::SG1000:			return std::make_unique<ConcreteMachine<Target::Model::SG1000>>(*sega_target, rom_fetcher);
-		case Target::Model::MasterSystem:	return std::make_unique<ConcreteMachine<Target::Model::MasterSystem>>(*sega_target, rom_fetcher);
-		case Target::Model::MasterSystem2:	return std::make_unique<ConcreteMachine<Target::Model::MasterSystem2>>(*sega_target, rom_fetcher);
+		case Target::Model::SG1000:
+			return std::make_unique<ConcreteMachine<Target::Model::SG1000>>(*sega_target, rom_fetcher);
+		case Target::Model::MasterSystem:
+			return std::make_unique<ConcreteMachine<Target::Model::MasterSystem>>(*sega_target, rom_fetcher);
+		case Target::Model::MasterSystem2:
+			return std::make_unique<ConcreteMachine<Target::Model::MasterSystem2>>(*sega_target, rom_fetcher);
 		default:
 			assert(false);
 			return nullptr;
