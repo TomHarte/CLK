@@ -33,7 +33,7 @@ bool append_typed(std::vector<Storage::Automation::CSL::KeyEvent> &down, std::ve
 
 	const auto shift = [&](uint16_t key) {
 		CSL::KeyEvent event;
-		event.key = AmstradCPC::Key::KeyShift;
+		event.key = AmstradCPC::Key::Key::Shift;
 		event.down = true;
 		down.push_back(event);
 		press(key);
@@ -45,53 +45,55 @@ bool append_typed(std::vector<Storage::Automation::CSL::KeyEvent> &down, std::ve
 	if(stream.eof()) return false;
 
 	switch(next) {
+		using enum AmstradCPC::Key::Key;
+
 		default: throw CSL::InvalidArgument;
 		case '\'': return false;
 		case '}': return false;
 
-		case 'A':	press(AmstradCPC::Key::KeyA);		break;
-		case 'B':	press(AmstradCPC::Key::KeyB);		break;
-		case 'C':	press(AmstradCPC::Key::KeyC);		break;
-		case 'D':	press(AmstradCPC::Key::KeyD);		break;
-		case 'E':	press(AmstradCPC::Key::KeyE);		break;
-		case 'F':	press(AmstradCPC::Key::KeyF);		break;
-		case 'G':	press(AmstradCPC::Key::KeyG);		break;
-		case 'H':	press(AmstradCPC::Key::KeyH);		break;
-		case 'I':	press(AmstradCPC::Key::KeyI);		break;
-		case 'J':	press(AmstradCPC::Key::KeyJ);		break;
-		case 'K':	press(AmstradCPC::Key::KeyK);		break;
-		case 'L':	press(AmstradCPC::Key::KeyL);		break;
-		case 'M':	press(AmstradCPC::Key::KeyM);		break;
-		case 'N':	press(AmstradCPC::Key::KeyN);		break;
-		case 'O':	press(AmstradCPC::Key::KeyO);		break;
-		case 'P':	press(AmstradCPC::Key::KeyP);		break;
-		case 'Q':	press(AmstradCPC::Key::KeyQ);		break;
-		case 'R':	press(AmstradCPC::Key::KeyR);		break;
-		case 'S':	press(AmstradCPC::Key::KeyS);		break;
-		case 'T':	press(AmstradCPC::Key::KeyT);		break;
-		case 'U':	press(AmstradCPC::Key::KeyU);		break;
-		case 'V':	press(AmstradCPC::Key::KeyV);		break;
-		case 'W':	press(AmstradCPC::Key::KeyW);		break;
-		case 'X':	press(AmstradCPC::Key::KeyX);		break;
-		case 'Y':	press(AmstradCPC::Key::KeyY);		break;
-		case 'Z':	press(AmstradCPC::Key::KeyZ);		break;
-		case ' ':	press(AmstradCPC::Key::KeySpace);	break;
-		case '0':	press(AmstradCPC::Key::Key0);		break;
-		case '1':	press(AmstradCPC::Key::Key1);		break;
-		case '2':	press(AmstradCPC::Key::Key2);		break;
-		case '3':	press(AmstradCPC::Key::Key3);		break;
-		case '4':	press(AmstradCPC::Key::Key4);		break;
-		case '5':	press(AmstradCPC::Key::Key5);		break;
-		case '6':	press(AmstradCPC::Key::Key6);		break;
-		case '7':	press(AmstradCPC::Key::Key7);		break;
-		case '8':	press(AmstradCPC::Key::Key8);		break;
-		case '9':	press(AmstradCPC::Key::Key9);		break;
+		case 'A':	press(A);		break;
+		case 'B':	press(B);		break;
+		case 'C':	press(C);		break;
+		case 'D':	press(D);		break;
+		case 'E':	press(E);		break;
+		case 'F':	press(F);		break;
+		case 'G':	press(G);		break;
+		case 'H':	press(H);		break;
+		case 'I':	press(I);		break;
+		case 'J':	press(J);		break;
+		case 'K':	press(K);		break;
+		case 'L':	press(L);		break;
+		case 'M':	press(M);		break;
+		case 'N':	press(N);		break;
+		case 'O':	press(O);		break;
+		case 'P':	press(P);		break;
+		case 'Q':	press(Q);		break;
+		case 'R':	press(R);		break;
+		case 'S':	press(S);		break;
+		case 'T':	press(T);		break;
+		case 'U':	press(U);		break;
+		case 'V':	press(V);		break;
+		case 'W':	press(W);		break;
+		case 'X':	press(X);		break;
+		case 'Y':	press(Y);		break;
+		case 'Z':	press(Z);		break;
+		case ' ':	press(Space);	break;
+		case '0':	press(k0);		break;
+		case '1':	press(k1);		break;
+		case '2':	press(k2);		break;
+		case '3':	press(k3);		break;
+		case '4':	press(k4);		break;
+		case '5':	press(k5);		break;
+		case '6':	press(k6);		break;
+		case '7':	press(k7);		break;
+		case '8':	press(k8);		break;
+		case '9':	press(k9);		break;
 
-		case '"':	shift(AmstradCPC::Key::Key2);		break;
+		case '"':	shift(k2);		break;
 
 		case '\\': {
 			if(stream.peek() != '(') {
-				press(AmstradCPC::Key::KeyBackSlash);
+				press(BackSlash);
 				break;
 			}
 			stream.get();
@@ -103,30 +105,30 @@ bool append_typed(std::vector<Storage::Automation::CSL::KeyEvent> &down, std::ve
 			stream.get();
 
 			static const std::unordered_map<std::string, uint16_t> names = {
-				{"ESC", AmstradCPC::Key::KeyEscape},
-				{"TAB", AmstradCPC::Key::KeyTab},
-				{"CAP", AmstradCPC::Key::KeyCapsLock},
-				{"SHI", AmstradCPC::Key::KeyShift},
-				{"CTR", AmstradCPC::Key::KeyControl},
-				{"COP", AmstradCPC::Key::KeyCopy},
-				{"CLR", AmstradCPC::Key::KeyClear},
-				{"DEL", AmstradCPC::Key::KeyDelete},
-				{"RET", AmstradCPC::Key::KeyReturn},
-				{"ENT", AmstradCPC::Key::KeyEnter},
-				{"ARL", AmstradCPC::Key::KeyLeft},
-				{"ARR", AmstradCPC::Key::KeyRight},
-				{"ARU", AmstradCPC::Key::KeyUp},
-				{"ARD", AmstradCPC::Key::KeyDown},
-				{"FN0", AmstradCPC::Key::KeyF0},
-				{"FN1", AmstradCPC::Key::KeyF1},
-				{"FN2", AmstradCPC::Key::KeyF2},
-				{"FN3", AmstradCPC::Key::KeyF3},
-				{"FN4", AmstradCPC::Key::KeyF4},
-				{"FN5", AmstradCPC::Key::KeyF5},
-				{"FN6", AmstradCPC::Key::KeyF6},
-				{"FN7", AmstradCPC::Key::KeyF7},
-				{"FN8", AmstradCPC::Key::KeyF8},
-				{"FN9", AmstradCPC::Key::KeyF9},
+				{"ESC", Escape},
+				{"TAB", Tab},
+				{"CAP", CapsLock},
+				{"SHI", Shift},
+				{"CTR", Control},
+				{"COP", Copy},
+				{"CLR", Clear},
+				{"DEL", Delete},
+				{"RET", Return},
+				{"ENT", Enter},
+				{"ARL", Left},
+				{"ARR", Right},
+				{"ARU", Up},
+				{"ARD", Down},
+				{"FN0", F0},
+				{"FN1", F1},
+				{"FN2", F2},
+				{"FN3", F3},
+				{"FN4", F4},
+				{"FN5", F5},
+				{"FN6", F6},
+				{"FN7", F7},
+				{"FN8", F8},
+				{"FN9", F9},
 				//TODO: { } \ ' KOF
 			};
 			const auto name_pair = names.find(name);
