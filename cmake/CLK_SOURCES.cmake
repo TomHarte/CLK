@@ -220,6 +220,7 @@ set(CLK_SOURCES
 	Storage/Disk/DiskImage/Formats/NIB.cpp
 	Storage/Disk/DiskImage/Formats/OricMFMDSK.cpp
 	Storage/Disk/DiskImage/Formats/PCBooter.cpp
+	Storage/Disk/DiskImage/Formats/SAP.cpp
 	Storage/Disk/DiskImage/Formats/SSD.cpp
 	Storage/Disk/DiskImage/Formats/STX.cpp
 	Storage/Disk/DiskImage/Formats/Utility/ImplicitSectors.cpp

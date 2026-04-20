@@ -880,6 +880,7 @@
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>fd</string>
+				<string>sap</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>floppy525</string>
