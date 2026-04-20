@@ -69,13 +69,16 @@ std::unique_ptr<Track> SAP::track_at_position(const Track::Address address) cons
 	for(int s = 0; s < sectors_per_track; s++) {
 		auto &sector = sectors.emplace_back();
 
+		// Discussion suggests these two fields aren't meaningfully used, though there's some historical
+		// use of the protected field to mean "sector exists but wasn't loaded correctly".
 		[[maybe_unused]] const auto format = file_.get();
-		[[maybe_unused]] const auto protection = file_.get();
+		const auto protection = file_.get();
+
 		sector.address.track = file_.get();
 		sector.address.sector = file_.get();
 		sector.size = sector_size_;
 
-		// SAP uses almost-but-not-quite an ordinary CCITT CRC.
+		// Reread those four fields into a single block for CRC verification.
 		file_.seek(-4, Whence::CUR);
 		auto contents = file_.read(256 + 4);
 		if(file_.eof()) break;
@@ -84,12 +87,20 @@ std::unique_ptr<Track> SAP::track_at_position(const Track::Address address) cons
 		for(size_t c = 4; c < contents.size(); c++) {
 			contents[c] ^= 0xb3;
 		}
+		// SAP uses almost-but-not-quite an ordinary CCITT CRC; both inputs and outputs are taken in opposite bit order.
+		// Also it includes the four SAP-specific fields in its CRC so this definitely isn't supposed to be the one that
+		// appears on the imaged disk itself even if bit order were conventional.
 		const auto calculated = CRC::Generator<uint16_t, 0x1021, 0xffff, 0x0000, true, true>::crc_of(contents);
 		const auto crc = file_.get_be<uint16_t>();
 
 		contents.erase(contents.begin(), contents.begin() + 4);
 		sector.samples.push_back(contents);
-		sector.has_data_crc_error = crc != calculated;
+		sector.has_header_crc_error = calculated != crc;	// From-thin-air guess: generate a header CRC error if the
+															// in-file CRC is amiss. To distinguish from the protected
+															// flag. But it's possible that the in-file CRCs actually
+															// come from distrust of the medium so I'm not sure about
+															// this at all.
+		sector.has_data_crc_error = protection != 0;
 	}
 
 	return Encodings::MFM::TrackWithSectors(Encodings::MFM::Density::Double, sectors);
