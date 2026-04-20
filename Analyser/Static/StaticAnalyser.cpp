@@ -308,7 +308,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	}
 
 	accumulator.try_standard<Cartridge::BinaryDump>(
-		TargetPlatform::AcornElectron | TargetPlatform::Coleco | TargetPlatform::MSX,
+		TargetPlatform::AcornElectron | TargetPlatform::Coleco | TargetPlatform::MSX | TargetPlatform::ThomsonMO,
 		"rom");
 
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Sega, "sg");
