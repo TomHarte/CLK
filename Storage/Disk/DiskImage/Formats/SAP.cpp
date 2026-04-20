@@ -78,6 +78,9 @@ std::unique_ptr<Track> SAP::track_at_position(const Track::Address address) cons
 		// SAP uses almost-but-not-quite an ordinary CCITT CRC.
 		file_.seek(-4, Whence::CUR);
 		auto contents = file_.read(256 + 4);
+		if(file_.eof()) break;
+
+		// On-disk bytes are XORd with B3. For some reason.
 		for(size_t c = 4; c < contents.size(); c++) {
 			contents[c] ^= 0xb3;
 		}
