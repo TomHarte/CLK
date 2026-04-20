@@ -62,6 +62,7 @@
 #include "Storage/Disk/DiskImage/Formats/NIB.hpp"
 #include "Storage/Disk/DiskImage/Formats/OricMFMDSK.hpp"
 #include "Storage/Disk/DiskImage/Formats/PCBooter.hpp"
+#include "Storage/Disk/DiskImage/Formats/SAP.hpp"
 #include "Storage/Disk/DiskImage/Formats/SSD.hpp"
 #include "Storage/Disk/DiskImage/Formats/STX.hpp"
 #include "Storage/Disk/DiskImage/Formats/WOZ.hpp"
@@ -311,6 +312,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 		TargetPlatform::AcornElectron | TargetPlatform::Coleco | TargetPlatform::MSX,
 		"rom");
 
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::SAP>>(TargetPlatform::ThomsonMO, "sap");
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Sega, "sg");
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Sega, "sms");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::SSD>>(TargetPlatform::Acorn, "ssd");

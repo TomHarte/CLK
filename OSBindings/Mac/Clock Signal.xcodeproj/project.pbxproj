@@ -58,6 +58,9 @@
 		4B03E8422F9528D4008AF203 /* LEP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B03E8412F9528D4008AF203 /* LEP.cpp */; };
 		4B03E8432F9528D4008AF203 /* LEP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B03E8412F9528D4008AF203 /* LEP.cpp */; };
 		4B03E8442F9528D4008AF203 /* LEP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B03E8412F9528D4008AF203 /* LEP.cpp */; };
+		4B03E8472F965E17008AF203 /* SAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B03E8462F965E17008AF203 /* SAP.cpp */; };
+		4B03E8482F965E17008AF203 /* SAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B03E8462F965E17008AF203 /* SAP.cpp */; };
+		4B03E8492F965E17008AF203 /* SAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B03E8462F965E17008AF203 /* SAP.cpp */; };
 		4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B049CDC1DA3C82F00322067 /* BCDTest.swift */; };
 		4B04C899285E3DC800AA8FD6 /* 65816ComparativeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B04C898285E3DC800AA8FD6 /* 65816ComparativeTests.mm */; };
 		4B051C912669C90B00CA44E8 /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
@@ -1396,6 +1399,8 @@
 		4B03E8352F8D914C008AF203 /* Video.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Video.cpp; sourceTree = "<group>"; };
 		4B03E8402F9528D4008AF203 /* LEP.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LEP.hpp; sourceTree = "<group>"; };
 		4B03E8412F9528D4008AF203 /* LEP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = LEP.cpp; sourceTree = "<group>"; };
+		4B03E8452F965E17008AF203 /* SAP.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SAP.hpp; sourceTree = "<group>"; };
+		4B03E8462F965E17008AF203 /* SAP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SAP.cpp; sourceTree = "<group>"; };
 		4B046DC31CFE651500E9E45E /* ScanProducer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ScanProducer.hpp; sourceTree = "<group>"; };
 		4B047075201ABC180047AB0D /* Cartridge.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Cartridge.hpp; sourceTree = "<group>"; };
 		4B049CDC1DA3C82F00322067 /* BCDTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BCDTest.swift; sourceTree = "<group>"; };
@@ -3457,6 +3462,7 @@
 				4B0F94FC208C1A1600FE41D9 /* NIB.cpp */,
 				4B4518971F75FD1B00926311 /* OricMFMDSK.cpp */,
 				423820422B1A90BE00964EFE /* PCBooter.cpp */,
+				4B03E8462F965E17008AF203 /* SAP.cpp */,
 				4B4518991F75FD1B00926311 /* SSD.cpp */,
 				4B7BA03323C58B1E00B98D9E /* STX.cpp */,
 				4B6ED2EE208E2F8A0047B343 /* WOZ.cpp */,
@@ -3481,6 +3487,7 @@
 				4B0F94FD208C1A1600FE41D9 /* NIB.hpp */,
 				4B4518981F75FD1B00926311 /* OricMFMDSK.hpp */,
 				423820432B1A90BE00964EFE /* PCBooter.hpp */,
+				4B03E8452F965E17008AF203 /* SAP.hpp */,
 				4B45189A1F75FD1B00926311 /* SSD.hpp */,
 				4B7BA03223C58B1E00B98D9E /* STX.hpp */,
 				4B6ED2EF208E2F8A0047B343 /* WOZ.hpp */,
@@ -6675,6 +6682,7 @@
 				4BD235CC2F32A4C80094AFAE /* KernelShaders.cpp in Sources */,
 				4B055AC21FAE9AE30060FFFF /* KeyboardMachine.cpp in Sources */,
 				4B89453B201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
+				4B03E8482F965E17008AF203 /* SAP.cpp in Sources */,
 				4B055AEB1FAE9BA20060FFFF /* PartialMachineCycle.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -6776,6 +6784,7 @@
 				4B6AAEA4230E3E1D0078E864 /* MassStorageDevice.cpp in Sources */,
 				4B89452E201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BC890D3230F86020025A55A /* DirectAccessDevice.cpp in Sources */,
+				4B03E8492F965E17008AF203 /* SAP.cpp in Sources */,
 				4B7BA03723CEB86000B98D9E /* BD500.cpp in Sources */,
 				4B38F3481F2EC11D00D9235D /* AmstradCPC.cpp in Sources */,
 				4B8FE2221DA19FB20090D3CE /* MachineController.swift in Sources */,
@@ -7050,6 +7059,7 @@
 				423BDC4A2AB24699008E37B6 /* 8088Tests.mm in Sources */,
 				4B778F2723A5EEF60000D260 /* BinaryDump.cpp in Sources */,
 				4BFCA1241ECBDCB400AC40C1 /* AllRAMProcessor.cpp in Sources */,
+				4B03E8472F965E17008AF203 /* SAP.cpp in Sources */,
 				4B06AB042C6460D60034D014 /* 6560.cpp in Sources */,
 				4B06AB002C6460B70034D014 /* Keyboard.cpp in Sources */,
 				4B778F5223A5F22F0000D260 /* StaticAnalyser.cpp in Sources */,
