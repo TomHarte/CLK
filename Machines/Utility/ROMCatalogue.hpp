@@ -181,6 +181,7 @@ enum Name {
 	ThomsonMO6v1,
 	ThomsonMO6v2,
 	ThomsonMO6v3,
+	OlivettiProdest128,
 
 	ThomsonCD90_640,
 

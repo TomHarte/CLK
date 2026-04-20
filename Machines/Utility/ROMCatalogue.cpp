@@ -1060,6 +1060,14 @@ const std::vector<Description> &Description::all_roms() {
 			64_kb,
 			0x7a012322u
 		},
+		{
+			OlivettiProdest128,
+			"Thomson",
+			"the Olivetti Prodest 127 ROM",
+			"pc128.rom",
+			64_kb,
+			0xfc173504u
+		},
 
 		{
 			ThomsonCD90_640,

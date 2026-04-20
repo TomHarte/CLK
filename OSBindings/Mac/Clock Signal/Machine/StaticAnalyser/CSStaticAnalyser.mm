@@ -552,7 +552,14 @@ PermissionDelegate permission_delegate;
 	if(self) {
 		using Target = Analyser::Static::Thomson::MOTarget;
 		auto target = std::make_unique<Target>();
-		target->model = model == CSMachineThomsonModelMO5 ? Target::Model::MO5v11 : Target::Model::MO6v3;
+		target->model = [&]() {
+			switch(model) {
+				case CSMachineThomsonModelMO5: return Target::Model::MO5v11;
+				case CSMachineThomsonModelMO6: return Target::Model::MO6v3;
+				case CSMachineThomsonModelProdest128: return Target::Model::Prodest128;
+				default: __builtin_unreachable();
+			}
+		} ();
 		target->floppy = hasDiskDrive ? Target::Floppy::CD90_640 : Target::Floppy::None;
 		_targets.push_back(std::move(target));
 	}

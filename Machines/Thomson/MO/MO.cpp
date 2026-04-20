@@ -74,12 +74,13 @@ struct ConcreteMachine:
 			switch(model) {
 				using enum Target::Model;
 
-				default:		__builtin_unreachable();
-				case MO5v1:		return ROM::Name::ThomsonMO5v1;
-				case MO5v11:	return ROM::Name::ThomsonMO5v11;
-				case MO6v1:		return ROM::Name::ThomsonMO6v1;
-				case MO6v2:		return ROM::Name::ThomsonMO6v2;
-				case MO6v3:		return ROM::Name::ThomsonMO6v3;
+				default:			__builtin_unreachable();
+				case MO5v1:			return ROM::Name::ThomsonMO5v1;
+				case MO5v11:		return ROM::Name::ThomsonMO5v11;
+				case MO6v1:			return ROM::Name::ThomsonMO6v1;
+				case MO6v2:			return ROM::Name::ThomsonMO6v2;
+				case MO6v3:			return ROM::Name::ThomsonMO6v3;
+				case Prodest128:	return ROM::Name::OlivettiProdest128;
 			}
 		} (target.model);
 

@@ -495,6 +495,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 				switch thomsonModelTypeButton.selectedTag() {
 					case 5:		model = .MO5
 					case 6:		model = .MO6
+					case 128:	model = .prodest128
 					default:	break
 				}
 				return CSStaticAnalyser(thomsonMOModel: model, hasDiskDrive: thomsonDiskButton.state == .on)

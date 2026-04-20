@@ -157,6 +157,7 @@ typedef NS_ENUM(NSInteger, CSPCCompatibleVideoAdaptor) {
 typedef NS_ENUM(NSInteger, CSMachineThomsonModel) {
 	CSMachineThomsonModelMO5,
 	CSMachineThomsonModelMO6,
+	CSMachineThomsonModelProdest128,
 };
 
 typedef int Kilobytes;

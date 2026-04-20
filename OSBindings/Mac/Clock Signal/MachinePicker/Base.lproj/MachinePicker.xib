@@ -1016,7 +1016,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="FoB-T7-dKp">
-                                            <rect key="frame" x="80" y="264" width="69" height="25"/>
+                                            <rect key="frame" x="80" y="264" width="158" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="MO5" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="5" imageScaling="proportionallyDown" inset="2" selectedItem="wjb-gR-57f" id="a51-DE-sYL">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="message"/>
@@ -1024,6 +1024,7 @@ Gw
                                                     <items>
                                                         <menuItem title="MO5" state="on" tag="5" id="wjb-gR-57f"/>
                                                         <menuItem title="MO6" tag="6" id="8Hf-Pj-AM3"/>
+                                                        <menuItem title="Olivetti Prodest 128" tag="128" id="7GI-C0-Snt"/>
                                                     </items>
                                                 </menu>
                                             </popUpButtonCell>
