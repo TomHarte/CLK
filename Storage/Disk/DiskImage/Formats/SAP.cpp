@@ -9,6 +9,9 @@
 #include "SAP.hpp"
 
 #include "Numeric/CRC.hpp"
+#include "Storage/Disk/Encodings/MFM/Encoder.hpp"
+
+#include <vector>
 
 using namespace Storage::Disk;
 
@@ -32,34 +35,11 @@ SAP::SAP(const std::string &file_name) : file_(file_name) {
 	if(!file_.check_signature<SignatureType::String>("SYSTEME D'ARCHIVAGE PUKALL S.A.P.")) {
 		throw Error::InvalidFormat;
 	}
-	file_.seek(66, Whence::SET);
-
-	// Sectors from here: 4 bytes address, then all data, then a CRC16 of the data section.
-	// On-disk data bytes are XORd with 0xb3 for some reason.
-	while(true) {
-		const auto format = file_.get();
-		const auto protection = file_.get();
-		const auto track = file_.get();
-		const auto sector = file_.get();
-		if(file_.eof()) break;
-		printf("format %d protection %d track %d sector %d; ", format, protection, track, sector);
-
-		file_.seek(-4, Whence::CUR);
-		auto contents = file_.read(256 + 4);
-		for(size_t c = 4; c < contents.size(); c++) {
-			contents[c] ^= 0xb3;
-		}
-		const auto calculated = CRC::Generator<uint16_t, 0x1021, 0xffff, 0x0000, true, true>::crc_of(contents);
-
-		const auto crc = file_.get_be<uint16_t>();
-		printf("CRC: %04x [%04x]\n", crc, calculated);
-	}
-
-	printf("---\n");
 }
 
 HeadPosition SAP::maximum_head_position() const {
-	return HeadPosition(2);
+	// In the SAP file format, this is coupled to sector size.
+	return HeadPosition(sector_size_ ? 80 : 40);
 }
 
 bool SAP::is_read_only() const {
@@ -77,9 +57,39 @@ Track::Address SAP::canonical_address(const Track::Address address) const {
 	);
 }
 
-std::unique_ptr<Track> SAP::track_at_position(Track::Address) const {
-	return nullptr;
+std::unique_ptr<Track> SAP::track_at_position(const Track::Address address) const {
+	static constexpr int sectors_per_track = 16;
+	const auto track_size = sectors_per_track * ((128 << sector_size_) + 6);
+	const auto header_size = 66;
+	file_.seek(address.position.as_int() * track_size + header_size, Whence::SET);
+
+	std::vector<Encodings::MFM::Sector> sectors;
+	sectors.reserve(sectors_per_track);
+
+	for(int s = 0; s < sectors_per_track; s++) {
+		auto &sector = sectors.emplace_back();
+
+		[[maybe_unused]] const auto format = file_.get();
+		[[maybe_unused]] const auto protection = file_.get();
+		sector.address.track = file_.get();
+		sector.address.sector = file_.get();
+		sector.size = sector_size_;
+
+		// SAP uses almost-but-not-quite an ordinary CCITT CRC.
+		file_.seek(-4, Whence::CUR);
+		auto contents = file_.read(256 + 4);
+		for(size_t c = 4; c < contents.size(); c++) {
+			contents[c] ^= 0xb3;
+		}
+		const auto calculated = CRC::Generator<uint16_t, 0x1021, 0xffff, 0x0000, true, true>::crc_of(contents);
+		const auto crc = file_.get_be<uint16_t>();
+
+		contents.erase(contents.begin(), contents.begin() + 4);
+		sector.samples.push_back(contents);
+		sector.has_data_crc_error = crc != calculated;
+	}
+
+	return Encodings::MFM::TrackWithSectors(Encodings::MFM::Density::Double, sectors);
 }
 
-void SAP::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &) {
-}
+void SAP::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &) {}
