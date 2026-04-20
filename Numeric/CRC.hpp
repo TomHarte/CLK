@@ -27,10 +27,6 @@ template <
 >
 class Generator {
 public:
-	/*!
-		Instantiates a CRC16 that will compute the CRC16 specified by the supplied
-		@c polynomial and @c reset_value.
-	*/
 	constexpr Generator() noexcept: value_(reset_value) {}
 
 	/// Resets the CRC to the reset value.

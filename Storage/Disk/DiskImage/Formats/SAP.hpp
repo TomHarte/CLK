@@ -28,6 +28,7 @@ public:
 
 private:
 	mutable FileHolder file_;
+	uint8_t sector_size_;
 };
 
 }
