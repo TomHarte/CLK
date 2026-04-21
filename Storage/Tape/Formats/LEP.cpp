@@ -27,10 +27,10 @@
 	Aside: since both +127 and -127 can be stored in a byte, it's unclear to me how this special case adds anything.
 	It's therefore possible that machine translation has failed here.
 
-	On "units of time" the documentation says merely:
+	On "units of time" the documentation says opaquely:
 		"This duration N is expressed in the unit specified as a parameter"
 
-	So it isn't obviously captured in the file itself. Great work! I've picked an empirical value below.
+	But I think it's usually or always 50µs.
 */
 
 using namespace Storage::Tape;
@@ -44,8 +44,8 @@ std::unique_ptr<FormatSerialiser> LEP::format_serialiser() const {
 LEP::Serialiser::Serialiser(const std::string &name) : file_(name, FileMode::Read) {
 	// Empirically: a length of about 16 in a LEP means "a full pulse", i.e. 833µs or thereabouts.
 	//
-	// So this scales 16 pulses to be exactly 1/1200th of a second.
-	pulse_.length.clock_rate = 16 * 1200;
+	// That seems to gel with the 50µs clock precision guess.
+	pulse_.length.clock_rate = 20'000;
 }
 
 void LEP::Serialiser::reset() {
