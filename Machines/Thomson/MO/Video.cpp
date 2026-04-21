@@ -349,8 +349,8 @@ uint8_t Video::vertical_state() const {
 
 	return
 		0x01 |		// Leave lower bit for population elsewhere
-		(b5 ? 0x00 : 0x20) |
-		(b7 ? 0x00 : 0x80);
+		(b5 ? 0x20 : 0x00) |
+		(b7 ? 0x80 : 0x00);
 }
 
 uint8_t Video::horizontal_state() const {
