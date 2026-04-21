@@ -105,8 +105,14 @@ public:
 	// MARK: - Memory Access.
 
 	template <typename AddressT>
-	uint8_t read(const AddressT address) const {
-		if(read_[address >> 12]) {
+	uint8_t read(const AddressT address) {
+		// Some cartridges use reads in the range [BFFC, BFFF] to switch banks.
+		if(address >= 0xbffc && address <= 0xbfff && cartridge_.size() > 16384) [[unlikely]] {
+			cartridge_page_ = address & 3;
+			update_commutable_rom();
+		}
+
+		if(read_[address >> 12]) [[likely]] {
 			return read_[address >> 12][address];
 		} else {
 			return 0xff;
@@ -168,8 +174,6 @@ public:
 
 	template <uint16_t address>
 	void write(const uint8_t value) {
-//		printf("%04x: %02x\n", address, value);
-
 		switch(address) {
 			default:
 				Log::Logger<Log::Source::MO5>::info().append("Unhandled write of %02x to %04x", value, address);
@@ -209,6 +213,15 @@ public:
 				// b4: 1 = enable RAM banking via a7e5. 0 = "the braindead system using the two PIAs"?
 				// b3, b2: computer type (might affect pixel mappings?) [00 = MO6; 01 = TO9+; 11 = TO8]
 				// b1, b0: RAM type (00 = 64x1; 10 = 128x1; 00 = 256x1)
+			break;
+
+			case 0xa7cb:
+				// Cartridge paging: used exclusively by 'Jane' as far as I can tell.
+				// Other cartridges use other paging mechanisms.
+				//
+				// b0–b1: rom_page_ (?)
+				cartridge_page_ = value & 3;
+				update_commutable_rom();
 			break;
 		}
 	}
@@ -251,11 +264,10 @@ private:
 			break;
 
 			case B000Page::Cartridge:
-				if(cartridge_.empty()) {
-					set_16kbrange(0xb, nullptr);
+				if(cartridge_page_ * 0x4000 < cartridge_.size()) {
+					set_16kbrange(0xb, cartridge_.data() + cartridge_page_ * 0x4000);
 				} else {
-					// TODO: there's some sort of internal paging here, too.
-					set_16kbrange(0xb, cartridge_.data());
+					set_16kbrange(0xb, nullptr);
 				}
 			break;
 
@@ -280,6 +292,7 @@ private:
 	std::vector<uint8_t> rom_;
 	std::vector<uint8_t> cartridge_;
 
+	size_t cartridge_page_ = 0;
 	size_t rom_page_ = 0;
 	size_t ram_page_ = 1;
 	bool basic_selection_ = false;

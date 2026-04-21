@@ -185,6 +185,8 @@ struct ConcreteMachine:
 					case 0xa7c2:	access<0xa7c2, read_write>(system_pia_, value);				break;
 					case 0xa7c3:	access<0xa7c3, read_write>(system_pia_, value);				break;
 
+					case 0xa7cb:	access<0xa7cb, read_write>(memory_, value); 				break;
+
 					case 0xa7cc:	access<0xa7cc, read_write>(sound_and_game_pia_, value);		break;
 					case 0xa7cd:	access<0xa7cd, read_write>(sound_and_game_pia_, value);		break;
 					case 0xa7ce:	access<0xa7ce, read_write>(sound_and_game_pia_, value);		break;
