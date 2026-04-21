@@ -39,6 +39,20 @@ static constexpr uint8_t MusicExpansionMask = 63;
 
 using Target = Analyser::Static::Thomson::MOTarget;
 
+constexpr Keyboard::Machine machine(const Target::Model model) {
+	switch(model) {
+		case Target::Model::MO5v1:
+		case Target::Model::MO5v11:
+			return Keyboard::Machine::MO5;
+		case Target::Model::MO6v1:
+		case Target::Model::MO6v2:
+		case Target::Model::MO6v3:
+			return Keyboard::Machine::MO6;
+		case Target::Model::Prodest128:
+			return Keyboard::Machine::Prodest128;
+	}
+}
+
 template <bool has_floppy, bool is_mo6>
 struct ConcreteMachine:
 	public Activity::Source,
@@ -54,7 +68,7 @@ struct ConcreteMachine:
 	public Utility::TypeRecipient<Thomson::MO::Keyboard::CharacterMapper>
 {
 	ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-		Utility::TypeRecipient<Thomson::MO::Keyboard::CharacterMapper>(is_mo6 ? Thomson::MO::Keyboard::Machine::MO6 : Thomson::MO::Keyboard::Machine::MO5),
+		Utility::TypeRecipient<Thomson::MO::Keyboard::CharacterMapper>(machine(target.model)),
 		m6809_(*this),
 		system_pia_port_handler_(*this),
 		system_pia_(system_pia_port_handler_),
@@ -64,7 +78,7 @@ struct ConcreteMachine:
 		tape_player_(ClockRate),
 		audio_(audio_queue_, MusicExpansionMask),
 		speaker_(audio_),
-		keyboard_mapper_(is_mo6 ? Thomson::MO::Keyboard::Machine::MO6 : Thomson::MO::Keyboard::Machine::MO5)
+		keyboard_mapper_(machine(target.model))
 	{
 		set_clock_rate(ClockRate);
 		speaker_.set_input_rate(ClockRate);
@@ -74,12 +88,13 @@ struct ConcreteMachine:
 			switch(model) {
 				using enum Target::Model;
 
-				default:		__builtin_unreachable();
-				case MO5v1:		return ROM::Name::ThomsonMO5v1;
-				case MO5v11:	return ROM::Name::ThomsonMO5v11;
-				case MO6v1:		return ROM::Name::ThomsonMO6v1;
-				case MO6v2:		return ROM::Name::ThomsonMO6v2;
-				case MO6v3:		return ROM::Name::ThomsonMO6v3;
+				default:			__builtin_unreachable();
+				case MO5v1:			return ROM::Name::ThomsonMO5v1;
+				case MO5v11:		return ROM::Name::ThomsonMO5v11;
+				case MO6v1:			return ROM::Name::ThomsonMO6v1;
+				case MO6v2:			return ROM::Name::ThomsonMO6v2;
+				case MO6v3:			return ROM::Name::ThomsonMO6v3;
+				case Prodest128:	return ROM::Name::OlivettiProdest128;
 			}
 		} (target.model);
 
