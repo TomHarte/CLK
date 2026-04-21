@@ -216,10 +216,11 @@ public:
 			break;
 
 			case 0xa7cb:
-				// Cartridge paging: used exclusively by 'Jane' as far as I can tell.
-				// Other cartridges use other paging mechanisms.
+				// Cartridge paging: used by both 'Jane' and the MO5 RAM expansion.
 				//
-				// b0–b1: rom_page_ (?)
+				// b0–b1: page number;
+				// b2: enable or disable RAM visibility;	[initially disabled]
+				// b3: enable or disable writing.
 				cartridge_page_ = value & 3;
 				update_commutable_rom();
 			break;
