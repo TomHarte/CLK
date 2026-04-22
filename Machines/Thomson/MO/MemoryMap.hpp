@@ -107,7 +107,12 @@ public:
 	template <typename AddressT>
 	uint8_t read(const AddressT address) {
 		// Some cartridges use reads in the range [BFFC, BFFF] to switch banks.
-		if(address >= 0xbffc && address <= 0xbfff && cartridge_.size() > 16384) [[unlikely]] {
+		if(
+			b000page_ == B000Page::Cartridge &&
+			address >= 0xbffc &&
+			address <= 0xbfff &&
+			cartridge_.size() > 16384
+		) [[unlikely]] {
 			cartridge_page_ = address & 3;
 			update_commutable_rom();
 		}
