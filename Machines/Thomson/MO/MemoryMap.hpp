@@ -248,14 +248,10 @@ public:
 		typename VideoT
 	>
 	void system_access(VideoT &video, CPU::M6809::data_t<read_write> value) {
-		if(access_mode() == AccessMode::System) {
-			CPU::M6809::access<address, read_write>(*this, value);
+		if constexpr (!CPU::M6809::is_read(read_write)) {
+			write<address>(value);
 		} else {
-			if constexpr (CPU::M6809::is_read(read_write)) {
-				CPU::M6809::access<address, read_write>(video, value);
-			} else {
-				write<address>(value);
-			}
+			value = access_mode() == AccessMode::System ? read<address>() : video->template read<address>();
 		}
 	}
 
