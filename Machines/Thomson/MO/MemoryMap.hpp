@@ -16,6 +16,7 @@
 
 #include "Machines/Utility/MemoryFuzzer.hpp"
 #include "Outputs/Log.hpp"
+#include "Processors/6809/6809.hpp"
 
 namespace Thomson::MO {
 
@@ -138,7 +139,6 @@ public:
 		return write_[index >> 12][index];
 	}
 
-
 	// MARK: - Register Access.
 
 	template <uint16_t address>
@@ -234,6 +234,25 @@ public:
 
 	AccessMode access_mode() const {
 		return access_mode_;
+	}
+
+	/// Accesses the memory map if currently in system access mode or if this is a write; otherwise
+	/// accesses `video`.
+	template <
+		uint16_t address,
+		CPU::M6809::ReadWrite read_write,
+		typename VideoT
+	>
+	void system_access(VideoT &video, CPU::M6809::data_t<read_write> value) {
+		if(access_mode() == AccessMode::System) {
+			CPU::M6809::access<address, read_write>(*this, value);
+		} else {
+			if constexpr (CPU::M6809::is_read(read_write)) {
+				CPU::M6809::access<address, read_write>(video, value);
+			} else {
+				write<address>(value);
+			}
+		}
 	}
 
 private:
