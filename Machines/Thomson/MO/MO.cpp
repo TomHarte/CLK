@@ -664,7 +664,7 @@ private:
 
 	HalfCycles typer_delay(const std::wstring &) const final {
 		if(m6809_.template get<CPU::M6809::Line::PowerOnReset>()) {
-			return Cycles(1'000'000);
+			return is_mo6 ? Cycles(1'750'000) : Cycles(1'000'000);
 		} else {
 			return Cycles(0);
 		}
