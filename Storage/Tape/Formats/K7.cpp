@@ -170,10 +170,9 @@ void K7::Serialiser::push_next_pulses() {
 		};
 
 		const auto post = [&](const bool bit) {
-			// Real timings below should be ~833 µs and ~417 µs. These accelerated timings seem to be within
-			// acceptable bounds for the ROM routines, and K7 seems to be a ROM-assuming format.
-			static constexpr auto FullPulse = Time(12, 20408);		// ~833 µs.
-			static constexpr auto HalfPulse = Time(12, 40816);		// ~417 µs.
+			// Provide a perfect 1200 baud.
+			static constexpr auto FullPulse = Time(1, 1200);
+			static constexpr auto HalfPulse = Time(1, 2400);
 
 			if(bit) {
 				emplace_back(pulse_type(), HalfPulse);
