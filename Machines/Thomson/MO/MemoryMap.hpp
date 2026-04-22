@@ -103,6 +103,10 @@ public:
 		}
 	}
 
+	bool visible_monitor_page() const {
+		return rom_page_;
+	}
+
 	// MARK: - Memory Access.
 
 	template <typename AddressT>

@@ -58,6 +58,8 @@ CartridgeList validated(const CartridgeList &cartridges) {
 	return result;
 }
 
+static constexpr bool DefaultMO6 = true;
+
 }
 
 Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
@@ -70,6 +72,10 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 
 	TargetList destination;
 	auto target = std::make_unique<MOTarget>();
+
+	if(DefaultMO6) {
+		target->model = MOTarget::Model::MO6v3;
+	}
 
 	if(!media.tapes.empty()) {
 		Storage::Tape::Thomson::MO::Parser parser;
@@ -85,10 +91,19 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 			// in ->data.
 			static constexpr size_t TypeOffset = 0xb;
 			if(!first->type && first->data.size() > TypeOffset) {
-				if(!first->data[TypeOffset]) {	// File type; 0 = BASIC, 1 = DATA; 2 = binary.
-					target->loading_command = L"RUN\"\n";
+				const auto command = [&]() -> std::wstring {
+					if(!first->data[TypeOffset]) {	// File type; 0 = BASIC, 1 = DATA; 2 = binary.
+						return L"RUN\"";
+					} else {
+						return L"LOADM\"\",,R";
+					}
+				};
+
+				// TODO: determine whether BASIC 1 or BASIC 128 is appropriate.
+				if(DefaultMO6) {
+					target->loading_command = std::wstring(L"2                ") + command() + L"\n";
 				} else {
-					target->loading_command = L"LOADM\"\",,R\n";
+					target->loading_command = command() + L"\n";
 				}
 			}
 		}
@@ -98,10 +113,19 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 	if(!media.disks.empty()) {
 		target->floppy = MOTarget::Floppy::CD90_640;
 		target->media.disks = media.disks;
+		if(DefaultMO6) {
+			target->loading_command = L"2";
+		}
 	}
 
 	if(!media.cartridges.empty()) {
 		target->media.cartridges = is_confident ? media.cartridges : validated(media.cartridges);
+
+		// Upon survey, it seemed that there are no catridges that require or that do anything additional on an MO6.
+		// So switch to an MO5 for faster launch.
+		if(!target->media.cartridges.empty()) {
+			target->model = MOTarget::Model::MO5v11;
+		}
 	}
 
 	if(!target->media.empty()) {

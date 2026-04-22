@@ -22,7 +22,7 @@ struct MOTarget: public Analyser::Static::Target, public Reflection::StructImpl<
 	Floppy floppy = Floppy::None;
 
 	ReflectableEnum(Model, MO5v1, MO5v11, MO6v1, MO6v2, MO6v3, Prodest128);
-	Model model = Model::MO5v11;
+	Model model = Model::MO6v3;
 
 	MOTarget() : Analyser::Static::Target(Machine::ThomsonMO) {}
 

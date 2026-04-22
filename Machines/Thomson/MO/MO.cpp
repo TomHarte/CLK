@@ -244,17 +244,25 @@ struct ConcreteMachine:
 					value = memory_.read(address);
 
 					if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
+						//
 						// Catch RDBITS.
-						if(allow_fast_tape_hack_ && address == 0xf168) {
-							// Inputs:
-							//
-							//	M0044 = current tape polarity (complement if applicable).
-							//	M0045 = byte in progress; ROL new bit into here.
-							//
-							// Additional output:
-							//
-							//	A = 00 or FF as per bit detected.
-							//
+						//
+						// Inputs:
+						//
+						//	M0044 = current tape polarity (complement if applicable).
+						//	M0045 = byte in progress; ROL new bit into here.
+						//
+						// Additional output:
+						//
+						//	A = 00 or FF as per bit detected.
+						//
+						// TODO: MO6: check for 1200 or 2400 baud?
+						if(
+							(
+								(!is_mo6 && address == 0xf168) ||
+								(is_mo6 && memory_.visible_monitor_page() && address == 0xf3fd)
+							) && allow_fast_tape_hack_
+						) [[unlikely]] {
 							[&] {
 								auto *const serialiser = tape_player_.serialiser();
 								if(!serialiser) return;
@@ -357,8 +365,7 @@ private:
 		template <Motorola::MC6821::Port port>
 		uint8_t input() {
 			if constexpr (port == Motorola::MC6821::Port::A) {
-				return
-					(machine_.tape_player_.input() ? 0x00 : 0x80);
+				return machine_.tape_player_.input() ? 0x00 : 0x80;
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
@@ -657,14 +664,14 @@ private:
 
 	HalfCycles typer_delay(const std::wstring &) const final {
 		if(m6809_.template get<CPU::M6809::Line::PowerOnReset>()) {
-			return Cycles(1'000'000);
+			return is_mo6 ? Cycles(1'000'000) : Cycles(1'000'000);
 		} else {
 			return Cycles(0);
 		}
 	}
 
 	HalfCycles typer_frequency() const final {
-		return Cycles(20'000);
+		return Cycles(30'000);
 	}
 
 	// MARK: - MediaTarget and MediaChangeObserver.
