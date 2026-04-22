@@ -27,7 +27,6 @@
 #include "Storage/Tape/Parsers/ThomsonMO.hpp"
 #include "Analyser/Static/Thomson/Target.hpp"
 
-
 using namespace Thomson::MO;
 
 namespace {
@@ -200,36 +199,11 @@ struct ConcreteMachine:
 
 					case 0xa7e4:	if(is_mo6) access<0xa7e4, read_write>(memory_, value); else unmapped();		break;
 
-					// TODO: consolidate below.
 					case 0xa7e5:
-						if constexpr (is_mo6) {
-							if(memory_.access_mode() == AccessMode::System) {
-								access<0xa7e5, read_write>(memory_, value);
-							} else {
-								if constexpr (CPU::M6809::is_read(read_write)) {
-									access<0xa7e5, read_write>(video_, value);
-								} else {
-									memory_.template write<0xa7e5>(value);
-								}
-							}
-						} else {
-							unmapped();
-						}
+						if(is_mo6) memory_.template system_access<0xa7e5, read_write>(video_, value); else unmapped();
 					break;
 					case 0xa7e6:
-						if constexpr (is_mo6) {
-							if(memory_.access_mode() == AccessMode::System) {
-								access<0xa7e6, read_write>(memory_, value);
-							} else {
-								if constexpr (CPU::M6809::is_read(read_write)) {
-									access<0xa7e6, read_write>(video_, value);
-								} else {
-									memory_.template write<0xa7e6>(value);
-								}
-							}
-						} else {
-							unmapped();
-						}
+						if(is_mo6) memory_.template system_access<0xa7e6, read_write>(video_, value); else unmapped();
 					break;
 					case 0xa7e7:
 						if constexpr (CPU::M6809::is_read(read_write)) {
