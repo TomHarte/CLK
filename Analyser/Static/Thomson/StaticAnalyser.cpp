@@ -99,8 +99,9 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 					}
 				};
 
+				// TODO: determine whether BASIC 1 or BASIC 128 is appropriate.
 				if(DefaultMO6) {
-					target->loading_command = std::wstring(L"1    ") + command() + L"\n";
+					target->loading_command = std::wstring(L"2                ") + command() + L"\n";
 				} else {
 					target->loading_command = command() + L"\n";
 				}
@@ -113,7 +114,7 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 		target->floppy = MOTarget::Floppy::CD90_640;
 		target->media.disks = media.disks;
 		if(DefaultMO6) {
-			target->loading_command = L"1";
+			target->loading_command = L"2";
 		}
 	}
 

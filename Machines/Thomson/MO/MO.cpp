@@ -664,14 +664,14 @@ private:
 
 	HalfCycles typer_delay(const std::wstring &) const final {
 		if(m6809_.template get<CPU::M6809::Line::PowerOnReset>()) {
-			return is_mo6 ? Cycles(1'750'000) : Cycles(1'000'000);
+			return is_mo6 ? Cycles(1'000'000) : Cycles(1'000'000);
 		} else {
 			return Cycles(0);
 		}
 	}
 
 	HalfCycles typer_frequency() const final {
-		return Cycles(20'000);
+		return Cycles(30'000);
 	}
 
 	// MARK: - MediaTarget and MediaChangeObserver.
