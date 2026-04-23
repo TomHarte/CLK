@@ -286,7 +286,7 @@ private:
 	}
 
 #ifndef NDEBUG
-	std::atomic_flag flush_concurrency_check_{};
+	std::atomic_flag flush_concurrency_check_ = ATOMIC_FLAG_INIT;
 #endif
 };
 

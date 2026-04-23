@@ -81,30 +81,27 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 		Storage::Tape::Thomson::MO::Parser parser;
 		auto &tape = media.tapes.front();
 		const auto serialiser = tape->serialiser();
-		const auto first = parser.block(*serialiser);
+		const auto first = parser.file(*serialiser);
 
-		if(first && first->checksum_valid()) {
+		if(first && first->checksums_valid) {
 			target->media.tapes = media.tapes;
 
 			// Cf. https://pulkomandy.tk/wiki/doku.php?id=documentations:monitor:tape.format for leader block format;
 			// my parser provides block type separately and length implicitly so the type at offset 0xd is at 0xb
 			// in ->data.
-			static constexpr size_t TypeOffset = 0xb;
-			if(!first->type && first->data.size() > TypeOffset) {
-				const auto command = [&]() -> std::wstring {
-					if(!first->data[TypeOffset]) {	// File type; 0 = BASIC, 1 = DATA; 2 = binary.
-						return L"RUN\"";
-					} else {
-						return L"LOADM\"\",,R";
-					}
-				};
-
-				// TODO: determine whether BASIC 1 or BASIC 128 is appropriate.
-				if(DefaultMO6) {
-					target->loading_command = std::wstring(L"2                ") + command() + L"\n";
+			const auto command = [&]() -> std::wstring {
+				if(!first->type) {	// File type; 0 = BASIC, 1 = DATA; 2 = binary.
+					return L"RUN\"";
 				} else {
-					target->loading_command = command() + L"\n";
+					return L"LOADM\"\",,R";
 				}
+			};
+
+			// TODO: determine whether BASIC 1 or BASIC 128 is appropriate.
+			if(DefaultMO6) {
+				target->loading_command = std::wstring(L"2                ") + command() + L"\n";
+			} else {
+				target->loading_command = command() + L"\n";
 			}
 		}
 	}

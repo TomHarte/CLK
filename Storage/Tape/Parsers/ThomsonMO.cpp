@@ -92,6 +92,44 @@ std::optional<Block> Parser::block(Storage::Tape::TapeSerialiser &serialiser) {
 	return result;
 }
 
+std::optional<File> Parser::file(Storage::Tape::TapeSerialiser &serialiser) {
+	std::optional<File> result;
+
+	do {
+		// Find next leader.
+		const auto leader = block(serialiser);
+		if(!leader.has_value()) break;
+		if(leader->type != 0) continue;
+		if(leader->data.size() != 14) continue;
+
+		// Create file.
+		result = File();
+		const auto copy_string = [&](auto &target, const size_t offset) {
+			std::copy_n(leader->data.data() + offset, sizeof(target) - 1, target);
+
+			auto end = std::find_if(std::rbegin(target) + 1, std::rend(target), [](const char c) {
+				return c != ' ';
+			});
+			*(end - 1) = '\0';
+		};
+
+		copy_string(result->name, 0);
+		copy_string(result->extension, 8);
+
+		result->type = leader->data[11];
+		result->mode = uint16_t((leader->data[12] << 8) | leader->data[13]);
+
+		// Accumulate data for as long as it comes.
+		while(true) {
+			const auto next = block(serialiser);
+			if(next->type != 1) break;
+			std::copy(next->data.begin(), next->data.end(), std::back_inserter(result->data));
+		}
+	} while(false);
+
+	return result;
+}
+
 uint8_t Block::check_digit() const {
 	return uint8_t(checksum - std::accumulate(data.begin(), data.end(), 0));
 }
