@@ -116,8 +116,8 @@ std::optional<File> Parser::file(Storage::Tape::TapeSerialiser &serialiser) {
 		copy_string(result->name, 0);
 		copy_string(result->extension, 8);
 
-		result->type = leader->data[11];
-		result->mode = uint16_t((leader->data[12] << 8) | leader->data[13]);
+		result->type = File::Type(leader->data[11]);
+		result->mode = File::Mode((leader->data[12] << 8) | leader->data[13]);
 
 		// Accumulate data for as long as it comes.
 		while(true) {
@@ -133,3 +133,19 @@ std::optional<File> Parser::file(Storage::Tape::TapeSerialiser &serialiser) {
 uint8_t Block::check_digit() const {
 	return uint8_t(checksum - std::accumulate(data.begin(), data.end(), 0));
 }
+
+//
+// Notes on file contents, as I figure them out:
+//
+// File type: 0 = BASIC, 1 = data (saved by BASIC); 2 = binary.
+//
+// BASIC file modes: 0 = tokenised; 1 = ASCII.
+//
+// Binary contents:
+//
+//	byte 0: ???
+//	bytes 1 & 2: length of data;
+//	bytes 3 & 4: loading address;
+//	... data itself ...
+//	five more bytes: ???
+//

@@ -34,8 +34,19 @@ struct File {
 		return std::string(name) + '.' + extension;
 	}
 
-	uint8_t type = 0;
-	uint16_t mode = 0;
+	enum class Type: uint8_t {
+		BASIC = 0,
+		Data = 1,
+		Binary = 2,
+	};
+	Type type{};
+
+	enum class Mode: uint16_t {
+		// Modes that apply when type is BASIC.
+		BASICTokenised = 0,
+		BASICASCII = 1,
+	};
+	Mode mode{};
 
 	std::vector<uint8_t> data;
 	bool checksums_valid = true;
