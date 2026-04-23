@@ -205,7 +205,7 @@ private:
 
 	using SampleBuffer = std::array<Outputs::Speaker::StereoSample, 4096>;
 	std::array<SampleBuffer, 2> samples_;
-	std::atomic_flag is_posting_ = ATOMIC_FLAG_INIT;
+	std::atomic_flag is_posting_;
 };
 
 }
