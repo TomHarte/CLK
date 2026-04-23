@@ -384,10 +384,20 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)applyMedia:(const Analyser::Static::Media &)media {
-	@synchronized(self) {
-		const auto mediaTarget = _machine->media_target();
-		if(mediaTarget) mediaTarget->insert_media(media);
-	}
+	const auto updater = _updater.load(std::memory_order_relaxed);
+	if(!updater) return;
+
+	__weak CSMachine *weakSelf = self;
+	updater->enqueue([weakSelf, updater, media] {
+
+		auto strongSelf = weakSelf;
+		if(!strongSelf) return;
+
+		@synchronized(strongSelf) {
+			const auto mediaTarget = strongSelf->_machine->media_target();
+			if(mediaTarget) mediaTarget->insert_media(media);
+		}
+	});
 }
 
 - (CSMachineChangeEffect)effectForFileAtURLDidChange:(nonnull NSURL *)url {
