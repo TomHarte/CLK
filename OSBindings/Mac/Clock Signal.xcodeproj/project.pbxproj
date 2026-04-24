@@ -1401,6 +1401,7 @@
 		4B03E8412F9528D4008AF203 /* LEP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = LEP.cpp; sourceTree = "<group>"; };
 		4B03E8452F965E17008AF203 /* SAP.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SAP.hpp; sourceTree = "<group>"; };
 		4B03E8462F965E17008AF203 /* SAP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SAP.cpp; sourceTree = "<group>"; };
+		4B03E84A2F9AF8B9008AF203 /* FastTape.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FastTape.hpp; sourceTree = "<group>"; };
 		4B046DC31CFE651500E9E45E /* ScanProducer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ScanProducer.hpp; sourceTree = "<group>"; };
 		4B047075201ABC180047AB0D /* Cartridge.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Cartridge.hpp; sourceTree = "<group>"; };
 		4B049CDC1DA3C82F00322067 /* BCDTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BCDTest.swift; sourceTree = "<group>"; };
@@ -2807,14 +2808,15 @@
 		4B03E8362F8D914C008AF203 /* MO */ = {
 			isa = PBXGroup;
 			children = (
-				4B03E82E2F8D914C008AF203 /* CD90-640.hpp */,
 				4B03E82F2F8D914C008AF203 /* CD90-640.cpp */,
+				4B03E8332F8D914C008AF203 /* MO.cpp */,
+				4B03E8352F8D914C008AF203 /* Video.cpp */,
+				4B03E82E2F8D914C008AF203 /* CD90-640.hpp */,
+				4B03E84A2F9AF8B9008AF203 /* FastTape.hpp */,
 				4B03E8302F8D914C008AF203 /* Keyboard.hpp */,
 				4B03E8312F8D914C008AF203 /* MemoryMap.hpp */,
 				4B03E8322F8D914C008AF203 /* MO.hpp */,
-				4B03E8332F8D914C008AF203 /* MO.cpp */,
 				4B03E8342F8D914C008AF203 /* Video.hpp */,
-				4B03E8352F8D914C008AF203 /* Video.cpp */,
 			);
 			path = MO;
 			sourceTree = "<group>";

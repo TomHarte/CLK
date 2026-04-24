@@ -9,13 +9,13 @@
 #include "MO.hpp"
 
 #include "CD90-640.hpp"
+#include "FastTape.hpp"
 #include "Keyboard.hpp"
 #include "MemoryMap.hpp"
 #include "Video.hpp"
 
 #include "Activity/Source.hpp"
 #include "Machines/MachineTypes.hpp"
-#include "Numeric/CircularCounter.hpp"
 #include "Processors/6809/6809.hpp"
 #include "Components/6821/6821.hpp"
 #include "ClockReceiver/JustInTime.hpp"
@@ -177,20 +177,13 @@ struct ConcreteMachine:
 				};
 
 				switch(address) {
-					// TODO: Is there a simpler way to use `namespace`?
 					using namespace CPU::M6809;
 
 					case 0xa7c0:
 						access<0xa7c0, read_write>(system_pia_, value);
 						if constexpr (CPU::M6809::is_read(read_write)) {
 							if(allow_fast_tape_hack_ && tape_player_.motor_control()) {
-								tape_access_pcs_[tape_access_pointer_] = m6809_.registers().pc.full;
-								++tape_access_pointer_;
-
-								printf("[%04x, %04x, %04x, %04x]\n", tape_access_pcs_[0], tape_access_pcs_[1], tape_access_pcs_[2], tape_access_pcs_[3]);
-
-								// TODO: check history of PCs and look at code if necessary to figure out
-								// which loader this is.
+								fast_tape_loader_.add_tape_read(m6809_.registers().pc.full, memory_);
 							}
 						}
 					break;
@@ -594,8 +587,7 @@ private:
 
 	Storage::Tape::BinaryTapePlayer tape_player_;
 	bool allow_fast_tape_hack_ = true;
-	std::array<uint16_t, 4> tape_access_pcs_;
-	Numeric::CircularCounter<int, 4> tape_access_pointer_;
+	Thomson::FastTapeLoader fast_tape_loader_;
 
 	Thomson::CD90_640 fdc_;
 

@@ -143,6 +143,11 @@ public:
 		return write_[index >> 12][index];
 	}
 
+	// Works correctly across the board, but is read-only.
+	uint8_t passive_read(const uint16_t address) const {
+		return read_[address >> 12][address];
+	}
+
 	// MARK: - Register Access.
 
 	template <uint16_t address>
