@@ -886,8 +886,8 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 
 - (id<MTLBuffer>)bufferForOffset:(size_t)offset {
 	// Store and apply the offset.
-	const auto buffer = _lineOffsetBuffers[_lineOffsetBuffer];
-	*(static_cast<int *>(_lineOffsetBuffers[_lineOffsetBuffer].contents)) = int(offset);
+	const auto buffer = _lineOffsetBuffers[size_t(_lineOffsetBuffer)];
+	*(static_cast<int *>(_lineOffsetBuffers[size_t(_lineOffsetBuffer)].contents)) = int(offset);
 	++_lineOffsetBuffer;
 	return buffer;
 }

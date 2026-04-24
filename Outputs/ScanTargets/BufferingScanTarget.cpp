@@ -223,7 +223,7 @@ void BufferingScanTarget::announce(
 
 		auto write = frame_write_.load(std::memory_order_relaxed);
 		const auto submit_pointers = submit_pointers_.load(std::memory_order_relaxed);
-		auto &frame = frames_[write];
+		auto &frame = frames_[size_t(write)];
 
 		frame.first_line = submit_pointers.line;
 		frame.first_scan = submit_pointers.scan;
@@ -244,7 +244,7 @@ void BufferingScanTarget::announce(
 		// Look for an even-odd pattern in start-of-frame line placement as an indication that
 		// incoming video is interlaced. That might be helpful information in deciding exactly
 		// how to display scans pleasantly, depending on the display target.
-		start_history_[start_history_pointer_] = location;
+		start_history_[size_t(start_history_pointer_)] = location;
 		++start_history_pointer_;
 
 		static constexpr int CoordinateEpsilon = 100;
@@ -374,8 +374,8 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 	area.begin.scan = read_ahead_pointers.scan;
 	area.end.scan = submit_pointers.scan;
 
-	area.begin.frame = frame_read;
-	area.end.frame = frame_write;
+	area.begin.frame = size_t(frame_read);
+	area.end.frame = size_t(frame_write);
 
 	area.begin.write_area_x = texture_address_get_x(read_ahead_pointers.write_area);
 	area.begin.write_area_y = texture_address_get_y(read_ahead_pointers.write_area);

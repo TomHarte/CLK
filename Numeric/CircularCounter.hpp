@@ -9,6 +9,7 @@
 #pragma once
 
 #include <cassert>
+#include <concepts>
 
 namespace Numeric {
 
@@ -46,13 +47,23 @@ public:
 		return result;
 	}
 
-	operator IntT() const {
-		return value_;
+	template <std::integral CastT>
+	explicit operator CastT() const {
+		return CastT(value_);
 	}
 
 	CircularCounter &operator = (const IntT rhs) {
 		value_ = rhs;
 		return *this;
+	}
+
+	template <typename RHSIntT, RHSIntT rhs_limit>
+	bool operator ==(const CircularCounter<RHSIntT, rhs_limit> rhs) const {
+		if constexpr (std::is_same_v<RHSIntT, IntT>) {
+			return value_ == rhs.value_;
+		}
+
+		return size_t(value_) == size_t(rhs.value_);
 	}
 
 private:
