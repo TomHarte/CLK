@@ -144,8 +144,48 @@ public:
 	}
 
 	// Works correctly across the board, but is read-only.
-	uint8_t passive_read(const uint16_t address) const {
-		return read_[address >> 12][address];
+	struct ConstIterator {
+		using self_type             = ConstIterator;
+		using iterator_category     = std::forward_iterator_tag;
+		using difference_type       = std::ptrdiff_t;
+		using value_type            = uint8_t;
+		using pointer               = uint8_t *;
+		using reference             = uint8_t &;
+
+		uint8_t operator *() {
+			return map_.passive_read(uint16_t(address_));
+		}
+
+		ConstIterator &operator++(int) {
+			ConstIterator prior = *this;
+			++address_;
+			return prior;
+		}
+
+		ConstIterator &operator++() {
+			++address_;
+			return *this;
+		}
+
+		auto operator <=>(const ConstIterator &) const = default;
+
+	private:
+		ConstIterator(const MemoryMap &map, int address) : map_(map), address_(address) {}
+		const MemoryMap &map_;
+		int address_;
+		friend MemoryMap;
+	};
+
+	ConstIterator begin() const {
+		return ConstIterator(*this, 0);
+	}
+
+	ConstIterator end() const {
+		return ConstIterator(*this, 0x1'0000);
+	}
+
+	ConstIterator iterator(const uint16_t address) const {
+		return ConstIterator(*this, address);
 	}
 
 	// MARK: - Register Access.
@@ -333,6 +373,11 @@ private:
 	} b000page_ = B000Page::Empty;
 
 	AccessMode access_mode_ = AccessMode::LightPen;
+
+	friend ConstIterator;
+	uint8_t passive_read(const uint16_t address) const {
+		return read_[address >> 12][address];
+	}
 };
 
 }

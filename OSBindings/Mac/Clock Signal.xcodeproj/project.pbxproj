@@ -1402,6 +1402,7 @@
 		4B03E8452F965E17008AF203 /* SAP.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SAP.hpp; sourceTree = "<group>"; };
 		4B03E8462F965E17008AF203 /* SAP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SAP.cpp; sourceTree = "<group>"; };
 		4B03E84A2F9AF8B9008AF203 /* FastTape.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FastTape.hpp; sourceTree = "<group>"; };
+		4B03E84C2F9E4CA2008AF203 /* LoricielsBactron.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LoricielsBactron.hpp; sourceTree = "<group>"; };
 		4B046DC31CFE651500E9E45E /* ScanProducer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ScanProducer.hpp; sourceTree = "<group>"; };
 		4B047075201ABC180047AB0D /* Cartridge.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Cartridge.hpp; sourceTree = "<group>"; };
 		4B049CDC1DA3C82F00322067 /* BCDTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BCDTest.swift; sourceTree = "<group>"; };
@@ -2817,8 +2818,17 @@
 				4B03E8312F8D914C008AF203 /* MemoryMap.hpp */,
 				4B03E8322F8D914C008AF203 /* MO.hpp */,
 				4B03E8342F8D914C008AF203 /* Video.hpp */,
+				4B03E84D2F9E4CA2008AF203 /* FastTapeSchemes */,
 			);
 			path = MO;
+			sourceTree = "<group>";
+		};
+		4B03E84D2F9E4CA2008AF203 /* FastTapeSchemes */ = {
+			isa = PBXGroup;
+			children = (
+				4B03E84C2F9E4CA2008AF203 /* LoricielsBactron.hpp */,
+			);
+			path = FastTapeSchemes;
 			sourceTree = "<group>";
 		};
 		4B051C9F2676F52200CA44E8 /* Enterprise */ = {

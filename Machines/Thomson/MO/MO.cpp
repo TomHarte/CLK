@@ -182,7 +182,7 @@ struct ConcreteMachine:
 					case 0xa7c0:
 						access<0xa7c0, read_write>(system_pia_, value);
 						if constexpr (CPU::M6809::is_read(read_write)) {
-							if(allow_fast_tape_hack_ && tape_player_.motor_control()) {
+							if(allow_fast_tape_loading_ && tape_player_.motor_control()) {
 								fast_tape_loader_.add_tape_read(m6809_.registers().pc.full, memory_);
 							}
 						}
@@ -268,7 +268,7 @@ struct ConcreteMachine:
 							(
 								(!is_mo6 && address == 0xf168) ||
 								(is_mo6 && memory_.visible_monitor_page() && address == 0xf3fd)
-							) && allow_fast_tape_hack_
+							) && allow_fast_tape_loading_
 						) [[unlikely]] {
 							[&] {
 								auto *const serialiser = tape_player_.serialiser();
@@ -586,7 +586,7 @@ private:
 	// MARK: - Tape and disk.
 
 	Storage::Tape::BinaryTapePlayer tape_player_;
-	bool allow_fast_tape_hack_ = true;
+	bool allow_fast_tape_loading_ = true;
 	Thomson::FastTapeLoader fast_tape_loader_;
 
 	Thomson::CD90_640 fdc_;
@@ -731,13 +731,13 @@ private:
 
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
-		options->quick_load = allow_fast_tape_hack_;
+		options->quick_load = allow_fast_tape_loading_;
 		return options;
 	}
 
 	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
 		const auto options = dynamic_cast<Options *>(str.get());
-		allow_fast_tape_hack_ = options->quick_load;
+		allow_fast_tape_loading_ = options->quick_load;
 	}
 
 	// MARK: - Joystick Machine.

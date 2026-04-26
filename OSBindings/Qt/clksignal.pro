@@ -268,6 +268,7 @@ HEADERS += \
 	$$SRC/Machines/Sinclair/ZX8081/*.hpp \
 	$$SRC/Machines/Sinclair/ZXSpectrum/*.hpp \
 	$$SRC/Machines/Thomson/MO/*.hpp \
+	$$SRC/Machines/Thomson/MO/FastTapeSchemes/*.hpp \
 \
 	$$SRC/Numeric/*.hpp \
 \
