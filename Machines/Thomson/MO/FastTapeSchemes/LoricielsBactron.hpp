@@ -51,14 +51,13 @@ struct LoricielsBactron: public Loader {
 		0x8d, 0x1b, 0x2a, 0xfc, 0x8e, 0x00, 0x41, 0x8d, 0x0e, 0x8d, 0x12
 	};
 
-	template <typename MemoryMapT>
-	static std::optional<uint16_t> detect(const uint16_t address, const MemoryMapT &memory_map) {
+	static std::optional<uint16_t> detect(const uint16_t address, const MemoryAccess &memory) {
 		if(
 			address > 2 &&
 			std::equal(
 				std::begin(sampler),
 				std::end(sampler),
-				memory_map.iterator(address - 2)
+				memory.iterator(address - 2)
 			)
 		) {
 			// TODO: use 'outer' for validation.
@@ -72,13 +71,26 @@ struct LoricielsBactron: public Loader {
 		return std::nullopt;
 	}
 
-	TrapAction did_trap(
-		const uint16_t,
-		MemoryAccess &,
-		CPU::M6809::Registers &
+	std::pair<TrapAction, bool> did_trap(
+		const uint16_t address,
+		MemoryAccess &memory,
+		CPU::M6809::Registers &,
+		Storage::Tape::BinaryTapePlayer &,
+		Storage::Tape::TapeSerialiser &
 	) override {
+		// Check that this is still the expected routine.
+		if(!std::equal(
+				std::begin(outer),
+				std::end(outer),
+				memory.iterator(address)
+			)
+		) {
+			return std::make_pair(TrapAction::None, false);
+		}
+
 		// TODO.
-		return TrapAction::None;
+
+		return std::make_pair(TrapAction::None, false);
 	}
 };
 

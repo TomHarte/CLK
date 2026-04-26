@@ -20,16 +20,20 @@ enum class TrapAction {
 
 namespace FastLoader {
 struct Loader {
-	virtual TrapAction did_trap(
+	/// @returns: (i) the action to take now with regards to the instruction stream, and (ii) whether to keep the current trap.
+	virtual std::pair<TrapAction, bool> did_trap(
 		const uint16_t address,
-		MemoryAccess &memory,
-		CPU::M6809::Registers &registers
+		MemoryAccess &,
+		CPU::M6809::Registers &,
+		Storage::Tape::BinaryTapePlayer &,
+		Storage::Tape::TapeSerialiser &
 	) = 0;
 };
 }
 }
 
 #include "FastTapeSchemes/LoricielsBactron.hpp"
+#include "FastTapeSchemes/ROM.hpp"
 
 namespace Thomson {
 struct FastTapeLoader {
@@ -42,6 +46,7 @@ public:
 		const auto prior_trap_address = trap_address;
 
 		trap_address = std::nullopt;
+		detect<FastLoader::ROM>(address, memory);
 		detect<FastLoader::LoricielsBactron>(address, memory);
 
 		if(!trap_address.has_value()) {
@@ -68,12 +73,17 @@ public:
 	TrapAction did_trap(
 		const uint16_t address,
 		MemoryAccess &memory,
-		CPU::M6809::Registers &registers
+		CPU::M6809::Registers &registers,
+		Storage::Tape::BinaryTapePlayer &player,
+		Storage::Tape::TapeSerialiser &serialiser
 	) {
 		if(loader_) {
-			const auto result = loader_->did_trap(address, memory, registers);
-			loader_.reset();
-			return result;
+			const auto result = loader_->did_trap(address, memory, registers, player, serialiser);
+			if(!result.second) {
+				loader_.reset();
+				trap_address = std::nullopt;
+			}
+			return result.first;
 		}
 
 		return TrapAction::None;

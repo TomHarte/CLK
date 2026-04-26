@@ -1403,6 +1403,7 @@
 		4B03E8462F965E17008AF203 /* SAP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SAP.cpp; sourceTree = "<group>"; };
 		4B03E84A2F9AF8B9008AF203 /* FastTape.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FastTape.hpp; sourceTree = "<group>"; };
 		4B03E84C2F9E4CA2008AF203 /* LoricielsBactron.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LoricielsBactron.hpp; sourceTree = "<group>"; };
+		4B03E84E2F9E65A5008AF203 /* ROM.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ROM.hpp; sourceTree = "<group>"; };
 		4B046DC31CFE651500E9E45E /* ScanProducer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ScanProducer.hpp; sourceTree = "<group>"; };
 		4B047075201ABC180047AB0D /* Cartridge.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Cartridge.hpp; sourceTree = "<group>"; };
 		4B049CDC1DA3C82F00322067 /* BCDTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BCDTest.swift; sourceTree = "<group>"; };
@@ -2827,6 +2828,7 @@
 			isa = PBXGroup;
 			children = (
 				4B03E84C2F9E4CA2008AF203 /* LoricielsBactron.hpp */,
+				4B03E84E2F9E65A5008AF203 /* ROM.hpp */,
 			);
 			path = FastTapeSchemes;
 			sourceTree = "<group>";
