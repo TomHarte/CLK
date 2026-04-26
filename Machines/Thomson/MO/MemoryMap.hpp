@@ -18,17 +18,7 @@
 #include "Outputs/Log.hpp"
 #include "Processors/6809/6809.hpp"
 
-namespace Thomson::MO {
-
-enum class AccessMode {
-	System = 0,
-	LightPen = 1,
-};
-
-enum class GraphicsModeAccess {
-	Authorised = 0,
-	Inhibited = 1,
-};
+namespace Thomson {
 
 struct MemoryAccess {
 	template <typename AddressT>
@@ -113,6 +103,19 @@ protected:
 	uint8_t *write_[0x10]{};
 	const uint8_t *read_[0x10]{};
 };
+
+namespace MO {
+enum class AccessMode {
+	System = 0,
+	LightPen = 1,
+};
+
+enum class GraphicsModeAccess {
+	Authorised = 0,
+	Inhibited = 1,
+};
+
+
 
 template <bool is_mo6>
 struct MemoryMap: public MemoryAccess {
@@ -393,4 +396,5 @@ private:
 	}
 };
 
+}
 }

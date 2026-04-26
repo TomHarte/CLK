@@ -251,6 +251,23 @@ struct ConcreteMachine:
 					value = memory_.read(address);
 
 					if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
+						if(
+							allow_fast_tape_loading_ &&
+							tape_player_.motor_control() &&
+							fast_tape_loader_.trap_address.has_value() &&
+							address == *fast_tape_loader_.trap_address
+						) [[unlikely]] {
+							const auto action = fast_tape_loader_.did_trap(address, memory_, m6809_.registers());
+							switch(action) {
+								using enum Thomson::TrapAction;
+
+								case None:					break;
+								case NOP:	value = 0x12;	break;
+								case RTS:	value = 0x39;	break;
+								default: __builtin_unreachable();
+							}
+						}
+
 						//
 						// Catch RDBITS.
 						//

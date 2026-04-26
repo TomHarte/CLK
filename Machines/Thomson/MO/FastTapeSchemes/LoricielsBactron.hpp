@@ -41,7 +41,7 @@ namespace Thomson::FastLoader {
 				BSR     Z35CA                    ;35B6: 8D 12          '..'		; sample again for bit
 
 */
-struct LoricielsBactron {
+struct LoricielsBactron: public Loader {
 	static constexpr uint8_t sampler[] = {
 		0xa6, 0xc4, 0x44, 0xa7, 0xe2, 0xa7, 0xe4, 0xa6, 0xc4, 0x44, 0xab, 0xe4, 0xa7, 0xe4, 0xa6, 0xc4,
 		0x44, 0xab, 0xe0, 0xb8, 0x35, 0x07, 0x39
@@ -70,6 +70,15 @@ struct LoricielsBactron {
 			}
 		}
 		return std::nullopt;
+	}
+
+	TrapAction did_trap(
+		const uint16_t,
+		MemoryAccess &,
+		CPU::M6809::Registers &
+	) override {
+		// TODO.
+		return TrapAction::None;
 	}
 };
 

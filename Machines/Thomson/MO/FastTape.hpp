@@ -9,39 +9,45 @@
 #pragma once
 
 #include "MemoryMap.hpp"
+#include "Processors/6809/Registers.hpp"
+
+namespace Thomson {
+enum class TrapAction {
+	None,
+	NOP,
+	RTS,
+};
+
+namespace FastLoader {
+struct Loader {
+	virtual TrapAction did_trap(
+		const uint16_t address,
+		MemoryAccess &memory,
+		CPU::M6809::Registers &registers
+	) = 0;
+};
+}
+}
 
 #include "FastTapeSchemes/LoricielsBactron.hpp"
 
-//#include "Numeric/CircularCounter.hpp"
-
-
-
-//#include <array>
-
 namespace Thomson {
-
-/*!
-*/
 struct FastTapeLoader {
 public:
 	void reset() {}
 
 	std::optional<uint16_t> trap_address;
 
-	template <typename MemoryMapT>
-	void add_tape_read(const uint16_t address, const MemoryMapT &memory_map) {
-		trap_address = std::nullopt;
-		detect<FastLoader::LoricielsBactron>(Routine::LoricielsBactron, address, memory_map);
+	void add_tape_read(const uint16_t address, const MemoryAccess &memory) {
+		const auto prior_trap_address = trap_address;
 
-//			const auto matches = [&](std::initializer_list<int> sequence) {
-//				auto pointer = tape_access_pointer_;
-//				for(const auto value: sequence) {
-//					if(tape_access_pcs_[size_t(pointer)] != value) return false;
-//					++pointer;
-//				}
-//				return true;
-//			};
-//
+		trap_address = std::nullopt;
+		detect<FastLoader::LoricielsBactron>(address, memory);
+
+		if(!trap_address.has_value()) {
+			trap_address = prior_trap_address;
+		}
+
 //			if(matches({0x2d7b, 0x2dcc, 0x2dd3})) {
 //				return Routine::MicroidsChicago90GrandPrix500;
 //			}
@@ -57,40 +63,34 @@ public:
 //			if(matches({0x402b, 0x4032, 0x4039})) {
 //				return Routine::LoricielsSpaceRacer;
 //			}
-
-			// TODO: check history of PCs and look at code if necessary to figure out
-			// which loader this is.
-
-//			printf("[%04x, %04x, %04x, %04x]\n", tape_access_pcs_[0], tape_access_pcs_[1], tape_access_pcs_[2], tape_access_pcs_[3]);
-//			return Routine::None;
-//		} ();
-//
-//		if(detected != detected_) {
-//			printf("Detected %d\n", detected_);
-//			detected_ = detected;
-//		}
 	}
 
-	void did_trap() const {
+	TrapAction did_trap(
+		const uint16_t address,
+		MemoryAccess &memory,
+		CPU::M6809::Registers &registers
+	) {
+		if(loader_) {
+			const auto result = loader_->did_trap(address, memory, registers);
+			loader_.reset();
+			return result;
+		}
+
+		return TrapAction::None;
 	}
 
 private:
-	enum class Routine {
-		None,
-		LoricielsBactron,
-	};
-
-	template <typename Loader, typename MemoryMapT>
-	void detect(const Routine routine, const uint16_t address, const MemoryMapT &memory_map) {
+	template <typename LoaderT>
+	void detect(const uint16_t address, const MemoryAccess &memory) {
 		if(trap_address.has_value()) return;
 
-		trap_address = Loader::detect(address, memory_map);
+		trap_address = LoaderT::detect(address, memory);
 		if(trap_address.has_value()) {
-			detected_ = routine;
+			loader_ = std::make_unique<LoaderT>();
 		}
 	}
 
-	Routine detected_ = Routine::None;
+	std::unique_ptr<FastLoader::Loader> loader_ = nullptr;
 };
 
 
