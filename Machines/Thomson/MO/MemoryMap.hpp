@@ -30,19 +30,92 @@ enum class GraphicsModeAccess {
 	Inhibited = 1,
 };
 
-//
-// Notes on the layout of the standard MO ROM images:
-//
-//	The MO5 images are 16kb in total, representing what should go into the
-//	final 16kb of the memory map.
-//
-//	The MO6 images are 64kb in total:
-//
-//	* the first 32kb is the BASIC 1 portion: two 16kb pages that might appear from 0xc000, including the monitor;
-//	* the next 32kb is the BASIC 128 portion: two 16kb pages that might appear from 0xb000 or might not appear at all.
+struct MemoryAccess {
+	template <typename AddressT>
+	uint8_t read(const AddressT address) const {
+		if(read_[address >> 12]) [[likely]] {
+			return read_[address >> 12][address];
+		} else {
+			return 0xff;
+		}
+	}
+
+	template <typename AddressT>
+	void write(const AddressT address, const uint8_t value) {
+		if(write_[address >> 12]) {
+			write_[address >> 12][address] = value;
+		} else {
+			Log::Logger<Log::Source::MO5>::info().append("Unmapped write of %02x to %04x", value, +address);
+		}
+	}
+
+	// Defined to work correctly only for in-RAM addresses.
+	uint8_t &operator[] (const size_t index) {
+		return write_[index >> 12][index];
+	}
+
+	// Works correctly across the board, but is read-only.
+	struct ConstIterator {
+		using self_type             = ConstIterator;
+		using iterator_category     = std::forward_iterator_tag;
+		using difference_type       = std::ptrdiff_t;
+		using value_type            = uint8_t;
+		using pointer               = uint8_t *;
+		using reference             = uint8_t &;
+
+		uint8_t operator *() {
+			return underlying_.read(uint16_t(address_));
+		}
+
+		ConstIterator operator++(int) {
+			ConstIterator prior = *this;
+			++address_;
+			return prior;
+		}
+
+		ConstIterator &operator++() {
+			++address_;
+			return *this;
+		}
+
+		auto operator <=>(const ConstIterator &rhs) const {
+			return address_ <=> rhs.address_;
+		}
+
+	private:
+		ConstIterator(const MemoryAccess &underlying, int address) : underlying_(underlying), address_(address) {}
+		const MemoryAccess &underlying_;
+		int address_;
+		friend MemoryAccess;
+	};
+
+	ConstIterator begin() const {
+		return ConstIterator(*this, 0);
+	}
+
+	ConstIterator end() const {
+		return ConstIterator(*this, 0x1'0000);
+	}
+
+	ConstIterator iterator(const uint16_t address) const {
+		return ConstIterator(*this, address);
+	}
+
+protected:
+	void set_read(const size_t slot, const uint8_t *const pointer) {
+		read_[slot] = pointer ? pointer - (slot << 12) : nullptr;
+		write_[slot] = nullptr;
+	}
+	void set_readwrite(const size_t slot, uint8_t *const pointer) {
+		read_[slot] = write_[slot] = pointer ? pointer - (slot << 12) : nullptr;
+	}
+
+	uint8_t *write_[0x10]{};
+	const uint8_t *read_[0x10]{};
+};
 
 template <bool is_mo6>
-struct MemoryMap {
+struct MemoryMap: public MemoryAccess {
 public:
 	MemoryMap() {
 		// Install RAM.
@@ -62,6 +135,14 @@ public:
 	// MARK: - ROM installation and connection for video.
 
 	void set_rom(const std::vector<uint8_t> &rom) {
+		//
+		// MO5 ROM images are 16kb in total, representing what should go into the final 16kb of the memory map.
+		//
+		// MO6 ROM images are 64kb in total:
+		//
+		//	* the first 32kb is BASIC 1: two 16kb pages that might appear from 0xc000, including the monitor;
+		//	* the next 32kb is BASIC 128: two 16kb pages that might appear from 0xb000 or might not appear at all.
+		//
 		rom_ = rom;
 		update_commutable_rom();
 	}
@@ -107,7 +188,7 @@ public:
 		return rom_page_;
 	}
 
-	// MARK: - Memory Access.
+	// MARK: - Read override.
 
 	template <typename AddressT>
 	uint8_t read(const AddressT address) {
@@ -129,64 +210,7 @@ public:
 		}
 	}
 
-	template <typename AddressT>
-	void write(const AddressT address, const uint8_t value) {
-		if(write_[address >> 12]) {
-			write_[address >> 12][address] = value;
-		} else {
-			Log::Logger<Log::Source::MO5>::info().append("Unmapped write of %02x to %04x", value, +address);
-		}
-	}
-
-	// Defined to work correctly only for in-RAM addresses.
-	uint8_t &operator[] (const size_t index) {
-		return write_[index >> 12][index];
-	}
-
-	// Works correctly across the board, but is read-only.
-	struct ConstIterator {
-		using self_type             = ConstIterator;
-		using iterator_category     = std::forward_iterator_tag;
-		using difference_type       = std::ptrdiff_t;
-		using value_type            = uint8_t;
-		using pointer               = uint8_t *;
-		using reference             = uint8_t &;
-
-		uint8_t operator *() {
-			return map_.passive_read(uint16_t(address_));
-		}
-
-		ConstIterator &operator++(int) {
-			ConstIterator prior = *this;
-			++address_;
-			return prior;
-		}
-
-		ConstIterator &operator++() {
-			++address_;
-			return *this;
-		}
-
-		auto operator <=>(const ConstIterator &) const = default;
-
-	private:
-		ConstIterator(const MemoryMap &map, int address) : map_(map), address_(address) {}
-		const MemoryMap &map_;
-		int address_;
-		friend MemoryMap;
-	};
-
-	ConstIterator begin() const {
-		return ConstIterator(*this, 0);
-	}
-
-	ConstIterator end() const {
-		return ConstIterator(*this, 0x1'0000);
-	}
-
-	ConstIterator iterator(const uint16_t address) const {
-		return ConstIterator(*this, address);
-	}
+	using MemoryAccess::write;
 
 	// MARK: - Register Access.
 
@@ -301,9 +325,6 @@ public:
 	}
 
 private:
-	uint8_t *write_[0x10]{};
-	const uint8_t *read_[0x10]{};
-
 	void update_commutable_ram() {
 		const auto offset = ram_page_ * 16384;
 		if(offset < ram_.size()) {
@@ -346,14 +367,6 @@ private:
 				set_16kbrange(0xb, basic128 + rom_page_ * 0x4000);
 			} break;
 		}
-	}
-
-	void set_read(const size_t slot, const uint8_t *const pointer) {
-		read_[slot] = pointer ? pointer - (slot << 12) : nullptr;
-		write_[slot] = nullptr;
-	}
-	void set_readwrite(const size_t slot, uint8_t *const pointer) {
-		read_[slot] = write_[slot] = pointer ? pointer - (slot << 12) : nullptr;
 	}
 
 	std::array<uint8_t, 0x4000> video_;
