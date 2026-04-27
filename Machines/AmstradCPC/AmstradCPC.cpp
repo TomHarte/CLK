@@ -893,7 +893,7 @@ public:
 
 			// TODO (in the player, not here): adapt it to accept an input clock rate and
 			// run_for as HalfCycles.
-			if(!tape_player_is_sleeping_) tape_player_.run_for(cycle.length.get());
+			if(!tape_player_is_sleeping_) tape_player_.run_for(cycle.length.reduce<Cycles>());
 
 			// Pump the AY.
 			ay_.run_for(cycle.length);
