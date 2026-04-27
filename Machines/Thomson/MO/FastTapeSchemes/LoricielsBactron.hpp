@@ -50,7 +50,7 @@ namespace Thomson::FastLoader {
 
 		Z3580	BSR     Z35AD                    ;3580: 8D 2B          '.+'
 				TSTA                             ;3582: 4D             'M'
-				BNE     Z3580                    ;3583: 26 FB          '&.'
+				BNE     Z3580                    ;3583: 26 FB          '&.'		; loop until a 0 is encountered.
 
 	Delay loop is:
 
@@ -129,7 +129,7 @@ struct LoricielsBactron: public Loader {
 			memory[0x3507] ^= 0xff;
 		}
 
-		registers.reg<CPU::M6809::R8::A>() = is_one ? 0 : ~registers.reg<CPU::M6809::R8::A>();
+		registers.reg<CPU::M6809::R8::A>() = is_one ? ~registers.reg<CPU::M6809::R8::A>() : 0;
 
 		return std::make_pair(TrapAction::RTS, true);
 	}
