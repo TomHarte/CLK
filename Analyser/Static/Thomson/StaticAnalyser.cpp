@@ -13,6 +13,9 @@
 
 namespace {
 
+// Helpful to me for inspecting tape contents. Very ugly. I apologise.
+static constexpr bool DumpFiles = false;
+
 using CartridgeList = std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>;
 CartridgeList validated(const CartridgeList &cartridges) {
 	//
@@ -83,21 +86,59 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 		Parser parser;
 		auto &tape = media.tapes.front();
 		const auto serialiser = tape->serialiser();
-		const auto first = parser.file(*serialiser);
 
-		if(first && first->checksums_valid) {
-			target->media.tapes = media.tapes;
-			target->loading_command = first->type != File::Type::BASIC ? L"LOADM\"\",,R" : L"RUN\"";
+		// Look for a first file.
+		while(!serialiser->is_at_end()) {
+			const auto file = parser.file(*serialiser);
+			if(file && file->checksums_valid) {
+				target->media.tapes = media.tapes;
+				target->loading_command = file->type != File::Type::BASIC ? L"LOADM\"\",,R" : L"RUN\"";
 
-			// TODO: determine whether BASIC 1 or BASIC 128 is appropriate.
+				// TODO: determine whether BASIC 1 or BASIC 128 is appropriate.
+				// Note on that: Microsoft BASIC provides optional 'protection', in which case the file on tape is
+				// encrypted. That's currently obscuring efforts here. Will need to figure out how to reverse-engineer that.
+				break;
+			}
+		}
+
+		// Failing that, look for any valid block and perform a RUN.
+		if(target->media.tapes.empty()) {
+			serialiser->reset();
+			const auto block = parser.block(*serialiser);
+			if(block.has_value()) {
+				target->media.tapes = media.tapes;
+				target->loading_command = L"LOADM\"\",,R";
+			}
+		}
+
+		// Decorate loading command according to machine.
+		if(!target->media.tapes.empty()) {
 			if(DefaultMO6) {
 				target->loading_command = std::wstring(L"2                ") + target->loading_command;
 			}
 			target->loading_command += '\n';
 		}
+
+		// Possibly provide further insight
+		if constexpr (DumpFiles) {
+			serialiser->reset();
+			while(true) {
+				auto next = parser.file(*serialiser);
+				if(!next.has_value()) break;
+
+				int c = 0;
+				for(auto &b : next->data) {
+					printf("%02x ", b);
+					c++;
+					if(!(c & 15)) printf("\n");
+				}
+				printf("\n\n");
+			}
+		}
 	}
 
 	// Currently: accept all floppy disks and all cartridges.
+	// TODO: verify filing system structure. That'll allow for things like HFEs to be included in the automatic set.
 	if(!media.disks.empty()) {
 		target->floppy = MOTarget::Floppy::CD90_640;
 		target->media.disks = media.disks;

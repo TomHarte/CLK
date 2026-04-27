@@ -16,7 +16,63 @@ void Parser::seed_level(const Pulse::Type level) {
 	last_type_ = level;
 }
 
-std::optional<bool> Parser::bit(Storage::Tape::TapeSerialiser &serialiser) {
+int Parser::calibrated_sample_delay(Storage::Tape::TapeSerialiser &serialiser) {
+	// Keep bucketing transition periods within the range 200–750 µs until a pattern emerges.
+	int expected = 555;
+
+	Pulse::Type last_type{};
+	float time = 0.0f;
+
+	struct Bucket {
+		float total = 0.0f;
+		float count = 0.0f;
+		float average() const { return total / count; }
+		void add(const float sample) {
+			total += sample;
+			++count;
+		}
+	};
+	std::vector<Bucket> buckets;
+	int total_bucketed = 0;
+
+	const auto bucket = [&](const float value) {
+		for(auto &bucket: buckets) {
+			if(std::abs(bucket.average() - value) < 0.000'050f) {
+				bucket.add(value);
+				return;
+			}
+		}
+		buckets.push_back({});
+		buckets.back().add(value);
+	};
+
+	while(!serialiser.is_at_end()) {
+		const auto pulse = serialiser.next_pulse();
+		time += pulse.length.get<float>();
+		if(pulse.type != last_type) {
+			last_type = pulse.type;
+
+			if(time >= 0.000'100f && time < 0.000'750f) {
+				bucket(time);
+				++total_bucketed;
+
+				if(total_bucketed == 20) {
+					std::sort(buckets.begin(), buckets.end(), [](const Bucket &lhs, const Bucket &rhs) {
+						return lhs.average() < rhs.average();
+					});
+
+					return int(buckets.back().average() * 1'000'000.0f * 2.0f / 3.0f);
+				}
+			}
+
+			time = 0.0f;
+		}
+	}
+
+	return expected;
+}
+
+std::optional<bool> Parser::bit(Storage::Tape::TapeSerialiser &serialiser, int sample_delay_us) {
 	Pulse pulse;
 
 	// Find next transition.
@@ -30,9 +86,10 @@ std::optional<bool> Parser::bit(Storage::Tape::TapeSerialiser &serialiser) {
 
 	// Advance at least 555µs and sample again.
 	float time = 0.0f;
+	const float bit_duration = float(sample_delay_us) / 1'000'000.0f;
 	while(!serialiser.is_at_end()) {
 		time += pulse.length.get<float>();
-		if(time >= 0.000'555) break;
+		if(time >= bit_duration) break;
 		pulse = serialiser.next_pulse();
 	}
 	if(serialiser.is_at_end()) return std::nullopt;
@@ -42,11 +99,11 @@ std::optional<bool> Parser::bit(Storage::Tape::TapeSerialiser &serialiser) {
 	return result;
 }
 
-std::optional<uint8_t> Parser::byte(Storage::Tape::TapeSerialiser &serialiser) {
+std::optional<uint8_t> Parser::byte(Storage::Tape::TapeSerialiser &serialiser, int sample_delay_us) {
 	uint8_t result = 0;
 
 	for(int c = 0; c < 8; c++) {
-		const auto next = bit(serialiser);
+		const auto next = bit(serialiser, sample_delay_us);
 		if(!next) return std::nullopt;
 		result = uint8_t((result << 1) | *next);
 	}
@@ -55,10 +112,15 @@ std::optional<uint8_t> Parser::byte(Storage::Tape::TapeSerialiser &serialiser) {
 }
 
 std::optional<Block> Parser::block(Storage::Tape::TapeSerialiser &serialiser) {
+	// Calibrate.
+	const auto offset = serialiser.offset();
+	const auto sample_delay_us = calibrated_sample_delay(serialiser);
+	serialiser.set_offset(offset);
+
 	// Look for a leader of 01s, then align for bytes on a 0x3c5a.
 	uint32_t bits = 0;
 	while(true) {
-		const auto next = bit(serialiser);
+		const auto next = bit(serialiser, sample_delay_us);
 		if(!next) return std::nullopt;
 
 		bits = uint32_t((bits << 1) | *next);
@@ -68,23 +130,23 @@ std::optional<Block> Parser::block(Storage::Tape::TapeSerialiser &serialiser) {
 	// Read type and length, seed checksum.
 	Block result;
 
-	const auto type = byte(serialiser);
+	const auto type = byte(serialiser, sample_delay_us);
 	if(!type) return std::nullopt;
 	result.type = *type;
 
-	const auto length = byte(serialiser);
+	const auto length = byte(serialiser, sample_delay_us);
 	if(!length) return std::nullopt;
 	result.data.resize(uint8_t(*length - 2));	// Length includes: (i) itself; and (ii) the checksum.
 
 	uint8_t checksum = 0;
 	for(auto &target: result.data) {
-		const auto next = byte(serialiser);
+		const auto next = byte(serialiser, sample_delay_us);
 		if(!next) return std::nullopt;
 		target = *next;
 		checksum += *next;
 	}
 
-	const auto trailer = byte(serialiser);
+	const auto trailer = byte(serialiser, sample_delay_us);
 	if(!trailer) return std::nullopt;
 	checksum += *trailer;
 	result.checksum = checksum;

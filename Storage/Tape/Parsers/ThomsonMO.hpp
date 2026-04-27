@@ -54,8 +54,10 @@ struct File {
 
 class Parser {
 public:
-	std::optional<bool> bit(Storage::Tape::TapeSerialiser &);
-	std::optional<uint8_t> byte(Storage::Tape::TapeSerialiser &);
+	int calibrated_sample_delay(Storage::Tape::TapeSerialiser &);
+	std::optional<bool> bit(Storage::Tape::TapeSerialiser &, int sample_delay_us = 555);
+
+	std::optional<uint8_t> byte(Storage::Tape::TapeSerialiser &, int sample_delay_us = 555);
 	std::optional<Block> block(Storage::Tape::TapeSerialiser &);
 	std::optional<File> file(Storage::Tape::TapeSerialiser &);
 
