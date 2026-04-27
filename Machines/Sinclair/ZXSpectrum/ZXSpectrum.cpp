@@ -621,7 +621,7 @@ public:
 	}
 
 private:
-	void advance(HalfCycles duration) {
+	void advance(const HalfCycles duration) {
 		time_since_audio_update_ += duration;
 
 		video_ += duration;
@@ -629,7 +629,7 @@ private:
 			z80_.set_interrupt_line(video_.last_valid()->get_interrupt_line(), video_.last_sequence_point_overrun());
 		}
 
-		if(!tape_player_is_sleeping_) tape_player_.run_for(duration.get());
+		if(!tape_player_is_sleeping_) tape_player_.run_for(Cycles(duration.get()));
 
 		// Update automatic tape motor control, if enabled; if it's been
 		// 0.5 seconds since software last possibly polled the tape, stop it.

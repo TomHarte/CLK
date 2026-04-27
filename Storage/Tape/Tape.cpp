@@ -132,6 +132,12 @@ void TapePlayer::run_for(const Cycles cycles) {
 	}
 }
 
+void TapePlayer::run_for(const Time time) {
+	run_for(Cycles(
+		(get_input_clock_rate() * time.length) / time.clock_rate
+	));
+}
+
 void TapePlayer::run_for_input_pulse() {
 	jump_to_next_event();
 }
@@ -198,6 +204,10 @@ bool BinaryTapePlayer::input() const {
 
 void BinaryTapePlayer::run_for(const Cycles cycles) {
 	if(motor_is_running_) TapePlayer::run_for(cycles);
+}
+
+void BinaryTapePlayer::run_for(const Time time) {
+	if(motor_is_running_) TapePlayer::run_for(time);
 }
 
 void BinaryTapePlayer::set_delegate(Delegate *const delegate) {

@@ -27,11 +27,37 @@ struct Block {
 	uint8_t check_digit() const;
 };
 
+struct File {
+	char name[9]{};
+	char extension[4]{};
+	std::string filename() const {
+		return std::string(name) + '.' + extension;
+	}
+
+	enum class Type: uint8_t {
+		BASIC = 0,
+		Data = 1,
+		Binary = 2,
+	};
+	Type type{};
+
+	enum class Mode: uint16_t {
+		// Modes that apply when type is BASIC.
+		BASICTokenised = 0,
+		BASICASCII = 1,
+	};
+	Mode mode{};
+
+	std::vector<uint8_t> data;
+	bool checksums_valid = true;
+};
+
 class Parser {
 public:
 	std::optional<bool> bit(Storage::Tape::TapeSerialiser &);
 	std::optional<uint8_t> byte(Storage::Tape::TapeSerialiser &);
 	std::optional<Block> block(Storage::Tape::TapeSerialiser &);
+	std::optional<File> file(Storage::Tape::TapeSerialiser &);
 
 	void seed_level(Pulse::Type);
 

@@ -166,7 +166,7 @@ public:
 	/// until all scheduled work has been performed, placing a memory barrier
 	/// in between.
 	void spin_flush() {
-		std::atomic_flag has_run = ATOMIC_FLAG_INIT;
+		std::atomic_flag has_run;
 
 		enqueue([&has_run] () {
 			has_run.test_and_set(std::memory_order::release);
@@ -218,7 +218,7 @@ private:
 	ActionVector actions_;
 
 	// Necessary synchronisation parts.
-	std::atomic_flag should_quit_ = ATOMIC_FLAG_INIT;
+	std::atomic_flag should_quit_;
 	std::mutex condition_mutex_;
 	std::condition_variable condition_;
 

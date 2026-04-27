@@ -773,8 +773,9 @@ public:
 			}
 		}
 
-		if(!tape_player_is_sleeping_)
-			tape_player_.run_for(cycle.length.as<int>());
+		if(!tape_player_is_sleeping_) {
+			tape_player_.run_for(cycle.length.reduce<Cycles>());
+		}
 
 		return addition;
 	}

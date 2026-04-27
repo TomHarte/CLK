@@ -129,6 +129,7 @@ public:
 	TapeSerialiser *serialiser();
 
 	void run_for(Cycles);
+	void run_for(Time);		// Converts the Time to an integral number of cycles; some precision is lost.
 	void run_for_input_pulse();
 
 	ClockingHint::Preference preferred_clocking() const override;
@@ -166,6 +167,7 @@ public:
 	bool input() const;
 
 	void run_for(Cycles);
+	void run_for(Time);		// Converts the Time to an integral number of cycles; some precision is lost.
 
 	struct Delegate {
 		virtual void tape_did_change_input(BinaryTapePlayer &) = 0;

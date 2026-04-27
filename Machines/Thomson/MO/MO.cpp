@@ -9,6 +9,7 @@
 #include "MO.hpp"
 
 #include "CD90-640.hpp"
+#include "FastTape.hpp"
 #include "Keyboard.hpp"
 #include "MemoryMap.hpp"
 #include "Video.hpp"
@@ -24,7 +25,6 @@
 #include "Outputs/Speaker/Implementation/BufferSource.hpp"
 #include "Outputs/Log.hpp"
 
-#include "Storage/Tape/Parsers/ThomsonMO.hpp"
 #include "Analyser/Static/Thomson/Target.hpp"
 
 using namespace Thomson::MO;
@@ -176,10 +176,16 @@ struct ConcreteMachine:
 				};
 
 				switch(address) {
-					// TODO: Is there a simpler way to use `namespace`?
 					using namespace CPU::M6809;
 
-					case 0xa7c0:	access<0xa7c0, read_write>(system_pia_, value);				break;
+					case 0xa7c0:
+						access<0xa7c0, read_write>(system_pia_, value);
+						if constexpr (CPU::M6809::is_read(read_write)) {
+							if(allow_fast_tape_loading_ && tape_player_.motor_control()) {
+								fast_tape_loader_.add_tape_read(m6809_.registers().pc.full, memory_);
+							}
+						}
+					break;
 					case 0xa7c1:	access<0xa7c1, read_write>(system_pia_, value);				break;
 					case 0xa7c2:	access<0xa7c2, read_write>(system_pia_, value);				break;
 					case 0xa7c3:	access<0xa7c3, read_write>(system_pia_, value);				break;
@@ -244,57 +250,30 @@ struct ConcreteMachine:
 					value = memory_.read(address);
 
 					if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
-						//
-						// Catch RDBITS.
-						//
-						// Inputs:
-						//
-						//	M0044 = current tape polarity (complement if applicable).
-						//	M0045 = byte in progress; ROL new bit into here.
-						//
-						// Additional output:
-						//
-						//	A = 00 or FF as per bit detected.
-						//
-						// TODO: MO6: check for 1200 or 2400 baud?
 						if(
-							(
-								(!is_mo6 && address == 0xf168) ||
-								(is_mo6 && memory_.visible_monitor_page() && address == 0xf3fd)
-							) && allow_fast_tape_hack_
+							allow_fast_tape_loading_ &&
+							tape_player_.motor_control() &&
+							fast_tape_loader_.trap_address.has_value() &&
+							address == *fast_tape_loader_.trap_address
 						) [[unlikely]] {
-							[&] {
-								auto *const serialiser = tape_player_.serialiser();
-								if(!serialiser) return;
-
-								Storage::Tape::Thomson::MO::Parser parser;
-								const auto dp = m6809_.registers().template reg<CPU::M6809::R8::DP>();
-								auto &polarity = memory_[size_t((dp << 8) | 0x44)];
-								auto &data = memory_[size_t((dp << 8) | 0x45)];
-
-								parser.seed_level(
-									polarity & 0x80 ? Storage::Tape::Pulse::Low : Storage::Tape::Pulse::High
+							auto *const serialiser = tape_player_.serialiser();
+							if(serialiser) {
+								const auto action = fast_tape_loader_.did_trap(
+									address,
+									memory_,
+									m6809_.registers(),
+									tape_player_,
+									*serialiser
 								);
+								switch(action) {
+									using enum Thomson::TrapAction;
 
-								const auto offset = serialiser->offset();
-								const auto bit = parser.bit(*serialiser);
-								if(!bit.has_value()) {
-									serialiser->set_offset(offset);
-									return;
+									case None:					break;
+									case NOP:	value = 0x12;	break;
+									case RTS:	value = 0x39;	break;
+									default: __builtin_unreachable();
 								}
-
-								data = uint8_t((data << 1) | uint8_t(*bit));
-								if(!*bit) {
-									polarity ^= 0xff;
-								}
-								m6809_.registers().template reg<CPU::M6809::R8::A>() = *bit ? 0xff : 0x00;
-
-								// The parser reads up to the end of the bit. The ROM routine ends about two-thirds
-								// of the way through the bit. So 'rewind' the tape a little.
-								tape_player_.add_delay(Cycles(200));
-
-								value = 0x39;	// RTS
-							} ();
+							}
 						}
 					}
 				} else {
@@ -579,7 +558,8 @@ private:
 	// MARK: - Tape and disk.
 
 	Storage::Tape::BinaryTapePlayer tape_player_;
-	bool allow_fast_tape_hack_ = true;
+	bool allow_fast_tape_loading_ = true;
+	Thomson::FastTapeLoader fast_tape_loader_;
 
 	Thomson::CD90_640 fdc_;
 
@@ -723,13 +703,13 @@ private:
 
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
-		options->quick_load = allow_fast_tape_hack_;
+		options->quick_load = allow_fast_tape_loading_;
 		return options;
 	}
 
 	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
 		const auto options = dynamic_cast<Options *>(str.get());
-		allow_fast_tape_hack_ = options->quick_load;
+		allow_fast_tape_loading_ = options->quick_load;
 	}
 
 	// MARK: - Joystick Machine.
