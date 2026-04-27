@@ -32,7 +32,7 @@ namespace Thomson::FastLoader {
 				EORA    M3507                    ;35DD: B8 35 07       '.5.'
 				RTS                              ;35E0: 39             '9'
 
-	Outer loop is:
+	Per-byte loop is:
 
 		Z35AD	BSR     Z35CA                    ;35AD: 8D 1B          '..'
 				BPL     Z35AD                    ;35AF: 2A FC          '*.'		; loop until sample differs from 3507
@@ -45,6 +45,12 @@ namespace Thomson::FastLoader {
 				BRN     Z3603                    ;35BE: 21 43          '!C'
 				ROL     M3508                    ;35C0: 79 35 08       'y5.'
 				RTS                              ;35C3: 39             '9'
+
+	Framing also requires, initially:
+
+		Z3580	BSR     Z35AD                    ;3580: 8D 2B          '.+'
+				TSTA                             ;3582: 4D             'M'
+				BNE     Z3580                    ;3583: 26 FB          '&.'
 
 	Delay loop is:
 
@@ -88,7 +94,7 @@ struct LoricielsBactron: public Loader {
 	std::pair<TrapAction, bool> did_trap(
 		const uint16_t address,
 		MemoryAccess &memory,
-		CPU::M6809::Registers &,
+		CPU::M6809::Registers &registers,
 		Storage::Tape::BinaryTapePlayer &player,
 		Storage::Tape::TapeSerialiser &
 	) override {
@@ -101,8 +107,6 @@ struct LoricielsBactron: public Loader {
 		) {
 			return std::make_pair(TrapAction::None, false);
 		}
-
-		player.run_for(Storage::Time(14 + 8*0x41, 1'000'000));
 
 		// Sample current level.
 		const bool start_level = memory[0x3507] & 0x80;
@@ -118,11 +122,14 @@ struct LoricielsBactron: public Loader {
 		// Sample current level to determine bit, shift and complement as appropriate.
 		const bool final_level = player.input();
 		memory[0x3508] <<= 1;
-		if(final_level == start_level) {
+		const bool is_one = final_level == start_level;
+		if(is_one) {
 			memory[0x3508] |= 1;
 		} else {
 			memory[0x3507] ^= 0xff;
 		}
+
+		registers.reg<CPU::M6809::R8::A>() = is_one ? 0 : ~registers.reg<CPU::M6809::R8::A>();
 
 		return std::make_pair(TrapAction::RTS, true);
 	}

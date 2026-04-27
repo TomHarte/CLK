@@ -128,8 +128,6 @@ struct ConcreteMachine:
 		audio_queue_.lock_flush();
 	}
 
-	uint16_t previous_pc = 0;
-
 	template <
 		CPU::M6809::BusPhase bus_phase,
 		CPU::M6809::LIC lic,
@@ -252,11 +250,6 @@ struct ConcreteMachine:
 					value = memory_.read(address);
 
 					if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
-						if(address == 0x35ad && previous_pc < 0x35ad) {
-							printf("[%d] 3507: %02x; 3508: %02x\n", int(tape_player_.serialiser()->offset()), memory_[0x3507], memory_[0x3508]);
-						}
-						previous_pc = address;
-
 						if(
 							allow_fast_tape_loading_ &&
 							tape_player_.motor_control() &&
