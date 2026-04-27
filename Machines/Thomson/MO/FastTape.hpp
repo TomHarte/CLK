@@ -20,6 +20,8 @@ enum class TrapAction {
 
 namespace FastLoader {
 struct Loader {
+	virtual ~Loader() = default;
+
 	/// @returns: (i) the action to take now with regards to the instruction stream, and (ii) whether to keep the current trap.
 	virtual std::pair<TrapAction, bool> did_trap(
 		const uint16_t address,
