@@ -13,9 +13,6 @@
 
 namespace {
 
-// Helpful to me for inspecting tape contents. Very ugly. I apologise.
-static constexpr bool DumpFiles = false;
-
 using CartridgeList = std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>;
 
 CartridgeList validated(const CartridgeList &cartridges) {
@@ -62,7 +59,8 @@ CartridgeList validated(const CartridgeList &cartridges) {
 	return result;
 }
 
-static constexpr bool DefaultMO6 = true;
+static constexpr bool DefaultMO6 = true;	// Indicates whether to load content on an MO5 or MO6.
+static constexpr bool DumpFiles = true;		// Helpful to me for inspecting tape contents. Very ugly. I apologise.
 
 }
 

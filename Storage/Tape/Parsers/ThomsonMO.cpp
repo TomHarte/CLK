@@ -184,6 +184,7 @@ std::optional<File> Parser::file(Storage::Tape::TapeSerialiser &serialiser) {
 		// Accumulate data for as long as it comes.
 		while(true) {
 			const auto next = block(serialiser);
+			if(!next) break;
 			if(next->type != 1) break;
 			std::copy(next->data.begin(), next->data.end(), std::back_inserter(result->data));
 		}
