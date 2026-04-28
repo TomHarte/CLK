@@ -17,7 +17,6 @@ void Parser::seed_level(const Pulse::Type level) {
 }
 
 int Parser::calibrated_sample_delay(Storage::Tape::TapeSerialiser &serialiser) {
-	// Keep bucketing transition periods within the range 200–750 µs until a pattern emerges.
 	int expected = 555;
 
 	Pulse::Type last_type{};
@@ -52,11 +51,12 @@ int Parser::calibrated_sample_delay(Storage::Tape::TapeSerialiser &serialiser) {
 		if(pulse.type != last_type) {
 			last_type = pulse.type;
 
-			if(time >= 0.000'100f && time < 0.000'750f) {
+			// Bucket only within the range 100–1000 µs.
+			if(time >= 0.000'100f && time < 0.001'000f) {
 				bucket(time);
 				++total_bucketed;
 
-				if(total_bucketed == 20) {
+				if(total_bucketed > 200 && buckets.size() >= 2) {
 					std::sort(buckets.begin(), buckets.end(), [](const Bucket &lhs, const Bucket &rhs) {
 						return lhs.average() < rhs.average();
 					});

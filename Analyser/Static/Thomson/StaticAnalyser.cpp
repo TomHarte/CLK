@@ -17,6 +17,7 @@ namespace {
 static constexpr bool DumpFiles = false;
 
 using CartridgeList = std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>;
+
 CartridgeList validated(const CartridgeList &cartridges) {
 	//
 	// This is an adhoc, empirical take on detecting cartridge validity.
@@ -96,7 +97,8 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 
 				// TODO: determine whether BASIC 1 or BASIC 128 is appropriate.
 				// Note on that: Microsoft BASIC provides optional 'protection', in which case the file on tape is
-				// encrypted. That's currently obscuring efforts here. Will need to figure out how to reverse-engineer that.
+				// encrypted. That's currently obscuring efforts here. Will need to figure out how to
+				// reverse-engineer that.
 				break;
 			}
 		}
@@ -137,7 +139,7 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 		}
 	}
 
-	// Currently: accept all floppy disks and all cartridges.
+	// Currently: accept all floppy disks.
 	// TODO: verify filing system structure. That'll allow for things like HFEs to be included in the automatic set.
 	if(!media.disks.empty()) {
 		target->floppy = MOTarget::Floppy::CD90_640;
@@ -148,14 +150,21 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 	}
 
 	if(!media.cartridges.empty()) {
-		target->media.cartridges = is_confident ? media.cartridges : validated(media.cartridges);
-
-		// Upon survey, it seemed that there are no catridges that require or that do anything additional on an MO6.
-		// So switch to an MO5 for faster launch.
-		if(!target->media.cartridges.empty()) {
-			target->model = MOTarget::Model::MO5v11;
-		}
+		target->media.cartridges = validated(media.cartridges);
 	}
+
+
+	// Fallback: if this is the only potential target but nothing seemed relevant, accept everything.
+	if(target->media.empty() && is_confident) {
+		target->media = media;
+	}
+
+	// It seems there are no catridges that require or do anything additional on an MO6.
+	// So use an MO5 for faster launch.
+	if(!target->media.cartridges.empty()) {
+		target->model = MOTarget::Model::MO5v11;
+	}
+
 
 	if(!target->media.empty()) {
 		destination.push_back(std::move(target));
