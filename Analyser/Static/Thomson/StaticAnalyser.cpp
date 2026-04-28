@@ -14,6 +14,7 @@
 namespace {
 
 using CartridgeList = std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>;
+
 CartridgeList validated(const CartridgeList &cartridges) {
 	//
 	// This is an adhoc, empirical take on detecting cartridge validity.
@@ -58,7 +59,8 @@ CartridgeList validated(const CartridgeList &cartridges) {
 	return result;
 }
 
-static constexpr bool DefaultMO6 = true;
+static constexpr bool DefaultMO6 = true;	// Indicates whether to load content on an MO5 or MO6.
+static constexpr bool DumpFiles = true;		// Helpful to me for inspecting tape contents. Very ugly. I apologise.
 
 }
 
@@ -83,21 +85,60 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 		Parser parser;
 		auto &tape = media.tapes.front();
 		const auto serialiser = tape->serialiser();
-		const auto first = parser.file(*serialiser);
 
-		if(first && first->checksums_valid) {
-			target->media.tapes = media.tapes;
-			target->loading_command = first->type != File::Type::BASIC ? L"LOADM\"\",,R" : L"RUN\"";
+		// Look for a first file.
+		while(!serialiser->is_at_end()) {
+			const auto file = parser.file(*serialiser);
+			if(file && file->checksums_valid) {
+				target->media.tapes = media.tapes;
+				target->loading_command = file->type != File::Type::BASIC ? L"LOADM\"\",,R" : L"RUN\"";
 
-			// TODO: determine whether BASIC 1 or BASIC 128 is appropriate.
+				// TODO: determine whether BASIC 1 or BASIC 128 is appropriate.
+				// Note on that: Microsoft BASIC provides optional 'protection', in which case the file on tape is
+				// encrypted. That's currently obscuring efforts here. Will need to figure out how to
+				// reverse-engineer that.
+				break;
+			}
+		}
+
+		// Failing that, look for any valid block and perform a RUN.
+		if(target->media.tapes.empty()) {
+			serialiser->reset();
+			const auto block = parser.block(*serialiser);
+			if(block.has_value()) {
+				target->media.tapes = media.tapes;
+				target->loading_command = L"LOADM\"\",,R";
+			}
+		}
+
+		// Decorate loading command according to machine.
+		if(!target->media.tapes.empty()) {
 			if(DefaultMO6) {
 				target->loading_command = std::wstring(L"2                ") + target->loading_command;
 			}
 			target->loading_command += '\n';
 		}
+
+		// Possibly provide further insight
+		if constexpr (DumpFiles) {
+			serialiser->reset();
+			while(true) {
+				auto next = parser.file(*serialiser);
+				if(!next.has_value()) break;
+
+				int c = 0;
+				for(auto &b : next->data) {
+					printf("%02x ", b);
+					c++;
+					if(!(c & 15)) printf("\n");
+				}
+				printf("\n\n");
+			}
+		}
 	}
 
-	// Currently: accept all floppy disks and all cartridges.
+	// Currently: accept all floppy disks.
+	// TODO: verify filing system structure. That'll allow for things like HFEs to be included in the automatic set.
 	if(!media.disks.empty()) {
 		target->floppy = MOTarget::Floppy::CD90_640;
 		target->media.disks = media.disks;
@@ -107,14 +148,21 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 	}
 
 	if(!media.cartridges.empty()) {
-		target->media.cartridges = is_confident ? media.cartridges : validated(media.cartridges);
-
-		// Upon survey, it seemed that there are no catridges that require or that do anything additional on an MO6.
-		// So switch to an MO5 for faster launch.
-		if(!target->media.cartridges.empty()) {
-			target->model = MOTarget::Model::MO5v11;
-		}
+		target->media.cartridges = validated(media.cartridges);
 	}
+
+
+	// Fallback: if this is the only potential target but nothing seemed relevant, accept everything.
+	if(target->media.empty() && is_confident) {
+		target->media = media;
+	}
+
+	// It seems there are no catridges that require or do anything additional on an MO6.
+	// So use an MO5 for faster launch.
+	if(!target->media.cartridges.empty()) {
+		target->model = MOTarget::Model::MO5v11;
+	}
+
 
 	if(!target->media.empty()) {
 		destination.push_back(std::move(target));

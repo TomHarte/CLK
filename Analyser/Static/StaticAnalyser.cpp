@@ -273,10 +273,10 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::JFD>>(TargetPlatform::Archimedes, "jfd");
 
-	accumulator.try_standard<Tape::K7>(TargetPlatform::ThomsonMO | TargetPlatform::ThomsonTO, "k5");
-	accumulator.try_standard<Tape::K7>(TargetPlatform::ThomsonMO | TargetPlatform::ThomsonTO, "k7");
+	accumulator.try_standard<Tape::K7>(TargetPlatform::ThomsonMO /* | TargetPlatform::ThomsonTO */, "k5");
+	accumulator.try_standard<Tape::K7>(TargetPlatform::ThomsonMO /* | TargetPlatform::ThomsonTO */, "k7");
 
-	accumulator.try_standard<Tape::LEP>(TargetPlatform::ThomsonMO | TargetPlatform::ThomsonTO, "lep");
+	accumulator.try_standard<Tape::LEP>(TargetPlatform::ThomsonMO /* | TargetPlatform::ThomsonTO */, "lep");
 
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::ThomsonMO, "m5");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::MOOF>>(TargetPlatform::Macintosh, "moof");
