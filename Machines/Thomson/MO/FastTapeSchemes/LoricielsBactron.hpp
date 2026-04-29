@@ -10,6 +10,10 @@
 
 #include <algorithm>
 
+#ifndef NDEBUG
+#include <unordered_set>
+#endif
+
 namespace Thomson::FastLoader {
 
 /*
@@ -114,14 +118,21 @@ struct LoricielsBactron: public Loader {
 				case 0x35cc: return 0x35ad;	// Bactron, MGT.
 				case 0x5f65: return 0x5f48;	// Pulsar II.
 				case 0x9d76: return 0x9d59;	// Yeti.
+				case 0x5f66: return 0x5f49;	// Eliminator
 				default:
-					printf("Probable relocated Loriciels Bactron at %04x\n", address);
+#ifndef NDEBUG
+					if(logged_.find(address) == logged_.end()) {
+						logged_.insert(address);
 
-					printf("%04x:\n", address - 0x200);
-					for(int c = address - 0x200; c < address + 0x200; c++) {
-						printf("%02x ", memory.read(c));
+						printf("Probable relocated Loriciels Bactron at %04x\n", address);
+
+						printf("%04x:\n", address - 0x200);
+						for(int c = address - 0x200; c < address + 0x200; c++) {
+							printf("%02x ", memory.read(c));
+						}
+						printf("\n");
 					}
-					printf("\n");
+#endif
 				break;
 			}
 		}
@@ -154,6 +165,7 @@ struct LoricielsBactron: public Loader {
 			Bactron,
 			PulsarII,
 			Yeti,
+			Eliminator,
 		};
 
 		const auto direct_page = uint16_t(registers.reg<CPU::M6809::R8::DP>() << 8);
@@ -162,6 +174,7 @@ struct LoricielsBactron: public Loader {
 				case 0x35ad:	return Type::Bactron;
 				case 0x5f48:	return Type::PulsarII;
 				case 0x9d59:	return Type::Yeti;
+				case 0x5f49:	return Type::Eliminator;
 				default: __builtin_unreachable();
 			}
 		} ();
@@ -170,6 +183,7 @@ struct LoricielsBactron: public Loader {
 				case Type::Bactron:		return memory[0x3507];
 				case Type::PulsarII:	return memory[direct_page | 0xa4];
 				case Type::Yeti:		return memory[direct_page | 0xb3];
+				case Type::Eliminator:	return memory[direct_page | 0xa5];
 				default: __builtin_unreachable();
 			}
 		} ();
@@ -178,6 +192,7 @@ struct LoricielsBactron: public Loader {
 				case Type::Bactron:		return memory[0x3508];
 				case Type::PulsarII:	return memory[direct_page | 0xa5];
 				case Type::Yeti:		return memory[direct_page | 0xb4];
+				case Type::Eliminator:	return memory[direct_page | 0xa6];
 				default: __builtin_unreachable();
 			}
 		} ();
@@ -207,6 +222,11 @@ struct LoricielsBactron: public Loader {
 
 		return std::make_pair(TrapAction::RTS, true);
 	}
+
+#ifndef NDEBUG
+private:
+	inline static std::unordered_set<uint16_t> logged_;
+#endif
 };
 
 }

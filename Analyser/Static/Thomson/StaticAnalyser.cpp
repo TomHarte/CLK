@@ -62,6 +62,7 @@ CartridgeList validated(const CartridgeList &cartridges) {
 bool implies_mo5(const Storage::Tape::Thomson::MO::File &file) {
 	static constexpr const char *mo5_titles[] = {
 		"PULSAR II",
+		"ELIMINATOR",
 	};
 
 	for(auto it = std::begin(mo5_titles); it != std::end(mo5_titles); ++it) {
