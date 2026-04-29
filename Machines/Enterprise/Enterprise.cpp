@@ -568,13 +568,6 @@ public:
 			break;
 
 			case PartialMachineCycle::ReadOpcode:
-				{
-					static bool print_opcode = false;
-					if(print_opcode) {
-						printf("%04x: %02x\n", address, read_pointers_[address >> 14][address]);
-					}
-				}
-
 				// Potential segue for the host FS. I'm relying on branch prediction to
 				// avoid this cost almost always.
 				if(test_host_fs_traps_ && (address >> 14) == 3) [[unlikely]] {

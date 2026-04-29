@@ -14,9 +14,12 @@ namespace Thomson::FastLoader {
 
 /*
 
-	Fast loader used by, at least, Bactron and MGT.
+	Fast loader used by, at least:
 
-	Sampling code is:
+		(i) Bactron and MGT, in identical versions;
+		(ii) Pulsar II, in a slight modification.
+
+	Sampling code for (i) is:
 
 		Z35CA	LDA     ,U                       ;35CA: A6 C4          '..'
 				LSRA                             ;35CC: 44             'D'
@@ -32,7 +35,7 @@ namespace Thomson::FastLoader {
 				EORA    M3507                    ;35DD: B8 35 07       '.5.'
 				RTS                              ;35E0: 39             '9'
 
-	Per-byte loop is:
+	Per-bit loop is:
 
 		Z35AD	BSR     Z35CA                    ;35AD: 8D 1B          '..'
 				BPL     Z35AD                    ;35AF: 2A FC          '*.'		; loop until sample differs from 3507
@@ -61,15 +64,41 @@ namespace Thomson::FastLoader {
 
 			i.e. length is 8*X + 7 µs.
 
+
+	Differences for (ii):
+
+		* the smpling Z35CA routine is at Z5F63 and the three-byte EOR M3507 has become a two-byte EOR M00A4;
+		* the per-bit Z35AD routine is at Z5F48, subject to different call targets and M3508 now being M00A5;
+		* the Z35C4 delay loop is relocated to Z5F5D;
+		* there's similar framing logic from Z5F1D.
+
+	So the full per-bit is:
+
+		Z5F48	BSR     Z5F63                    ;5F48: 8D 19          '..'
+				BPL     Z5F48                    ;5F4A: 2A FC          '*.'
+				LDX     #M0041                   ;5F4C: 8E 00 41       '..A'
+				BSR     Z5F5D                    ;5F4F: 8D 0C          '..'
+				BSR     Z5F63                    ;5F51: 8D 10          '..'
+				BPL     Z5F59                    ;5F53: 2A 04          '*.'
+				COM     M00A4                    ;5F55: 03 A4          '..'
+				CLRA                             ;5F57: 4F             'O'
+				BRN     Z5F9D                    ;5F58: 21 43          '!C'
+				ROL     M00A5                    ;5F5A: 09 A5          '..'
+				RTS                              ;5F5C: 39             '9'
+
 */
 struct LoricielsBactron: public Loader {
 	static constexpr uint8_t sampler[] = {
 		0xa6, 0xc4, 0x44, 0xa7, 0xe2, 0xa7, 0xe4, 0xa6, 0xc4, 0x44, 0xab, 0xe4, 0xa7, 0xe4, 0xa6, 0xc4,
-		0x44, 0xab, 0xe0, 0xb8, 0x35, 0x07, 0x39
+		0x44, 0xab, 0xe0, /* 0xb8, 0x35, 0x07, 0x39, */
 	};
 
-	static constexpr uint8_t outer[] = {
+	static constexpr uint8_t bactron_outer[] = {
 		0x8d, 0x1b, 0x2a, 0xfc, 0x8e, 0x00, 0x41, 0x8d, 0x0e, 0x8d, 0x12
+	};
+
+	static constexpr uint8_t pulsar2_outer[] = {
+		0x8d, 0x19, 0x2a, 0xfc, 0x8e, 0x00, 0x41, 0x8d, 0x0c, 0x8d, 0x10
 	};
 
 	static std::optional<uint16_t> detect(const uint16_t address, const MemoryAccess &memory) {
@@ -83,8 +112,9 @@ struct LoricielsBactron: public Loader {
 		) {
 			switch(address) {
 				case 0x35cc: return 0x35ad;
+				case 0x5f65: return 0x5f48;
 				default:
-					printf("Probable relocated Loriciels Bactron\n");
+					printf("Probable relocated Loriciels Bactron at %04x\n", address);
 				break;
 			}
 		}
@@ -100,16 +130,26 @@ struct LoricielsBactron: public Loader {
 	) override {
 		// Check that this is still the expected routine.
 		if(!std::equal(
-				std::begin(outer),
-				std::end(outer),
+				std::begin(bactron_outer),
+				std::end(bactron_outer),
+				memory.iterator(address)
+			) &&
+			!std::equal(
+				std::begin(pulsar2_outer),
+				std::end(pulsar2_outer),
 				memory.iterator(address)
 			)
 		) {
 			return std::make_pair(TrapAction::None, false);
 		}
 
+		const bool is_bactron = address == 0x35AD;
+		const auto direct_page = uint16_t(registers.reg<CPU::M6809::R8::DP>() << 8);
+		uint8_t &level = is_bactron ? memory[0x3507] : memory[direct_page | 0xa4];
+		uint8_t &byte = is_bactron ? memory[0x3508] : memory[direct_page | 0xa5];
+
 		// Sample current level.
-		const bool start_level = memory[0x3507] & 0x80;
+		const bool start_level = level & 0x80;
 
 		// Proceed to next edge; time can be skipped here.
 		while(player.input() == start_level) {
@@ -121,12 +161,12 @@ struct LoricielsBactron: public Loader {
 
 		// Sample current level to determine bit, shift and complement as appropriate.
 		const bool final_level = player.input();
-		memory[0x3508] <<= 1;
+		byte <<= 1;
 		const bool is_one = final_level == start_level;
 		if(is_one) {
-			memory[0x3508] |= 1;
+			byte |= 1;
 		} else {
-			memory[0x3507] ^= 0xff;
+			level ^= 0xff;
 		}
 
 		registers.reg<CPU::M6809::R8::A>() = is_one ? ~registers.reg<CPU::M6809::R8::A>() : 0;
