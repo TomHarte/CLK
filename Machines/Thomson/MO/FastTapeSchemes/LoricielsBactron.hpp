@@ -119,6 +119,7 @@ struct LoricielsBactron: public Loader {
 				case 0x5f65: return 0x5f48;	// Pulsar II.
 				case 0x9d76: return 0x9d59;	// Yeti.
 				case 0x5f66: return 0x5f49;	// Eliminator
+				case 0x3459: return 0x343a;	// Mach 3
 				default:
 #ifndef NDEBUG
 					if(logged_.find(address) == logged_.end()) {
@@ -166,6 +167,7 @@ struct LoricielsBactron: public Loader {
 			PulsarII,
 			Yeti,
 			Eliminator,
+			Mach3,
 		};
 
 		const auto direct_page = uint16_t(registers.reg<CPU::M6809::R8::DP>() << 8);
@@ -175,6 +177,7 @@ struct LoricielsBactron: public Loader {
 				case 0x5f48:	return Type::PulsarII;
 				case 0x9d59:	return Type::Yeti;
 				case 0x5f49:	return Type::Eliminator;
+				case 0x343a:	return Type::Mach3;
 				default: __builtin_unreachable();
 			}
 		} ();
@@ -184,6 +187,7 @@ struct LoricielsBactron: public Loader {
 				case Type::PulsarII:	return memory[direct_page | 0xa4];
 				case Type::Yeti:		return memory[direct_page | 0xb3];
 				case Type::Eliminator:	return memory[direct_page | 0xa5];
+				case Type::Mach3:		return memory[0x3394];
 				default: __builtin_unreachable();
 			}
 		} ();
@@ -193,6 +197,7 @@ struct LoricielsBactron: public Loader {
 				case Type::PulsarII:	return memory[direct_page | 0xa5];
 				case Type::Yeti:		return memory[direct_page | 0xb4];
 				case Type::Eliminator:	return memory[direct_page | 0xa6];
+				case Type::Mach3:		return memory[0x3395];
 				default: __builtin_unreachable();
 			}
 		} ();
