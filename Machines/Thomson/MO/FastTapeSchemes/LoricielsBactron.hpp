@@ -120,6 +120,7 @@ struct LoricielsBactron: public Loader {
 				case 0x9d76: return 0x9d59;	// Yeti.
 				case 0x5f66: return 0x5f49;	// Eliminator
 				case 0x3459: return 0x343a;	// Mach 3
+				case 0x402b: return 0x400c; // Space Racer
 				default:
 #ifndef NDEBUG
 					if(logged_.find(address) == logged_.end()) {
@@ -168,6 +169,7 @@ struct LoricielsBactron: public Loader {
 			Yeti,
 			Eliminator,
 			Mach3,
+			SpaceRacer,
 		};
 
 		const auto direct_page = uint16_t(registers.reg<CPU::M6809::R8::DP>() << 8);
@@ -178,6 +180,7 @@ struct LoricielsBactron: public Loader {
 				case 0x9d59:	return Type::Yeti;
 				case 0x5f49:	return Type::Eliminator;
 				case 0x343a:	return Type::Mach3;
+				case 0x400c:	return Type::SpaceRacer;
 				default: __builtin_unreachable();
 			}
 		} ();
@@ -188,6 +191,7 @@ struct LoricielsBactron: public Loader {
 				case Type::Yeti:		return memory[direct_page | 0xb3];
 				case Type::Eliminator:	return memory[direct_page | 0xa5];
 				case Type::Mach3:		return memory[0x3394];
+				case Type::SpaceRacer:	return memory[0x3f66];
 				default: __builtin_unreachable();
 			}
 		} ();
@@ -198,6 +202,7 @@ struct LoricielsBactron: public Loader {
 				case Type::Yeti:		return memory[direct_page | 0xb4];
 				case Type::Eliminator:	return memory[direct_page | 0xa6];
 				case Type::Mach3:		return memory[0x3395];
+				case Type::SpaceRacer:	return memory[0x3f67];
 				default: __builtin_unreachable();
 			}
 		} ();
