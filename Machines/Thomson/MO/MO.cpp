@@ -597,7 +597,7 @@ private:
 	// MARK: - ScanProducer.
 
 	void set_scan_target(Outputs::Display::ScanTarget *const target) final {
-		video_->set_scan_target(target);
+		video_.last_valid()->set_scan_target(target);
 	}
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const final {

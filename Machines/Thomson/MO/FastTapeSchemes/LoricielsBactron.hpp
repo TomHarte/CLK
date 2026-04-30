@@ -10,6 +10,10 @@
 
 #include <algorithm>
 
+#ifndef NDEBUG
+#include <unordered_set>
+#endif
+
 namespace Thomson::FastLoader {
 
 /*
@@ -111,10 +115,26 @@ struct LoricielsBactron: public Loader {
 			)
 		) {
 			switch(address) {
-				case 0x35cc: return 0x35ad;
-				case 0x5f65: return 0x5f48;
+				case 0x35cc: return 0x35ad;	// Bactron, MGT.
+				case 0x5f65: return 0x5f48;	// Pulsar II.
+				case 0x9d76: return 0x9d59;	// Yeti.
+				case 0x5f66: return 0x5f49;	// Eliminator
+				case 0x3459: return 0x343a;	// Mach 3
+				case 0x402b: return 0x400c; // Space Racer
 				default:
-					printf("Probable relocated Loriciels Bactron at %04x\n", address);
+#ifndef NDEBUG
+					if(logged_.find(address) == logged_.end()) {
+						logged_.insert(address);
+
+						printf("Probable relocated Loriciels Bactron at %04x\n", address);
+
+						printf("%04x:\n", address - 0x200);
+						for(int c = address - 0x200; c < address + 0x200; c++) {
+							printf("%02x ", memory.read(c));
+						}
+						printf("\n");
+					}
+#endif
 				break;
 			}
 		}
@@ -143,10 +163,49 @@ struct LoricielsBactron: public Loader {
 			return std::make_pair(TrapAction::None, false);
 		}
 
-		const bool is_bactron = address == 0x35AD;
+		enum class Type {
+			Bactron,
+			PulsarII,
+			Yeti,
+			Eliminator,
+			Mach3,
+			SpaceRacer,
+		};
+
 		const auto direct_page = uint16_t(registers.reg<CPU::M6809::R8::DP>() << 8);
-		uint8_t &level = is_bactron ? memory[0x3507] : memory[direct_page | 0xa4];
-		uint8_t &byte = is_bactron ? memory[0x3508] : memory[direct_page | 0xa5];
+		const auto type = [&]() {
+			switch(address) {
+				case 0x35ad:	return Type::Bactron;
+				case 0x5f48:	return Type::PulsarII;
+				case 0x9d59:	return Type::Yeti;
+				case 0x5f49:	return Type::Eliminator;
+				case 0x343a:	return Type::Mach3;
+				case 0x400c:	return Type::SpaceRacer;
+				default: __builtin_unreachable();
+			}
+		} ();
+		uint8_t &level = [&]() -> uint8_t & {
+			switch(type) {
+				case Type::Bactron:		return memory[0x3507];
+				case Type::PulsarII:	return memory[direct_page | 0xa4];
+				case Type::Yeti:		return memory[direct_page | 0xb3];
+				case Type::Eliminator:	return memory[direct_page | 0xa5];
+				case Type::Mach3:		return memory[0x3394];
+				case Type::SpaceRacer:	return memory[0x3f66];
+				default: __builtin_unreachable();
+			}
+		} ();
+		uint8_t &byte = [&]() -> uint8_t & {
+			switch(type) {
+				case Type::Bactron:		return memory[0x3508];
+				case Type::PulsarII:	return memory[direct_page | 0xa5];
+				case Type::Yeti:		return memory[direct_page | 0xb4];
+				case Type::Eliminator:	return memory[direct_page | 0xa6];
+				case Type::Mach3:		return memory[0x3395];
+				case Type::SpaceRacer:	return memory[0x3f67];
+				default: __builtin_unreachable();
+			}
+		} ();
 
 		// Sample current level.
 		const bool start_level = level & 0x80;
@@ -173,6 +232,11 @@ struct LoricielsBactron: public Loader {
 
 		return std::make_pair(TrapAction::RTS, true);
 	}
+
+#ifndef NDEBUG
+private:
+	inline static std::unordered_set<uint16_t> logged_;
+#endif
 };
 
 }

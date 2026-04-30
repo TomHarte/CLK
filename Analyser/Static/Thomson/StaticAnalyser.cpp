@@ -59,8 +59,24 @@ CartridgeList validated(const CartridgeList &cartridges) {
 	return result;
 }
 
+bool implies_mo5(const Storage::Tape::Thomson::MO::File &file) {
+	static constexpr const char *mo5_titles[] = {
+		"PULSAR II",
+		"ELIMINATOR",
+	};
+
+	for(auto it = std::begin(mo5_titles); it != std::end(mo5_titles); ++it) {
+		if(
+			std::search(file.data.begin(), file.data.end(), *it, *it + strlen(*it))
+			!= file.data.end()
+		) return true;
+	}
+
+	return false;
+}
+
 static constexpr bool DefaultMO6 = true;	// Indicates whether to load content on an MO5 or MO6.
-static constexpr bool DumpFiles = true;		// Helpful to me for inspecting tape contents. Very ugly. I apologise.
+static constexpr bool DumpFiles = false;	// Helpful to me for inspecting tape contents. Very ugly. I apologise.
 
 }
 
@@ -97,6 +113,10 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 				// Note on that: Microsoft BASIC provides optional 'protection', in which case the file on tape is
 				// encrypted. That's currently obscuring efforts here. Will need to figure out how to
 				// reverse-engineer that.
+
+				if(implies_mo5(*file)) {
+					target->model = MOTarget::Model::MO5v11;
+				}
 				break;
 			}
 		}
@@ -113,7 +133,7 @@ Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 
 		// Decorate loading command according to machine.
 		if(!target->media.tapes.empty()) {
-			if(DefaultMO6) {
+			if(is_mo6(target->model)) {
 				target->loading_command = std::wstring(L"2                ") + target->loading_command;
 			}
 			target->loading_command += '\n';

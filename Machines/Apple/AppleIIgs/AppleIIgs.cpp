@@ -231,11 +231,11 @@ public:
 	}
 
 	void set_scan_target(Outputs::Display::ScanTarget *target) override {
-		video_->set_scan_target(target);
+		video_.last_valid()->set_scan_target(target);
 	}
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const override {
-		return video_->get_scaled_scan_status() * 2.0f;	// TODO: expose multiplier and divider via the JustInTime template?
+		return video_.last_valid()->get_scaled_scan_status() * 2.0f;	// TODO: expose multiplier and divider via the JustInTime template?
 	}
 
 	void set_display_type(Outputs::Display::DisplayType display_type) final {
