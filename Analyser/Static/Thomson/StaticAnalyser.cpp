@@ -76,7 +76,7 @@ bool implies_mo5(const Storage::Tape::Thomson::MO::File &file) {
 }
 
 static constexpr bool DefaultMO6 = true;	// Indicates whether to load content on an MO5 or MO6.
-static constexpr bool DumpFiles = true;		// Helpful to me for inspecting tape contents. Very ugly. I apologise.
+static constexpr bool DumpFiles = false;	// Helpful to me for inspecting tape contents. Very ugly. I apologise.
 
 }
 
