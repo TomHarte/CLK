@@ -290,7 +290,7 @@ public:
 	// MARK: - ScanProducer.
 
 	void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
-		video_->set_scan_target(scan_target);
+		video_.last_valid()->set_scan_target(scan_target);
 	}
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const override {
