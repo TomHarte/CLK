@@ -74,7 +74,7 @@ void TimedEventLoop::jump_to_next_event() {
 }
 
 void TimedEventLoop::set_next_event_time_interval(const Time interval) {
-	set_next_event_time_interval(interval.get<float>());
+	set_next_event_time_interval(interval.as<float>());
 }
 
 void TimedEventLoop::set_next_event_time_interval(const float interval) {

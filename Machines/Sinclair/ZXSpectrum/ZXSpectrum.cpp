@@ -200,7 +200,7 @@ public:
 		if(target.state) {
 			const auto state = static_cast<State *>(target.state.get());
 			state->z80.apply(z80_);
-			state->video.apply(*video_.last_valid());
+			state->video.apply(*video_.get());
 			state->ay.apply(ay_);
 
 			// If this is a 48k or 16k machine, remap source data from its original
@@ -290,7 +290,7 @@ public:
 	// MARK: - ScanProducer.
 
 	void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
-		video_.last_valid()->set_scan_target(scan_target);
+		video_.get()->set_scan_target(scan_target);
 	}
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const override {
@@ -321,7 +321,7 @@ public:
 				cycle.operation >= PartialMachineCycle::ReadOpcodeStart &&
 				cycle.operation <= PartialMachineCycle::WriteStart) {
 
-				const auto delay = video_.last_valid()->access_delay(video_.time_since_flush());
+				const auto delay = video_.get()->access_delay(video_.time_since_flush());
 				advance(cycle.length + delay);
 				return delay;
 			}
@@ -352,13 +352,13 @@ public:
 
 					if((address & 0xc000) == 0x4000) {
 						for(int c = 0; c < ((address & 1) ? 4 : 2); c++) {
-							const auto next_delay = video_.last_valid()->access_delay(time);
+							const auto next_delay = video_.get()->access_delay(time);
 							delay += next_delay;
 							time += next_delay + 2;
 						}
 					} else {
 						if(!(address & 1)) {
-							delay = video_.last_valid()->access_delay(time + HalfCycles(2));
+							delay = video_.get()->access_delay(time + HalfCycles(2));
 						}
 					}
 
@@ -372,7 +372,7 @@ public:
 					// These all start by loading the address bus, then set MREQ
 					// half a cycle later.
 					if(banks_[address >> 14].is_contended) {
-						const auto delay = video_.last_valid()->access_delay(video_.time_since_flush());
+						const auto delay = video_.get()->access_delay(video_.time_since_flush());
 
 						advance(cycle.length + delay);
 						return delay;
@@ -390,7 +390,7 @@ public:
 						HalfCycles time = video_.time_since_flush();
 						HalfCycles delay;
 						for(int c = 0; c < half_cycles; c += 2) {
-							const auto next_delay = video_.last_valid()->access_delay(time);
+							const auto next_delay = video_.get()->access_delay(time);
 							delay += next_delay;
 							time += next_delay + 2;
 						}
@@ -626,7 +626,7 @@ private:
 
 		video_ += duration;
 		if(video_.did_flush()) {
-			z80_.set_interrupt_line(video_.last_valid()->get_interrupt_line(), video_.last_sequence_point_overrun());
+			z80_.set_interrupt_line(video_.get()->get_interrupt_line(), video_.last_sequence_point_overrun());
 		}
 
 		if(!tape_player_is_sleeping_) tape_player_.run_for(Cycles(duration.get()));

@@ -149,19 +149,19 @@ public:
 
 	// MARK: CRTMachine::Machine
 	void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
-		video_.last_valid()->set_scan_target(scan_target);
+		video_.get()->set_scan_target(scan_target);
 	}
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const final {
-		return video_.last_valid()->get_scaled_scan_status();
+		return video_.get()->get_scaled_scan_status();
 	}
 
 	void set_display_type(Outputs::Display::DisplayType display_type) final {
-		video_.last_valid()->set_display_type(display_type);
+		video_.get()->set_display_type(display_type);
 	}
 
 	Outputs::Display::DisplayType get_display_type() const final {
-		return video_.last_valid()->get_display_type();
+		return video_.get()->get_display_type();
 	}
 
 	Outputs::Speaker::Speaker *get_speaker() final {
@@ -550,11 +550,11 @@ private:
 		// This is being called by one of the components; avoid any time flushing here as that's
 		// already dealt with (and, just to be absolutely sure, to avoid recursive mania).
 		may_defer_acias_ =
-			(keyboard_acia_.last_valid()->preferred_clocking() != ClockingHint::Preference::RealTime) &&
-			(midi_acia_.last_valid()->preferred_clocking() != ClockingHint::Preference::RealTime);
+			(keyboard_acia_.get()->preferred_clocking() != ClockingHint::Preference::RealTime) &&
+			(midi_acia_.get()->preferred_clocking() != ClockingHint::Preference::RealTime);
 		keyboard_needs_clock_ = ikbd_.preferred_clocking() != ClockingHint::Preference::None;
-		mfp_is_realtime_ = mfp_.last_valid()->preferred_clocking() == ClockingHint::Preference::RealTime;
-		dma_clocking_preference_ = dma_.last_valid()->preferred_clocking();
+		mfp_is_realtime_ = mfp_.get()->preferred_clocking() == ClockingHint::Preference::RealTime;
+		dma_clocking_preference_ = dma_.get()->preferred_clocking();
 	}
 
 	// MARK: - GPIP input.
@@ -606,8 +606,8 @@ private:
 	void update_interrupt_input() {
 		// Complete guess: set video interrupts pending if/when hsync of vsync
 		// go inactive. Reset upon IACK.
-		const bool hsync = video_.last_valid()->hsync();
-		const bool vsync = video_.last_valid()->vsync();
+		const bool hsync = video_.get()->hsync();
+		const bool vsync = video_.get()->vsync();
 		if(previous_hsync_ != hsync && previous_hsync_) {
 			video_interrupts_pending_ |= 2;
 		}

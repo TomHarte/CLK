@@ -47,7 +47,7 @@ int Parser::calibrated_sample_delay(Storage::Tape::TapeSerialiser &serialiser) {
 
 	while(!serialiser.is_at_end()) {
 		const auto pulse = serialiser.next_pulse();
-		time += pulse.length.get<float>();
+		time += pulse.length.as<float>();
 		if(pulse.type != last_type) {
 			last_type = pulse.type;
 
@@ -88,7 +88,7 @@ std::optional<bool> Parser::bit(Storage::Tape::TapeSerialiser &serialiser, int s
 	float time = 0.0f;
 	const float bit_duration = float(sample_delay_us) / 1'000'000.0f;
 	while(!serialiser.is_at_end()) {
-		time += pulse.length.get<float>();
+		time += pulse.length.as<float>();
 		if(time >= bit_duration) break;
 		pulse = serialiser.next_pulse();
 	}

@@ -231,11 +231,11 @@ public:
 	}
 
 	void set_scan_target(Outputs::Display::ScanTarget *target) override {
-		video_.last_valid()->set_scan_target(target);
+		video_.get()->set_scan_target(target);
 	}
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const override {
-		return video_.last_valid()->get_scaled_scan_status() * 2.0f;	// TODO: expose multiplier and divider via the JustInTime template?
+		return video_.get()->get_scaled_scan_status() * 2.0f;	// TODO: expose multiplier and divider via the JustInTime template?
 	}
 
 	void set_display_type(Outputs::Display::DisplayType display_type) final {
@@ -342,7 +342,7 @@ public:
 
 				// Clock and border control.
 				case Read(0xc034):
-					*value = (clock_.get_control() & 0xf0) | (video_.last_valid()->get_border_colour() & 0x0f);
+					*value = (clock_.get_control() & 0xf0) | (video_.get()->get_border_colour() & 0x0f);
 				break;
 				case Write(0xc034):
 					clock_.set_control(*value);
@@ -354,7 +354,7 @@ public:
 					video_->set_text_colour(*value);
 				break;
 				case Read(0xc022):
-					*value = video_.last_valid()->get_text_colour();
+					*value = video_.get()->get_text_colour();
 				break;
 
 				// Speed register.
@@ -394,7 +394,7 @@ public:
 #define SwitchRead(s) *value = memory_.s ? 0x80 : 0x00; is_1Mhz = true;
 #define LanguageRead(s) SwitchRead(language_card_switches().state().s)
 #define AuxiliaryRead(s) SwitchRead(auxiliary_switches().switches().s)
-#define VideoRead(s) *value = video_.last_valid()->s ? 0x80 : 0x00; is_1Mhz = true;
+#define VideoRead(s) *value = video_.get()->s ? 0x80 : 0x00; is_1Mhz = true;
 				case Read(0xc011):	LanguageRead(bank2);						break;
 				case Read(0xc012):	LanguageRead(read);							break;
 				case Read(0xc013):	AuxiliaryRead(read_auxiliary_memory);		break;
@@ -590,18 +590,18 @@ public:
 				// Monochome/colour register.
 				case Read(0xc021):
 					// "Uses bit 7 to determine whether composite output is colour 9) or gray scale (1)."
-					*value = video_.last_valid()->get_composite_is_colour() ? 0x00 : 0x80;
+					*value = video_.get()->get_composite_is_colour() ? 0x00 : 0x80;
 				break;
 				case Write(0xc021):
 					video_->set_composite_is_colour(!(*value & 0x80));
 				break;
 
 				case Read(0xc02e):
-					*value = video_.last_valid()->get_vertical_counter(video_.time_since_flush());
+					*value = video_.get()->get_vertical_counter(video_.time_since_flush());
 					is_1Mhz = true;
 				break;
 				case Read(0xc02f):
-					*value = video_.last_valid()->get_horizontal_counter(video_.time_since_flush());
+					*value = video_.get()->get_horizontal_counter(video_.time_since_flush());
 					is_1Mhz = true;
 				break;
 
@@ -876,7 +876,7 @@ public:
 		auto ticks = cycles_since_clock_tick_.divide(CLOCK_RATE).get();
 		while(ticks--) {
 			clock_.update();
-			video_.last_valid()->notify_clock_tick();	// The video controller marshalls the one-second interrupt.
+			video_.get()->notify_clock_tick();	// The video controller marshalls the one-second interrupt.
 														// TODO: I think I may have made a false assumption here; does
 														// the VGC have an independent 1-second interrupt?
 			update_interrupts();
@@ -894,8 +894,8 @@ public:
 		if(video_.did_flush()) {
 			update_interrupts();
 
-			const bool is_vertical_blank = video_.last_valid()->get_is_vertical_blank(video_.time_since_flush());
-			if(is_vertical_blank != adb_glu_.last_valid()->get_vertical_blank()) {
+			const bool is_vertical_blank = video_.get()->get_is_vertical_blank(video_.time_since_flush());
+			if(is_vertical_blank != adb_glu_.get()->get_vertical_blank()) {
 				adb_glu_->set_vertical_blank(is_vertical_blank);
 			}
 		}
@@ -908,7 +908,7 @@ public:
 	void update_interrupts() {
 		// Update the interrupt line.
 		// TODO: add ADB controller as event source.
-		m65816_.set_irq_line(video_.last_valid()->get_interrupt_line() || sound_glu_.get_interrupt_line());
+		m65816_.set_irq_line(video_.get()->get_interrupt_line() || sound_glu_.get_interrupt_line());
 	}
 
 	// MARK: - Input.
@@ -917,15 +917,15 @@ public:
 	}
 
 	void set_key_state(uint16_t key, bool is_pressed) final {
-		adb_glu_.last_valid()->keyboard().set_key_pressed(Apple::ADB::Key(key), is_pressed);
+		adb_glu_.get()->keyboard().set_key_pressed(Apple::ADB::Key(key), is_pressed);
 	}
 
 	void clear_all_keys() final {
-		adb_glu_.last_valid()->keyboard().clear_all_keys();
+		adb_glu_.get()->keyboard().clear_all_keys();
 	}
 
 	Inputs::Mouse &get_mouse() final {
-		return adb_glu_.last_valid()->get_mouse();
+		return adb_glu_.get()->get_mouse();
 	}
 
 	const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
