@@ -186,7 +186,7 @@ void Line<include_clock>::update_delegate(const bool level) {
 template <bool include_clock>
 Cycles::IntType Line<include_clock>::minimum_write_cycles_for_read_delegate_bit() {
 	if(!read_delegate_) return 0;
-	return 1 + (read_delegate_bit_length_ * clock_rate_.as<unsigned int>()).template get<int>();
+	return 1 + (read_delegate_bit_length_ * clock_rate_.as<unsigned int>()).template as<int>();
 }
 
 //

@@ -240,7 +240,7 @@ void Drive::run_for(const Cycles cycles) {
 				const auto cycles_until_next_event = get_cycles_until_next_event();
 				auto cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
 				if(!is_reading_ && cycles_until_bits_written_ > zero) {
-					auto write_cycles_target = cycles_until_bits_written_.get<Cycles::IntType>();
+					auto write_cycles_target = cycles_until_bits_written_.as<Cycles::IntType>();
 					if(cycles_until_bits_written_.length % cycles_until_bits_written_.clock_rate) ++write_cycles_target;
 					cycles_to_run_for = std::min(cycles_to_run_for, write_cycles_target);
 				}
@@ -323,7 +323,7 @@ void Drive::get_next_event(const float duration_already_passed) {
 	if(track_) {
 		const auto track_event = track_->get_next_event();
 		current_event_.type = track_event.type;
-		current_event_.length = track_event.length.get<float>();
+		current_event_.length = track_event.length.as<float>();
 	} else {
 		current_event_.length = 1.0f;
 		current_event_.type = Track::Event::IndexHole;

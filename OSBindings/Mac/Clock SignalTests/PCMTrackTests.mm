@@ -83,7 +83,7 @@
 	XCTAssert(offset >= 0.0 && offset < 0.5, "Next event should occur soon");
 
 	auto next_event = track.get_next_event();
-	double next_event_duration = next_event.length.get<double>();
+	double next_event_duration = next_event.length.as<double>();
 	XCTAssert(next_event_duration >= 0.0 && next_event_duration < 0.005, "Next event should occur soon");
 }
 

@@ -50,7 +50,7 @@ struct Time {
 	/*!
 		@returns the floating point conversion of this @c Time. This will often be less precise.
 	*/
-	template <typename T> T get() const {
+	template <typename T> T as() const {
 		return T(length) / T(clock_rate);
 	}
 

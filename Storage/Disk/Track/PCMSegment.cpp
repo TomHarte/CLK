@@ -118,7 +118,7 @@ Storage::Time PCMSegmentEventSource::get_length() {
 
 float PCMSegmentEventSource::seek_to(const float time_from_start) {
 	// test for requested time being beyond the end
-	const float length = get_length().get<float>();
+	const float length = get_length().as<float>();
 	if(time_from_start >= length) {
 		next_event_.type = Track::Event::IndexHole;
 		bit_pointer_ = segment_->data.size()+1;
@@ -129,7 +129,7 @@ float PCMSegmentEventSource::seek_to(const float time_from_start) {
 	next_event_.type = Track::Event::FluxTransition;
 
 	// test for requested time being before the first bit
-	const float bit_length = segment_->length_of_a_bit.get<float>();
+	const float bit_length = segment_->length_of_a_bit.as<float>();
 	const float half_bit_length = bit_length / 2.0f;
 	if(time_from_start < half_bit_length) {
 		bit_pointer_ = 0;

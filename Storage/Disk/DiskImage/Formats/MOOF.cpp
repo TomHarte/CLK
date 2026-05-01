@@ -62,7 +62,7 @@ public:
 		float time_observed = 0.0f;
 		while(time_observed < time_since_index_hole) {
 			auto prior = data_iterator_;
-			const auto next_time = get_next_event().length.get<float>();
+			const auto next_time = get_next_event().length.as<float>();
 
 			if(time_observed + next_time > time_since_index_hole) {
 				--bits_passed_;

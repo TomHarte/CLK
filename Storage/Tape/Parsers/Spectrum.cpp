@@ -32,7 +32,7 @@ void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 	}
 
 	// Only pulse duration matters; the ZX Spectrum et al do not rely on polarity.
-	const float t_states = pulse.length.get<float>() * 3'500'000.0f;
+	const float t_states = pulse.length.as<float>() * 3'500'000.0f;
 
 	switch(speed_phase_) {
 		case SpeedDetectionPhase::WaitingForGap:

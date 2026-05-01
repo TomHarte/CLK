@@ -86,7 +86,7 @@ void Controller::set_expected_bit_length(const Time bit_length) {
 
 	// this conversion doesn't need to be exact because there's a lot of variation to be taken
 	// account of in rotation speed, air turbulence, etc, so a direct conversion will do
-	const int clocks_per_bit = cycles_per_bit.get<int>();
+	const int clocks_per_bit = cycles_per_bit.as<int>();
 	pll_.set_clocks_per_bit(clocks_per_bit);
 }
 
