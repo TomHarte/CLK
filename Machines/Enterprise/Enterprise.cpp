@@ -291,7 +291,7 @@ public:
 	// MARK: - Z80::BusHandler.
 	forceinline void advance_nick(const HalfCycles duration) {
 		if(nick_ += duration) {
-			const auto nick = nick_.last_valid();
+			const auto nick = nick_.get();
 			const bool nick_interrupt_line = nick->get_interrupt_line();
 			if(nick_interrupt_line && !previous_nick_interrupt_line_) {
 				set_interrupts(uint8_t(Dave::Interrupt::Nick), nick_.last_sequence_point_overrun());
@@ -333,7 +333,7 @@ public:
 					// Query Nick for the amount of delay that would occur with one cycle left
 					// in this read opcode.
 					const auto delay_time = nick_.time_since_flush(HalfCycles(2));
-					const auto delay = nick_.last_valid()->get_time_until_z80_slot(delay_time);
+					const auto delay = nick_.get()->get_time_until_z80_slot(delay_time);
 					penalty = nick_.back_map(delay, delay_time);
 				} else if(wait_mode_ != WaitMode::None) {
 					penalty = dave_delay_;
@@ -354,7 +354,7 @@ public:
 					// Get delay, in Nick cycles, for a Z80 access that occurs in 0.5
 					// cycles from now (i.e. with one cycle left to run).
 					const auto delay_time = nick_.time_since_flush(HalfCycles(1));
-					const auto delay = nick_.last_valid()->get_time_until_z80_slot(delay_time);
+					const auto delay = nick_.get()->get_time_until_z80_slot(delay_time);
 					penalty = nick_.back_map(delay, delay_time);
 				}
 			break;
@@ -365,7 +365,7 @@ public:
 					// Get delay, in Nick cycles, for a Z80 access that occurs in 0.5
 					// cycles from now (i.e. with one cycle left to run).
 					const auto delay_time = nick_.time_since_flush(HalfCycles(1));
-					const auto delay = nick_.last_valid()->get_time_until_z80_slot(delay_time);
+					const auto delay = nick_.get()->get_time_until_z80_slot(delay_time);
 					penalty = nick_.back_map(delay, delay_time);
 				}
 			}
@@ -375,7 +375,7 @@ public:
 		time_since_audio_update_ += full_length;
 		advance_nick(full_length);
 		if(dave_timer_ += full_length) {
-			set_interrupts(dave_timer_.last_valid()->get_new_interrupts(), dave_timer_.last_sequence_point_overrun());
+			set_interrupts(dave_timer_.get()->get_new_interrupts(), dave_timer_.last_sequence_point_overrun());
 		}
 
 		// The WD/etc runs at a nominal 8Mhz.
@@ -725,19 +725,19 @@ private:
 	// MARK: - ScanProducer
 
 	void set_scan_target(Outputs::Display::ScanTarget *const scan_target) override {
-		nick_.last_valid()->set_scan_target(scan_target);
+		nick_.get()->set_scan_target(scan_target);
 	}
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const override {
-		return nick_.last_valid()->get_scaled_scan_status();
+		return nick_.get()->get_scaled_scan_status();
 	}
 
 	void set_display_type(const Outputs::Display::DisplayType display_type) final {
-		nick_.last_valid()->set_display_type(display_type);
+		nick_.get()->set_display_type(display_type);
 	}
 
 	Outputs::Display::DisplayType get_display_type() const final {
-		return nick_.last_valid()->get_display_type();
+		return nick_.get()->get_display_type();
 	}
 
 	// MARK: - AudioProducer

@@ -461,7 +461,7 @@ public:
 				case DiskInterface::BD500:		inserted |= insert_disks(media, bd500_, 4);		break;
 				case DiskInterface::Jasmin:		inserted |= insert_disks(media, jasmin_, 4);	break;
 				case DiskInterface::Microdisc:	inserted |= insert_disks(media, microdisc_, 4);	break;
-				case DiskInterface::Pravetz:	inserted |= insert_disks(media, *diskii_.last_valid(), 2);	break;
+				case DiskInterface::Pravetz:	inserted |= insert_disks(media, *diskii_.get(), 2);	break;
 				default: break;
 			}
 		}
@@ -607,19 +607,19 @@ public:
 
 	// to satisfy CRTMachine::Machine
 	void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
-		video_.last_valid()->set_scan_target(scan_target);
+		video_.get()->set_scan_target(scan_target);
 	}
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const final {
-		return video_.last_valid()->get_scaled_scan_status();
+		return video_.get()->get_scaled_scan_status();
 	}
 
 	void set_display_type(Outputs::Display::DisplayType display_type) final {
-		video_.last_valid()->set_display_type(display_type);
+		video_.get()->set_display_type(display_type);
 	}
 
 	Outputs::Display::DisplayType get_display_type() const final {
-		return video_.last_valid()->get_display_type();
+		return video_.get()->get_display_type();
 	}
 
 	Outputs::Speaker::Speaker *get_speaker() final {

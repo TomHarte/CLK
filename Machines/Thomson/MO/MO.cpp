@@ -141,7 +141,7 @@ struct ConcreteMachine:
 	) {
 		static constexpr auto duration = CPU::M6809::duration<Cycles>(bus_phase);
 		if(video_ += duration) {
-			system_pia_.template set<Motorola::MC6821::Control::CB1>(video_.last_valid()->irq());
+			system_pia_.template set<Motorola::MC6821::Control::CB1>(video_.get()->irq());
 		}
 		time_since_audio_update_ += duration;
 		tape_player_.run_for(duration);
@@ -597,11 +597,11 @@ private:
 	// MARK: - ScanProducer.
 
 	void set_scan_target(Outputs::Display::ScanTarget *const target) final {
-		video_.last_valid()->set_scan_target(target);
+		video_.get()->set_scan_target(target);
 	}
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const final {
-		return video_.last_valid()->get_scaled_scan_status();
+		return video_.get()->get_scaled_scan_status();
 	}
 
 	// MARK: - TimedMachine.

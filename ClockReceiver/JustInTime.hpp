@@ -150,12 +150,12 @@ public:
 	}
 
 	/// @returns a pointer to the included object, without flushing time.
-	[[nodiscard]] forceinline T *last_valid() {
+	[[nodiscard]] forceinline T *get() {
 		return &object_;
 	}
 
 	/// @returns a const pointer to the included object, without flushing time.
-	[[nodiscard]] forceinline const T *last_valid() const {
+	[[nodiscard]] forceinline const T *get() const {
 		return &object_;
 	}
 
@@ -322,7 +322,7 @@ public:
 	}
 
 	/// Returns a pointer to the included object without flushing time.
-	inline T *last_valid() {
+	inline T *get() {
 		return &object_;
 	}
 
