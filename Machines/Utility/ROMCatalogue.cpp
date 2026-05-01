@@ -1018,6 +1018,51 @@ const std::vector<Description> &Description::all_roms() {
 		},
 
 	//
+	// Tandy CoCo.
+	//
+
+		{
+			TandyCoCoColourBasic10,
+			"TandyCoCo",
+			"Colour BASIC 1.0",
+			"Color Basic v1.0 (1980) (Tandy).rom",
+			8_kb,
+			0x00b50aaau
+		},
+		{
+			TandyCoCoColourBasic11,
+			"TandyCoCo",
+			"Colour BASIC 1.1",
+			"Color Basic v1.1 (1980) (Tandy).rom",
+			8_kb,
+			0x6270955au
+		},
+		{
+			TandyCoCoColourBasic12,
+			"TandyCoCo",
+			"Colour BASIC 1.2",
+			"Color Basic v1.2 (1982) (Tandy).rom",
+			8_kb,
+			0x54368805u
+		},
+		{
+			TandyCoCoColourBasic13,
+			"TandyCoCo",
+			"Colour BASIC 1.3",
+			"Color Basic v1.3 (1982) (Tandy).rom",
+			8_kb,
+			0xd8f4d15eu
+		},
+		{
+			TandyCoCoColourBasic14,
+			"TandyCoCo",
+			"Colour BASIC 1.4",
+			"Color Basic v1.4 (1985) (Tandy).rom",
+			8_kb,
+			0xcbdc1ba2u
+		},
+
+	//
 	// Thomson MO and TO machines.
 	//
 		{

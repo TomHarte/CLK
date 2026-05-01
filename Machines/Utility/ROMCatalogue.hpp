@@ -175,6 +175,13 @@ enum Name {
 	// Sinclair QL.
 	SinclairQLJS,
 
+	// Tandy CoCo.
+	TandyCoCoColourBasic10,
+	TandyCoCoColourBasic11,
+	TandyCoCoColourBasic12,
+	TandyCoCoColourBasic13,
+	TandyCoCoColourBasic14,
+
 	// Thomson MO and TO machines.
 	ThomsonMO5v1,
 	ThomsonMO5v11,
