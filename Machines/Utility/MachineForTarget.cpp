@@ -246,99 +246,100 @@ std::vector<std::string> Machine::AllMachines(const Type type, const bool long_n
 	return result;
 }
 
-std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsByMachineName() {
+namespace {
+struct OptionsList {
 	std::map<std::string, std::unique_ptr<Reflection::Struct>> options;
 
-#define Emplace(machine, class)														\
-	options.emplace(																\
-		LongNameForTargetMachine(Analyser::Machine::machine),						\
-		std::make_unique<class::Options>(Configurable::OptionsType::UserFriendly)	\
-	)
+	template <typename MachineT>
+	void emplace(const Analyser::Machine machine) {
+		options.emplace(
+			Machine::LongNameForTargetMachine(machine),
+			std::make_unique<typename MachineT::Options>(Configurable::OptionsType::UserFriendly)
+		);
+	};
+};
+}
 
-	Emplace(AmstradCPC, AmstradCPC::Machine);
-	Emplace(AppleII, Apple::II::Machine);
-	Emplace(Archimedes, Archimedes::Machine);
-	Emplace(AtariST, Atari::ST::Machine);
-	Emplace(BBCMicro, BBCMicro::Machine);
-	Emplace(ColecoVision, Coleco::Vision::Machine);
-	Emplace(Electron, Electron::Machine);
-	Emplace(Enterprise, Enterprise::Machine);
-	Emplace(Macintosh, Apple::Macintosh::Machine);
-	Emplace(MasterSystem, Sega::MasterSystem::Machine);
-	Emplace(MSX, MSX::Machine);
-	Emplace(Oric, Oric::Machine);
-	Emplace(Plus4, Commodore::Plus4::Machine);
-	Emplace(PCCompatible, PCCompatible::Machine);
-	Emplace(ThomsonMO, Thomson::MO::Machine);
-	Emplace(Vic20, Commodore::Vic20::Machine);
-	Emplace(ZX8081, Sinclair::ZX8081::Machine);
-	Emplace(ZXSpectrum, Sinclair::ZXSpectrum::Machine);
+std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsByMachineName() {
+	OptionsList options;
 
-#undef Emplace
+	using enum Analyser::Machine;
+	options.emplace<AmstradCPC::Machine>(AmstradCPC);
+	options.emplace<Apple::II::Machine>(AppleII);
+	options.emplace<Archimedes::Machine>(Archimedes);
+	options.emplace<Atari::ST::Machine>(AtariST);
+	options.emplace<BBCMicro::Machine>(BBCMicro);
+	options.emplace<Coleco::Vision::Machine>(ColecoVision);
+	options.emplace<Electron::Machine>(Electron);
+	options.emplace<Enterprise::Machine>(Enterprise);
+	options.emplace<Apple::Macintosh::Machine>(Macintosh);
+	options.emplace<Sega::MasterSystem::Machine>(MasterSystem);
+	options.emplace<MSX::Machine>(MSX);
+	options.emplace<Oric::Machine>(Oric);
+	options.emplace<Commodore::Plus4::Machine>(Plus4);
+	options.emplace<PCCompatible::Machine>(PCCompatible);
+	options.emplace<Thomson::MO::Machine>(ThomsonMO);
+	options.emplace<Commodore::Vic20::Machine>(Vic20);
+	options.emplace<Sinclair::ZX8081::Machine>(ZX8081);
+	options.emplace<Sinclair::ZXSpectrum::Machine>(ZXSpectrum);
 
-	return options;
+	return std::move(options.options);
+}
+
+namespace {
+struct TargetList {
+	std::map<std::string, std::unique_ptr<Analyser::Static::Target>> targets;
+
+	template <typename TargetT>
+	void emplace(const Analyser::Machine machine) {
+		targets.emplace(
+			Machine::LongNameForTargetMachine(machine),
+			std::make_unique<TargetT>()
+		);
+	};
+
+	void emplace(const Analyser::Machine machine, std::unique_ptr<Analyser::Static::Target> &&target) {
+		targets.emplace(
+			Machine::LongNameForTargetMachine(machine),
+			std::move(target)
+		);
+	}
+};
 }
 
 std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::TargetsByMachineName(
 	const bool meaningful_without_media_only
 ) {
-	std::map<std::string, std::unique_ptr<Analyser::Static::Target>> options;
+	TargetList targets;
 
-#define AddMapped(Name, TargetNamespace)								\
-	options.emplace(													\
-		LongNameForTargetMachine(Analyser::Machine::Name),				\
-		std::make_unique<Analyser::Static::TargetNamespace::Target>()	\
-	);
-#define Add(Name)	AddMapped(Name, Name)
-
-	Add(Amiga);
-	Add(AmstradCPC);
-	Add(AppleII);
-	Add(AppleIIgs);
-	options.emplace(
-		LongNameForTargetMachine(Analyser::Machine::Archimedes),
-		std::make_unique<Analyser::Static::Acorn::ArchimedesTarget>()
-	);
-	Add(AtariST);
-	options.emplace(
-		LongNameForTargetMachine(Analyser::Machine::BBCMicro),
-		std::make_unique<Analyser::Static::Acorn::BBCMicroTarget>()
-	);
-	options.emplace(
-		LongNameForTargetMachine(Analyser::Machine::Electron),
-		std::make_unique<Analyser::Static::Acorn::ElectronTarget>()
-	);
-	Add(Enterprise);
-	Add(Macintosh);
-	Add(MSX);
-	Add(Oric);
-	options.emplace(
-		LongNameForTargetMachine(Analyser::Machine::Plus4),
-		std::make_unique<Analyser::Static::Commodore::Plus4Target>()
-	);
-	Add(PCCompatible);
-	options.emplace(
-		LongNameForTargetMachine(Analyser::Machine::ThomsonMO),
-		std::make_unique<Analyser::Static::Thomson::MOTarget>()
-	);
-	options.emplace(
-		LongNameForTargetMachine(Analyser::Machine::Vic20),
-		std::make_unique<Analyser::Static::Commodore::Vic20Target>()
-	);
-	Add(ZX8081);
-	Add(ZXSpectrum);
+	using enum Analyser::Machine;
+	targets.emplace<Analyser::Static::Amiga::Target>(Amiga);
+	targets.emplace<Analyser::Static::AmstradCPC::Target>(AmstradCPC);
+	targets.emplace<Analyser::Static::AppleII::Target>(AppleII);
+	targets.emplace<Analyser::Static::AppleIIgs::Target>(AppleIIgs);
+	targets.emplace<Analyser::Static::Acorn::ArchimedesTarget>(Archimedes);
+	targets.emplace<Analyser::Static::AtariST::Target>(AtariST);
+	targets.emplace<Analyser::Static::Acorn::BBCMicroTarget>(BBCMicro);
+	targets.emplace<Analyser::Static::Acorn::ElectronTarget>(Electron);
+	targets.emplace<Analyser::Static::Enterprise::Target>(Enterprise);
+	targets.emplace<Analyser::Static::Macintosh::Target>(Macintosh);
+	targets.emplace<Analyser::Static::MSX::Target>(MSX);
+	targets.emplace<Analyser::Static::Oric::Target>(Oric);
+	targets.emplace<Analyser::Static::Commodore::Plus4Target>(Plus4);
+	targets.emplace<Analyser::Static::PCCompatible::Target>(PCCompatible);
+	targets.emplace<Analyser::Static::Thomson::MOTarget>(ThomsonMO);
+	targets.emplace<Analyser::Static::Commodore::Vic20Target>(Vic20);
+	targets.emplace<Analyser::Static::ZX8081::Target>(ThomsonMO);
+	targets.emplace<Analyser::Static::ZXSpectrum::Target>(ZXSpectrum);
 
 	if(!meaningful_without_media_only) {
-		Add(Atari2600);
-		options.emplace(
-			LongNameForTargetMachine(Analyser::Machine::ColecoVision),
+		targets.emplace<Analyser::Static::Atari2600::Target>(Atari2600);
+		targets.emplace(
+			ColecoVision,
 			std::make_unique<Analyser::Static::Target>(Analyser::Machine::ColecoVision)
 		);
-		AddMapped(MasterSystem, Sega);
+		targets.emplace<Analyser::Static::Sega::Target>(MasterSystem);
 	}
 
-#undef Add
-#undef AddMapped
-
-	return options;
+	return std::move(targets.targets);
 }
