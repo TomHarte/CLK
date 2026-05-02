@@ -55,53 +55,62 @@
 #include "Analyser/Dynamic/MultiMachine/MultiMachine.hpp"
 #include "TypedDynamicMachine.hpp"
 
+namespace {
+struct MachineGenerator {
+	MachineGenerator(
+		const Analyser::Static::Target *const target,
+		const ROMMachine::ROMFetcher &rom_fetcher
+	) : target(target), rom_fetcher(rom_fetcher) {}
+
+	const Analyser::Static::Target *const target;
+	const ROMMachine::ROMFetcher &rom_fetcher;
+
+	std::unique_ptr<Machine::DynamicMachine> machine;
+
+	template <typename MachineT>
+	void posit(const Analyser::Machine name) {
+		if(target->machine == name) {
+			machine = std::make_unique<Machine::TypedDynamicMachine<MachineT>>(MachineT::create(target, rom_fetcher));
+		}
+	}
+};
+}
+
 std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTarget(
 	const Analyser::Static::Target *const target,
 	const ROMMachine::ROMFetcher &rom_fetcher,
 	Machine::Error &error
 ) {
 	error = Machine::Error::None;
-	std::unique_ptr<Machine::DynamicMachine> machine;
+	MachineGenerator generator(target, rom_fetcher);
 
 	try {
+		using enum Analyser::Machine;
+		generator.posit<Amiga::Machine>(Amiga);
+		generator.posit<AmstradCPC::Machine>(AmstradCPC);
+		generator.posit<Archimedes::Machine>(Archimedes);
+		generator.posit<Apple::II::Machine>(AppleII);
+		generator.posit<Apple::IIgs::Machine>(AppleIIgs);
+		generator.posit<Apple::Macintosh::Machine>(Macintosh);
+		generator.posit<Atari2600::Machine>(Atari2600);
+		generator.posit<Atari::ST::Machine>(AtariST);
+		generator.posit<BBCMicro::Machine>(BBCMicro);
+		generator.posit<Coleco::Vision::Machine>(ColecoVision);
+		generator.posit<Commodore::Plus4::Machine>(Plus4);
+		generator.posit<Commodore::Vic20::Machine>(Vic20);
+		generator.posit<Electron::Machine>(Electron);
+		generator.posit<Enterprise::Machine>(Enterprise);
+		generator.posit<MSX::Machine>(MSX);
+		generator.posit<Oric::Machine>(Oric);
+		generator.posit<PCCompatible::Machine>(PCCompatible);
+		generator.posit<Sega::MasterSystem::Machine>(MasterSystem);
+		generator.posit<Sinclair::ZX8081::Machine>(ZX8081);
+		generator.posit<Sinclair::ZXSpectrum::Machine>(ZXSpectrum);
+		generator.posit<Thomson::MO::Machine>(ThomsonMO);
 
-#define BindD(name, m)	\
-	case Analyser::Machine::m: \
-		machine = std::make_unique<Machine::TypedDynamicMachine<::name::Machine>>(	\
-			name::Machine::create(target, rom_fetcher)	\
-		);		\
-	break;
-#define Bind(m)	BindD(m, m)
-		switch(target->machine) {
-			Bind(Amiga)
-			Bind(AmstradCPC)
-			Bind(Archimedes)
-			BindD(Apple::II, AppleII)
-			BindD(Apple::IIgs, AppleIIgs)
-			BindD(Apple::Macintosh, Macintosh)
-			Bind(Atari2600)
-			BindD(Atari::ST, AtariST)
-			Bind(BBCMicro)
-			BindD(Coleco::Vision, ColecoVision)
-			BindD(Commodore::Plus4, Plus4)
-			BindD(Commodore::Vic20, Vic20)
-			Bind(Electron)
-			Bind(Enterprise)
-			Bind(MSX)
-			Bind(Oric)
-			Bind(PCCompatible)
-			BindD(Sega::MasterSystem, MasterSystem)
-			BindD(Sinclair::ZX8081, ZX8081)
-			BindD(Sinclair::ZXSpectrum, ZXSpectrum)
-			BindD(Thomson::MO, ThomsonMO)
-
-			default:
-				error = Machine::Error::UnknownMachine;
-			return nullptr;
+		if(!generator.machine) {
+			error = Machine::Error::UnknownMachine;
 		}
-#undef Bind
-#undef BindD
-
 	} catch(ROMMachine::Error construction_error) {
 		switch(construction_error) {
 			case ROMMachine::Error::MissingROMs:
@@ -113,7 +122,7 @@ std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTarget(
 		}
 	}
 
-	return machine;
+	return std::move(generator.machine);
 }
 
 std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTargets(
