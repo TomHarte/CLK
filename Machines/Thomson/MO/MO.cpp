@@ -739,13 +739,13 @@ std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetc
 }
 
 std::unique_ptr<Machine> Machine::create(
-	const Analyser::Static::Target *const target,
+	const Analyser::Static::Target &target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	const Target *const thomson_target = dynamic_cast<const Target *>(target);
-	if(Analyser::Static::Thomson::is_mo6(thomson_target->model)) {
-		return machine<true>(*thomson_target, rom_fetcher);
+	const auto &thomson_target = static_cast<const Target &>(target);
+	if(Analyser::Static::Thomson::is_mo6(thomson_target.model)) {
+		return machine<true>(thomson_target, rom_fetcher);
 	} else {
-		return machine<false>(*thomson_target, rom_fetcher);
+		return machine<false>(thomson_target, rom_fetcher);
 	}
 }

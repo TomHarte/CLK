@@ -836,14 +836,14 @@ std::unique_ptr<Machine> machine(const Analyser::Static::Oric::Target &target, c
 }
 
 std::unique_ptr<Machine> Machine::create(
-	const Analyser::Static::Target *const target_hint,
+	const Analyser::Static::Target &target_hint,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	auto *const oric_target = dynamic_cast<const Analyser::Static::Oric::Target *>(target_hint);
+	const auto &oric_target = static_cast<const Analyser::Static::Oric::Target &>(target_hint);
 
-	switch(oric_target->processor) {
-		case Processor::WDC65816:	return machine<CPU::MOS6502Esque::Type::TWDC65816>(*oric_target, rom_fetcher);
-		case Processor::MOS6502:	return machine<CPU::MOS6502Esque::Type::T6502>(*oric_target, rom_fetcher);
+	switch(oric_target.processor) {
+		case Processor::WDC65816:	return machine<CPU::MOS6502Esque::Type::TWDC65816>(oric_target, rom_fetcher);
+		case Processor::MOS6502:	return machine<CPU::MOS6502Esque::Type::T6502>(oric_target, rom_fetcher);
 	}
 
 	return nullptr;

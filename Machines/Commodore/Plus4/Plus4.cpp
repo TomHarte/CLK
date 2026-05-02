@@ -752,10 +752,10 @@ private:
 }
 
 std::unique_ptr<Machine> Machine::create(
-	const Analyser::Static::Target *const target,
+	const Analyser::Static::Target &target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	using Target = Analyser::Static::Commodore::Plus4Target;
-	const Target *const commodore_target = dynamic_cast<const Target *>(target);
-	return std::make_unique<ConcreteMachine>(*commodore_target, rom_fetcher);
+	const auto &commodore_target = static_cast<const Target &>(target);
+	return std::make_unique<ConcreteMachine>(commodore_target, rom_fetcher);
 }

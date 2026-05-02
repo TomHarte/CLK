@@ -991,11 +991,11 @@ std::unique_ptr<Machine> machine(
 }
 
 std::unique_ptr<Machine> Machine::create(
-	const Analyser::Static::Target *const target,
+	const Analyser::Static::Target &target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	using Target = Analyser::Static::Enterprise::Target;
-	const Target &enterprise_target = *dynamic_cast<const Target *>(target);
+	const auto &enterprise_target = static_cast<const Target &>(target);
 
 	if(enterprise_target.dos != Target::DOS::None) {
 		return machine<true>(enterprise_target, rom_fetcher);

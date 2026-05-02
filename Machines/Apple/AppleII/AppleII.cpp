@@ -1094,28 +1094,32 @@ public:
 
 using namespace Apple::II;
 
+namespace {
+template <bool has_mockingboard>
+std::unique_ptr<Machine> create(
+	const Analyser::Static::AppleII::Target &target,
+	const ROMMachine::ROMFetcher &fetcher
+) {
+	switch(target.model) {
+		default: return nullptr;
+		using enum Analyser::Static::AppleII::Target::Model;
+		case II:			return std::make_unique<ConcreteMachine<II, has_mockingboard>>(target, fetcher);
+		case IIplus:		return std::make_unique<ConcreteMachine<IIplus, has_mockingboard>>(target, fetcher);
+		case IIe:			return std::make_unique<ConcreteMachine<IIe, has_mockingboard>>(target, fetcher);
+		case EnhancedIIe:	return std::make_unique<ConcreteMachine<EnhancedIIe, has_mockingboard>>(target, fetcher);
+	}
+}
+}
+
 std::unique_ptr<Machine> Machine::create(
-	const Analyser::Static::Target *const target,
+	const Analyser::Static::Target &target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	using Target = Analyser::Static::AppleII::Target;
-	const Target *const appleii_target = dynamic_cast<const Target *>(target);
-
-	if(appleii_target->has_mockingboard) {
-		switch(appleii_target->model) {
-			default: return nullptr;
-			case Target::Model::II: return std::make_unique<ConcreteMachine<Target::Model::II, true>>(*appleii_target, rom_fetcher);
-			case Target::Model::IIplus: return std::make_unique<ConcreteMachine<Target::Model::IIplus, true>>(*appleii_target, rom_fetcher);
-			case Target::Model::IIe: return std::make_unique<ConcreteMachine<Target::Model::IIe, true>>(*appleii_target, rom_fetcher);
-			case Target::Model::EnhancedIIe: return std::make_unique<ConcreteMachine<Target::Model::EnhancedIIe, true>>(*appleii_target, rom_fetcher);
-		}
+	const auto &appleii_target = static_cast<const Target &>(target);
+	if(appleii_target.has_mockingboard) {
+		return ::create<true>(appleii_target, rom_fetcher);
 	} else {
-		switch(appleii_target->model) {
-			default: return nullptr;
-			case Target::Model::II: return std::make_unique<ConcreteMachine<Target::Model::II, false>>(*appleii_target, rom_fetcher);
-			case Target::Model::IIplus: return std::make_unique<ConcreteMachine<Target::Model::IIplus, false>>(*appleii_target, rom_fetcher);
-			case Target::Model::IIe: return std::make_unique<ConcreteMachine<Target::Model::IIe, false>>(*appleii_target, rom_fetcher);
-			case Target::Model::EnhancedIIe: return std::make_unique<ConcreteMachine<Target::Model::EnhancedIIe, false>>(*appleii_target, rom_fetcher);
-		}
+		return ::create<false>(appleii_target, rom_fetcher);
 	}
 }

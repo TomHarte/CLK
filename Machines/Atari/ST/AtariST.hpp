@@ -20,7 +20,7 @@ namespace Atari::ST {
 struct Machine {
 	virtual ~Machine() = default;
 
-	static std::unique_ptr<Machine> create(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
+	static std::unique_ptr<Machine> create(const Analyser::Static::Target &, const ROMMachine::ROMFetcher &);
 
 	class Options: public Reflection::StructImpl<Options>, public Configurable::Options::Display<Options> {
 		friend Configurable::Options::Display<Options>;

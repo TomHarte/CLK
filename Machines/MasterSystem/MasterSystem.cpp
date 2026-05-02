@@ -607,21 +607,18 @@ private:
 using namespace Sega::MasterSystem;
 
 std::unique_ptr<Machine> Machine::create(
-	const Analyser::Static::Target *const target,
+	const Analyser::Static::Target &target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	using Target = Analyser::Static::Sega::Target;
-	const Target *const sega_target = dynamic_cast<const Target *>(target);
+	const auto &sega_target = static_cast<const Target &>(target);
 
-	switch(sega_target->model) {
-		case Target::Model::SG1000:
-			return std::make_unique<ConcreteMachine<Target::Model::SG1000>>(*sega_target, rom_fetcher);
-		case Target::Model::MasterSystem:
-			return std::make_unique<ConcreteMachine<Target::Model::MasterSystem>>(*sega_target, rom_fetcher);
-		case Target::Model::MasterSystem2:
-			return std::make_unique<ConcreteMachine<Target::Model::MasterSystem2>>(*sega_target, rom_fetcher);
-		default:
-			assert(false);
-			return nullptr;
+	switch(sega_target.model) {
+		using enum Target::Model;
+
+		case SG1000:		return std::make_unique<ConcreteMachine<SG1000>>(sega_target, rom_fetcher);
+		case MasterSystem:	return std::make_unique<ConcreteMachine<MasterSystem>>(sega_target, rom_fetcher);
+		case MasterSystem2:	return std::make_unique<ConcreteMachine<MasterSystem2>>(sega_target, rom_fetcher);
+		default:			__builtin_unreachable();
 	}
 }

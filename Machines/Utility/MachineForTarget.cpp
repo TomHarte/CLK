@@ -59,18 +59,18 @@
 namespace {
 struct MachineGenerator {
 	MachineGenerator(
-		const Analyser::Static::Target *const target,
+		const Analyser::Static::Target &target,
 		const ROMMachine::ROMFetcher &rom_fetcher
 	) : target(target), rom_fetcher(rom_fetcher) {}
 
-	const Analyser::Static::Target *const target;
+	const Analyser::Static::Target &target;
 	const ROMMachine::ROMFetcher &rom_fetcher;
 
 	std::unique_ptr<Machine::DynamicMachine> machine;
 
 	template <typename MachineT>
 	void posit(const Analyser::Machine name) {
-		if(target->machine == name) {
+		if(target.machine == name) {
 			machine = std::make_unique<Machine::TypedDynamicMachine<MachineT>>(MachineT::create(target, rom_fetcher));
 		}
 	}
@@ -78,7 +78,7 @@ struct MachineGenerator {
 }
 
 std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTarget(
-	const Analyser::Static::Target *const target,
+	const Analyser::Static::Target &target,
 	const ROMMachine::ROMFetcher &rom_fetcher,
 	Machine::Error &error
 ) {
@@ -142,7 +142,7 @@ std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTargets(
 	if(targets.size() > 1) {
 		std::vector<std::unique_ptr<Machine::DynamicMachine>> machines;
 		for(const auto &target: targets) {
-			machines.emplace_back(MachineForTarget(target.get(), rom_fetcher, error));
+			machines.emplace_back(MachineForTarget(*target, rom_fetcher, error));
 
 			// Exit early if any errors have occurred.
 			if(error != Error::None) {
@@ -160,7 +160,7 @@ std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTargets(
 	}
 
 	// There's definitely exactly one target.
-	return MachineForTarget(targets.front().get(), rom_fetcher, error);
+	return MachineForTarget(*targets.front(), rom_fetcher, error);
 }
 
 std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) {

@@ -1391,14 +1391,14 @@ std::unique_ptr<Machine> machine(
 
 // See header; constructs and returns an instance of the Amstrad CPC.
 std::unique_ptr<Machine> Machine::create(
-	const Analyser::Static::Target *const target,
+	const Analyser::Static::Target &target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	using Target = Analyser::Static::AmstradCPC::Target;
-	const Target *const cpc_target = dynamic_cast<const Target *>(target);
-	if(cpc_target->catch_ssm_codes) {
-		return machine<true>(*cpc_target, rom_fetcher);
+	const auto &cpc_target = static_cast<const Target &>(target);
+	if(cpc_target.catch_ssm_codes) {
+		return machine<true>(cpc_target, rom_fetcher);
 	} else {
-		return machine<false>(*cpc_target, rom_fetcher);
+		return machine<false>(cpc_target, rom_fetcher);
 	}
 }

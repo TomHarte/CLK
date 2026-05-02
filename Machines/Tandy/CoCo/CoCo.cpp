@@ -11,7 +11,7 @@
 using namespace Tandy::CoCo;
 
 std::unique_ptr<Machine> Machine::create(
-	const Analyser::Static::Target *const ,
+	const Analyser::Static::Target &,
 	const ROMMachine::ROMFetcher &
 ) {
 	return nullptr;

@@ -709,13 +709,9 @@ private:
 using namespace Atari::ST;
 
 std::unique_ptr<Machine> Machine::create(
-	const Analyser::Static::Target *const target,
+	const Analyser::Static::Target &target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	auto *const atari_target = dynamic_cast<const Analyser::Static::AtariST::Target *>(target);
-	if(!atari_target) {
-		return nullptr;
-	}
-
-	return std::make_unique<ConcreteMachine>(*atari_target, rom_fetcher);
+	const auto &atari_target = static_cast<const Analyser::Static::AtariST::Target &>(target);
+	return std::make_unique<ConcreteMachine>(atari_target, rom_fetcher);
 }

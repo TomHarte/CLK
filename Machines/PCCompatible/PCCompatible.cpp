@@ -1154,14 +1154,14 @@ std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetc
 }
 
 std::unique_ptr<Machine> Machine::create(
-	const Analyser::Static::Target *const target,
+	const Analyser::Static::Target &target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	const Target *const pc_target = dynamic_cast<const Target *>(target);
+	const auto &pc_target = static_cast<const Target &>(target);
 	using VideoAdaptor = Target::VideoAdaptor;
-	switch(pc_target->adaptor) {
-		case VideoAdaptor::MDA:	return machine<VideoAdaptor::MDA>(*pc_target, rom_fetcher);
-		case VideoAdaptor::CGA:	return machine<VideoAdaptor::CGA>(*pc_target, rom_fetcher);
+	switch(pc_target.adaptor) {
+		case VideoAdaptor::MDA:	return machine<VideoAdaptor::MDA>(pc_target, rom_fetcher);
+		case VideoAdaptor::CGA:	return machine<VideoAdaptor::CGA>(pc_target, rom_fetcher);
 		default: return nullptr;
 	}
 }
