@@ -1153,8 +1153,8 @@ std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetc
 }
 }
 
-std::unique_ptr<Machine> Machine::PCCompatible(
-	const Analyser::Static::Target *target,
+std::unique_ptr<Machine> Machine::create(
+	const Analyser::Static::Target *const target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	const Target *const pc_target = dynamic_cast<const Target *>(target);

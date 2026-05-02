@@ -1013,7 +1013,10 @@ private:
 
 using namespace Sinclair::ZXSpectrum;
 
-std::unique_ptr<Machine> Machine::ZXSpectrum(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::create(
+	const Analyser::Static::Target *const target,
+	const ROMMachine::ROMFetcher &rom_fetcher
+) {
 	const auto zx_target = dynamic_cast<const Analyser::Static::ZXSpectrum::Target *>(target);
 
 	switch(zx_target->model) {

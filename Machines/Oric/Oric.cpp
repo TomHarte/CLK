@@ -835,7 +835,10 @@ std::unique_ptr<Machine> machine(const Analyser::Static::Oric::Target &target, c
 
 }
 
-std::unique_ptr<Machine> Machine::Oric(const Analyser::Static::Target *target_hint, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::create(
+	const Analyser::Static::Target *const target_hint,
+	const ROMMachine::ROMFetcher &rom_fetcher
+) {
 	auto *const oric_target = dynamic_cast<const Analyser::Static::Oric::Target *>(target_hint);
 
 	switch(oric_target->processor) {

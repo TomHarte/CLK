@@ -842,7 +842,10 @@ private:
 
 using namespace Apple::Macintosh;
 
-std::unique_ptr<Machine> Machine::Macintosh(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::create(
+	const Analyser::Static::Target *const target,
+	const ROMMachine::ROMFetcher &rom_fetcher
+) {
 	auto *const mac_target = dynamic_cast<const Analyser::Static::Macintosh::Target *>(target);
 
 	using Model = Analyser::Static::Macintosh::Target::Model;

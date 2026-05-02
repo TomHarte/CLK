@@ -751,8 +751,8 @@ private:
 };
 }
 
-std::unique_ptr<Machine> Machine::Plus4(
-	const Analyser::Static::Target *target,
+std::unique_ptr<Machine> Machine::create(
+	const Analyser::Static::Target *const target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	using Target = Analyser::Static::Commodore::Plus4Target;

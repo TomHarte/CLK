@@ -817,7 +817,7 @@ private:
 
 using namespace Commodore::Vic20;
 
-std::unique_ptr<Machine> Machine::Vic20(
+std::unique_ptr<Machine> Machine::create(
 	const Analyser::Static::Target *const target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {

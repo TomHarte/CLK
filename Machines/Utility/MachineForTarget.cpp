@@ -68,7 +68,7 @@ std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTarget(
 #define BindD(name, m)	\
 	case Analyser::Machine::m: \
 		machine = std::make_unique<Machine::TypedDynamicMachine<::name::Machine>>(	\
-			name::Machine::m(target, rom_fetcher)	\
+			name::Machine::create(target, rom_fetcher)	\
 		);		\
 	break;
 #define Bind(m)	BindD(m, m)

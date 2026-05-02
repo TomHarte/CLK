@@ -606,8 +606,8 @@ private:
 
 using namespace Sega::MasterSystem;
 
-std::unique_ptr<Machine> Machine::MasterSystem(
-	const Analyser::Static::Target *target,
+std::unique_ptr<Machine> Machine::create(
+	const Analyser::Static::Target *const target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	using Target = Analyser::Static::Sega::Target;

@@ -24,7 +24,7 @@ struct Machine {
 	virtual ~Machine() = default;
 
 	/// Creates and returns a Vic-20.
-	static std::unique_ptr<Machine> Vic20(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
+	static std::unique_ptr<Machine> create(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
 
 	class Options:
 		public Reflection::StructImpl<Options>,

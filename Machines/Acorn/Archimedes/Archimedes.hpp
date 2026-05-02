@@ -19,7 +19,7 @@ namespace Archimedes {
 
 struct Machine {
 	virtual ~Machine() = default;
-	static std::unique_ptr<Machine> Archimedes(
+	static std::unique_ptr<Machine> create(
 		const Analyser::Static::Target *target,
 		const ROMMachine::ROMFetcher &rom_fetcher
 	);

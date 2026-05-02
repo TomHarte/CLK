@@ -990,7 +990,7 @@ std::unique_ptr<Machine> machine(
 
 }
 
-std::unique_ptr<Machine> Machine::Enterprise(
+std::unique_ptr<Machine> Machine::create(
 	const Analyser::Static::Target *const target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {

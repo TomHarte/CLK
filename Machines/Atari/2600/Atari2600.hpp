@@ -25,7 +25,7 @@ struct Machine {
 	virtual ~Machine() = default;
 
 	/// Creates and returns an Atari 2600 on the heap.
-	static std::unique_ptr<Machine> Atari2600(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
+	static std::unique_ptr<Machine> create(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
 
 	/// Sets the switch @c input to @c state.
 	virtual void set_switch_is_enabled(Atari2600Switch, bool) = 0;

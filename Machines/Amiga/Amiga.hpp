@@ -19,7 +19,7 @@ struct Machine {
 	virtual ~Machine() = default;
 
 	/// Creates and returns an Amiga.
-	static std::unique_ptr<Machine> Amiga(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
+	static std::unique_ptr<Machine> create(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
 };
 
 }

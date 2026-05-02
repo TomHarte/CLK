@@ -792,7 +792,10 @@ private:
 
 using namespace Electron;
 
-std::unique_ptr<Machine> Machine::Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::create(
+	const Analyser::Static::Target *const target,
+	const ROMMachine::ROMFetcher &rom_fetcher
+) {
 	using Target = Analyser::Static::Acorn::ElectronTarget;
 	const Target *const acorn_target = dynamic_cast<const Target *>(target);
 

@@ -738,8 +738,8 @@ std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetc
 }
 }
 
-std::unique_ptr<Machine> Machine::ThomsonMO(
-	const Analyser::Static::Target *target,
+std::unique_ptr<Machine> Machine::create(
+	const Analyser::Static::Target *const target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	const Target *const thomson_target = dynamic_cast<const Target *>(target);
