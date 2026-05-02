@@ -329,7 +329,7 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 	targets.emplace<Analyser::Static::PCCompatible::Target>(PCCompatible);
 	targets.emplace<Analyser::Static::Thomson::MOTarget>(ThomsonMO);
 	targets.emplace<Analyser::Static::Commodore::Vic20Target>(Vic20);
-	targets.emplace<Analyser::Static::ZX8081::Target>(ThomsonMO);
+	targets.emplace<Analyser::Static::ZX8081::Target>(ZX8081);
 	targets.emplace<Analyser::Static::ZXSpectrum::Target>(ZXSpectrum);
 
 	if(!meaningful_without_media_only) {
