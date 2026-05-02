@@ -214,7 +214,12 @@ typedef int Kilobytes;
 - (instancetype)initWithOricModel:(CSMachineOricModel)model
 	diskInterface:(CSMachineOricDiskInterface)diskInterface;
 
+- (instancetype)initWithPCCompatibleSpeed:(CSPCCompatibleSpeed)speed
+	videoAdaptor:(CSPCCompatibleVideoAdaptor)adaptor;
+
 - (instancetype)initWithSpectrumModel:(CSMachineSpectrumModel)model;
+
+- (instancetype)initWithTandyCoCo;
 
 - (instancetype)initWithThomsonMOModel:(CSMachineThomsonModel)model hasDiskDrive:(BOOL)hasDiskDrive;
 
@@ -226,9 +231,6 @@ typedef int Kilobytes;
 	useZX81ROM:(BOOL)useZX81ROM;
 
 - (instancetype)initWithZX81MemorySize:(Kilobytes)memorySize;
-
-- (instancetype)initWithPCCompatibleSpeed:(CSPCCompatibleSpeed)speed
-	videoAdaptor:(CSPCCompatibleVideoAdaptor)adaptor;
 
 @property(nonatomic, readonly, nullable) NSString *optionsNibName;
 @property(nonatomic, readonly) NSString *displayName;
