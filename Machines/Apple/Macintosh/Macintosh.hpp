@@ -19,7 +19,7 @@ struct Machine {
 	virtual ~Machine() = default;
 
 	/// Creates and returns a Macintosh.
-	static std::unique_ptr<Machine> create(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
+	static std::unique_ptr<Machine> create(const Analyser::Static::Target &, const ROMMachine::ROMFetcher &);
 
 	class Options: public Reflection::StructImpl<Options>, public Configurable::Options::QuickBoot<Options> {
 		friend Configurable::Options::QuickBoot<Options>;

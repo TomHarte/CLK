@@ -27,7 +27,7 @@ struct Machine {
 	virtual ~Machine() = default;
 
 	/// Creates and returns an Electron.
-	static std::unique_ptr<Machine> create(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
+	static std::unique_ptr<Machine> create(const Analyser::Static::Target &, const ROMMachine::ROMFetcher &);
 
 	/// Defines the runtime options available for an Electron.
 	class Options:

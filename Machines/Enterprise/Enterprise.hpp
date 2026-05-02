@@ -25,7 +25,7 @@ namespace Enterprise {
 */
 struct Machine {
 	virtual ~Machine() = default;
-	static std::unique_ptr<Machine> create(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
+	static std::unique_ptr<Machine> create(const Analyser::Static::Target &, const ROMMachine::ROMFetcher &);
 
 	/// Defines the runtime options available for an Enterprise.
 	class Options: public Reflection::StructImpl<Options>, public Configurable::Options::Display<Options> {

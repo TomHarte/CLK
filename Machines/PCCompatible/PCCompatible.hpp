@@ -22,7 +22,7 @@ struct Machine {
 	virtual ~Machine() = default;
 
 	/// Creates and returns a PC Compatible.
-	static std::unique_ptr<Machine> create(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
+	static std::unique_ptr<Machine> create(const Analyser::Static::Target &, const ROMMachine::ROMFetcher &);
 
 	/// Defines the runtime options [sometimes] available for a PC.
 	class Options:

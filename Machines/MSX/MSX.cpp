@@ -1039,22 +1039,32 @@ private:
 
 using namespace MSX;
 
-std::unique_ptr<Machine> Machine::create(
-	const Analyser::Static::Target *const target,
+namespace {
+
+template <bool has_msx_music>
+std::unique_ptr<Machine> create(
+	const Target &target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	const auto msx_target = dynamic_cast<const Target *>(target);
-	if(msx_target->has_msx_music) {
-		switch(msx_target->model) {
-			default:					return nullptr;
-			case Target::Model::MSX1:	return std::make_unique<ConcreteMachine<Target::Model::MSX1, true>>(*msx_target, rom_fetcher);
-			case Target::Model::MSX2:	return std::make_unique<ConcreteMachine<Target::Model::MSX2, true>>(*msx_target, rom_fetcher);
-		}
+	switch(target.model) {
+		using enum Target::Model;
+
+		default:	return nullptr;
+		case MSX1:	return std::make_unique<ConcreteMachine<MSX1, has_msx_music>>(target, rom_fetcher);
+		case MSX2:	return std::make_unique<ConcreteMachine<MSX2, has_msx_music>>(target, rom_fetcher);
+	}
+}
+
+}
+
+std::unique_ptr<Machine> Machine::create(
+	const Analyser::Static::Target &target,
+	const ROMMachine::ROMFetcher &rom_fetcher
+) {
+	const auto &msx_target = static_cast<const Target &>(target);
+	if(msx_target.has_msx_music) {
+		return ::create<true>(msx_target, rom_fetcher);
 	} else {
-		switch(msx_target->model) {
-			default:					return nullptr;
-			case Target::Model::MSX1:	return std::make_unique<ConcreteMachine<Target::Model::MSX1, false>>(*msx_target, rom_fetcher);
-			case Target::Model::MSX2:	return std::make_unique<ConcreteMachine<Target::Model::MSX2, false>>(*msx_target, rom_fetcher);
-		}
+		return ::create<false>(msx_target, rom_fetcher);
 	}
 }

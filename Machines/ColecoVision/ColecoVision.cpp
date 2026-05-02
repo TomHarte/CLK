@@ -421,8 +421,8 @@ private:
 using namespace Coleco::Vision;
 
 std::unique_ptr<Machine> Machine::create(
-	const Analyser::Static::Target *target,
+	const Analyser::Static::Target &target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	return std::make_unique<ConcreteMachine>(*target, rom_fetcher);
+	return std::make_unique<ConcreteMachine>(target, rom_fetcher);
 }

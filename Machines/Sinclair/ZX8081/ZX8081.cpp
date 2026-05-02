@@ -499,12 +499,12 @@ using namespace Sinclair::ZX8081;
 
 // See header; constructs and returns an instance of the ZX80 or 81.
 std::unique_ptr<Machine> Machine::create(
-	const Analyser::Static::Target *const target,
+	const Analyser::Static::Target &target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	const auto zx_target = dynamic_cast<const Analyser::Static::ZX8081::Target *>(target);
+	const auto &zx_target = static_cast<const Analyser::Static::ZX8081::Target &>(target);
 
 	// Instantiate the correct type of machine.
-	if(zx_target->is_ZX81)	return std::make_unique<ConcreteMachine<true>>(*zx_target, rom_fetcher);
-	else					return std::make_unique<ConcreteMachine<false>>(*zx_target, rom_fetcher);
+	if(zx_target.is_ZX81)	return std::make_unique<ConcreteMachine<true>>(zx_target, rom_fetcher);
+	else					return std::make_unique<ConcreteMachine<false>>(zx_target, rom_fetcher);
 }

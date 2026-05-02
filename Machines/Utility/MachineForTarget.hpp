@@ -54,7 +54,7 @@ std::unique_ptr<DynamicMachine> MachineForTargets(
 	by @c target. It is the caller's responsibility to delete the class when finished.
 */
 std::unique_ptr<DynamicMachine> MachineForTarget(
-	const Analyser::Static::Target *,
+	const Analyser::Static::Target &,
 	const ROMMachine::ROMFetcher &,
 	Machine::Error &);
 

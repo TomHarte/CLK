@@ -1350,14 +1350,14 @@ std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetc
 }
 
 std::unique_ptr<Machine> Machine::create(
-	const Analyser::Static::Target *const target,
+	const Analyser::Static::Target &target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
-	const Target *const acorn_target = dynamic_cast<const Target *>(target);
-	switch(acorn_target->tube_processor) {
-		case TubeProcessor::None:		return machine<TubeProcessor::None>(*acorn_target, rom_fetcher);
-		case TubeProcessor::WDC65C02:	return machine<TubeProcessor::WDC65C02>(*acorn_target, rom_fetcher);
-		case TubeProcessor::Z80:		return machine<TubeProcessor::Z80>(*acorn_target, rom_fetcher);
+	const auto &acorn_target = static_cast<const Target &>(target);
+	switch(acorn_target.tube_processor) {
+		case TubeProcessor::None:		return machine<TubeProcessor::None>(acorn_target, rom_fetcher);
+		case TubeProcessor::WDC65C02:	return machine<TubeProcessor::WDC65C02>(acorn_target, rom_fetcher);
+		case TubeProcessor::Z80:		return machine<TubeProcessor::Z80>(acorn_target, rom_fetcher);
 		default:	return nullptr;
 	}
 }
