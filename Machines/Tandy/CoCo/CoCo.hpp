@@ -1,9 +1,9 @@
 //
-//  Amiga.hpp
+//  CoCo.hpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 16/07/2021.
-//  Copyright © 2021 Thomas Harte. All rights reserved.
+//  Created by Thomas Harte on 01/05/2026.
+//  Copyright © 2026 Thomas Harte. All rights reserved.
 //
 
 #pragma once
@@ -11,14 +11,10 @@
 #include "Analyser/Static/StaticAnalyser.hpp"
 #include "Machines/ROMMachine.hpp"
 
-#include <memory>
-
-namespace Amiga {
+namespace Tandy::CoCo {
 
 struct Machine {
 	virtual ~Machine() = default;
-
-	/// Creates and returns an Amiga.
 	static std::unique_ptr<Machine> create(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
 };
 

@@ -251,7 +251,10 @@ private:
 
 using namespace Amiga;
 
-std::unique_ptr<Machine> Machine::Amiga(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::create(
+	const Analyser::Static::Target *const target,
+	const ROMMachine::ROMFetcher &rom_fetcher
+) {
 	using Target = Analyser::Static::Amiga::Target;
 	const Target *const amiga_target = dynamic_cast<const Target *>(target);
 	return std::make_unique<Amiga::ConcreteMachine>(*amiga_target, rom_fetcher);

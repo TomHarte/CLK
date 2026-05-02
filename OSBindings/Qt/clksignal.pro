@@ -120,6 +120,7 @@ SOURCES += \
 	$$SRC/Machines/Sinclair/Keyboard/*.cpp \
 	$$SRC/Machines/Sinclair/ZX8081/*.cpp \
 	$$SRC/Machines/Sinclair/ZXSpectrum/*.cpp \
+	$$SRC/Machines/Tandy/CoCo/*.cpp \
 	$$SRC/Machines/Thomson/MO/*.cpp \
 \
 	$$SRC/Outputs/*.cpp \
@@ -267,6 +268,7 @@ HEADERS += \
 	$$SRC/Machines/Sinclair/Keyboard/*.hpp \
 	$$SRC/Machines/Sinclair/ZX8081/*.hpp \
 	$$SRC/Machines/Sinclair/ZXSpectrum/*.hpp \
+	$$SRC/Machines/Tandy/CoCo/*.hpp \
 	$$SRC/Machines/Thomson/MO/*.hpp \
 	$$SRC/Machines/Thomson/MO/FastTapeSchemes/*.hpp \
 \

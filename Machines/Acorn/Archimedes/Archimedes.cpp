@@ -749,8 +749,8 @@ private:
 
 using namespace Archimedes;
 
-std::unique_ptr<Machine> Machine::Archimedes(
-	const Analyser::Static::Target *target,
+std::unique_ptr<Machine> Machine::create(
+	const Analyser::Static::Target *const target,
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	const auto archimedes_target = dynamic_cast<const Analyser::Static::Acorn::ArchimedesTarget *>(target);

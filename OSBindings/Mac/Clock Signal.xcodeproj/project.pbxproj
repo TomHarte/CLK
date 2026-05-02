@@ -347,6 +347,9 @@
 		4B3F76B925A1635300178AEC /* PowerPCDecoderTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B3F76B825A1635300178AEC /* PowerPCDecoderTests.mm */; };
 		4B3FCC40201EC24200960631 /* MultiMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3FCC3F201EC24200960631 /* MultiMachine.cpp */; };
 		4B3FE75E1F3CF68B00448EE4 /* CPM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3FE75C1F3CF68B00448EE4 /* CPM.cpp */; };
+		4B41EF722FA55F980086D909 /* CoCo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF6F2FA55F980086D909 /* CoCo.cpp */; };
+		4B41EF732FA55F980086D909 /* CoCo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF6F2FA55F980086D909 /* CoCo.cpp */; };
+		4B41EF742FA55F980086D909 /* CoCo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF6F2FA55F980086D909 /* CoCo.cpp */; };
 		4B43983929620FC7006B0BFC /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B43983829620FB1006B0BFC /* 9918.cpp */; };
 		4B43983A29620FC8006B0BFC /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B43983829620FB1006B0BFC /* 9918.cpp */; };
 		4B43983B29620FC9006B0BFC /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B43983829620FB1006B0BFC /* 9918.cpp */; };
@@ -1629,6 +1632,8 @@
 		4B4195F42EB8F061001C966D /* ULA.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ULA.hpp; sourceTree = "<group>"; };
 		4B4195F52EB92630001C966D /* Tube6502.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Tube6502.hpp; sourceTree = "<group>"; };
 		4B4195F62EBAB06C001C966D /* TubeZ80.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TubeZ80.hpp; sourceTree = "<group>"; };
+		4B41EF6E2FA55F980086D909 /* CoCo.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CoCo.hpp; sourceTree = "<group>"; };
+		4B41EF6F2FA55F980086D909 /* CoCo.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CoCo.cpp; sourceTree = "<group>"; };
 		4B43983829620FB1006B0BFC /* 9918.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 9918.cpp; sourceTree = "<group>"; };
 		4B43983C29621024006B0BFC /* ClockConverter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ClockConverter.hpp; sourceTree = "<group>"; };
 		4B43983E29628538006B0BFC /* Fetch.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Fetch.hpp; sourceTree = "<group>"; };
@@ -3407,6 +3412,23 @@
 			name = Parsers;
 			sourceTree = "<group>";
 		};
+		4B41EF702FA55F980086D909 /* CoCo */ = {
+			isa = PBXGroup;
+			children = (
+				4B41EF6E2FA55F980086D909 /* CoCo.hpp */,
+				4B41EF6F2FA55F980086D909 /* CoCo.cpp */,
+			);
+			path = CoCo;
+			sourceTree = "<group>";
+		};
+		4B41EF712FA55F980086D909 /* Tandy */ = {
+			isa = PBXGroup;
+			children = (
+				4B41EF702FA55F980086D909 /* CoCo */,
+			);
+			path = Tandy;
+			sourceTree = "<group>";
+		};
 		4B4518701F75E91800926311 /* Track */ = {
 			isa = PBXGroup;
 			children = (
@@ -5125,6 +5147,7 @@
 				4BCF1FA51DADC3E10039D2E7 /* Oric */,
 				425739352B051EA800B7D1E4 /* PCCompatible */,
 				4B0F1BC92602F17B00B85C66 /* Sinclair */,
+				4B41EF712FA55F980086D909 /* Tandy */,
 				4BCA6FAB2F589C0C000B9537 /* Thomson */,
 				4B2B3A461F9B8FA70062DABF /* Utility */,
 			);
@@ -6483,6 +6506,7 @@
 				4B2BF19123DCC6A200C3AD60 /* BD500.cpp in Sources */,
 				4B051CA926781D6500CA44E8 /* StaticAnalyser.cpp in Sources */,
 				4B055ADA1FAE9B460060FFFF /* 1770.cpp in Sources */,
+				4B41EF742FA55F980086D909 /* CoCo.cpp in Sources */,
 				4B80CD77256CA16600176FCC /* 2MG.cpp in Sources */,
 				4B0F1BE62602FF9D00B85C66 /* ZX8081.cpp in Sources */,
 				4B0F1BDE2602FF9900B85C66 /* Video.cpp in Sources */,
@@ -6768,6 +6792,7 @@
 				4BB8616E24E22DC500A00E03 /* BufferingScanTarget.cpp in Sources */,
 				4BB4BFB022A42F290069048D /* MacintoshIMG.cpp in Sources */,
 				4B05401E219D1618001BF69C /* ScanTarget.cpp in Sources */,
+				4B41EF732FA55F980086D909 /* CoCo.cpp in Sources */,
 				4B4518861F75E91A00926311 /* MFMDiskController.cpp in Sources */,
 				4B0ACC2C23775819008902D0 /* IntelligentKeyboard.cpp in Sources */,
 				4BC080CA26A238CC00D03FD8 /* AmigaADF.cpp in Sources */,
@@ -7234,6 +7259,7 @@
 				4B778F2E23A5F09E0000D260 /* IRQDelegatePortHandler.cpp in Sources */,
 				4B778EF323A5DB230000D260 /* PCMSegment.cpp in Sources */,
 				4B06AB0D2C6461610034D014 /* MultiMachine.cpp in Sources */,
+				4B41EF722FA55F980086D909 /* CoCo.cpp in Sources */,
 				4B06AAD52C645F290034D014 /* AppleII.cpp in Sources */,
 				4B06AAFC2C6460970034D014 /* Keyboard.cpp in Sources */,
 				4B778F0D23A5EC150000D260 /* ZX80O81P.cpp in Sources */,

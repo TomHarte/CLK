@@ -268,7 +268,7 @@ private:
 					// If this was the release of a carriage return, wait some more after release.
 					if(
 						key_delay.carriage_return_delay &&
-						(event.key == AmstradCPC::Key::KeyEnter || event.key == AmstradCPC::Key::KeyReturn)
+						(event.key == AmstradCPC::Key::Enter || event.key == AmstradCPC::Key::Return)
 					) {
 						delay(*key_delay.carriage_return_delay);
 					}

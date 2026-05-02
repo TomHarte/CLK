@@ -1039,7 +1039,10 @@ private:
 
 using namespace MSX;
 
-std::unique_ptr<Machine> Machine::MSX(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+std::unique_ptr<Machine> Machine::create(
+	const Analyser::Static::Target *const target,
+	const ROMMachine::ROMFetcher &rom_fetcher
+) {
 	const auto msx_target = dynamic_cast<const Target *>(target);
 	if(msx_target->has_msx_music) {
 		switch(msx_target->model) {

@@ -29,6 +29,7 @@
 #include "Machines/MSX/MSX.hpp"
 #include "Machines/Oric/Oric.hpp"
 #include "Machines/PCCompatible/PCCompatible.hpp"
+#include "Machines/Tandy/CoCo/CoCo.hpp"
 #include "Machines/Thomson/MO/MO.hpp"
 #include "Machines/Sinclair/ZX8081/ZX8081.hpp"
 #include "Machines/Sinclair/ZXSpectrum/ZXSpectrum.hpp"
@@ -55,53 +56,63 @@
 #include "Analyser/Dynamic/MultiMachine/MultiMachine.hpp"
 #include "TypedDynamicMachine.hpp"
 
+namespace {
+struct MachineGenerator {
+	MachineGenerator(
+		const Analyser::Static::Target *const target,
+		const ROMMachine::ROMFetcher &rom_fetcher
+	) : target(target), rom_fetcher(rom_fetcher) {}
+
+	const Analyser::Static::Target *const target;
+	const ROMMachine::ROMFetcher &rom_fetcher;
+
+	std::unique_ptr<Machine::DynamicMachine> machine;
+
+	template <typename MachineT>
+	void posit(const Analyser::Machine name) {
+		if(target->machine == name) {
+			machine = std::make_unique<Machine::TypedDynamicMachine<MachineT>>(MachineT::create(target, rom_fetcher));
+		}
+	}
+};
+}
+
 std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTarget(
 	const Analyser::Static::Target *const target,
 	const ROMMachine::ROMFetcher &rom_fetcher,
 	Machine::Error &error
 ) {
 	error = Machine::Error::None;
-	std::unique_ptr<Machine::DynamicMachine> machine;
+	MachineGenerator generator(target, rom_fetcher);
 
 	try {
+		using enum Analyser::Machine;
+		generator.posit<Amiga::Machine>(Amiga);
+		generator.posit<AmstradCPC::Machine>(AmstradCPC);
+		generator.posit<Archimedes::Machine>(Archimedes);
+		generator.posit<Apple::II::Machine>(AppleII);
+		generator.posit<Apple::IIgs::Machine>(AppleIIgs);
+		generator.posit<Apple::Macintosh::Machine>(Macintosh);
+		generator.posit<Atari2600::Machine>(Atari2600);
+		generator.posit<Atari::ST::Machine>(AtariST);
+		generator.posit<BBCMicro::Machine>(BBCMicro);
+		generator.posit<Coleco::Vision::Machine>(ColecoVision);
+		generator.posit<Commodore::Plus4::Machine>(Plus4);
+		generator.posit<Commodore::Vic20::Machine>(Vic20);
+		generator.posit<Electron::Machine>(Electron);
+		generator.posit<Enterprise::Machine>(Enterprise);
+		generator.posit<MSX::Machine>(MSX);
+		generator.posit<Oric::Machine>(Oric);
+		generator.posit<PCCompatible::Machine>(PCCompatible);
+		generator.posit<Sega::MasterSystem::Machine>(MasterSystem);
+		generator.posit<Sinclair::ZX8081::Machine>(ZX8081);
+		generator.posit<Sinclair::ZXSpectrum::Machine>(ZXSpectrum);
+		generator.posit<Tandy::CoCo::Machine>(TandyCoCo);
+		generator.posit<Thomson::MO::Machine>(ThomsonMO);
 
-#define BindD(name, m)	\
-	case Analyser::Machine::m: \
-		machine = std::make_unique<Machine::TypedDynamicMachine<::name::Machine>>(	\
-			name::Machine::m(target, rom_fetcher)	\
-		);		\
-	break;
-#define Bind(m)	BindD(m, m)
-		switch(target->machine) {
-			Bind(Amiga)
-			Bind(AmstradCPC)
-			Bind(Archimedes)
-			BindD(Apple::II, AppleII)
-			BindD(Apple::IIgs, AppleIIgs)
-			BindD(Apple::Macintosh, Macintosh)
-			Bind(Atari2600)
-			BindD(Atari::ST, AtariST)
-			Bind(BBCMicro)
-			BindD(Coleco::Vision, ColecoVision)
-			BindD(Commodore::Plus4, Plus4)
-			BindD(Commodore::Vic20, Vic20)
-			Bind(Electron)
-			Bind(Enterprise)
-			Bind(MSX)
-			Bind(Oric)
-			Bind(PCCompatible)
-			BindD(Sega::MasterSystem, MasterSystem)
-			BindD(Sinclair::ZX8081, ZX8081)
-			BindD(Sinclair::ZXSpectrum, ZXSpectrum)
-			BindD(Thomson::MO, ThomsonMO)
-
-			default:
-				error = Machine::Error::UnknownMachine;
-			return nullptr;
+		if(!generator.machine) {
+			error = Machine::Error::UnknownMachine;
 		}
-#undef Bind
-#undef BindD
-
 	} catch(ROMMachine::Error construction_error) {
 		switch(construction_error) {
 			case ROMMachine::Error::MissingROMs:
@@ -113,7 +124,7 @@ std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTarget(
 		}
 	}
 
-	return machine;
+	return std::move(generator.machine);
 }
 
 std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTargets(
@@ -171,6 +182,7 @@ std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) 
 		case Analyser::Machine::Oric:			return "Oric";
 		case Analyser::Machine::Plus4:			return "Plus4";
 		case Analyser::Machine::PCCompatible:	return "PCCompatible";
+		case Analyser::Machine::TandyCoCo:		return "TandyCoCo";
 		case Analyser::Machine::ThomsonMO:		return "ThomsonMO";
 		case Analyser::Machine::Vic20:			return "Vic20";
 		case Analyser::Machine::ZX8081:			return "ZX8081";
@@ -199,6 +211,7 @@ std::string Machine::LongNameForTargetMachine(const Analyser::Machine machine) {
 		case Analyser::Machine::Oric:			return "Oric";
 		case Analyser::Machine::Plus4:			return "Commodore C16+4";
 		case Analyser::Machine::PCCompatible:	return "PC Compatible";
+		case Analyser::Machine::TandyCoCo:		return "Tandy CoCo";
 		case Analyser::Machine::ThomsonMO:		return "Thomson MO";
 		case Analyser::Machine::Vic20:			return "Vic 20";
 		case Analyser::Machine::ZX8081:			return "ZX80/81";
@@ -237,6 +250,7 @@ std::vector<std::string> Machine::AllMachines(const Type type, const bool long_n
 		add_name(Analyser::Machine::Oric);
 		add_name(Analyser::Machine::Plus4);
 		add_name(Analyser::Machine::PCCompatible);
+		add_name(Analyser::Machine::TandyCoCo);
 		add_name(Analyser::Machine::ThomsonMO);
 		add_name(Analyser::Machine::Vic20);
 		add_name(Analyser::Machine::ZX8081);
@@ -246,99 +260,100 @@ std::vector<std::string> Machine::AllMachines(const Type type, const bool long_n
 	return result;
 }
 
-std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsByMachineName() {
+namespace {
+struct OptionsList {
 	std::map<std::string, std::unique_ptr<Reflection::Struct>> options;
 
-#define Emplace(machine, class)														\
-	options.emplace(																\
-		LongNameForTargetMachine(Analyser::Machine::machine),						\
-		std::make_unique<class::Options>(Configurable::OptionsType::UserFriendly)	\
-	)
+	template <typename MachineT>
+	void emplace(const Analyser::Machine machine) {
+		options.emplace(
+			Machine::LongNameForTargetMachine(machine),
+			std::make_unique<typename MachineT::Options>(Configurable::OptionsType::UserFriendly)
+		);
+	};
+};
+}
 
-	Emplace(AmstradCPC, AmstradCPC::Machine);
-	Emplace(AppleII, Apple::II::Machine);
-	Emplace(Archimedes, Archimedes::Machine);
-	Emplace(AtariST, Atari::ST::Machine);
-	Emplace(BBCMicro, BBCMicro::Machine);
-	Emplace(ColecoVision, Coleco::Vision::Machine);
-	Emplace(Electron, Electron::Machine);
-	Emplace(Enterprise, Enterprise::Machine);
-	Emplace(Macintosh, Apple::Macintosh::Machine);
-	Emplace(MasterSystem, Sega::MasterSystem::Machine);
-	Emplace(MSX, MSX::Machine);
-	Emplace(Oric, Oric::Machine);
-	Emplace(Plus4, Commodore::Plus4::Machine);
-	Emplace(PCCompatible, PCCompatible::Machine);
-	Emplace(ThomsonMO, Thomson::MO::Machine);
-	Emplace(Vic20, Commodore::Vic20::Machine);
-	Emplace(ZX8081, Sinclair::ZX8081::Machine);
-	Emplace(ZXSpectrum, Sinclair::ZXSpectrum::Machine);
+std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsByMachineName() {
+	OptionsList options;
 
-#undef Emplace
+	using enum Analyser::Machine;
+	options.emplace<AmstradCPC::Machine>(AmstradCPC);
+	options.emplace<Apple::II::Machine>(AppleII);
+	options.emplace<Archimedes::Machine>(Archimedes);
+	options.emplace<Atari::ST::Machine>(AtariST);
+	options.emplace<BBCMicro::Machine>(BBCMicro);
+	options.emplace<Coleco::Vision::Machine>(ColecoVision);
+	options.emplace<Electron::Machine>(Electron);
+	options.emplace<Enterprise::Machine>(Enterprise);
+	options.emplace<Apple::Macintosh::Machine>(Macintosh);
+	options.emplace<Sega::MasterSystem::Machine>(MasterSystem);
+	options.emplace<MSX::Machine>(MSX);
+	options.emplace<Oric::Machine>(Oric);
+	options.emplace<Commodore::Plus4::Machine>(Plus4);
+	options.emplace<PCCompatible::Machine>(PCCompatible);
+	options.emplace<Thomson::MO::Machine>(ThomsonMO);
+	options.emplace<Commodore::Vic20::Machine>(Vic20);
+	options.emplace<Sinclair::ZX8081::Machine>(ZX8081);
+	options.emplace<Sinclair::ZXSpectrum::Machine>(ZXSpectrum);
 
-	return options;
+	return std::move(options.options);
+}
+
+namespace {
+struct TargetList {
+	std::map<std::string, std::unique_ptr<Analyser::Static::Target>> targets;
+
+	template <typename TargetT>
+	void emplace(const Analyser::Machine machine) {
+		targets.emplace(
+			Machine::LongNameForTargetMachine(machine),
+			std::make_unique<TargetT>()
+		);
+	};
+
+	void emplace(const Analyser::Machine machine, std::unique_ptr<Analyser::Static::Target> &&target) {
+		targets.emplace(
+			Machine::LongNameForTargetMachine(machine),
+			std::move(target)
+		);
+	}
+};
 }
 
 std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::TargetsByMachineName(
 	const bool meaningful_without_media_only
 ) {
-	std::map<std::string, std::unique_ptr<Analyser::Static::Target>> options;
+	TargetList targets;
 
-#define AddMapped(Name, TargetNamespace)								\
-	options.emplace(													\
-		LongNameForTargetMachine(Analyser::Machine::Name),				\
-		std::make_unique<Analyser::Static::TargetNamespace::Target>()	\
-	);
-#define Add(Name)	AddMapped(Name, Name)
-
-	Add(Amiga);
-	Add(AmstradCPC);
-	Add(AppleII);
-	Add(AppleIIgs);
-	options.emplace(
-		LongNameForTargetMachine(Analyser::Machine::Archimedes),
-		std::make_unique<Analyser::Static::Acorn::ArchimedesTarget>()
-	);
-	Add(AtariST);
-	options.emplace(
-		LongNameForTargetMachine(Analyser::Machine::BBCMicro),
-		std::make_unique<Analyser::Static::Acorn::BBCMicroTarget>()
-	);
-	options.emplace(
-		LongNameForTargetMachine(Analyser::Machine::Electron),
-		std::make_unique<Analyser::Static::Acorn::ElectronTarget>()
-	);
-	Add(Enterprise);
-	Add(Macintosh);
-	Add(MSX);
-	Add(Oric);
-	options.emplace(
-		LongNameForTargetMachine(Analyser::Machine::Plus4),
-		std::make_unique<Analyser::Static::Commodore::Plus4Target>()
-	);
-	Add(PCCompatible);
-	options.emplace(
-		LongNameForTargetMachine(Analyser::Machine::ThomsonMO),
-		std::make_unique<Analyser::Static::Thomson::MOTarget>()
-	);
-	options.emplace(
-		LongNameForTargetMachine(Analyser::Machine::Vic20),
-		std::make_unique<Analyser::Static::Commodore::Vic20Target>()
-	);
-	Add(ZX8081);
-	Add(ZXSpectrum);
+	using enum Analyser::Machine;
+	targets.emplace<Analyser::Static::Amiga::Target>(Amiga);
+	targets.emplace<Analyser::Static::AmstradCPC::Target>(AmstradCPC);
+	targets.emplace<Analyser::Static::AppleII::Target>(AppleII);
+	targets.emplace<Analyser::Static::AppleIIgs::Target>(AppleIIgs);
+	targets.emplace<Analyser::Static::Acorn::ArchimedesTarget>(Archimedes);
+	targets.emplace<Analyser::Static::AtariST::Target>(AtariST);
+	targets.emplace<Analyser::Static::Acorn::BBCMicroTarget>(BBCMicro);
+	targets.emplace<Analyser::Static::Acorn::ElectronTarget>(Electron);
+	targets.emplace<Analyser::Static::Enterprise::Target>(Enterprise);
+	targets.emplace<Analyser::Static::Macintosh::Target>(Macintosh);
+	targets.emplace<Analyser::Static::MSX::Target>(MSX);
+	targets.emplace<Analyser::Static::Oric::Target>(Oric);
+	targets.emplace<Analyser::Static::Commodore::Plus4Target>(Plus4);
+	targets.emplace<Analyser::Static::PCCompatible::Target>(PCCompatible);
+	targets.emplace<Analyser::Static::Thomson::MOTarget>(ThomsonMO);
+	targets.emplace<Analyser::Static::Commodore::Vic20Target>(Vic20);
+	targets.emplace<Analyser::Static::ZX8081::Target>(ZX8081);
+	targets.emplace<Analyser::Static::ZXSpectrum::Target>(ZXSpectrum);
 
 	if(!meaningful_without_media_only) {
-		Add(Atari2600);
-		options.emplace(
-			LongNameForTargetMachine(Analyser::Machine::ColecoVision),
+		targets.emplace<Analyser::Static::Atari2600::Target>(Atari2600);
+		targets.emplace(
+			ColecoVision,
 			std::make_unique<Analyser::Static::Target>(Analyser::Machine::ColecoVision)
 		);
-		AddMapped(MasterSystem, Sega);
+		targets.emplace<Analyser::Static::Sega::Target>(MasterSystem);
 	}
 
-#undef Add
-#undef AddMapped
-
-	return options;
+	return std::move(targets.targets);
 }
