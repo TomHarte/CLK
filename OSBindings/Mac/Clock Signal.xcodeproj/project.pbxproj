@@ -1634,6 +1634,7 @@
 		4B4195F62EBAB06C001C966D /* TubeZ80.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TubeZ80.hpp; sourceTree = "<group>"; };
 		4B41EF6E2FA55F980086D909 /* CoCo.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CoCo.hpp; sourceTree = "<group>"; };
 		4B41EF6F2FA55F980086D909 /* CoCo.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CoCo.cpp; sourceTree = "<group>"; };
+		4B41EF762FA650000086D909 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4B43983829620FB1006B0BFC /* 9918.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 9918.cpp; sourceTree = "<group>"; };
 		4B43983C29621024006B0BFC /* ClockConverter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ClockConverter.hpp; sourceTree = "<group>"; };
 		4B43983E29628538006B0BFC /* Fetch.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Fetch.hpp; sourceTree = "<group>"; };
@@ -3429,6 +3430,14 @@
 			path = Tandy;
 			sourceTree = "<group>";
 		};
+		4B41EF772FA650000086D909 /* TandyCoCo */ = {
+			isa = PBXGroup;
+			children = (
+				4B41EF762FA650000086D909 /* Target.hpp */,
+			);
+			path = TandyCoCo;
+			sourceTree = "<group>";
+		};
 		4B4518701F75E91800926311 /* Track */ = {
 			isa = PBXGroup;
 			children = (
@@ -4137,6 +4146,7 @@
 				4B8944F6201967B4007DE474 /* Oric */,
 				4238200D2B17CBC800964EFE /* PCCompatible */,
 				4B7F1894215486A100388727 /* Sega */,
+				4B41EF772FA650000086D909 /* TandyCoCo */,
 				4BBC7DD22F7186D600E71794 /* Thomson */,
 				4B894504201967B4007DE474 /* ZX8081 */,
 				4B0F1BAF2602645900B85C66 /* ZXSpectrum */,
