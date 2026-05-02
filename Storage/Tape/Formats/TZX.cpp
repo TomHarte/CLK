@@ -11,6 +11,8 @@
 #include "CSW.hpp"
 #include "Outputs/Log.hpp"
 
+#include <algorithm>
+
 using namespace Storage::Tape;
 
 namespace {
@@ -123,7 +125,7 @@ void TZX::Serialiser::get_csw_recording_block() {
 	auto serialiser = csw.serialiser();
 	while(!serialiser->is_at_end()) {
 		Pulse next_pulse = serialiser->next_pulse();
-		current_level_ = (next_pulse.type == Pulse::High);
+		current_level_ = next_pulse.type == Pulse::High;
 		push_back(next_pulse);
 	}
 
@@ -302,28 +304,32 @@ void TZX::Serialiser::get_pure_data_block() {
 void TZX::Serialiser::get_direct_recording_block() {
 	const Storage::Time length_per_sample(unsigned(file_.get_le<uint16_t>()), StandardTZXClock);
 	const auto pause_after_block = file_.get_le<uint16_t>();
-	uint8_t used_bits_in_final_byte = file_.get();
+	const uint8_t used_bits_in_final_byte = std::clamp<uint8_t>(file_.get(), 1, 8);
 	const auto length_of_data = file_.get_le<uint32_t, 3>();
 
-	if(used_bits_in_final_byte < 1) used_bits_in_final_byte = 1;
-	if(used_bits_in_final_byte > 8) used_bits_in_final_byte = 8;
-
-	uint8_t byte = 0;
 	unsigned int bits_at_level = 0;
-	uint8_t level = 0;
-	for(std::size_t bit = 0; bit < (length_of_data - 1) * 8 + used_bits_in_final_byte; ++bit) {
-		if(!(bit&7)) byte = file_.get();
-		if(!bit) level = byte&0x80;
+	bool level = false;
+	for(uint32_t c = 0; c < length_of_data; c++) {
+		const uint8_t bits = c == length_of_data - 1 ? used_bits_in_final_byte : 8;
+		uint8_t byte = file_.get();
 
-		if((byte&0x80) != level) {
-			emplace_back(level ? Pulse::High : Pulse::Low, length_per_sample * bits_at_level);
-			bits_at_level = 0;
-			level = byte&0x80;
+		for(int bit = 0; bit < bits; bit++) {
+			const bool bit_level = byte & 0x80;
+			byte <<= 1;
+
+			if(bit_level == level) {
+				++bits_at_level;
+			} else {
+				if(bits_at_level) {
+					emplace_back(level ? Pulse::High : Pulse::Low, length_per_sample * bits_at_level);
+				}
+				bits_at_level = 1;
+				level = bit_level;
+			}
 		}
-		bits_at_level++;
 	}
 
-	current_level_ = !!(level);
+	current_level_ = level;
 	emplace_back(level ? Pulse::High : Pulse::Low, length_per_sample * bits_at_level);
 
 	post_gap(pause_after_block);
@@ -348,7 +354,7 @@ void TZX::Serialiser::get_pause() {
 void TZX::Serialiser::get_set_signal_level() {
 	file_.seek(4, Whence::CUR);
 	const uint8_t level = file_.get();
-	current_level_ = !!level;
+	current_level_ = level;
 }
 
 void TZX::Serialiser::get_kansas_city_block() {
