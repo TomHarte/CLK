@@ -25,6 +25,7 @@
 #include "Analyser/Static/MSX/Target.hpp"
 #include "Analyser/Static/Oric/Target.hpp"
 #include "Analyser/Static/PCCompatible/Target.hpp"
+#include "Analyser/Static/TandyCoCo/Target.hpp"
 #include "Analyser/Static/Thomson/Target.hpp"
 #include "Analyser/Static/ZX8081/Target.hpp"
 #include "Analyser/Static/ZXSpectrum/Target.hpp"
@@ -542,6 +543,16 @@ PermissionDelegate permission_delegate;
 			case CSMachineSpectrumModelPlus2a:			target->model = Target::Model::Plus2a;			break;
 			case CSMachineSpectrumModelPlus3:			target->model = Target::Model::Plus3;			break;
 		}
+		_targets.push_back(std::move(target));
+	}
+	return self;
+}
+
+- (instancetype)initWithTandyCoCo {
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::TandyCoCo::Target;
+		auto target = std::make_unique<Target>();
 		_targets.push_back(std::move(target));
 	}
 	return self;

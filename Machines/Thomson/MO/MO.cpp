@@ -609,7 +609,8 @@ private:
 	void run_for(const Cycles cycles) final {
 		m6809_.run_for(cycles);
 	}
-	void flush_output(int outputs) final {
+
+	void flush_output(const int outputs) final {
 		if(outputs & Output::Video) {
 			video_.flush();
 		}

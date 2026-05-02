@@ -49,6 +49,7 @@
 #include "Analyser/Static/Oric/Target.hpp"
 #include "Analyser/Static/PCCompatible/Target.hpp"
 #include "Analyser/Static/Sega/Target.hpp"
+#include "Analyser/Static/TandyCoCo/Target.hpp"
 #include "Analyser/Static/Thomson/Target.hpp"
 #include "Analyser/Static/ZX8081/Target.hpp"
 #include "Analyser/Static/ZXSpectrum/Target.hpp"
@@ -266,10 +267,12 @@ struct OptionsList {
 
 	template <typename MachineT>
 	void emplace(const Analyser::Machine machine) {
-		options.emplace(
-			Machine::LongNameForTargetMachine(machine),
-			std::make_unique<typename MachineT::Options>(Configurable::OptionsType::UserFriendly)
-		);
+		if constexpr (requires{ MachineT::Options(Configurable::OptionsType()); }) {
+			options.emplace(
+				Machine::LongNameForTargetMachine(machine),
+				std::make_unique<typename MachineT::Options>(Configurable::OptionsType::UserFriendly)
+			);
+		}
 	};
 };
 }
@@ -278,9 +281,12 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsBy
 	OptionsList options;
 
 	using enum Analyser::Machine;
+	options.emplace<Amiga::Machine>(Amiga);
 	options.emplace<AmstradCPC::Machine>(AmstradCPC);
 	options.emplace<Apple::II::Machine>(AppleII);
+	options.emplace<Apple::IIgs::Machine>(AppleIIgs);
 	options.emplace<Archimedes::Machine>(Archimedes);
+	options.emplace<Atari2600::Machine>(Atari2600);
 	options.emplace<Atari::ST::Machine>(AtariST);
 	options.emplace<BBCMicro::Machine>(BBCMicro);
 	options.emplace<Coleco::Vision::Machine>(ColecoVision);
@@ -292,6 +298,7 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsBy
 	options.emplace<Oric::Machine>(Oric);
 	options.emplace<Commodore::Plus4::Machine>(Plus4);
 	options.emplace<PCCompatible::Machine>(PCCompatible);
+	options.emplace<Tandy::CoCo::Machine>(TandyCoCo);
 	options.emplace<Thomson::MO::Machine>(ThomsonMO);
 	options.emplace<Commodore::Vic20::Machine>(Vic20);
 	options.emplace<Sinclair::ZX8081::Machine>(ZX8081);
@@ -341,6 +348,7 @@ std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::Target
 	targets.emplace<Analyser::Static::Oric::Target>(Oric);
 	targets.emplace<Analyser::Static::Commodore::Plus4Target>(Plus4);
 	targets.emplace<Analyser::Static::PCCompatible::Target>(PCCompatible);
+	targets.emplace<Analyser::Static::TandyCoCo::Target>(TandyCoCo);
 	targets.emplace<Analyser::Static::Thomson::MOTarget>(ThomsonMO);
 	targets.emplace<Analyser::Static::Commodore::Vic20Target>(Vic20);
 	targets.emplace<Analyser::Static::ZX8081::Target>(ZX8081);
