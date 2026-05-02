@@ -309,11 +309,9 @@ void TZX::Serialiser::get_direct_recording_block() {
 
 	unsigned int bits_at_level = 0;
 	bool level = false;
-	for(uint32_t c = 0; c < length_of_data; c++) {
-		const uint8_t bits = c == length_of_data - 1 ? used_bits_in_final_byte : 8;
+	const auto serialise_byte = [&](const uint8_t bit_count) {
 		uint8_t byte = file_.get();
-
-		for(int bit = 0; bit < bits; bit++) {
+		for(int c = 0; c < bit_count; c++) {
 			const bool bit_level = byte & 0x80;
 			byte <<= 1;
 
@@ -327,7 +325,12 @@ void TZX::Serialiser::get_direct_recording_block() {
 				level = bit_level;
 			}
 		}
+	};
+
+	for(uint32_t c = 0; c < length_of_data - 1; c++) {
+		serialise_byte(8);
 	}
+	serialise_byte(used_bits_in_final_byte);
 
 	current_level_ = level;
 	emplace_back(level ? Pulse::High : Pulse::Low, length_per_sample * bits_at_level);
