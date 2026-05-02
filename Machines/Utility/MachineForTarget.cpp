@@ -29,6 +29,7 @@
 #include "Machines/MSX/MSX.hpp"
 #include "Machines/Oric/Oric.hpp"
 #include "Machines/PCCompatible/PCCompatible.hpp"
+#include "Machines/Tandy/CoCo/CoCo.hpp"
 #include "Machines/Thomson/MO/MO.hpp"
 #include "Machines/Sinclair/ZX8081/ZX8081.hpp"
 #include "Machines/Sinclair/ZXSpectrum/ZXSpectrum.hpp"
@@ -106,6 +107,7 @@ std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTarget(
 		generator.posit<Sega::MasterSystem::Machine>(MasterSystem);
 		generator.posit<Sinclair::ZX8081::Machine>(ZX8081);
 		generator.posit<Sinclair::ZXSpectrum::Machine>(ZXSpectrum);
+		generator.posit<Tandy::CoCo::Machine>(TandyCoCo);
 		generator.posit<Thomson::MO::Machine>(ThomsonMO);
 
 		if(!generator.machine) {
@@ -180,6 +182,7 @@ std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) 
 		case Analyser::Machine::Oric:			return "Oric";
 		case Analyser::Machine::Plus4:			return "Plus4";
 		case Analyser::Machine::PCCompatible:	return "PCCompatible";
+		case Analyser::Machine::TandyCoCo:		return "TandyCoCo";
 		case Analyser::Machine::ThomsonMO:		return "ThomsonMO";
 		case Analyser::Machine::Vic20:			return "Vic20";
 		case Analyser::Machine::ZX8081:			return "ZX8081";
@@ -208,6 +211,7 @@ std::string Machine::LongNameForTargetMachine(const Analyser::Machine machine) {
 		case Analyser::Machine::Oric:			return "Oric";
 		case Analyser::Machine::Plus4:			return "Commodore C16+4";
 		case Analyser::Machine::PCCompatible:	return "PC Compatible";
+		case Analyser::Machine::TandyCoCo:		return "Tandy CoCo";
 		case Analyser::Machine::ThomsonMO:		return "Thomson MO";
 		case Analyser::Machine::Vic20:			return "Vic 20";
 		case Analyser::Machine::ZX8081:			return "ZX80/81";
@@ -246,6 +250,7 @@ std::vector<std::string> Machine::AllMachines(const Type type, const bool long_n
 		add_name(Analyser::Machine::Oric);
 		add_name(Analyser::Machine::Plus4);
 		add_name(Analyser::Machine::PCCompatible);
+		add_name(Analyser::Machine::TandyCoCo);
 		add_name(Analyser::Machine::ThomsonMO);
 		add_name(Analyser::Machine::Vic20);
 		add_name(Analyser::Machine::ZX8081);

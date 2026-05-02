@@ -6,9 +6,16 @@
 //  Copyright © 2026 Thomas Harte. All rights reserved.
 //
 
-#ifndef CoCo_hpp
-#define CoCo_hpp
+#pragma once
 
-#include <stdio.h>
+#include "Analyser/Static/StaticAnalyser.hpp"
+#include "Machines/ROMMachine.hpp"
 
-#endif /* CoCo_hpp */
+namespace Tandy::CoCo {
+
+struct Machine {
+	virtual ~Machine() = default;
+	static std::unique_ptr<Machine> create(const Analyser::Static::Target *, const ROMMachine::ROMFetcher &);
+};
+
+}
