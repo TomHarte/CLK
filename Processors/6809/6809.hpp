@@ -38,10 +38,10 @@ enum class ReadWrite {
 	Write,
 };
 constexpr bool is_read(const ReadWrite read_write) {
-	return read_write < ReadWrite::Write;
+	return read_write == ReadWrite::Read;
 }
 constexpr bool is_write(const ReadWrite read_write) {
-	return read_write >= ReadWrite::Write;
+	return read_write == ReadWrite::Write;
 }
 constexpr Bus::Data::AccessType access_type(const ReadWrite read_write) {
 	if(read_write == ReadWrite::NoData) {
