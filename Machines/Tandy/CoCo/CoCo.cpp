@@ -172,8 +172,8 @@ public:
 			}
 		}
 
-		// TODO: only if operating at half speed, obviously.
-		return duration<Cycles>(bus_phase);
+		// TODO, maybe: pull this outside the loop?
+		return sam_.cycle_cost<bus_phase, read_write>(address);
 	}
 
 private:
@@ -300,7 +300,98 @@ private:
 	// MARK: - SAM.
 
 	struct SAM {
-		template <uint16_t> void access() {}
+		template <uint16_t address> void access() {
+			const auto set = [&](auto &target, auto bit) {
+				target = target & ~bit;
+				target |= address & 1 ? bit : 0;
+			};
+
+			switch((address >> 1) & 0xf) {
+				default:
+					printf("Unhandled SAM access %04x\n", address);
+				break;
+
+				case 0:	set(graphics_mode_, 1);	break;
+				case 1:	set(graphics_mode_, 2);	break;
+				case 2:	set(graphics_mode_, 4);	break;
+
+				case 3:	set(graphics_address_, 0x0200);	break;
+				case 4:	set(graphics_address_, 0x0400);	break;
+				case 5:	set(graphics_address_, 0x0800);	break;
+				case 6:	set(graphics_address_, 0x1000);	break;
+				case 7:	set(graphics_address_, 0x2000);	break;
+				case 8:	set(graphics_address_, 0x4000);	break;
+				case 9:	set(graphics_address_, 0x8000);	break;
+
+				case 10:
+					page1_ = address & 1;
+					if(page1_) {
+						printf("TODO: RAM page 1\n");
+						// TODO: communicate to memory map.
+					}
+				break;
+
+				case 11: { int tc = int(speed_); set(tc, 1); speed_ = ClockSpeed(tc); }	break;
+				case 12: { int tc = int(speed_); set(tc, 2); speed_ = ClockSpeed(tc); }	break;
+
+				// Likely these are to effect refresh; TODO: look into this.
+				case 13: set(ram_size_, 1);	break;
+				case 14: set(ram_size_, 2);	break;
+
+				case 15:
+					all_ram_ = address & 1;
+					if(all_ram_) {
+						printf("TODO: all-RAM mode\n");
+						// TODO: communicate to memory map.
+					}
+				break;
+			}
+		}
+
+		template <
+			CPU::M6809::BusPhase bus_phase,
+			CPU::M6809::ReadWrite read_write,
+			typename AddressT
+		> Cycles cycle_cost(const AddressT address) {
+			switch(speed_) {
+				case ClockSpeed::Full1:
+				case ClockSpeed::Full2:
+				return Cycles(0);
+
+				case ClockSpeed::Half:
+				return duration<Cycles>(bus_phase);
+
+				case ClockSpeed::HalfInRAM:
+					if constexpr (read_write == CPU::M6809::ReadWrite::NoData) {
+						return Cycles(0);
+					} else {
+						if(address < 0x8000 || all_ram_) {
+							return duration<Cycles>(bus_phase);
+						} else {
+							return Cycles(0);
+						}
+					}
+				break;
+
+				default: break;
+			}
+			__builtin_unreachable();
+		}
+
+	private:
+		enum class ClockSpeed {
+			Half,
+			HalfInRAM,
+			Full1,
+			Full2,
+		};
+
+		int graphics_mode_ = 0;
+		uint16_t graphics_address_ = 0;
+		ClockSpeed speed_ = ClockSpeed::Half;
+		bool all_ram_ = false;
+		bool page1_ = false;
+		int ram_size_ = 0;
 	};
 	SAM sam_;
 };
