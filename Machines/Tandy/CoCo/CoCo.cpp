@@ -9,6 +9,7 @@
 #include "CoCo.hpp"
 
 #include "Processors/6809/6809.hpp"
+#include "Components/6821/6821.hpp"
 
 #include "Machines/MachineTypes.hpp"
 #include "Analyser/Static/TandyCoCo/Target.hpp"
@@ -18,8 +19,7 @@ using namespace Tandy::CoCo;
 namespace {
 
 struct MemoryMap {
-
-	uint8_t read(const uint16_t address) {
+	uint8_t read(const uint16_t address) const {
 		return read_[address >> 13] ? read_[address >> 13][address] : 0xff;
 	}
 
@@ -60,7 +60,9 @@ class ConcreteMachine:
 {
 public:
 	ConcreteMachine(const Analyser::Static::TandyCoCo::Target &, const ROMMachine::ROMFetcher &rom_fetcher) :
-		m6809_(*this)
+		m6809_(*this),
+		pia0_(pia0_handler_),
+		pia1_(pia1_handler_)
 	{
 		set_clock_rate(1'789'772.5);
 
@@ -92,27 +94,80 @@ public:
 		const AddressT address,
 		CPU::M6809::data_t<read_write> value
 	) {
+		using namespace CPU::M6809;
+
 		if(address >> 8 == 0xff) {
-			if constexpr (read_write != CPU::M6809::ReadWrite::NoData) {
+			if constexpr (read_write != ReadWrite::NoData) {
 				switch(address) {
 					default: printf("Unhandled at %04x\n", +address);	break;
+
+					case 0xff00:	case 0xff04:	case 0xff08:	case 0xff0c:
+					case 0xff10:	case 0xff14:	case 0xff18:	case 0xff1c:
+						access<0xff00, read_write>(pia0_, value);
+					break;
+					case 0xff01:	case 0xff05:	case 0xff09:	case 0xff0d:
+					case 0xff11:	case 0xff15:	case 0xff19:	case 0xff1d:
+						access<0xff01, read_write>(pia0_, value);
+					break;
+					case 0xff02:	case 0xff06:	case 0xff0a:	case 0xff0e:
+					case 0xff12:	case 0xff16:	case 0xff1a:	case 0xff1e:
+						access<0xff02, read_write>(pia0_, value);
+					break;
+					case 0xff03:	case 0xff07:	case 0xff0b:	case 0xff0f:
+					case 0xff13:	case 0xff17:	case 0xff1b:	case 0xff1f:
+						access<0xff03, read_write>(pia0_, value);
+					break;
+
+					case 0xff20:	case 0xff24:	case 0xff28:	case 0xff2c:
+					case 0xff30:	case 0xff34:	case 0xff38:	case 0xff3c:
+						access<0xff20, read_write>(pia1_, value);
+					break;
+					case 0xff21:	case 0xff25:	case 0xff29:	case 0xff2d:
+					case 0xff31:	case 0xff35:	case 0xff39:	case 0xff3d:
+						access<0xff21, read_write>(pia1_, value);
+					break;
+					case 0xff22:	case 0xff26:	case 0xff2a:	case 0xff2e:
+					case 0xff32:	case 0xff36:	case 0xff3a:	case 0xff3e:
+						access<0xff22, read_write>(pia1_, value);
+					break;
+					case 0xff23:	case 0xff27:	case 0xff2b:	case 0xff2f:
+					case 0xff33:	case 0xff37:	case 0xff3b:	case 0xff3f:
+						access<0xff23, read_write>(pia1_, value);
+					break;
+
+					case 0xffc0:	sam_.access<0xffc0>();	break;		case 0xffc1:	sam_.access<0xffc1>();	break;
+					case 0xffc2:	sam_.access<0xffc2>();	break;		case 0xffc3:	sam_.access<0xffc3>();	break;
+					case 0xffc4:	sam_.access<0xffc4>();	break;		case 0xffc5:	sam_.access<0xffc5>();	break;
+					case 0xffc6:	sam_.access<0xffc6>();	break;		case 0xffc7:	sam_.access<0xffc7>();	break;
+					case 0xffc8:	sam_.access<0xffc8>();	break;		case 0xffc9:	sam_.access<0xffc9>();	break;
+					case 0xffca:	sam_.access<0xffca>();	break;		case 0xffcb:	sam_.access<0xffcb>();	break;
+					case 0xffcc:	sam_.access<0xffcc>();	break;		case 0xffcd:	sam_.access<0xffcd>();	break;
+					case 0xffce:	sam_.access<0xffce>();	break;		case 0xffcf:	sam_.access<0xffcf>();	break;
+					case 0xffd0:	sam_.access<0xffd0>();	break;		case 0xffd1:	sam_.access<0xffd1>();	break;
+					case 0xffd2:	sam_.access<0xffd2>();	break;		case 0xffd3:	sam_.access<0xffd3>();	break;
+					case 0xffd4:	sam_.access<0xffd4>();	break;		case 0xffd5:	sam_.access<0xffd5>();	break;
+					case 0xffd6:	sam_.access<0xffd6>();	break;		case 0xffd7:	sam_.access<0xffd7>();	break;
+					case 0xffd8:	sam_.access<0xffd8>();	break;		case 0xffd9:	sam_.access<0xffd9>();	break;
+					case 0xffda:	sam_.access<0xffda>();	break;		case 0xffdb:	sam_.access<0xffdb>();	break;
+					case 0xffdc:	sam_.access<0xffdc>();	break;		case 0xffdd:	sam_.access<0xffdd>();	break;
+					case 0xffde:	sam_.access<0xffde>();	break;		case 0xffdf:	sam_.access<0xffdf>();	break;
 
 					case 0xfff2:	case 0xfff3:	case 0xfff4:	case 0xfff5:
 					case 0xfff6:	case 0xfff7:	case 0xfff8:	case 0xfff9:
 					case 0xfffa:	case 0xfffb:	case 0xfffc:	case 0xfffd:
 					case 0xfffe:	case 0xffff:
-						if constexpr (CPU::M6809::is_read(read_write)) {
+						if constexpr (is_read(read_write)) {
 							value = memory_.read(address - 0x4000);
 						}
 					break;
 				}
 			}
 		} else {
-			if constexpr (CPU::M6809::is_read(read_write)) {
+			if constexpr (is_read(read_write)) {
 				value = memory_.read(address);
 			}
 
-			if constexpr (CPU::M6809::is_write(read_write)) {
+			if constexpr (is_write(read_write)) {
 				memory_.write(address, value);
 			}
 		}
@@ -151,6 +206,103 @@ private:
 	void flush_output(const int outputs) final {
 		(void)outputs;
 	}
+
+	// MARK: - PIAs.
+
+	friend struct PIA0Handler;
+	struct PIA0Handler {
+		template <Motorola::MC6821::Port port>
+		uint8_t input() {
+			if constexpr (port == Motorola::MC6821::Port::A) {
+				return 0xff;
+			}
+
+			if constexpr (port == Motorola::MC6821::Port::B) {
+				return 0xff;
+			}
+
+			__builtin_unreachable();
+		}
+
+		template <Motorola::MC6821::Port port>
+		void output(const uint8_t) {
+			if constexpr (port == Motorola::MC6821::Port::A) {
+			}
+
+			if constexpr (port == Motorola::MC6821::Port::B) {
+			}
+		}
+
+		template <Motorola::MC6821::IRQ irq>
+		void set(const bool) {
+			if constexpr (irq == Motorola::MC6821::IRQ::A) {
+			}
+
+			if constexpr (irq == Motorola::MC6821::IRQ::B) {
+			}
+		}
+
+		template <Motorola::MC6821::Control control>
+		void observe(const bool) {
+			if constexpr (control == Motorola::MC6821::Control::CA2) {
+			}
+			if constexpr (control == Motorola::MC6821::Control::CB2) {
+			}
+		}
+	};
+	PIA0Handler pia0_handler_;
+	Motorola::MC6821::MC6821<PIA0Handler> pia0_;
+
+	friend struct PIA1Handler;
+	struct PIA1Handler {
+		template <Motorola::MC6821::Port port>
+		uint8_t input() {
+			if constexpr (port == Motorola::MC6821::Port::A) {
+				return 0xff;
+			}
+
+			if constexpr (port == Motorola::MC6821::Port::B) {
+				return 0xff;
+			}
+
+			__builtin_unreachable();
+		}
+
+		template <Motorola::MC6821::Port port>
+		void output(const uint8_t) {
+			if constexpr (port == Motorola::MC6821::Port::A) {
+			}
+
+			if constexpr (port == Motorola::MC6821::Port::B) {
+			}
+		}
+
+		template <Motorola::MC6821::IRQ irq>
+		void set(const bool) {
+			if constexpr (irq == Motorola::MC6821::IRQ::A) {
+			}
+
+			if constexpr (irq == Motorola::MC6821::IRQ::B) {
+			}
+		}
+
+		template <Motorola::MC6821::Control control>
+		void observe(const bool) {
+			if constexpr (control == Motorola::MC6821::Control::CA2) {
+			}
+			if constexpr (control == Motorola::MC6821::Control::CB2) {
+			}
+		}
+	};
+	PIA0Handler pia1_handler_;
+	Motorola::MC6821::MC6821<PIA0Handler> pia1_;
+
+	// MARK: - SAM.
+
+	struct SAM {
+		template <uint16_t> void access() {}
+	};
+	SAM sam_;
 };
 
 }
