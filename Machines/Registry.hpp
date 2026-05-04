@@ -52,7 +52,7 @@
 #include "Analyser/Static/ZX8081/Target.hpp"
 #include "Analyser/Static/ZXSpectrum/Target.hpp"
 
-namespace MachineRegistry {
+namespace MachineRegister {
 
 template <Analyser::Machine machine> struct Details;
 
@@ -87,6 +87,7 @@ template <>
 struct Details<Analyser::Machine::AppleIIgs> {
 	static constexpr auto name = Analyser::Machine::AppleIIgs;
 	static constexpr bool requires_media = false;
+	static constexpr bool is_incomplete = true;
 
 	using Machine = Apple::IIgs::Machine;
 	using Target = Analyser::Static::AppleIIgs::Target;
@@ -212,6 +213,7 @@ template <>
 struct Details<Analyser::Machine::TandyCoCo> {
 	static constexpr auto name = Analyser::Machine::TandyCoCo;
 	static constexpr bool requires_media = false;
+	static constexpr bool is_incomplete = true;
 
 	using Machine = Tandy::CoCo::Machine;
 	using Target = Analyser::Static::TandyCoCo::Target;
@@ -256,6 +258,11 @@ struct Details<Analyser::Machine::ZXSpectrum> {
 
 template <template<typename> typename FuncT, Analyser::Machine machine, typename TargetT>
 void for_machine(TargetT &target) {
+	if constexpr (requires{ TargetT::is_incomplete; }) {
+		if(TargetT::is_incomplete) {
+			return;
+		}
+	}
 	FuncT<Details<machine>>()(target);
 }
 
@@ -263,27 +270,27 @@ template <template<typename> typename FuncT, typename TargetT>
 void for_all_machines(TargetT &target) {
 	using enum Analyser::Machine;
 
-	for_machine<Amiga>(target);
-	for_machine<AmstradCPC>(target);
-	for_machine<AppleII>(target);
-	for_machine<AppleIIgs>(target);
-	for_machine<Archimedes>(target);
-	for_machine<AtariST>(target);
-	for_machine<Atari2600>(target);
-	for_machine<BBCMicro>(target);
-	for_machine<ColecoVision>(target);
-	for_machine<Electron>(target);
-	for_machine<Enterprise>(target);
-	for_machine<Macintosh>(target);
-	for_machine<MasterSystem>(target);
-	for_machine<MSX>(target);
-	for_machine<Oric>(target);
-	for_machine<PCCompatible>(target);
-	for_machine<Plus4>(target);
-	for_machine<TandyCoCo>(target);
-	for_machine<ThomsonMO>(target);
-	for_machine<Vic20>(target);
-	for_machine<ZX8081>(target);
-	for_machine<ZXSpectrum>(target);
+	for_machine<FuncT, Amiga>(target);
+	for_machine<FuncT, AmstradCPC>(target);
+	for_machine<FuncT, AppleII>(target);
+	for_machine<FuncT, AppleIIgs>(target);
+	for_machine<FuncT, Archimedes>(target);
+	for_machine<FuncT, AtariST>(target);
+	for_machine<FuncT, Atari2600>(target);
+	for_machine<FuncT, BBCMicro>(target);
+	for_machine<FuncT, ColecoVision>(target);
+	for_machine<FuncT, Electron>(target);
+	for_machine<FuncT, Enterprise>(target);
+	for_machine<FuncT, Macintosh>(target);
+	for_machine<FuncT, MasterSystem>(target);
+	for_machine<FuncT, MSX>(target);
+	for_machine<FuncT, Oric>(target);
+	for_machine<FuncT, PCCompatible>(target);
+	for_machine<FuncT, Plus4>(target);
+	for_machine<FuncT, TandyCoCo>(target);
+	for_machine<FuncT, ThomsonMO>(target);
+	for_machine<FuncT, Vic20>(target);
+	for_machine<FuncT, ZX8081>(target);
+	for_machine<FuncT, ZXSpectrum>(target);
 }
 }
