@@ -48,6 +48,7 @@ private:
 		AnnounceEnum(Model);
 		DeclareField(adaptor);
 		DeclareField(model);
+		limit_enum(&model, Model::XT, Model::TurboXT, -1);
 	}
 };
 
