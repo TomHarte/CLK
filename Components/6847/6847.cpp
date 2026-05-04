@@ -100,7 +100,7 @@ void MC6847Base::border_line(const int line_begin, const int line_end) {
 	Numeric::clamp<0, LineLayout::EndOfSync>(line_begin, line_end, [&](const int begin, const int end) {
 		crt_.output_sync(end - begin);
 	});
-	Numeric::clamp<LineLayout::EndOfSync, LineLayout::EndOfLeftBorder>(line_begin, line_end, [&](const int begin, const int end) {
+	Numeric::clamp<LineLayout::EndOfSync, LineLayout::EndOfLine>(line_begin, line_end, [&](const int begin, const int end) {
 		crt_.output_blank(end - begin);
 	});
 }
