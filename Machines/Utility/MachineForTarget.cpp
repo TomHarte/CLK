@@ -15,6 +15,10 @@
 #include "TypedDynamicMachine.hpp"
 
 namespace {
+/*!
+	Compares each machine supplied to it to a given target and retains either its short name or its long name
+	as per the template parameter.
+*/
 template <bool capture_short>
 struct NameCapture {
 	NameCapture(const Analyser::Machine machine) : machine_(machine) {}
@@ -33,21 +37,10 @@ struct NameCapture {
 private:
 	Analyser::Machine machine_;
 };
-}
 
-std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) {
-	NameCapture<true> name(machine);
-	MachineRegister::for_all_machines<NameCapture<true>::Adder>(name);
-	return name.result;
-}
-
-std::string Machine::LongNameForTargetMachine(const Analyser::Machine machine) {
-	NameCapture<false> name(machine);
-	MachineRegister::for_all_machines<NameCapture<false>::Adder>(name);
-	return name.result;
-}
-
-namespace {
+/*
+	Creates an instance of Machine::DynamicMachine based on the supplied target and ROM fetcher.
+*/
 struct MachineGenerator {
 	MachineGenerator(
 		const Analyser::Static::Target &target,
@@ -73,6 +66,117 @@ private:
 		}
 	}
 };
+
+/*
+	Creates a list naming all complete machines, optionally filtering by launch media requirements.
+*/
+struct MachineLister {
+	MachineLister(const Machine::Type type, const bool long_names) :
+		type_(type), long_names_(long_names) {};
+
+	std::vector<std::string> machines;
+
+	template <typename MachineT>
+	struct Adder {
+		void operator()(MachineLister &lister) {
+			switch(lister.type_) {
+				case Machine::Type::RequiresMedia:
+					if(!MachineT::requires_media) return;
+				break;
+
+				case Machine::Type::DoesntRequireMedia:
+					if(MachineT::requires_media) return;
+				break;
+
+				default: break;
+			}
+
+			lister.machines.push_back(lister.long_names_ ? MachineT::long_name : MachineT::short_name);
+		}
+	};
+
+private:
+	Machine::Type type_;
+	bool long_names_;
+};
+
+/*
+	Creates a map from machine long name to default user-friendly options.
+*/
+struct OptionsList {
+	std::map<std::string, std::unique_ptr<Reflection::Struct>> options;
+
+	template <typename MachineT>
+	struct Adder {
+		void operator()(OptionsList &list) {
+			list.emplace<typename MachineT::Machine>();
+		}
+	};
+
+private:
+	template <typename MachineT>
+	void emplace() {
+		if constexpr (requires{ MachineT::Options(Configurable::OptionsType()); }) {
+			options.emplace(
+				MachineT::long_name,
+				std::make_unique<typename MachineT::Options>(Configurable::OptionsType::UserFriendly)
+			);
+		}
+	};
+};
+
+/*
+	Creates a map from machine long name to an instantiation of its `Target`, optionally filtered on whether
+	media is required for a meaningful launch.
+*/
+struct TargetList {
+	TargetList(const bool meaningful_without_media_only) :
+		meaningful_without_media_only_(meaningful_without_media_only) {}
+
+	std::map<std::string, std::unique_ptr<Analyser::Static::Target>> targets;
+
+	template <typename MachineT>
+	struct Adder {
+		void operator()(TargetList &list) {
+			if(MachineT::requires_media && list.meaningful_without_media_only_) {
+				return;
+			}
+
+			if constexpr (requires { typename MachineT::Target(); }) {
+				list.emplace<typename MachineT::Target>(MachineT::long_name);
+			} else {
+				list.emplace(
+					MachineT::long_name,
+					std::make_unique<Analyser::Static::Target>(MachineT::name)
+				);
+			}
+		}
+	};
+
+private:
+	bool meaningful_without_media_only_;
+
+	template <typename TargetT>
+	void emplace(const char *name) {
+		targets.emplace(name, std::make_unique<TargetT>());
+	};
+
+	void emplace(const char *name, std::unique_ptr<Analyser::Static::Target> &&target) {
+		targets.emplace(name, std::move(target));
+	}
+};
+}
+
+std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) {
+	NameCapture<true> name(machine);
+	MachineRegister::for_all_machines<NameCapture<true>::Adder>(name);
+	return name.result;
+}
+
+std::string Machine::LongNameForTargetMachine(const Analyser::Machine machine) {
+	NameCapture<false> name(machine);
+	MachineRegister::for_all_machines<NameCapture<false>::Adder>(name);
+	return name.result;
 }
 
 std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTarget(
@@ -84,7 +188,7 @@ std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTarget(
 	MachineGenerator generator(target, rom_fetcher);
 
 	try {
-		MachineRegister::for_all_machines<MachineGenerator::Adder>(generator);
+		MachineRegister::for_all_machines<MachineGenerator::Adder>(generator, true);
 		if(!generator.machine) {
 			error = Machine::Error::UnknownMachine;
 		}
@@ -138,120 +242,16 @@ std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTargets(
 	return MachineForTarget(*targets.front(), rom_fetcher, error);
 }
 
-namespace {
-struct MachineLister {
-	MachineLister(const Machine::Type type, const bool long_names) :
-		type_(type), long_names_(long_names) {};
-
-	std::vector<std::string> machines;
-
-	template <typename MachineT>
-	struct Adder {
-		void operator()(MachineLister &lister) {
-			switch(lister.type_) {
-				case Machine::Type::RequiresMedia:
-					if(!MachineT::requires_media) return;
-				break;
-
-				case Machine::Type::DoesntRequireMedia:
-					if(MachineT::requires_media) return;
-				break;
-
-				default: break;
-			}
-
-			lister.machines.push_back(lister.long_names_ ?
-				Machine::LongNameForTargetMachine(MachineT::name) : Machine::ShortNameForTargetMachine(MachineT::name)
-			);
-		}
-	};
-
-private:
-	Machine::Type type_;
-	bool long_names_;
-};
-
-}
-
 std::vector<std::string> Machine::AllMachines(const Type type, const bool long_names) {
 	MachineLister lister(type, long_names);
 	MachineRegister::for_all_machines<MachineLister::Adder>(lister);
 	return std::move(lister.machines);
 }
 
-namespace {
-struct OptionsList {
-	std::map<std::string, std::unique_ptr<Reflection::Struct>> options;
-
-	template <typename MachineT>
-	struct Adder {
-		void operator()(OptionsList &list) {
-			list.emplace<typename MachineT::Machine>(MachineT::name);
-		}
-	};
-
-private:
-	template <typename MachineT>
-	void emplace(const Analyser::Machine machine) {
-		if constexpr (requires{ MachineT::Options(Configurable::OptionsType()); }) {
-			options.emplace(
-				Machine::LongNameForTargetMachine(machine),
-				std::make_unique<typename MachineT::Options>(Configurable::OptionsType::UserFriendly)
-			);
-		}
-	};
-};
-}
-
 std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsByMachineName() {
 	OptionsList options;
 	MachineRegister::for_all_machines<OptionsList::Adder>(options);
 	return std::move(options.options);
-}
-
-namespace {
-struct TargetList {
-	TargetList(const bool meaningful_without_media_only) :
-		meaningful_without_media_only_(meaningful_without_media_only) {}
-
-	std::map<std::string, std::unique_ptr<Analyser::Static::Target>> targets;
-
-	template <typename MachineT>
-	struct Adder {
-		void operator()(TargetList &list) {
-			if(MachineT::requires_media && list.meaningful_without_media_only_) {
-				return;
-			}
-
-			if constexpr (requires { typename MachineT::Target(); }) {
-				list.emplace<typename MachineT::Target>(MachineT::name);
-			} else {
-				list.emplace(
-					MachineT::name,
-					std::make_unique<Analyser::Static::Target>(MachineT::name)
-				);
-			}
-		}
-	};
-
-private:
-	bool meaningful_without_media_only_;
-
-	template <typename TargetT>
-	void emplace(const Analyser::Machine machine) {
-		targets.emplace(
-			Machine::LongNameForTargetMachine(machine),
-			std::make_unique<TargetT>()
-		);
-	};
-
-	void emplace(const Analyser::Machine machine, std::unique_ptr<Analyser::Static::Target> &&target) {
-		targets.emplace(
-			Machine::LongNameForTargetMachine(machine),
-			std::move(target)
-		);
-	}
-};
 }
 
 std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::TargetsByMachineName(

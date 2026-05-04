@@ -322,9 +322,9 @@ struct Details<Analyser::Machine::ZXSpectrum> {
 };
 
 template <template<typename> typename FuncT, Analyser::Machine machine, typename TargetT>
-void for_machine(TargetT &target) {
+void for_machine(TargetT &target, bool include_incomplete) {
 	if constexpr (requires{ TargetT::is_incomplete; }) {
-		if(TargetT::is_incomplete) {
+		if(TargetT::is_incomplete && !include_incomplete) {
 			return;
 		}
 	}
@@ -332,30 +332,30 @@ void for_machine(TargetT &target) {
 }
 
 template <template<typename> typename FuncT, typename TargetT>
-void for_all_machines(TargetT &target) {
+void for_all_machines(TargetT &target, bool include_incomplete = false) {
 	using enum Analyser::Machine;
 
-	for_machine<FuncT, Amiga>(target);
-	for_machine<FuncT, AmstradCPC>(target);
-	for_machine<FuncT, AppleII>(target);
-	for_machine<FuncT, AppleIIgs>(target);
-	for_machine<FuncT, Archimedes>(target);
-	for_machine<FuncT, AtariST>(target);
-	for_machine<FuncT, Atari2600>(target);
-	for_machine<FuncT, BBCMicro>(target);
-	for_machine<FuncT, ColecoVision>(target);
-	for_machine<FuncT, Electron>(target);
-	for_machine<FuncT, Enterprise>(target);
-	for_machine<FuncT, Macintosh>(target);
-	for_machine<FuncT, MasterSystem>(target);
-	for_machine<FuncT, MSX>(target);
-	for_machine<FuncT, Oric>(target);
-	for_machine<FuncT, PCCompatible>(target);
-	for_machine<FuncT, Plus4>(target);
-	for_machine<FuncT, TandyCoCo>(target);
-	for_machine<FuncT, ThomsonMO>(target);
-	for_machine<FuncT, Vic20>(target);
-	for_machine<FuncT, ZX8081>(target);
-	for_machine<FuncT, ZXSpectrum>(target);
+	for_machine<FuncT, Amiga>(target, include_incomplete);
+	for_machine<FuncT, AmstradCPC>(target, include_incomplete);
+	for_machine<FuncT, AppleII>(target, include_incomplete);
+	for_machine<FuncT, AppleIIgs>(target, include_incomplete);
+	for_machine<FuncT, Archimedes>(target, include_incomplete);
+	for_machine<FuncT, AtariST>(target, include_incomplete);
+	for_machine<FuncT, Atari2600>(target, include_incomplete);
+	for_machine<FuncT, BBCMicro>(target, include_incomplete);
+	for_machine<FuncT, ColecoVision>(target, include_incomplete);
+	for_machine<FuncT, Electron>(target, include_incomplete);
+	for_machine<FuncT, Enterprise>(target, include_incomplete);
+	for_machine<FuncT, Macintosh>(target, include_incomplete);
+	for_machine<FuncT, MasterSystem>(target, include_incomplete);
+	for_machine<FuncT, MSX>(target, include_incomplete);
+	for_machine<FuncT, Oric>(target, include_incomplete);
+	for_machine<FuncT, PCCompatible>(target, include_incomplete);
+	for_machine<FuncT, Plus4>(target, include_incomplete);
+	for_machine<FuncT, TandyCoCo>(target, include_incomplete);
+	for_machine<FuncT, ThomsonMO>(target, include_incomplete);
+	for_machine<FuncT, Vic20>(target, include_incomplete);
+	for_machine<FuncT, ZX8081>(target, include_incomplete);
+	for_machine<FuncT, ZXSpectrum>(target, include_incomplete);
 }
 }
