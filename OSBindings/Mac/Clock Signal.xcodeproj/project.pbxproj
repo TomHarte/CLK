@@ -1635,6 +1635,7 @@
 		4B41EF6E2FA55F980086D909 /* CoCo.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CoCo.hpp; sourceTree = "<group>"; };
 		4B41EF6F2FA55F980086D909 /* CoCo.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CoCo.cpp; sourceTree = "<group>"; };
 		4B41EF762FA650000086D909 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
+		4B41EF782FA7AAC80086D909 /* Registry.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Registry.hpp; sourceTree = "<group>"; };
 		4B43983829620FB1006B0BFC /* 9918.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 9918.cpp; sourceTree = "<group>"; };
 		4B43983C29621024006B0BFC /* ClockConverter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ClockConverter.hpp; sourceTree = "<group>"; };
 		4B43983E29628538006B0BFC /* Fetch.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Fetch.hpp; sourceTree = "<group>"; };
@@ -5140,6 +5141,7 @@
 				4BC57CD424342E0600FBC404 /* MachineTypes.hpp */,
 				4BA9C3CF1D8164A9002DDB61 /* MediaTarget.hpp */,
 				4B92294222B04A3D00A1458F /* MouseMachine.hpp */,
+				4B41EF782FA7AAC80086D909 /* Registry.hpp */,
 				4BDCC5F81FB27A5E001220C5 /* ROMMachine.hpp */,
 				4B046DC31CFE651500E9E45E /* ScanProducer.hpp */,
 				4B8DD375263481BB00B3C866 /* StateProducer.hpp */,
