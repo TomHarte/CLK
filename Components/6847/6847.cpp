@@ -78,3 +78,37 @@ static constexpr uint8_t font[64][12] = {
 	{ 0x00, 0x00, 0x00, 0x18, 0x24, 0x04, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, },
 };
 }
+
+using namespace Motorola::MC6847;
+
+void MC6847Base::pixel_line(const int line_begin, const int line_end) {
+	Numeric::clamp<0, LineLayout::EndOfSync>(line_begin, line_end, [&](const int begin, const int end) {
+		crt_.output_sync(end - begin);
+	});
+	Numeric::clamp<LineLayout::EndOfSync, LineLayout::EndOfLeftBorder>(line_begin, line_end, [&](const int begin, const int end) {
+		crt_.output_blank(end - begin);
+	});
+	Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(line_begin, line_end, [&](const int begin, const int end) {
+		crt_.output_level<uint16_t>(end - begin, 0xffff);
+	});
+	Numeric::clamp<LineLayout::EndOfPixels, LineLayout::EndOfLine>(line_begin, line_end, [&](const int begin, const int end) {
+		crt_.output_blank(end - begin);
+	});
+}
+
+void MC6847Base::border_line(const int line_begin, const int line_end) {
+	Numeric::clamp<0, LineLayout::EndOfSync>(line_begin, line_end, [&](const int begin, const int end) {
+		crt_.output_sync(end - begin);
+	});
+	Numeric::clamp<LineLayout::EndOfSync, LineLayout::EndOfLeftBorder>(line_begin, line_end, [&](const int begin, const int end) {
+		crt_.output_blank(end - begin);
+	});
+}
+
+void MC6847Base::porch_line(const int begin, const int end) {
+	border_line(begin, end);
+}
+
+void MC6847Base::sync_line(const int begin, const int end) {
+	crt_.output_sync(end - begin);
+}

@@ -10,6 +10,7 @@
 
 #include "Processors/6809/6809.hpp"
 #include "Components/6821/6821.hpp"
+#include "Components/6847/6847.hpp"
 
 #include "Machines/MachineTypes.hpp"
 #include "Analyser/Static/TandyCoCo/Target.hpp"
@@ -61,6 +62,7 @@ class ConcreteMachine:
 public:
 	ConcreteMachine(const Analyser::Static::TandyCoCo::Target &, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6809_(*this),
+		m6847_(ram_),
 		pia0_(pia0_handler_),
 		pia1_(pia1_handler_)
 	{
@@ -95,6 +97,10 @@ public:
 		CPU::M6809::data_t<read_write> value
 	) {
 		using namespace CPU::M6809;
+
+		// TODO, maybe: pull this outside the loop?
+		const auto duration = sam_.cycle_cost<bus_phase, read_write>(address);
+		m6847_.run_for(duration * 2);
 
 		if(address >> 8 == 0xff) {
 			if constexpr (read_write != ReadWrite::NoData) {
@@ -172,8 +178,7 @@ public:
 			}
 		}
 
-		// TODO, maybe: pull this outside the loop?
-		return sam_.cycle_cost<bus_phase, read_write>(address);
+		return duration;
 	}
 
 private:
@@ -187,14 +192,20 @@ private:
 	std::array<uint8_t, 8 * 1024> colour_basic_;
 	std::array<uint8_t, 64 * 1024> ram_;
 
-	// MARK: - ScanProducer.
+	// MARK: - Video and ScanProducer.
+
+	// TODO: video should go through the SAM and its independent video counter.
+	Motorola::MC6847::MC6847<
+		Motorola::MC6847::FrameTiming::NTSC,
+		std::array<uint8_t, 64 * 1024>
+	> m6847_;
 
 	void set_scan_target(Outputs::Display::ScanTarget *const target) final {
-		(void)target;
+		m6847_.set_scan_target(target);
 	}
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const final {
-		return Outputs::Display::ScanStatus{};
+		return m6847_.get_scaled_scan_status() / 2.0;
 	}
 
 	// MARK: - TimedMachine.
