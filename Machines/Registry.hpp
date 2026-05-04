@@ -63,6 +63,9 @@ struct Details<Analyser::Machine::Amiga> {
 
 	using Machine = ::Amiga::Machine;
 	using Target = Analyser::Static::Amiga::Target;
+
+	static constexpr const char *short_name = "Amiga";
+	static constexpr const char *long_name = "Amiga";
 };
 
 template <>
@@ -72,6 +75,9 @@ struct Details<Analyser::Machine::AmstradCPC> {
 
 	using Machine = ::AmstradCPC::Machine;
 	using Target = Analyser::Static::AmstradCPC::Target;
+
+	static constexpr const char *short_name = "AmstradCPC";
+	static constexpr const char *long_name = "Amstrad CPC";
 };
 
 template <>
@@ -81,6 +87,9 @@ struct Details<Analyser::Machine::AppleII> {
 
 	using Machine = Apple::II::Machine;
 	using Target = Analyser::Static::AppleII::Target;
+
+	static constexpr const char *short_name = "AppleII";
+	static constexpr const char *long_name = "Apple II";
 };
 
 template <>
@@ -91,6 +100,9 @@ struct Details<Analyser::Machine::AppleIIgs> {
 
 	using Machine = Apple::IIgs::Machine;
 	using Target = Analyser::Static::AppleIIgs::Target;
+
+	static constexpr const char *short_name = "AppleIIgs";
+	static constexpr const char *long_name = "Apple IIgs";
 };
 
 template <>
@@ -100,15 +112,9 @@ struct Details<Analyser::Machine::Archimedes> {
 
 	using Machine = ::Archimedes::Machine;
 	using Target = Analyser::Static::Acorn::ArchimedesTarget;
-};
 
-template <>
-struct Details<Analyser::Machine::AtariST> {
-	static constexpr auto name = Analyser::Machine::AtariST;
-	static constexpr bool requires_media = false;
-
-	using Machine = Atari::ST::Machine;
-	using Target = Analyser::Static::AtariST::Target;
+	static constexpr const char *short_name = "Archimedes";
+	static constexpr const char *long_name = "Acorn Archimedes";
 };
 
 template <>
@@ -118,6 +124,21 @@ struct Details<Analyser::Machine::Atari2600> {
 
 	using Machine = ::Atari2600::Machine;
 	using Target = Analyser::Static::Atari2600::Target;
+
+	static constexpr const char *short_name = "Atari2600";
+	static constexpr const char *long_name = "Atari 2600";
+};
+
+template <>
+struct Details<Analyser::Machine::AtariST> {
+	static constexpr auto name = Analyser::Machine::AtariST;
+	static constexpr bool requires_media = false;
+
+	using Machine = Atari::ST::Machine;
+	using Target = Analyser::Static::AtariST::Target;
+
+	static constexpr const char *short_name = "AtariST";
+	static constexpr const char *long_name = "Atari ST";
 };
 
 template <>
@@ -127,6 +148,9 @@ struct Details<Analyser::Machine::BBCMicro> {
 
 	using Machine = ::BBCMicro::Machine;
 	using Target = Analyser::Static::Acorn::BBCMicroTarget;
+
+	static constexpr const char *short_name = "BBCMicro";
+	static constexpr const char *long_name = "BBC Micro";
 };
 
 template <>
@@ -135,6 +159,9 @@ struct Details<Analyser::Machine::ColecoVision> {
 	static constexpr bool requires_media = true;
 
 	using Machine = Coleco::Vision::Machine;
+
+	static constexpr const char *short_name = "ColecoVision";
+	static constexpr const char *long_name = "ColecoVision";
 };
 
 template <>
@@ -144,6 +171,9 @@ struct Details<Analyser::Machine::Electron> {
 
 	using Machine = ::Electron::Machine;
 	using Target = Analyser::Static::Acorn::ElectronTarget;
+
+	static constexpr const char *short_name = "Electron";
+	static constexpr const char *long_name = "Acorn Electron";
 };
 
 template <>
@@ -153,6 +183,9 @@ struct Details<Analyser::Machine::Enterprise> {
 
 	using Machine = ::Enterprise::Machine;
 	using Target = Analyser::Static::Enterprise::Target;
+
+	static constexpr const char *short_name = "Enterprise";
+	static constexpr const char *long_name = "Enterprise";
 };
 
 template <>
@@ -162,6 +195,9 @@ struct Details<Analyser::Machine::Macintosh> {
 
 	using Machine = Apple::Macintosh::Machine;
 	using Target = Analyser::Static::Macintosh::Target;
+
+	static constexpr const char *short_name = "Macintosh";
+	static constexpr const char *long_name = "Apple Macintosh";
 };
 
 template <>
@@ -171,6 +207,9 @@ struct Details<Analyser::Machine::MasterSystem> {
 
 	using Machine = Sega::MasterSystem::Machine;
 	using Target = Analyser::Static::Sega::Target;
+
+	static constexpr const char *short_name = "MasterSystem";
+	static constexpr const char *long_name = "Sega Master System";
 };
 
 template <>
@@ -180,6 +219,9 @@ struct Details<Analyser::Machine::MSX> {
 
 	using Machine = Sega::MasterSystem::Machine;
 	using Target = Analyser::Static::MSX::Target;
+
+	static constexpr const char *short_name = "MSX";
+	static constexpr const char *long_name = "MSX";
 };
 
 template <>
@@ -189,6 +231,9 @@ struct Details<Analyser::Machine::Oric> {
 
 	using Machine = ::Oric::Machine;
 	using Target = Analyser::Static::Oric::Target;
+
+	static constexpr const char *short_name = "Oric";
+	static constexpr const char *long_name = "Oric";
 };
 
 template <>
@@ -198,6 +243,9 @@ struct Details<Analyser::Machine::PCCompatible> {
 
 	using Machine = ::PCCompatible::Machine;
 	using Target = Analyser::Static::PCCompatible::Target;
+
+	static constexpr const char *short_name = "PCCompatible";
+	static constexpr const char *long_name = "PC Compatible";
 };
 
 template <>
@@ -207,6 +255,9 @@ struct Details<Analyser::Machine::Plus4> {
 
 	using Machine = Commodore::Plus4::Machine;
 	using Target = Analyser::Static::Commodore::Plus4Target;
+
+	static constexpr const char *short_name = "Plus4";
+	static constexpr const char *long_name = "Commodore C16+4";
 };
 
 template <>
@@ -217,6 +268,9 @@ struct Details<Analyser::Machine::TandyCoCo> {
 
 	using Machine = Tandy::CoCo::Machine;
 	using Target = Analyser::Static::TandyCoCo::Target;
+
+	static constexpr const char *short_name = "TandyCoCo";
+	static constexpr const char *long_name = "Tandy CoCo";
 };
 
 template <>
@@ -226,6 +280,9 @@ struct Details<Analyser::Machine::ThomsonMO> {
 
 	using Machine = Thomson::MO::Machine;
 	using Target = Analyser::Static::Thomson::MOTarget;
+
+	static constexpr const char *short_name = "ThomsonMO";
+	static constexpr const char *long_name = "Thomson MO";
 };
 
 template <>
@@ -235,6 +292,9 @@ struct Details<Analyser::Machine::Vic20> {
 
 	using Machine = Commodore::Vic20::Machine;
 	using Target = Analyser::Static::Commodore::Vic20Target;
+
+	static constexpr const char *short_name = "Vic20";
+	static constexpr const char *long_name = "Commodore Vic-20";
 };
 
 template <>
@@ -244,6 +304,9 @@ struct Details<Analyser::Machine::ZX8081> {
 
 	using Machine = Sinclair::ZX8081::Machine;
 	using Target = Analyser::Static::ZX8081::Target;
+
+	static constexpr const char *short_name = "ZX8081";
+	static constexpr const char *long_name = "ZX80/81";
 };
 
 template <>
@@ -253,8 +316,10 @@ struct Details<Analyser::Machine::ZXSpectrum> {
 
 	using Machine = Sinclair::ZXSpectrum::Machine;
 	using Target = Analyser::Static::ZXSpectrum::Target;
-};
 
+	static constexpr const char *short_name = "ZXSpectrum";
+	static constexpr const char *long_name = "ZX Spectrum";
+};
 
 template <template<typename> typename FuncT, Analyser::Machine machine, typename TargetT>
 void for_machine(TargetT &target) {

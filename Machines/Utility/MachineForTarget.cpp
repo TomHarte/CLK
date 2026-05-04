@@ -14,63 +14,37 @@
 #include "Analyser/Dynamic/MultiMachine/MultiMachine.hpp"
 #include "TypedDynamicMachine.hpp"
 
-// TODO: incorporate these names into the register.
-std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) {
-	switch(machine) {
-		case Analyser::Machine::Amiga:			return "Amiga";
-		case Analyser::Machine::AmstradCPC:		return "AmstradCPC";
-		case Analyser::Machine::AppleII:		return "AppleII";
-		case Analyser::Machine::AppleIIgs:		return "AppleIIgs";
-		case Analyser::Machine::Archimedes:		return "Archimedes";
-		case Analyser::Machine::Atari2600:		return "Atari2600";
-		case Analyser::Machine::AtariST:		return "AtariST";
-		case Analyser::Machine::BBCMicro:		return "BBCMicro";
-		case Analyser::Machine::ColecoVision:	return "ColecoVision";
-		case Analyser::Machine::Electron:		return "Electron";
-		case Analyser::Machine::Enterprise:		return "Enterprise";
-		case Analyser::Machine::Macintosh:		return "Macintosh";
-		case Analyser::Machine::MasterSystem:	return "MasterSystem";
-		case Analyser::Machine::MSX:			return "MSX";
-		case Analyser::Machine::Oric:			return "Oric";
-		case Analyser::Machine::Plus4:			return "Plus4";
-		case Analyser::Machine::PCCompatible:	return "PCCompatible";
-		case Analyser::Machine::TandyCoCo:		return "TandyCoCo";
-		case Analyser::Machine::ThomsonMO:		return "ThomsonMO";
-		case Analyser::Machine::Vic20:			return "Vic20";
-		case Analyser::Machine::ZX8081:			return "ZX8081";
-		case Analyser::Machine::ZXSpectrum:		return "ZXSpectrum";
+namespace {
+template <bool capture_short>
+struct NameCapture {
+	NameCapture(const Analyser::Machine machine) : machine_(machine) {}
+	const char *result = "";
 
-		default:	return "";
-	}
+	template <typename MachineT>
+	struct Adder {
+		void operator()(NameCapture &capturer) {
+			if(MachineT::name != capturer.machine_) {
+				return;
+			}
+			capturer.result = capture_short ? MachineT::short_name : MachineT::long_name;
+		}
+	};
+
+private:
+	Analyser::Machine machine_;
+};
+}
+
+std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) {
+	NameCapture<true> name(machine);
+	MachineRegister::for_all_machines<NameCapture<true>::Adder>(name);
+	return name.result;
 }
 
 std::string Machine::LongNameForTargetMachine(const Analyser::Machine machine) {
-	switch(machine) {
-		case Analyser::Machine::Amiga:			return "Amiga";
-		case Analyser::Machine::AmstradCPC:		return "Amstrad CPC";
-		case Analyser::Machine::AppleII:		return "Apple II";
-		case Analyser::Machine::AppleIIgs:		return "Apple IIgs";
-		case Analyser::Machine::Archimedes:		return "Acorn Archimedes";
-		case Analyser::Machine::Atari2600:		return "Atari 2600";
-		case Analyser::Machine::AtariST:		return "Atari ST";
-		case Analyser::Machine::BBCMicro:		return "BBC Micro";
-		case Analyser::Machine::ColecoVision:	return "ColecoVision";
-		case Analyser::Machine::Electron:		return "Acorn Electron";
-		case Analyser::Machine::Enterprise:		return "Enterprise";
-		case Analyser::Machine::Macintosh:		return "Apple Macintosh";
-		case Analyser::Machine::MasterSystem:	return "Sega Master System";
-		case Analyser::Machine::MSX:			return "MSX";
-		case Analyser::Machine::Oric:			return "Oric";
-		case Analyser::Machine::Plus4:			return "Commodore C16+4";
-		case Analyser::Machine::PCCompatible:	return "PC Compatible";
-		case Analyser::Machine::TandyCoCo:		return "Tandy CoCo";
-		case Analyser::Machine::ThomsonMO:		return "Thomson MO";
-		case Analyser::Machine::Vic20:			return "Vic 20";
-		case Analyser::Machine::ZX8081:			return "ZX80/81";
-		case Analyser::Machine::ZXSpectrum:		return "ZX Spectrum";
-
-		default:	return "";
-	}
+	NameCapture<false> name(machine);
+	MachineRegister::for_all_machines<NameCapture<false>::Adder>(name);
+	return name.result;
 }
 
 namespace {
