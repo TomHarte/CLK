@@ -323,8 +323,8 @@ struct Details<Analyser::Machine::ZXSpectrum> {
 
 template <template<typename> typename FuncT, Analyser::Machine machine, typename TargetT>
 void for_machine(TargetT &target, bool include_incomplete) {
-	if constexpr (requires{ TargetT::is_incomplete; }) {
-		if(TargetT::is_incomplete && !include_incomplete) {
+	if constexpr (requires{ Details<machine>::is_incomplete; }) {
+		if(Details<machine>::is_incomplete && !include_incomplete) {
 			return;
 		}
 	}
