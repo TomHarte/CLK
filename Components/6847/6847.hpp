@@ -137,4 +137,104 @@ private:
 	Numeric::DividingAccumulator<64, FrameLayout<timing>::EndOfField> position_;
 };
 
+struct AddressGenerator {
+	// MARK: - Events.
+
+	void apply_hsync() {
+		if(mode_ == 7) [[unlikely]] {
+			return;
+		}
+
+		// Use y divider to decide whether to clear low bits.
+		++y_;
+		if(y_ == y_divider_ || y_ == 12) {	// Complete guess: always wrap at 12 even if an in-frame mode switch
+											// has occurred.
+			y_ = 0;
+			return;
+		}
+
+		// Clear either four or five bits.
+		if(mode_ & 1) {
+			counter_ &= ~15;
+		} else {
+			counter_ &= ~31;
+		}
+	}
+
+	void apply_vertical_preload() {
+		x_ = 0;
+		y_ = 0;
+		counter_ = preload_;
+	}
+
+	uint16_t advance() {
+		++x_;
+		if(x_ == x_divider_ || x_ == 3) {
+			++counter_;
+			x_ = 0;
+		}
+		return counter_;
+	}
+
+	// MARK: - Inputs.
+
+	void set_hsync(const bool active) {
+		if(active != previous_hsync_) [[unlikely]] {
+			previous_hsync_ = active;
+			if(active) apply_hsync();
+		}
+	}
+
+	void set_mode(const int mode) {
+		mode_ = mode & 7;
+
+		switch(mode) {
+			case 0:
+				x_divider_ = 1;
+				y_divider_ = 12;
+			break;
+			case 1:
+				x_divider_ = 3;
+				y_divider_ = 1;
+			break;
+			case 2:
+				x_divider_ = 1;
+				y_divider_ = 3;
+			break;
+			case 3:
+				x_divider_ = 2;
+				y_divider_ = 1;
+			break;
+			case 4:
+				x_divider_ = 1;
+				y_divider_ = 2;
+			break;
+			default:
+				x_divider_ = 1;
+				y_divider_ = 2;
+			break;
+		}
+	}
+
+	// TODO: "VP goes active (high) when HS from the VDG rises if DAO is high (or a high impedance.)"
+
+	// MARK: - Helpers, as this class is intended to straddle a few uses cases.
+
+	void set_preload(const uint16_t preload) {
+		preload_ = preload;
+	}
+
+private:
+	uint16_t counter_ = 0;
+	uint16_t preload_ = 0;
+
+	bool previous_hsync_ = false;
+	int mode_ = 0;
+
+	int x_divider_= 1;
+	int y_divider_= 1;
+	int x_ = 0;
+	int y_ = 0;
+};
+
 }
