@@ -95,7 +95,7 @@ MC6847Base::MC6847Base(const Outputs::Display::Type display_type) :
 	crt_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
 }
 
-void MC6847Base::pixel_line(const int line_begin, const int line_end) {
+void MC6847Base::pixel_line(const int line, const int line_begin, const int line_end) {
 	Numeric::clamp<0, LineLayout::EndOfSync>(line_begin, line_end, [&](int, const int end) {
 		if(end == LineLayout::EndOfSync) {
 			crt_.output_sync(LineLayout::EndOfSync * CRTMultiplier);
@@ -106,30 +106,37 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 			crt_.output_blank((LineLayout::EndOfLeftBorder - LineLayout::EndOfSync) * CRTMultiplier);
 		}
 	});
-	Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(line_begin, line_end, [&](const int begin, const int end) {
-		if(begin == LineLayout::EndOfLeftBorder) {
-			pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(256));
-		}
+	Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
+		line_begin,
+		line_end,
+		[&](const int begin, const int end) {
+			if(begin == LineLayout::EndOfLeftBorder) {
+				pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(256));
+			}
 
-		// TODO: fill pixels with real data here.
-		if(pixels_) {
-			for(int c = line_begin; c < line_end; c++) {
-				pixels_[0] = 0xffff;
-				pixels_[1] = 0x0000;
-				pixels_[2] = 0x0000;
-				pixels_[3] = 0x0000;
-				pixels_[4] = 0x0000;
-				pixels_[5] = 0x0000;
-				pixels_[6] = 0x0000;
-				pixels_[7] = 0x0000;
-				pixels_ += 8;
+			// TODO: obey graphics mode here, use proper colours, more.
+			if(pixels_) {
+				const int row = line % 12;
+				for(int c = line_begin; c < line_end; c++) {
+					const int column = c - LineLayout::EndOfLeftBorder;
+					const int pixels = font[line_.data[column] & 63][row];
+					pixels_[0] = (pixels & 0x80) ? 0xffff : 0x0000;
+					pixels_[1] = (pixels & 0x40) ? 0xffff : 0x0000;
+					pixels_[2] = (pixels & 0x20) ? 0xffff : 0x0000;
+					pixels_[3] = (pixels & 0x10) ? 0xffff : 0x0000;
+					pixels_[4] = (pixels & 0x08) ? 0xffff : 0x0000;
+					pixels_[5] = (pixels & 0x04) ? 0xffff : 0x0000;
+					pixels_[6] = (pixels & 0x02) ? 0xffff : 0x0000;
+					pixels_[7] = (pixels & 0x01) ? 0xffff : 0x0000;
+					pixels_ += 8;
+				}
+			}
+
+			if(end == LineLayout::EndOfPixels) {
+				crt_.output_data(32 * CRTMultiplier, 256);
 			}
 		}
-
-		if(end == LineLayout::EndOfPixels) {
-			crt_.output_data(32 * CRTMultiplier, 256);
-		}
-	});
+	);
 	Numeric::clamp<LineLayout::EndOfPixels, LineLayout::EndOfLine>(line_begin, line_end, [&](int, const int end) {
 		if(end == LineLayout::EndOfLine) {
 			crt_.output_blank((LineLayout::EndOfLine - LineLayout::EndOfPixels) * CRTMultiplier);

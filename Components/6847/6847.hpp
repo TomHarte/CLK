@@ -41,7 +41,7 @@ static_assert(FrameLayout<FrameTiming::PALPaddedVsync>::EndOfField == 312, "PAL-
 struct MC6847Base {
 	MC6847Base(Outputs::Display::Type);
 
-	void pixel_line(int begin, int end);	// TODO: require fetched data to be supplied.
+	void pixel_line(int line, int begin, int end);
 	void border_line(int begin, int end);
 	void porch_line(int begin, int end);
 	void sync_line(int begin, int end);
@@ -56,6 +56,11 @@ struct MC6847Base {
 
 	Outputs::CRT::CRT crt_;
 	uint16_t *pixels_ = nullptr;
+
+	struct LineCapture {
+		// TODO: capture mode here.
+		uint8_t data[32];
+	} line_;
 };
 
 template <FrameTiming timing, typename MemoryAccessT>
@@ -80,7 +85,18 @@ public:
 			cycles_.divide(2).template as<int>(),
 			[&] (const int line, const int begin, const int end) {
 				if(line < FrameLayout<timing>::EndOfPixels) {
-					pixel_line(begin, end);
+					const int line_start = (line / 12) * 32;
+					Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
+						begin,
+						end,
+						[&](const int fetch_begin, const int fetch_end) {
+							for(int c = fetch_begin; c < fetch_end; c++) {
+								const int column = c - LineLayout::EndOfLeftBorder;
+								line_.data[column] = memory_[0x400 + size_t(line_start + column)];
+							}
+						}
+					);
+					pixel_line(line, begin, end);
 				} else if(line < FrameLayout<timing>::EndOfBottomBorder) {
 					border_line(begin, end);
 				} else if(line < FrameLayout<timing>::EndOfFrontPorch) {
