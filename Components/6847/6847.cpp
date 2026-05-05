@@ -116,7 +116,7 @@ void MC6847Base::pixel_line(const int line, const int line_begin, const int line
 
 			// TODO: obey graphics mode here, use proper colours, more.
 			if(pixels_) {
-				const int row = line % 12;
+				const int row = address_.row();
 				for(int c = line_begin; c < line_end; c++) {
 					const int column = c - LineLayout::EndOfLeftBorder;
 					const int pixels = font[line_.data[column] & 63][row];
@@ -134,6 +134,8 @@ void MC6847Base::pixel_line(const int line, const int line_begin, const int line
 
 			if(end == LineLayout::EndOfPixels) {
 				crt_.output_data(32 * CRTMultiplier, 256);
+				address_.apply_hsync();
+				printf("\n");
 			}
 		}
 	);
@@ -159,4 +161,8 @@ void MC6847Base::sync_line(const int, const int end) {
 	if(end == LineLayout::EndOfLine) {
 		crt_.output_sync((LineLayout::EndOfLine) * CRTMultiplier);
 	}
+}
+
+void MC6847Base::reset() {
+	address_.apply_vertical_preload();
 }
