@@ -12,16 +12,6 @@
 #include "Numeric/SegmentCounter.hpp"
 #include "Outputs/CRT/CRT.hpp"
 
-// Notes:
-//
-// # https://www.acornatom.nl/sites/atomreview/howel/logic/6847_clone.htm:
-//
-// The master clock was designed to run at 3.579545 MHz, because they are used in NTSC TVs and so are very cheap.
-// This is also useful for creating NTSC-compatible colour phase signals. Internally the 6847 divides the clock by 3.5
-// to get a frame timing frequency of 1.022727 MHz. This is divided by 64 to get the line rate.
-//
-// Each line has up to 256 pixels from 32 memory accesses. There are 8 pixels per memory access.
-
 namespace Motorola::MC6847 {
 
 enum class FrameTiming {
@@ -49,13 +39,7 @@ static_assert(FrameLayout<FrameTiming::NTSC>::EndOfField == 262, "NTSC frames sh
 static_assert(FrameLayout<FrameTiming::PALPaddedVsync>::EndOfField == 312, "PAL-padded frames should be 312 lines long");
 
 struct MC6847Base {
-	MC6847Base(const Outputs::Display::Type display_type) :
-		crt_(
-		64,
-		1,
-		display_type,
-		Outputs::Display::InputDataType::Red4Green4Blue4	// TODO.
-	) {}
+	MC6847Base(Outputs::Display::Type);
 
 	void pixel_line(int begin, int end);	// TODO: require fetched data to be supplied.
 	void border_line(int begin, int end);
@@ -71,6 +55,7 @@ struct MC6847Base {
 	};
 
 	Outputs::CRT::CRT crt_;
+	uint16_t *pixels_ = nullptr;
 };
 
 template <FrameTiming timing, typename MemoryAccessT>
@@ -78,7 +63,11 @@ class MC6847: private MC6847Base {
 public:
 	MC6847(MemoryAccessT &memory) :
 		MC6847Base(is_ntsc(timing) ? Outputs::Display::Type::NTSC60 : Outputs::Display::Type::PAL50),
-		memory_(memory) {}
+		memory_(memory) {
+		crt_.set_fixed_framing([&] {
+			run_for(Cycles(10'000));
+		});
+	}
 
 	//
 	// Expected input clock: NTSC-style 3.58 Mhz.
