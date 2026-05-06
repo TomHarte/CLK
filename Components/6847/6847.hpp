@@ -55,6 +55,7 @@ struct MC6847Base {
 	void sync_line(int begin, int end);
 	void reset();
 	bool hsync(int column);
+	Cycles next_sequence_point(int column) const;
 
 	struct LineLayout {
 		// Start of line: sync is active.
@@ -133,6 +134,8 @@ public:
 	MC6847(MemoryAccessT &);
 
 	void run_for(const Cycles);
+	Cycles next_sequence_point() const;
+
 	bool hsync() const;
 	bool vsync() const;
 	using MC6847Base::set_mode;
@@ -199,6 +202,11 @@ void MC6847<timing, MemoryAccessT>::run_for(const Cycles cycles) {
 			reset();
 		}
 	);
+}
+
+template <FrameTiming timing, typename MemoryAccessT>
+Cycles MC6847<timing, MemoryAccessT>::next_sequence_point() const {
+	return MC6847Base::next_sequence_point(position_.subsegment());
 }
 
 template <FrameTiming timing, typename MemoryAccessT>

@@ -153,6 +153,11 @@ bool MC6847Base::hsync(const int column) {
 	return column <= LineLayout::EndOfSync;
 }
 
+Cycles MC6847Base::next_sequence_point(const int column) const {
+	if(column < LineLayout::EndOfSync) return LineLayout::EndOfSync - column;
+	return LineLayout::EndOfLine - column;
+}
+
 void MC6847Base::reset() {
 	address_.apply_vertical_preload();
 }
