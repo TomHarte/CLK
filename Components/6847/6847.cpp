@@ -246,5 +246,13 @@ void MC6847Base::set_mode(
 		default: __builtin_unreachable();
 	}
 
-	printf("Determined mode: %d\n", mode_);
+	// TODO: apply my net understanding, which is now this:
+	//
+	//	Alphanumeric modes works pretty much as already implemented with an access to the character ROM,
+	//	though it obeys the top two bits;
+	//
+	//	Semigraphic modes fetch much like the alphanumeric modes but use the fetched
+	//	byte as colour + telectext-style pixel data;
+	//
+	//	The graphics modes break down into either 1bpp or 2bpp output, at either 16 or 32 bytes per row.
 }

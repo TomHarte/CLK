@@ -39,6 +39,7 @@ template <FrameTiming timing> struct FrameLayout {
 static_assert(FrameLayout<FrameTiming::NTSC>::EndOfField == 262, "NTSC frames should be 262 lines long");
 static_assert(FrameLayout<FrameTiming::PALPaddedVsync>::EndOfField == 312, "PAL-padded frames should be 312 lines long");
 
+// TODO: allow a delegate to be specified, and signal it.
 struct MC6847Delegate {
 	virtual void set_hsync(bool active) = 0;
 	virtual void set_vsync(bool active) = 0;
