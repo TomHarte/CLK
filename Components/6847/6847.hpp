@@ -130,87 +130,106 @@ struct MC6847Base {
 template <FrameTiming timing, typename MemoryAccessT>
 class MC6847: private MC6847Base {
 public:
-	MC6847(MemoryAccessT &memory) :
-		MC6847Base(is_ntsc(timing) ? Outputs::Display::Type::NTSC60 : Outputs::Display::Type::PAL50),
-		memory_(memory) {
-		crt_.set_fixed_framing([&] {
-			run_for(Cycles(10'000));
-		});
-	}
+	MC6847(MemoryAccessT &);
 
+	void run_for(const Cycles);
+	bool hsync() const;
+	bool vsync() const;
 	using MC6847Base::set_mode;
 
-	//
-	// Expected input clock: double NTSC 3.58 Mhz; i.e. supply the pixel clock directly.
-	//
-	void run_for(const Cycles cycles) {
-		// This template binds the drawing logic to whatever was supplied
-		// as MemoryAccessT; a consequence of that is that frame layout logic is here.
-		position_.advance(
-			cycles.as<int>(),
-			[&] (const int line, const int begin, const int end) {
-				if(line < FrameLayout<timing>::EndOfPixels) {
-					Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
-						begin,
-						end,
-						[&](const int fetch_begin, const int fetch_end) {
-							const int column_begin = (fetch_begin - LineLayout::EndOfLeftBorder) >> 3;
-							const int column_end = (fetch_end - LineLayout::EndOfLeftBorder) >> 3;
+	// MARK: - ScanTarget entrypoints.
 
-							for(int c = column_begin; c < column_end; c++) {
-								const auto source = address_.address();
-								line_.data[c] = memory_[source];
-								address_.advance(c);
-							}
-						}
-					);
-					pixel_line(begin, end);
-				} else if(line < FrameLayout<timing>::EndOfBottomBorder) {
-					border_line(begin, end);
-				} else if(line < FrameLayout<timing>::EndOfFrontPorch) {
-					porch_line(begin, end);
-				} else if(line < FrameLayout<timing>::EndOfSync) {
-					sync_line(begin, end);
-				} else if(line < FrameLayout<timing>::EndOfBackPorch) {
-					porch_line(begin, end);
-				} else {
-					border_line(begin, end);
-				}
-			},
-			[&] {
-				reset();
-			}
-		);
-	}
-
-	bool hsync() const {
-		return MC6847Base::hsync(position_.subsegment());
-	}
-
-	bool vsync() const {
-		const auto segment = position_.segment();
-		return segment >= FrameLayout<timing>::EndOfFrontPorch && segment < FrameLayout<timing>::EndOfSync;
-	}
-
-	void set_scan_target(Outputs::Display::ScanTarget *const target) {
-		crt_.set_scan_target(target);
-	}
-
-	Outputs::Display::ScanStatus get_scaled_scan_status() const {
-		return crt_.get_scaled_scan_status() * 2;
-	}
-
-	void set_display_type(const Outputs::Display::DisplayType display_type) {
-		crt_.set_display_type(display_type);
-	}
-
-	Outputs::Display::DisplayType get_display_type() const {
-		return crt_.get_display_type();
-	}
+	void set_scan_target(Outputs::Display::ScanTarget *);
+	Outputs::Display::ScanStatus get_scaled_scan_status() const;
+	void set_display_type(const Outputs::Display::DisplayType);
+	Outputs::Display::DisplayType get_display_type() const;
 
 private:
 	MemoryAccessT &memory_;
 	Numeric::DividingAccumulator<LineLayout::EndOfLine, FrameLayout<timing>::EndOfField> position_{2};
 };
+
+// MARK: - Implementation.
+
+template <FrameTiming timing, typename MemoryAccessT>
+MC6847<timing, MemoryAccessT>::MC6847(MemoryAccessT &memory) :
+	MC6847Base(is_ntsc(timing) ? Outputs::Display::Type::NTSC60 : Outputs::Display::Type::PAL50),
+	memory_(memory) {
+	crt_.set_fixed_framing([&] {
+		run_for(Cycles(10'000));
+	});
+}
+
+template <FrameTiming timing, typename MemoryAccessT>
+void MC6847<timing, MemoryAccessT>::run_for(const Cycles cycles) {
+	// This template binds the drawing logic to whatever was supplied
+	// as MemoryAccessT; a consequence of that is that frame layout logic is here.
+	position_.advance(
+		cycles.as<int>(),
+		[&] (const int line, const int begin, const int end) {
+			if(line < FrameLayout<timing>::EndOfPixels) {
+				Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
+					begin,
+					end,
+					[&](const int fetch_begin, const int fetch_end) {
+						const int column_begin = (fetch_begin - LineLayout::EndOfLeftBorder) >> 3;
+						const int column_end = (fetch_end - LineLayout::EndOfLeftBorder) >> 3;
+
+						for(int c = column_begin; c < column_end; c++) {
+							const auto source = address_.address();
+							line_.data[c] = memory_[source];
+							address_.advance(c);
+						}
+					}
+				);
+				pixel_line(begin, end);
+			} else if(line < FrameLayout<timing>::EndOfBottomBorder) {
+				border_line(begin, end);
+			} else if(line < FrameLayout<timing>::EndOfFrontPorch) {
+				porch_line(begin, end);
+			} else if(line < FrameLayout<timing>::EndOfSync) {
+				sync_line(begin, end);
+			} else if(line < FrameLayout<timing>::EndOfBackPorch) {
+				porch_line(begin, end);
+			} else {
+				border_line(begin, end);
+			}
+		},
+		[&] {
+			reset();
+		}
+	);
+}
+
+template <FrameTiming timing, typename MemoryAccessT>
+bool MC6847<timing, MemoryAccessT>::hsync() const {
+	return MC6847Base::hsync(position_.subsegment());
+}
+
+template <FrameTiming timing, typename MemoryAccessT>
+bool MC6847<timing, MemoryAccessT>::vsync() const {
+	const auto segment = position_.segment();
+	return segment >= FrameLayout<timing>::EndOfFrontPorch && segment < FrameLayout<timing>::EndOfSync;
+}
+
+template <FrameTiming timing, typename MemoryAccessT>
+void MC6847<timing, MemoryAccessT>::set_scan_target(Outputs::Display::ScanTarget *const target) {
+	crt_.set_scan_target(target);
+}
+
+template <FrameTiming timing, typename MemoryAccessT>
+Outputs::Display::ScanStatus MC6847<timing, MemoryAccessT>::get_scaled_scan_status() const {
+	return crt_.get_scaled_scan_status();
+}
+
+template <FrameTiming timing, typename MemoryAccessT>
+void MC6847<timing, MemoryAccessT>::set_display_type(const Outputs::Display::DisplayType display_type) {
+	crt_.set_display_type(display_type);
+}
+
+template <FrameTiming timing, typename MemoryAccessT>
+Outputs::Display::DisplayType MC6847<timing, MemoryAccessT>::get_display_type() const {
+	return crt_.get_display_type();
+}
 
 }
