@@ -82,8 +82,6 @@ static constexpr uint8_t font[64][12] = {
 
 using namespace Motorola::MC6847;
 
-// TODO: the real 6847 is in-phase, but I don't currently know whether it's 228 colour cycles per line or 227.
-// So the below isn't quite accurate. This is something to figure out.
 MC6847Base::MC6847Base(const Outputs::Display::Type display_type) :
 	crt_(
 	455,
@@ -95,19 +93,19 @@ MC6847Base::MC6847Base(const Outputs::Display::Type display_type) :
 }
 
 void MC6847Base::pixel_line(const int line_begin, const int line_end) {
-	if(line_begin < LineLayout::EndOfLeftBorder && line_end >= LineLayout::EndOfLeftBorder) {
+	if(line_begin < LineLayout::EndOfLeftBorder && line_end >= LineLayout::EndOfLeftBorder) [[unlikely]] {
 		crt_.output_sync(LineLayout::EndOfSync);
-		crt_.output_sync(LineLayout::EndOfColourBurst - LineLayout::EndOfSync);
+		crt_.output_colour_burst(LineLayout::EndOfColourBurst - LineLayout::EndOfSync, 32);	// TODO: determine real phase.
 		crt_.output_blank(LineLayout::EndOfLeftBorder - LineLayout::EndOfColourBurst);
 
 		pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(256));
 	}
-	Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
-		line_begin,
-		line_end,
-		[&](const int begin, const int end) {
-			// TODO: obey graphics mode here, use proper colours, more.
-			if(pixels_) {
+	if(pixels_) [[likely]] {
+		Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
+			line_begin,
+			line_end,
+			[&](const int begin, const int end) {
+				// TODO: obey graphics mode here, use proper colours, more.
 				const int row = address_.row();
 				const int column_begin = (begin - LineLayout::EndOfLeftBorder) >> 3;
 				const int column_end = (end - LineLayout::EndOfLeftBorder) >> 3;
@@ -125,9 +123,9 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 					pixels_ += 8;
 				}
 			}
-		}
-	);
-	if(line_end == LineLayout::EndOfLine) {
+		);
+	}
+	if(line_end == LineLayout::EndOfLine) [[unlikely]] {
 		crt_.output_data(256);
 		address_.apply_hsync();
 		crt_.output_blank(LineLayout::EndOfLine - LineLayout::EndOfPixels);
