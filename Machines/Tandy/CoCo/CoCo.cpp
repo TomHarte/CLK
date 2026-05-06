@@ -64,6 +64,7 @@ public:
 		m6809_(*this),
 		m6847_(ram_),
 		pia0_(pia0_handler_),
+		pia1_handler_(*this),
 		pia1_(pia1_handler_)
 	{
 		set_clock_rate(1'789'772.5);
@@ -290,6 +291,8 @@ private:
 
 	friend struct PIA1Handler;
 	struct PIA1Handler {
+		PIA1Handler(ConcreteMachine &machine) : machine_(machine) {}
+
 		//
 		// Port A:
 		//
@@ -329,11 +332,19 @@ private:
 		}
 
 		template <Motorola::MC6821::Port port>
-		void output(const uint8_t) {
+		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::A) {
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
+				machine_.m6847_.set_mode(
+					value & 0x80,		// Alpha/graphics.
+					value & 0x80,		// Graphics/semigraphics.
+					false,				// External ROM.
+					value & 0x20,		// Invert.
+					(value >> 4) & 7,	// Graphics mode.
+					value & 0x80		// Colour select.
+				);
 			}
 		}
 
@@ -353,9 +364,12 @@ private:
 			if constexpr (control == Motorola::MC6821::Control::CB2) {
 			}
 		}
+
+	private:
+		ConcreteMachine &machine_;
 	};
-	PIA0Handler pia1_handler_;
-	Motorola::MC6821::MC6821<PIA0Handler> pia1_;
+	PIA1Handler pia1_handler_;
+	Motorola::MC6821::MC6821<PIA1Handler> pia1_;
 
 	// MARK: - SAM.
 

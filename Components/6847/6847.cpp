@@ -78,18 +78,6 @@ static constexpr uint8_t font[64][12] = {
 	{ 0x00, 0x00, 0x00, 0x18, 0x24, 0x04, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, },
 };
 
-/// Maps between [GM2, GM1, GM0] and named mode.
-enum GraphicsMode: uint8_t {
-	ColourGraphics1 = 0b000,
-	ResolutionGraphics1 = 0b001,
-	ColourGraphics2 = 0b010,
-	ResolutionGraphics2 = 0b011,
-	ColourGraphics3 = 0b100,
-	ResolutionGraphics3 = 0b101,
-	ColourGraphics6 = 0b110,
-	ResolutionGraphics6 = 0b111,
-};
-
 }
 
 using namespace Motorola::MC6847;
@@ -182,4 +170,81 @@ void MC6847Base::Address::apply_hsync() {
 		--address_;
 	}
 	address_ &= line_mask_;
+}
+
+void MC6847Base::set_mode(
+	const bool graphics,
+	const bool semigraphics,
+	const bool external_rom,
+	const bool invert,
+	const uint8_t graphics_mode,
+	[[maybe_unused]] const bool colour_select
+) {
+	mode_ = [&]() {
+		if(graphics) {
+			return GraphicsMode(graphics_mode);
+		}
+
+		if(semigraphics) {
+			return external_rom ? GraphicsMode::Semigraphics6 : GraphicsMode::Semigraphics4;
+		}
+
+		return external_rom ? GraphicsMode::ExternalAlphanumerics : GraphicsMode::InternalAlphanumerics;
+	} ();
+	alphanumerics_inversion_ = invert ? 0xff : 0x00;
+
+	const auto set_32bytes = [&] {
+		address_.increment_mask_ = 1;
+		address_.line_mask_ = uint16_t(~31);
+	};
+	const auto set_16bytes = [&] {
+		address_.increment_mask_ = 0;
+		address_.line_mask_ = uint16_t(~15);
+	};
+
+	switch(mode_) {
+		case InternalAlphanumerics:
+		case ExternalAlphanumerics:
+		case Semigraphics4:
+		case Semigraphics6:
+			set_32bytes();
+			address_.target_row_ = 12;
+		break;
+
+		case ResolutionGraphics1:		// 128x64;
+		case ColourGraphics1:			// 64x64; 1kb required.
+			set_16bytes();
+			address_.target_row_ = 3;
+		break;
+
+		case ResolutionGraphics2:		// 128x96; 2kb required.
+			set_16bytes();
+			address_.target_row_ = 2;
+		break;
+
+		case ColourGraphics2:			// 128x64: 2kb required.
+			set_32bytes();
+			address_.target_row_ = 3;
+		break;
+
+		case ColourGraphics3:			// 128x96: 3kb required.
+			set_32bytes();
+			address_.target_row_ = 2;
+		break;
+
+		case ColourGraphics6:			// 128x192: 6kb required.
+		case ResolutionGraphics6:		// 256x192, 6kb required.
+			set_32bytes();
+			address_.target_row_ = 1;
+		break;
+
+		case ResolutionGraphics3:		// 128x192; 3 kb required.
+			set_16bytes();
+			address_.target_row_ = 2;
+		break;
+
+		default: __builtin_unreachable();
+	}
+
+	printf("Determined mode: %d\n", mode_);
 }

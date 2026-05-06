@@ -67,6 +67,15 @@ struct MC6847Base {
 	Outputs::CRT::CRT crt_;
 	uint16_t *pixels_ = nullptr;
 
+	void set_mode(
+		bool graphics,
+		bool semigraphics,
+		bool external_rom,
+		bool invert,
+		uint8_t graphics_mode,
+		const bool colour_select
+	);
+
 	struct LineCapture {
 		// TODO: capture mode here.
 		uint8_t data[32];
@@ -86,15 +95,33 @@ struct MC6847Base {
 		void apply_vertical_preload();
 		void apply_hsync();
 
-	private:
-		uint16_t address_ = 0;
-
 		uint16_t increment_mask_ = 1;
 		uint16_t line_mask_ = uint16_t(~31);
-
-		Numeric::SizedInt<4> row_;
 		uint8_t target_row_ = 12;
+
+	private:
+		uint16_t address_ = 0;
+		Numeric::SizedInt<4> row_;
 	} address_;
+
+	/// Maps between [GM2, GM1, GM0] and named mode for values 0–7; then proceeds with
+	/// the alphanumeric and semigraphic modes.
+	enum GraphicsMode: uint8_t {
+		ColourGraphics1 = 0b000,
+		ResolutionGraphics1 = 0b001,
+		ColourGraphics2 = 0b010,
+		ResolutionGraphics2 = 0b011,
+		ColourGraphics3 = 0b100,
+		ResolutionGraphics3 = 0b101,
+		ColourGraphics6 = 0b110,
+		ResolutionGraphics6 = 0b111,
+
+		InternalAlphanumerics,
+		ExternalAlphanumerics,
+		Semigraphics4,
+		Semigraphics6,
+	} mode_;
+	uint8_t alphanumerics_inversion_ = 0;
 };
 
 template <FrameTiming timing, typename MemoryAccessT>
@@ -107,6 +134,8 @@ public:
 			run_for(Cycles(10'000));
 		});
 	}
+
+	using MC6847Base::set_mode;
 
 	//
 	// Expected input clock: double NTSC 3.58 Mhz; i.e. supply the pixel clock directly.
