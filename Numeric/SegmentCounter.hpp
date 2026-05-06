@@ -51,6 +51,16 @@ struct DividingAccumulator {
 		return position_ % SegmentLength;
 	}
 
+	/// @returns Number of positions left in the current segment.
+	int subsegment_remaining() const {
+		return SegmentLength - (position_ % SegmentLength);
+	}
+
+	/// @returns Number of positions left in the entire count.
+	int total_remaining() const {
+		return SegmentLength * Segments - position_;
+	}
+
 	/// @returns Position within the range [0, SegmentLength*Segments)
 	int absolute() const {
 		return position_;
