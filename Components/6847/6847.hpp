@@ -43,6 +43,7 @@ static_assert(FrameLayout<FrameTiming::PALPaddedVsync>::EndOfField == 312, "PAL-
 struct MC6847Delegate {
 	virtual void set_hsync(bool active) = 0;
 	virtual void set_vsync(bool active) = 0;
+	virtual void set_row_preset(bool active) = 0;
 };
 
 struct MC6847Base {
@@ -53,6 +54,7 @@ struct MC6847Base {
 	void porch_line(int begin, int end);
 	void sync_line(int begin, int end);
 	void reset();
+	bool hsync(int column);
 
 	struct LineLayout {
 		// Start of line: sync is active.
@@ -179,6 +181,15 @@ public:
 				reset();
 			}
 		);
+	}
+
+	bool hsync() const {
+		return MC6847Base::hsync(position_.subsegment());
+	}
+
+	bool vsync() const {
+		const auto segment = position_.segment();
+		return segment >= FrameLayout<timing>::EndOfFrontPorch && segment < FrameLayout<timing>::EndOfSync;
 	}
 
 	void set_scan_target(Outputs::Display::ScanTarget *const target) {

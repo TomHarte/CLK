@@ -149,6 +149,10 @@ void MC6847Base::sync_line(const int, const int end) {
 	}
 }
 
+bool MC6847Base::hsync(const int column) {
+	return column <= LineLayout::EndOfSync;
+}
+
 void MC6847Base::reset() {
 	address_.apply_vertical_preload();
 }
