@@ -54,7 +54,7 @@ struct MC6847Base {
 	void porch_line(int begin, int end);
 	void sync_line(int begin, int end);
 	void reset();
-	bool hsync(int column);
+	bool hsync(int column) const;
 	Cycles next_sequence_point(int column) const;
 
 	struct LineLayout {

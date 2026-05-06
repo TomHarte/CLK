@@ -149,7 +149,7 @@ void MC6847Base::sync_line(const int, const int end) {
 	}
 }
 
-bool MC6847Base::hsync(const int column) {
+bool MC6847Base::hsync(const int column) const {
 	return column <= LineLayout::EndOfSync;
 }
 

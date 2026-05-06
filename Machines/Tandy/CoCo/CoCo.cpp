@@ -12,6 +12,8 @@
 #include "Components/6821/6821.hpp"
 #include "Components/6847/6847.hpp"
 
+#include "ClockReceiver/JustInTime.hpp"
+
 #include "Machines/MachineTypes.hpp"
 #include "Analyser/Static/TandyCoCo/Target.hpp"
 
@@ -62,6 +64,7 @@ class ConcreteMachine:
 public:
 	ConcreteMachine(const Analyser::Static::TandyCoCo::Target &, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6809_(*this),
+		pia0_handler_(*this),
 		pia0_(pia0_handler_),
 		pia1_handler_(*this),
 		pia1_(pia1_handler_),
@@ -101,7 +104,10 @@ public:
 		// TODO, maybe: pull the switch inside this SAM call outside the loop?
 		const auto delay = sam_.cycle_cost<bus_phase, read_write>(address);
 		const auto duration = delay + CPU::M6809::duration<Cycles>(bus_phase);
-		m6847_.run_for(duration * 4);
+		if(m6847_ += duration) {
+			pia0_.set<Motorola::MC6821::Control::CA1>(m6847_.get()->hsync());
+			pia0_.set<Motorola::MC6821::Control::CB1>(m6847_.get()->vsync());
+		}
 
 		using namespace CPU::M6809;
 		if(address >> 8 == 0xff) {
@@ -176,6 +182,12 @@ public:
 			}
 
 			if constexpr (is_write(read_write)) {
+				// TODO: could do better with the test below by having SAM calculate a range?
+				const uint16_t video_start = sam_.graphics_address();
+				if(address >= video_start && address < video_start + 6144) {
+					m6847_.flush();
+				}
+
 				memory_.write(address, value);
 			}
 		}
@@ -201,13 +213,17 @@ private:
 	}
 
 	void flush_output(const int outputs) final {
-		(void)outputs;
+		if(outputs & Output::Video) {
+			m6847_.flush();
+		}
 	}
 
 	// MARK: - PIAs.
 
 	friend struct PIA0Handler;
 	struct PIA0Handler {
+		PIA0Handler(ConcreteMachine &machine) : machine_(machine) {}
+
 		//
 		// Port A:
 		//
@@ -230,7 +246,7 @@ private:
 
 		// TODO: what MUX?
 
-		// Interrupt output connected to IRQ.
+		// Interrupt outputs both connected to IRQ.
 
 		template <Motorola::MC6821::Port port>
 		uint8_t input() {
@@ -255,11 +271,13 @@ private:
 		}
 
 		template <Motorola::MC6821::IRQ irq>
-		void set(const bool) {
+		void set(const bool active) {
 			if constexpr (irq == Motorola::MC6821::IRQ::A) {
+				machine_.set_irq<0>(active);
 			}
 
 			if constexpr (irq == Motorola::MC6821::IRQ::B) {
+				machine_.set_irq<1>(active);
 			}
 		}
 
@@ -270,9 +288,19 @@ private:
 			if constexpr (control == Motorola::MC6821::Control::CB2) {
 			}
 		}
+
+	private:
+		ConcreteMachine &machine_;
 	};
 	PIA0Handler pia0_handler_;
 	Motorola::MC6821::MC6821<PIA0Handler> pia0_;
+
+	bool irqs_[2]{};
+	template <int slot>
+	void set_irq(const bool active) {
+		irqs_[slot] = active;
+		m6809_.set<CPU::M6809::Line::IRQ>(irqs_[0] || irqs_[1]);
+	}
 
 	friend struct PIA1Handler;
 	struct PIA1Handler {
@@ -322,7 +350,7 @@ private:
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
-				machine_.m6847_.set_mode(
+				machine_.m6847_->set_mode(
 					value & 0x80,		// Alpha/graphics.
 					value & 0x80,		// Graphics/semigraphics.
 					false,				// External ROM.
@@ -450,6 +478,10 @@ private:
 			__builtin_unreachable();
 		}
 
+		uint16_t graphics_address() const {
+			return graphics_address_;
+		}
+
 	private:
 		MemoryMap &memory_;
 
@@ -472,17 +504,21 @@ private:
 	// MARK: - Video and ScanProducer.
 
 	// TODO: video should go through the SAM and its independent video counter.
-	Motorola::MC6847::MC6847<
-		Motorola::MC6847::FrameTiming::NTSC,
-		SAM
+	JustInTimeActor<
+		Motorola::MC6847::MC6847<
+			Motorola::MC6847::FrameTiming::NTSC,
+			SAM
+		>,
+		Cycles,
+		4
 	> m6847_;
 
 	void set_scan_target(Outputs::Display::ScanTarget *const target) final {
-		m6847_.set_scan_target(target);
+		m6847_.get()->set_scan_target(target);
 	}
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const final {
-		return m6847_.get_scaled_scan_status() / 2.0;
+		return m6847_.get()->get_scaled_scan_status() / 2.0;
 	}
 
 };
