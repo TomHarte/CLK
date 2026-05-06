@@ -251,6 +251,9 @@ private:
 		template <Motorola::MC6821::Port port>
 		uint8_t input() {
 			if constexpr (port == Motorola::MC6821::Port::A) {
+				if(!(keyboard_column_ & 0x10)) {
+					return 0xfe;
+				}
 				return 0xff;
 			}
 
@@ -262,11 +265,9 @@ private:
 		}
 
 		template <Motorola::MC6821::Port port>
-		void output(const uint8_t) {
-			if constexpr (port == Motorola::MC6821::Port::A) {
-			}
-
+		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::B) {
+				keyboard_column_ = value;
 			}
 		}
 
@@ -291,6 +292,7 @@ private:
 
 	private:
 		ConcreteMachine &machine_;
+		uint8_t keyboard_column_ = 0xff;
 	};
 	PIA0Handler pia0_handler_;
 	Motorola::MC6821::MC6821<PIA0Handler> pia0_;
