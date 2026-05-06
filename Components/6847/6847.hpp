@@ -155,8 +155,8 @@ public:
 							const int column_end = (fetch_end - LineLayout::EndOfLeftBorder) >> 3;
 
 							for(int c = column_begin; c < column_end; c++) {
-								const auto source = address_.address() + 0x400;	// TODO: unhack.
-								line_.data[c] = memory_[size_t(source)];
+								const auto source = address_.address();
+								line_.data[c] = memory_[source];
 								address_.advance(c);
 							}
 						}

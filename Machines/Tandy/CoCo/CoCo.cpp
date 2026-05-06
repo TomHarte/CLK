@@ -62,10 +62,11 @@ class ConcreteMachine:
 public:
 	ConcreteMachine(const Analyser::Static::TandyCoCo::Target &, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6809_(*this),
-		m6847_(ram_),
 		pia0_(pia0_handler_),
 		pia1_handler_(*this),
-		pia1_(pia1_handler_)
+		pia1_(pia1_handler_),
+		sam_(memory_),
+		m6847_(sam_)
 	{
 		set_clock_rate(1'789'772.5);
 
@@ -192,22 +193,6 @@ private:
 	MemoryMap memory_;
 	std::array<uint8_t, 8 * 1024> colour_basic_;
 	std::array<uint8_t, 64 * 1024> ram_;
-
-	// MARK: - Video and ScanProducer.
-
-	// TODO: video should go through the SAM and its independent video counter.
-	Motorola::MC6847::MC6847<
-		Motorola::MC6847::FrameTiming::NTSC,
-		std::array<uint8_t, 64 * 1024>
-	> m6847_;
-
-	void set_scan_target(Outputs::Display::ScanTarget *const target) final {
-		m6847_.set_scan_target(target);
-	}
-
-	Outputs::Display::ScanStatus get_scaled_scan_status() const final {
-		return m6847_.get_scaled_scan_status() / 2.0;
-	}
 
 	// MARK: - TimedMachine.
 
@@ -374,6 +359,19 @@ private:
 	// MARK: - SAM.
 
 	struct SAM {
+		SAM(MemoryMap &memory) : memory_(memory) {}
+
+		uint8_t operator[](const uint16_t address) {
+			// TODO: this whole thing is phoney; all I'm doing is taking the full 6847-generated
+			// address and adding an offset. The real SAM does a minimal reimplementation of 6847-style
+			// address counting. Do that.
+			//
+			// This is very much bootstrapping stuff.
+			//
+			// TODO: this shouldn't be able to go into ROM, possibly?
+			return memory_.read(address + graphics_address_);
+		}
+
 		template <uint16_t address> void access() {
 			const auto set = [&](auto &target, auto bit) {
 				target = target & ~bit;
@@ -453,6 +451,8 @@ private:
 		}
 
 	private:
+		MemoryMap &memory_;
+
 		enum class ClockSpeed {
 			Half,
 			HalfInRAM,
@@ -468,6 +468,23 @@ private:
 		int ram_size_ = 0;
 	};
 	SAM sam_;
+
+	// MARK: - Video and ScanProducer.
+
+	// TODO: video should go through the SAM and its independent video counter.
+	Motorola::MC6847::MC6847<
+		Motorola::MC6847::FrameTiming::NTSC,
+		SAM
+	> m6847_;
+
+	void set_scan_target(Outputs::Display::ScanTarget *const target) final {
+		m6847_.set_scan_target(target);
+	}
+
+	Outputs::Display::ScanStatus get_scaled_scan_status() const final {
+		return m6847_.get_scaled_scan_status() / 2.0;
+	}
+
 };
 
 }
