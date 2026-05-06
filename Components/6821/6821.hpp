@@ -116,6 +116,12 @@ public:
 		update_output<port>();
 	}
 
+	template <IRQ line>
+	bool irq() const {
+		static constexpr int port = int(line);
+		return ports_[port].irq();
+	}
+
 private:
 	template <Port port>
 	void update_output() {

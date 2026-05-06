@@ -69,6 +69,7 @@ SOURCES += \
 	$$SRC/Components/5380/*.cpp \
 	$$SRC/Components/6522/Implementation/*.cpp \
 	$$SRC/Components/6560/*.cpp \
+	$$SRC/Components/6847/*.cpp \
 	$$SRC/Components/6850/*.cpp \
 	$$SRC/Components/68901/*.cpp \
 	$$SRC/Components/8272/*.cpp \
@@ -209,6 +210,7 @@ HEADERS += \
 	$$SRC/Components/6532/*.hpp \
 	$$SRC/Components/6560/*.hpp \
 	$$SRC/Components/6845/*.hpp \
+	$$SRC/Components/6847/*.hpp \
 	$$SRC/Components/6850/*.hpp \
 	$$SRC/Components/8255/*.hpp \
 	$$SRC/Components/8272/*.hpp \

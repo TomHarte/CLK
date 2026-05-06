@@ -20,6 +20,8 @@ namespace Numeric {
 */
 template <int SegmentLength, int Segments>
 struct DividingAccumulator {
+	DividingAccumulator(const int initial = 0) : position_(initial % (SegmentLength * Segments)) {}
+
 	template <typename AdvanceFuncT, typename ResetFuncT>
 	void advance(int count, const AdvanceFuncT &&advance, const ResetFuncT &&reset = []{}) {
 		while(count > 0) {
@@ -47,6 +49,16 @@ struct DividingAccumulator {
 	/// @returns Offset within the current segment.
 	int subsegment() const {
 		return position_ % SegmentLength;
+	}
+
+	/// @returns Number of positions left in the current segment.
+	int subsegment_remaining() const {
+		return SegmentLength - (position_ % SegmentLength);
+	}
+
+	/// @returns Number of positions left in the entire count.
+	int total_remaining() const {
+		return SegmentLength * Segments - position_;
 	}
 
 	/// @returns Position within the range [0, SegmentLength*Segments)

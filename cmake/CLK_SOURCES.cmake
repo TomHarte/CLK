@@ -44,6 +44,7 @@ set(CLK_SOURCES
 	Components/5380/ncr5380.cpp
 	Components/6522/Implementation/IRQDelegatePortHandler.cpp
 	Components/6560/6560.cpp
+	Components/6847/6847.cpp
 	Components/6850/6850.cpp
 	Components/68901/MFP68901.cpp
 	Components/8272/i8272.cpp

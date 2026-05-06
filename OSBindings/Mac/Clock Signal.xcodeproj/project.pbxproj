@@ -350,6 +350,9 @@
 		4B41EF722FA55F980086D909 /* CoCo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF6F2FA55F980086D909 /* CoCo.cpp */; };
 		4B41EF732FA55F980086D909 /* CoCo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF6F2FA55F980086D909 /* CoCo.cpp */; };
 		4B41EF742FA55F980086D909 /* CoCo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF6F2FA55F980086D909 /* CoCo.cpp */; };
+		4B41EF812FA8FDF80086D909 /* 6847.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF7F2FA8FDF80086D909 /* 6847.cpp */; };
+		4B41EF822FA8FDF80086D909 /* 6847.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF7F2FA8FDF80086D909 /* 6847.cpp */; };
+		4B41EF832FA8FDF80086D909 /* 6847.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF7F2FA8FDF80086D909 /* 6847.cpp */; };
 		4B43983929620FC7006B0BFC /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B43983829620FB1006B0BFC /* 9918.cpp */; };
 		4B43983A29620FC8006B0BFC /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B43983829620FB1006B0BFC /* 9918.cpp */; };
 		4B43983B29620FC9006B0BFC /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B43983829620FB1006B0BFC /* 9918.cpp */; };
@@ -1636,6 +1639,8 @@
 		4B41EF6F2FA55F980086D909 /* CoCo.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CoCo.cpp; sourceTree = "<group>"; };
 		4B41EF762FA650000086D909 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4B41EF782FA7AAC80086D909 /* Registry.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Registry.hpp; sourceTree = "<group>"; };
+		4B41EF7E2FA8FDF80086D909 /* 6847.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6847.hpp; sourceTree = "<group>"; };
+		4B41EF7F2FA8FDF80086D909 /* 6847.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 6847.cpp; sourceTree = "<group>"; };
 		4B43983829620FB1006B0BFC /* 9918.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 9918.cpp; sourceTree = "<group>"; };
 		4B43983C29621024006B0BFC /* ClockConverter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ClockConverter.hpp; sourceTree = "<group>"; };
 		4B43983E29628538006B0BFC /* Fetch.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Fetch.hpp; sourceTree = "<group>"; };
@@ -3437,6 +3442,15 @@
 				4B41EF762FA650000086D909 /* Target.hpp */,
 			);
 			path = TandyCoCo;
+			sourceTree = "<group>";
+		};
+		4B41EF802FA8FDF80086D909 /* 6847 */ = {
+			isa = PBXGroup;
+			children = (
+				4B41EF7E2FA8FDF80086D909 /* 6847.hpp */,
+				4B41EF7F2FA8FDF80086D909 /* 6847.cpp */,
+			);
+			path = 6847;
 			sourceTree = "<group>";
 		};
 		4B4518701F75E91800926311 /* Track */ = {
@@ -5387,6 +5401,7 @@
 				4BC9DF4C1D04691600F44158 /* 6560 */,
 				4BDB73512F6CA1A200964D69 /* 6821 */,
 				4BE845221F2FF7F400A5EA22 /* 6845 */,
+				4B41EF802FA8FDF80086D909 /* 6847 */,
 				4BB307B8235001C300457D33 /* 6850 */,
 				4BD9137C1F3115AC009BCF85 /* 8255 */,
 				4BBC951F1F368D87008F4C34 /* 8272 */,
@@ -6529,6 +6544,7 @@
 				4B0ACC2B23775819008902D0 /* Video.cpp in Sources */,
 				4B051CA32676F52200CA44E8 /* Enterprise.cpp in Sources */,
 				4B12C0EE1FCFAD1A005BFD93 /* Keyboard.cpp in Sources */,
+				4B41EF832FA8FDF80086D909 /* 6847.cpp in Sources */,
 				4BCD634A22D6756400F567F1 /* MacintoshDoubleDensityDrive.cpp in Sources */,
 				4B05401F219D1618001BF69C /* ScanTarget.cpp in Sources */,
 				4BBC7DC92F7182CC00E71794 /* K7.cpp in Sources */,
@@ -7005,6 +7021,7 @@
 				4BEE0A701D72496600532C7B /* PRG.cpp in Sources */,
 				4BB307BB235001C300457D33 /* 6850.cpp in Sources */,
 				4BF437EE209D0F7E008CBD6B /* SegmentParser.cpp in Sources */,
+				4B41EF822FA8FDF80086D909 /* 6847.cpp in Sources */,
 				4B2B946526377C0200E7097C /* SZX.cpp in Sources */,
 				4BC131762346DE9100E4FF3D /* StaticAnalyser.cpp in Sources */,
 				4B8334861F5DA3780097E338 /* 6502Storage.cpp in Sources */,
@@ -7052,6 +7069,7 @@
 				4B778F4223A5F1A70000D260 /* MemoryFuzzer.cpp in Sources */,
 				4B778F0123A5EBA00000D260 /* MacintoshIMG.cpp in Sources */,
 				4B7752AD28217E770073E2C5 /* AmigaADF.cpp in Sources */,
+				4B41EF812FA8FDF80086D909 /* 6847.cpp in Sources */,
 				4B06AAEB2C645FE80034D014 /* Keyboard.cpp in Sources */,
 				4BFF1D3D2235C3C100838EA1 /* EmuTOSTests.mm in Sources */,
 				4B06AB052C6460EC0034D014 /* ZXSpectrum.cpp in Sources */,

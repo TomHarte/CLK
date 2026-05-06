@@ -10,6 +10,9 @@
 
 #include "Processors/6809/6809.hpp"
 #include "Components/6821/6821.hpp"
+#include "Components/6847/6847.hpp"
+
+#include "ClockReceiver/JustInTime.hpp"
 
 #include "Machines/MachineTypes.hpp"
 #include "Analyser/Static/TandyCoCo/Target.hpp"
@@ -61,8 +64,12 @@ class ConcreteMachine:
 public:
 	ConcreteMachine(const Analyser::Static::TandyCoCo::Target &, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6809_(*this),
+		pia0_handler_(*this),
 		pia0_(pia0_handler_),
-		pia1_(pia1_handler_)
+		pia1_handler_(*this),
+		pia1_(pia1_handler_),
+		sam_(memory_),
+		m6847_(sam_)
 	{
 		set_clock_rate(1'789'772.5);
 
@@ -94,8 +101,15 @@ public:
 		const AddressT address,
 		CPU::M6809::data_t<read_write> value
 	) {
-		using namespace CPU::M6809;
+		// TODO, maybe: pull the switch inside this SAM call outside the loop?
+		const auto delay = sam_.cycle_cost<bus_phase, read_write>(address);
+		const auto duration = delay + CPU::M6809::duration<Cycles>(bus_phase);
+		if(m6847_ += duration) {
+			pia0_.set<Motorola::MC6821::Control::CA1>(m6847_.get()->hsync());
+			pia0_.set<Motorola::MC6821::Control::CB1>(m6847_.get()->vsync());
+		}
 
+		using namespace CPU::M6809;
 		if(address >> 8 == 0xff) {
 			if constexpr (read_write != ReadWrite::NoData) {
 				switch(address) {
@@ -168,12 +182,17 @@ public:
 			}
 
 			if constexpr (is_write(read_write)) {
+				// TODO: could do better with the test below by having SAM calculate a range?
+				const uint16_t video_start = sam_.graphics_address();
+				if(address >= video_start && address < video_start + 6144) {
+					m6847_.flush();
+				}
+
 				memory_.write(address, value);
 			}
 		}
 
-		// TODO, maybe: pull this outside the loop?
-		return sam_.cycle_cost<bus_phase, read_write>(address);
+		return duration;
 	}
 
 private:
@@ -187,16 +206,6 @@ private:
 	std::array<uint8_t, 8 * 1024> colour_basic_;
 	std::array<uint8_t, 64 * 1024> ram_;
 
-	// MARK: - ScanProducer.
-
-	void set_scan_target(Outputs::Display::ScanTarget *const target) final {
-		(void)target;
-	}
-
-	Outputs::Display::ScanStatus get_scaled_scan_status() const final {
-		return Outputs::Display::ScanStatus{};
-	}
-
 	// MARK: - TimedMachine.
 
 	void run_for(const Cycles cycles) final {
@@ -204,13 +213,41 @@ private:
 	}
 
 	void flush_output(const int outputs) final {
-		(void)outputs;
+		if(outputs & Output::Video) {
+			m6847_.flush();
+		}
 	}
 
 	// MARK: - PIAs.
 
 	friend struct PIA0Handler;
 	struct PIA0Handler {
+		PIA0Handler(ConcreteMachine &machine) : machine_(machine) {}
+
+		//
+		// Port A:
+		//
+		//	b7: joystick comparison input
+		//	b0–b6: keyboard row [input?]
+		//	b0–b1, b2–b3: joystick button inputs;
+		//		0 and 2 = right joystick, 1 and 3 = left joystick;
+		//		0 and 1 = switch 1, 2 and 3 = switch 2.
+		//
+		//	CA1: hsync
+		//	CA2: "select line LSB of MUX"?
+
+		//
+		// Port B:
+		//
+		//	b0-b7: keyboard column [output?]
+		//
+		//	CB1: vsync
+		//	CB2: "select lime MSB of MUX"?
+
+		// TODO: what MUX?
+
+		// Interrupt outputs both connected to IRQ.
+
 		template <Motorola::MC6821::Port port>
 		uint8_t input() {
 			if constexpr (port == Motorola::MC6821::Port::A) {
@@ -234,11 +271,13 @@ private:
 		}
 
 		template <Motorola::MC6821::IRQ irq>
-		void set(const bool) {
+		void set(const bool active) {
 			if constexpr (irq == Motorola::MC6821::IRQ::A) {
+				machine_.set_irq<0>(active);
 			}
 
 			if constexpr (irq == Motorola::MC6821::IRQ::B) {
+				machine_.set_irq<1>(active);
 			}
 		}
 
@@ -249,12 +288,49 @@ private:
 			if constexpr (control == Motorola::MC6821::Control::CB2) {
 			}
 		}
+
+	private:
+		ConcreteMachine &machine_;
 	};
 	PIA0Handler pia0_handler_;
 	Motorola::MC6821::MC6821<PIA0Handler> pia0_;
 
+	bool irqs_[2]{};
+	template <int slot>
+	void set_irq(const bool active) {
+		irqs_[slot] = active;
+		m6809_.set<CPU::M6809::Line::IRQ>(irqs_[0] || irqs_[1]);
+	}
+
 	friend struct PIA1Handler;
 	struct PIA1Handler {
+		PIA1Handler(ConcreteMachine &machine) : machine_(machine) {}
+
+		//
+		// Port A:
+		//
+		//	b2-b7: 6-bit DAC output
+		//	b1: RS232 data output
+		//	b0: tape output
+		//
+		//	CA1: RS232 carrier detect
+		//	CA2: cassette motor control
+
+		//
+		// Port B:
+		//
+		//	b7: 6847 alpha/graphics select (0 = alphanumeric)
+		//	b4–b6: VDG GM inputs; also b5 = 6847 invert; b4 = 6847 shift toggle
+		//	b3: colour set select (and RGB monitor detecting input? Probably CoCo3)
+		//	b2: ram size input
+		//	b1: tape input
+		//	b0: RS232 data input
+		//
+		//	CB1: cartridge interrupt input
+		//	CB2: sound enable
+
+		// Interrupt output connected to FIRQ.
+
 		template <Motorola::MC6821::Port port>
 		uint8_t input() {
 			if constexpr (port == Motorola::MC6821::Port::A) {
@@ -269,11 +345,19 @@ private:
 		}
 
 		template <Motorola::MC6821::Port port>
-		void output(const uint8_t) {
+		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::A) {
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
+				machine_.m6847_->set_mode(
+					value & 0x80,		// Alpha/graphics.
+					value & 0x80,		// Graphics/semigraphics.
+					false,				// External ROM.
+					value & 0x20,		// Invert.
+					(value >> 4) & 7,	// Graphics mode.
+					value & 0x80		// Colour select.
+				);
 			}
 		}
 
@@ -293,13 +377,29 @@ private:
 			if constexpr (control == Motorola::MC6821::Control::CB2) {
 			}
 		}
+
+	private:
+		ConcreteMachine &machine_;
 	};
-	PIA0Handler pia1_handler_;
-	Motorola::MC6821::MC6821<PIA0Handler> pia1_;
+	PIA1Handler pia1_handler_;
+	Motorola::MC6821::MC6821<PIA1Handler> pia1_;
 
 	// MARK: - SAM.
 
 	struct SAM {
+		SAM(MemoryMap &memory) : memory_(memory) {}
+
+		uint8_t operator[](const uint16_t address) {
+			// TODO: this whole thing is phoney; all I'm doing is taking the full 6847-generated
+			// address and adding an offset. The real SAM does a minimal reimplementation of 6847-style
+			// address counting. Do that.
+			//
+			// This is very much bootstrapping stuff.
+			//
+			// TODO: this shouldn't be able to go into ROM, possibly?
+			return memory_.read(address + graphics_address_);
+		}
+
 		template <uint16_t address> void access() {
 			const auto set = [&](auto &target, auto bit) {
 				target = target & ~bit;
@@ -378,7 +478,13 @@ private:
 			__builtin_unreachable();
 		}
 
+		uint16_t graphics_address() const {
+			return graphics_address_;
+		}
+
 	private:
+		MemoryMap &memory_;
+
 		enum class ClockSpeed {
 			Half,
 			HalfInRAM,
@@ -394,6 +500,27 @@ private:
 		int ram_size_ = 0;
 	};
 	SAM sam_;
+
+	// MARK: - Video and ScanProducer.
+
+	// TODO: video should go through the SAM and its independent video counter.
+	JustInTimeActor<
+		Motorola::MC6847::MC6847<
+			Motorola::MC6847::FrameTiming::NTSC,
+			SAM
+		>,
+		Cycles,
+		4
+	> m6847_;
+
+	void set_scan_target(Outputs::Display::ScanTarget *const target) final {
+		m6847_.get()->set_scan_target(target);
+	}
+
+	Outputs::Display::ScanStatus get_scaled_scan_status() const final {
+		return m6847_.get()->get_scaled_scan_status() / 2.0;
+	}
+
 };
 
 }
