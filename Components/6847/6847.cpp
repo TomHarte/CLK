@@ -78,6 +78,18 @@ static constexpr uint8_t font[64][12] = {
 	{ 0x00, 0x00, 0x00, 0x18, 0x24, 0x04, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, },
 };
 
+/// Maps between [GM2, GM1, GM0] and named mode.
+enum GraphicsMode: uint8_t {
+	ColourGraphics1 = 0b000,
+	ResolutionGraphics1 = 0b001,
+	ColourGraphics2 = 0b010,
+	ResolutionGraphics2 = 0b011,
+	ColourGraphics3 = 0b100,
+	ResolutionGraphics3 = 0b101,
+	ColourGraphics6 = 0b110,
+	ResolutionGraphics6 = 0b111,
+};
+
 }
 
 using namespace Motorola::MC6847;
@@ -151,4 +163,22 @@ void MC6847Base::sync_line(const int, const int end) {
 
 void MC6847Base::reset() {
 	address_.apply_vertical_preload();
+}
+
+void MC6847Base::Address::apply_vertical_preload() {
+	row_ = 0;
+	address_ = 0;
+}
+
+void MC6847Base::Address::advance(const int column) {
+	address_ += (column & 1) | increment_mask_;
+}
+
+void MC6847Base::Address::apply_hsync() {
+	++row_;
+	if(row_ == target_row_) {
+		row_ = 0;
+		++address_;
+	}
+	address_ &= line_mask_;
 }

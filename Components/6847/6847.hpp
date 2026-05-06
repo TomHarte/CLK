@@ -11,118 +11,9 @@
 #include "ClockReceiver/ClockReceiver.hpp"
 #include "Numeric/SegmentCounter.hpp"
 #include "Outputs/CRT/CRT.hpp"
+#include "Numeric/SizedInt.hpp"
 
 namespace Motorola::MC6847 {
-
-/*!
-	Encapsulates the 6847's address-generation logic;
-*/
-struct AddressGenerator {
-	// MARK: - Events.
-
-	void apply_hsync() {
-		if(mode_ == 7) [[unlikely]] {
-			return;
-		}
-
-		// Use y divider to decide whether to clear low bits.
-		++y_;
-		if(y_ == y_divider_ || y_ == 12) {	// Complete guess: always wrap at 12 even if an in-frame mode switch
-											// has occurred.
-			y_ = 0;
-			++counter_;
-		}
-
-		// Clear either four or five bits.
-		if(mode_ & 1) {
-			counter_ &= ~15;
-		} else {
-			counter_ &= ~31;
-		}
-	}
-
-	void apply_vertical_preload() {
-		x_ = 0;
-		y_ = 0;
-		counter_ = preload_;
-	}
-
-	void advance() {
-		++x_;
-		if(x_ == x_divider_ || x_ == 3) {
-			++counter_;
-			x_ = 0;
-		}
-	}
-
-	uint16_t address() const {
-		return counter_;
-	}
-
-	int row() const {
-		return y_;
-	}
-
-	// MARK: - Inputs.
-
-	void set_hsync(const bool active) {
-		if(active != previous_hsync_) [[unlikely]] {
-			previous_hsync_ = active;
-			if(active) apply_hsync();
-		}
-	}
-
-	void set_mode(const int mode) {
-		mode_ = mode & 7;
-
-		switch(mode) {
-			case 0:
-				x_divider_ = 1;
-				y_divider_ = 12;
-			break;
-			case 1:
-				x_divider_ = 3;
-				y_divider_ = 1;
-			break;
-			case 2:
-				x_divider_ = 1;
-				y_divider_ = 3;
-			break;
-			case 3:
-				x_divider_ = 2;
-				y_divider_ = 1;
-			break;
-			case 4:
-				x_divider_ = 1;
-				y_divider_ = 2;
-			break;
-			default:
-				x_divider_ = 1;
-				y_divider_ = 2;
-			break;
-		}
-	}
-
-	// TODO: "VP goes active (high) when HS from the VDG rises if DAO is high (or a high impedance.)"
-
-	// MARK: - Helpers, as this class is intended to straddle a few uses cases.
-
-	void set_preload(const uint16_t preload) {
-		preload_ = preload;
-	}
-
-private:
-	uint16_t counter_ = 0;
-	uint16_t preload_ = 0;
-
-	bool previous_hsync_ = false;
-	int mode_ = 0;
-
-	int x_divider_= 1;
-	int y_divider_= 1;
-	int x_ = 0;
-	int y_ = 0;
-};
 
 enum class FrameTiming {
 	/// Official frame timing, as implemented by the chip.
@@ -176,7 +67,29 @@ struct MC6847Base {
 		uint8_t data[32];
 	} line_;
 
-	AddressGenerator address_;
+	struct Address {
+	public:
+		uint16_t address() const {
+			return address_;
+		}
+
+		int row() const {
+			return row_.get();
+		}
+
+		void advance(int column);
+		void apply_vertical_preload();
+		void apply_hsync();
+
+	private:
+		uint16_t address_ = 0;
+
+		uint16_t increment_mask_ = 1;
+		uint16_t line_mask_ = uint16_t(~31);
+
+		Numeric::SizedInt<4> row_;
+		uint8_t target_row_ = 12;
+	} address_;
 };
 
 template <FrameTiming timing, typename MemoryAccessT>
@@ -185,10 +98,6 @@ public:
 	MC6847(MemoryAccessT &memory) :
 		MC6847Base(is_ntsc(timing) ? Outputs::Display::Type::NTSC60 : Outputs::Display::Type::PAL50),
 		memory_(memory) {
-		// HACK. Allows me to test the address generator locally, prior to integrating it into the SAM.
-		address_.set_preload(0x400);
-		address_.set_mode(0);
-
 		crt_.set_fixed_framing([&] {
 			run_for(Cycles(10'000));
 		});
@@ -212,9 +121,9 @@ public:
 							const int column_end = (fetch_end - LineLayout::EndOfLeftBorder) >> 3;
 
 							for(int c = column_begin; c < column_end; c++) {
-								if(c != 0) address_.advance();
-								const auto source = address_.address();
-								line_.data[c] = memory_[source];
+								if(c != 0) address_.advance(c);
+								const auto source = address_.address() + 0x400;	// TODO: unhack.
+								line_.data[c] = memory_[size_t(source)];
 							}
 						}
 					);
