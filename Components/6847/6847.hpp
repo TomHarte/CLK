@@ -39,6 +39,11 @@ template <FrameTiming timing> struct FrameLayout {
 static_assert(FrameLayout<FrameTiming::NTSC>::EndOfField == 262, "NTSC frames should be 262 lines long");
 static_assert(FrameLayout<FrameTiming::PALPaddedVsync>::EndOfField == 312, "PAL-padded frames should be 312 lines long");
 
+struct MC6847Delegate {
+	virtual void set_hsync(bool active) = 0;
+	virtual void set_vsync(bool active) = 0;
+};
+
 struct MC6847Base {
 	MC6847Base(Outputs::Display::Type);
 
@@ -121,9 +126,9 @@ public:
 							const int column_end = (fetch_end - LineLayout::EndOfLeftBorder) >> 3;
 
 							for(int c = column_begin; c < column_end; c++) {
-								if(c != 0) address_.advance(c);
 								const auto source = address_.address() + 0x400;	// TODO: unhack.
 								line_.data[c] = memory_[size_t(source)];
+								address_.advance(c);
 							}
 						}
 					);

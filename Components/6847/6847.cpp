@@ -178,7 +178,8 @@ void MC6847Base::Address::apply_hsync() {
 	++row_;
 	if(row_ == target_row_) {
 		row_ = 0;
-		++address_;
+	} else {
+		--address_;
 	}
 	address_ &= line_mask_;
 }
