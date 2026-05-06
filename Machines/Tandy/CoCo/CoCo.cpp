@@ -222,6 +222,30 @@ private:
 
 	friend struct PIA0Handler;
 	struct PIA0Handler {
+		//
+		// Port A:
+		//
+		//	b7: joystick comparison input
+		//	b0–b6: keyboard row [input?]
+		//	b0–b1, b2–b3: joystick button inputs;
+		//		0 and 2 = right joystick, 1 and 3 = left joystick;
+		//		0 and 1 = switch 1, 2 and 3 = switch 2.
+		//
+		//	CA1: hsync
+		//	CA2: "select line LSB of MUX"?
+
+		//
+		// Port B:
+		//
+		//	b0-b7: keyboard column [output?]
+		//
+		//	CB1: vsync
+		//	CB2: "select lime MSB of MUX"?
+
+		// TODO: what MUX?
+
+		// Interrupt output connected to IRQ.
+
 		template <Motorola::MC6821::Port port>
 		uint8_t input() {
 			if constexpr (port == Motorola::MC6821::Port::A) {
@@ -266,6 +290,31 @@ private:
 
 	friend struct PIA1Handler;
 	struct PIA1Handler {
+		//
+		// Port A:
+		//
+		//	b2-b7: 6-bit DAC output
+		//	b1: RS232 data output
+		//	b0: tape output
+		//
+		//	CA1: RS232 carrier detect
+		//	CA2: cassette motor control
+
+		//
+		// Port B:
+		//
+		//	b7: 6847 alpha/graphics select (0 = alphanumeric)
+		//	b4–b6: VDG GM inputs; also b5 = 6847 invert; b4 = 6847 shift toggle
+		//	b3: colour set select (and RGB monitor detecting input? Probably CoCo3)
+		//	b2: ram size input
+		//	b1: tape input
+		//	b0: RS232 data input
+		//
+		//	CB1: cartridge interrupt input
+		//	CB2: sound enable
+
+		// Interrupt output connected to FIRQ.
+
 		template <Motorola::MC6821::Port port>
 		uint8_t input() {
 			if constexpr (port == Motorola::MC6821::Port::A) {
