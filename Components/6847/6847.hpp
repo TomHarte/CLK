@@ -151,18 +151,21 @@ static_assert(FrameLayout<FrameTiming::PALPaddedVsync>::EndOfField == 312, "PAL-
 struct MC6847Base {
 	MC6847Base(Outputs::Display::Type);
 
-	void pixel_line(int line, int begin, int end);
+	void pixel_line(int begin, int end);
 	void border_line(int begin, int end);
 	void porch_line(int begin, int end);
 	void sync_line(int begin, int end);
 	void reset();
 
 	struct LineLayout {
-		// Complete guesses. Who knows?
-		static const int EndOfSync = 4;
-		static const int EndOfLeftBorder = 18;
-		static const int EndOfPixels = 50;
-		static const int EndOfLine = 64;
+		// Start of line: sync is active.
+		static const int EndOfSync = 28;
+		static const int EndOfColourBurst = 55;
+		static const int EndOfBackPorch = 72;
+		static const int EndOfLeftBorder = 130;
+		static const int EndOfPixels = 386;
+		static const int EndOfRightBorder = 442;
+		static const int EndOfLine = 456;
 	};
 
 	Outputs::CRT::CRT crt_;
@@ -192,29 +195,30 @@ public:
 	}
 
 	//
-	// Expected input clock: NTSC-style 3.58 Mhz.
+	// Expected input clock: double NTSC 3.58 Mhz; i.e. supply the pixel clock directly.
 	//
 	void run_for(const Cycles cycles) {
 		// This template binds the drawing logic to whatever was supplied
 		// as MemoryAccessT; a consequence of that is that frame layout logic is here.
-		cycles_ += cycles;
 		position_.advance(
-			cycles_.divide(2).template as<int>(),
+			cycles.as<int>(),
 			[&] (const int line, const int begin, const int end) {
 				if(line < FrameLayout<timing>::EndOfPixels) {
 					Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
 						begin,
 						end,
 						[&](const int fetch_begin, const int fetch_end) {
-							for(int c = fetch_begin; c < fetch_end; c++) {
-								if(c > LineLayout::EndOfLeftBorder) address_.advance();
-								const int column = c - LineLayout::EndOfLeftBorder;
+							const int column_begin = (fetch_begin - LineLayout::EndOfLeftBorder) >> 3;
+							const int column_end = (fetch_end - LineLayout::EndOfLeftBorder) >> 3;
+
+							for(int c = column_begin; c < column_end; c++) {
+								if(c != 0) address_.advance();
 								const auto source = address_.address();
-								line_.data[column] = memory_[source];
+								line_.data[c] = memory_[source];
 							}
 						}
 					);
-					pixel_line(line, begin, end);
+					pixel_line(begin, end);
 				} else if(line < FrameLayout<timing>::EndOfBottomBorder) {
 					border_line(begin, end);
 				} else if(line < FrameLayout<timing>::EndOfFrontPorch) {
@@ -251,8 +255,7 @@ public:
 
 private:
 	MemoryAccessT &memory_;
-	Cycles cycles_;
-	Numeric::DividingAccumulator<64, FrameLayout<timing>::EndOfField> position_;
+	Numeric::DividingAccumulator<LineLayout::EndOfLine, FrameLayout<timing>::EndOfField> position_{2};
 };
 
 }

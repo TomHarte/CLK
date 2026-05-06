@@ -78,7 +78,6 @@ static constexpr uint8_t font[64][12] = {
 	{ 0x00, 0x00, 0x00, 0x18, 0x24, 0x04, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, },
 };
 
-static constexpr int CRTMultiplier = 14;
 }
 
 using namespace Motorola::MC6847;
@@ -87,7 +86,7 @@ using namespace Motorola::MC6847;
 // So the below isn't quite accurate. This is something to figure out.
 MC6847Base::MC6847Base(const Outputs::Display::Type display_type) :
 	crt_(
-	910,
+	455,
 	1,
 	display_type,
 	Outputs::Display::InputDataType::Red4Green4Blue4	// TODO.
@@ -95,31 +94,26 @@ MC6847Base::MC6847Base(const Outputs::Display::Type display_type) :
 	crt_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
 }
 
-void MC6847Base::pixel_line(const int line, const int line_begin, const int line_end) {
-	Numeric::clamp<0, LineLayout::EndOfSync>(line_begin, line_end, [&](int, const int end) {
-		if(end == LineLayout::EndOfSync) {
-			crt_.output_sync(LineLayout::EndOfSync * CRTMultiplier);
-		}
-	});
-	Numeric::clamp<LineLayout::EndOfSync, LineLayout::EndOfLeftBorder>(line_begin, line_end, [&](int, const int end) {
-		if(end == LineLayout::EndOfLeftBorder) {
-			crt_.output_blank((LineLayout::EndOfLeftBorder - LineLayout::EndOfSync) * CRTMultiplier);
-		}
-	});
+void MC6847Base::pixel_line(const int line_begin, const int line_end) {
+	if(line_begin < LineLayout::EndOfLeftBorder && line_end >= LineLayout::EndOfLeftBorder) {
+		crt_.output_sync(LineLayout::EndOfSync);
+		crt_.output_sync(LineLayout::EndOfColourBurst - LineLayout::EndOfSync);
+		crt_.output_blank(LineLayout::EndOfLeftBorder - LineLayout::EndOfColourBurst);
+
+		pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(256));
+	}
 	Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
 		line_begin,
 		line_end,
 		[&](const int begin, const int end) {
-			if(begin == LineLayout::EndOfLeftBorder) {
-				pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(256));
-			}
-
 			// TODO: obey graphics mode here, use proper colours, more.
 			if(pixels_) {
 				const int row = address_.row();
-				for(int c = line_begin; c < line_end; c++) {
-					const int column = c - LineLayout::EndOfLeftBorder;
-					const int pixels = font[line_.data[column] & 63][row];
+				const int column_begin = (begin - LineLayout::EndOfLeftBorder) >> 3;
+				const int column_end = (end - LineLayout::EndOfLeftBorder) >> 3;
+
+				for(int c = column_begin; c < column_end; c++) {
+					const int pixels = font[line_.data[c] & 63][row];
 					pixels_[0] = (pixels & 0x80) ? 0xffff : 0x0000;
 					pixels_[1] = (pixels & 0x40) ? 0xffff : 0x0000;
 					pixels_[2] = (pixels & 0x20) ? 0xffff : 0x0000;
@@ -131,25 +125,19 @@ void MC6847Base::pixel_line(const int line, const int line_begin, const int line
 					pixels_ += 8;
 				}
 			}
-
-			if(end == LineLayout::EndOfPixels) {
-				crt_.output_data(32 * CRTMultiplier, 256);
-				address_.apply_hsync();
-				printf("\n");
-			}
 		}
 	);
-	Numeric::clamp<LineLayout::EndOfPixels, LineLayout::EndOfLine>(line_begin, line_end, [&](int, const int end) {
-		if(end == LineLayout::EndOfLine) {
-			crt_.output_blank((LineLayout::EndOfLine - LineLayout::EndOfPixels) * CRTMultiplier);
-		}
-	});
+	if(line_end == LineLayout::EndOfLine) {
+		crt_.output_data(256);
+		address_.apply_hsync();
+		crt_.output_blank(LineLayout::EndOfLine - LineLayout::EndOfPixels);
+	}
 }
 
 void MC6847Base::border_line(const int, const int end) {
 	if(end == LineLayout::EndOfLine) {
-		crt_.output_sync(LineLayout::EndOfSync * CRTMultiplier);
-		crt_.output_blank((LineLayout::EndOfLine - LineLayout::EndOfSync) * CRTMultiplier);
+		crt_.output_sync(LineLayout::EndOfSync);
+		crt_.output_blank(LineLayout::EndOfLine - LineLayout::EndOfSync);
 	}
 }
 
@@ -159,7 +147,7 @@ void MC6847Base::porch_line(const int begin, const int end) {
 
 void MC6847Base::sync_line(const int, const int end) {
 	if(end == LineLayout::EndOfLine) {
-		crt_.output_sync((LineLayout::EndOfLine) * CRTMultiplier);
+		crt_.output_sync(LineLayout::EndOfLine);
 	}
 }
 

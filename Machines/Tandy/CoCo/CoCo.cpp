@@ -96,12 +96,12 @@ public:
 		const AddressT address,
 		CPU::M6809::data_t<read_write> value
 	) {
+		// TODO, maybe: pull the switch inside this SAM call outside the loop?
+		const auto delay = sam_.cycle_cost<bus_phase, read_write>(address);
+		const auto duration = delay + CPU::M6809::duration<Cycles>(bus_phase);
+		m6847_.run_for(duration * 4);
+
 		using namespace CPU::M6809;
-
-		// TODO, maybe: pull this outside the loop?
-		const auto duration = sam_.cycle_cost<bus_phase, read_write>(address);
-		m6847_.run_for(duration * 2);
-
 		if(address >> 8 == 0xff) {
 			if constexpr (read_write != ReadWrite::NoData) {
 				switch(address) {
