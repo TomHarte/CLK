@@ -105,22 +105,37 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 			line_begin,
 			line_end,
 			[&](const int begin, const int end) {
-				// TODO: obey graphics mode here, use proper colours, more.
 				const int row = address_.row();
 				const int column_begin = (begin - LineLayout::EndOfLeftBorder) >> 3;
 				const int column_end = (end - LineLayout::EndOfLeftBorder) >> 3;
 
-				for(int c = column_begin; c < column_end; c++) {
-					const int pixels = font[line_.data[c] & 63][row];
-					pixels_[0] = (pixels & 0x80) ? 0xffff : 0x0000;
-					pixels_[1] = (pixels & 0x40) ? 0xffff : 0x0000;
-					pixels_[2] = (pixels & 0x20) ? 0xffff : 0x0000;
-					pixels_[3] = (pixels & 0x10) ? 0xffff : 0x0000;
-					pixels_[4] = (pixels & 0x08) ? 0xffff : 0x0000;
-					pixels_[5] = (pixels & 0x04) ? 0xffff : 0x0000;
-					pixels_[6] = (pixels & 0x02) ? 0xffff : 0x0000;
-					pixels_[7] = (pixels & 0x01) ? 0xffff : 0x0000;
-					pixels_ += 8;
+				// TODO: properly obey graphics mode here, use colours.
+				if(mode_ <= GraphicsMode::ResolutionGraphics6) {
+					for(int c = column_begin; c < column_end; c++) {
+						const int pixels = line_.data[c];
+						pixels_[0] = (pixels & 0x80) ? 0xffff : 0x0000;
+						pixels_[1] = (pixels & 0x40) ? 0xffff : 0x0000;
+						pixels_[2] = (pixels & 0x20) ? 0xffff : 0x0000;
+						pixels_[3] = (pixels & 0x10) ? 0xffff : 0x0000;
+						pixels_[4] = (pixels & 0x08) ? 0xffff : 0x0000;
+						pixels_[5] = (pixels & 0x04) ? 0xffff : 0x0000;
+						pixels_[6] = (pixels & 0x02) ? 0xffff : 0x0000;
+						pixels_[7] = (pixels & 0x01) ? 0xffff : 0x0000;
+						pixels_ += 8;
+					}
+				} else {
+					for(int c = column_begin; c < column_end; c++) {
+						const int pixels = font[line_.data[c] & 63][row];
+						pixels_[0] = (pixels & 0x80) ? 0xffff : 0x0000;
+						pixels_[1] = (pixels & 0x40) ? 0xffff : 0x0000;
+						pixels_[2] = (pixels & 0x20) ? 0xffff : 0x0000;
+						pixels_[3] = (pixels & 0x10) ? 0xffff : 0x0000;
+						pixels_[4] = (pixels & 0x08) ? 0xffff : 0x0000;
+						pixels_[5] = (pixels & 0x04) ? 0xffff : 0x0000;
+						pixels_[6] = (pixels & 0x02) ? 0xffff : 0x0000;
+						pixels_[7] = (pixels & 0x01) ? 0xffff : 0x0000;
+						pixels_ += 8;
+					}
 				}
 			}
 		);

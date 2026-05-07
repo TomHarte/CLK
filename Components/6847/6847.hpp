@@ -124,7 +124,7 @@ struct MC6847Base {
 		ExternalAlphanumerics,
 		Semigraphics4,
 		Semigraphics6,
-	} mode_;
+	} mode_ = GraphicsMode::InternalAlphanumerics;
 	uint8_t alphanumerics_inversion_ = 0;
 };
 
