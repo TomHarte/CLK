@@ -51,9 +51,9 @@ using namespace Storage::Tape;
 */
 
 namespace {
-const uint8_t header_signature[8] = {0x1f, 0xa6, 0xde, 0xba, 0xcc, 0x13, 0x7d, 0x74};
+constexpr const uint8_t header_signature[8] = {0x1f, 0xa6, 0xde, 0xba, 0xcc, 0x13, 0x7d, 0x74};
 
-template <uint8_t x> const uint8_t signature[] = {x, x, x, x, x, x, x, x, x, x};
+template <uint8_t x> constexpr const uint8_t signature[] = {x, x, x, x, x, x, x, x, x, x};
 const auto binary_signature = signature<0xd0>;
 const auto basic_signature = signature<0xd3>;
 const auto ascii_signature = signature<0xea>;
@@ -165,6 +165,10 @@ CAS::CAS(const std::string &file_name) {
 				parsing_mode = Mode::Seeking;
 			} break;
 		}
+	}
+
+	if(chunks_.empty()) {
+		throw ErrorNotCAS;
 	}
 }
 

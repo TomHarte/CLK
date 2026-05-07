@@ -526,7 +526,6 @@ private:
 
 	// MARK: - Video and ScanProducer.
 
-	// TODO: video should go through the SAM and its independent video counter.
 	JustInTimeActor<
 		Motorola::MC6847::MC6847<
 			Motorola::MC6847::FrameTiming::NTSC,
