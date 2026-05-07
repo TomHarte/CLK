@@ -1641,6 +1641,7 @@
 		4B41EF782FA7AAC80086D909 /* Registry.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Registry.hpp; sourceTree = "<group>"; };
 		4B41EF7E2FA8FDF80086D909 /* 6847.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6847.hpp; sourceTree = "<group>"; };
 		4B41EF7F2FA8FDF80086D909 /* 6847.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 6847.cpp; sourceTree = "<group>"; };
+		4B41EF842FAC26590086D909 /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
 		4B43983829620FB1006B0BFC /* 9918.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 9918.cpp; sourceTree = "<group>"; };
 		4B43983C29621024006B0BFC /* ClockConverter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ClockConverter.hpp; sourceTree = "<group>"; };
 		4B43983E29628538006B0BFC /* Fetch.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Fetch.hpp; sourceTree = "<group>"; };
@@ -3422,8 +3423,9 @@
 		4B41EF702FA55F980086D909 /* CoCo */ = {
 			isa = PBXGroup;
 			children = (
-				4B41EF6E2FA55F980086D909 /* CoCo.hpp */,
 				4B41EF6F2FA55F980086D909 /* CoCo.cpp */,
+				4B41EF6E2FA55F980086D909 /* CoCo.hpp */,
+				4B41EF842FAC26590086D909 /* Keyboard.hpp */,
 			);
 			path = CoCo;
 			sourceTree = "<group>";
