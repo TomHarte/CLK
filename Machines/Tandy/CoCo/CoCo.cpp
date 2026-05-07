@@ -8,6 +8,8 @@
 
 #include "CoCo.hpp"
 
+#include "Keyboard.hpp"
+
 #include "Processors/6809/6809.hpp"
 #include "Components/6821/6821.hpp"
 #include "Components/6847/6847.hpp"
@@ -58,6 +60,7 @@ namespace TandyCoCo {
 
 class ConcreteMachine:
 	public Machine,
+	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine
 {
@@ -222,7 +225,9 @@ private:
 
 	friend struct PIA0Handler;
 	struct PIA0Handler {
-		PIA0Handler(ConcreteMachine &machine) : machine_(machine) {}
+		PIA0Handler(ConcreteMachine &machine) : machine_(machine) {
+			clear_all_keys();
+		}
 
 		//
 		// Port A:
@@ -251,10 +256,15 @@ private:
 		template <Motorola::MC6821::Port port>
 		uint8_t input() {
 			if constexpr (port == Motorola::MC6821::Port::A) {
-				if(!(keyboard_column_ & 0x10)) {
-					return 0xfe;
-				}
-				return 0xff;
+				return
+					(keyboard_column_ & 0x80 ? 0xff : keys_[7]) &
+					(keyboard_column_ & 0x40 ? 0xff : keys_[6]) &
+					(keyboard_column_ & 0x20 ? 0xff : keys_[5]) &
+					(keyboard_column_ & 0x10 ? 0xff : keys_[4]) &
+					(keyboard_column_ & 0x08 ? 0xff : keys_[3]) &
+					(keyboard_column_ & 0x04 ? 0xff : keys_[2]) &
+					(keyboard_column_ & 0x02 ? 0xff : keys_[1]) &
+					(keyboard_column_ & 0x01 ? 0xff : keys_[0]);
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
@@ -290,9 +300,20 @@ private:
 			}
 		}
 
+		void set_key_pressed(const int column, const int row, bool is_pressed) {
+			const auto mask = uint8_t(0xff ^ (1 << column));
+			keys_[row] &= mask;
+			if(!is_pressed) keys_[row] |= ~mask;
+		}
+
+		void clear_all_keys() {
+			std::fill(std::begin(keys_), std::end(keys_), 0xff);
+		}
+
 	private:
 		ConcreteMachine &machine_;
 		uint8_t keyboard_column_ = 0xff;
+		uint8_t keys_[8]{};
 	};
 	PIA0Handler pia0_handler_;
 	Motorola::MC6821::MC6821<PIA0Handler> pia0_;
@@ -523,6 +544,20 @@ private:
 		return m6847_.get()->get_scaled_scan_status() / 2.0;
 	}
 
+	// MARK: - MappedKeyboardMachine.
+
+	Tandy::CoCo::Keyboard::KeyboardMapper keyboard_mapper_;
+	KeyboardMapper *keyboard_mapper() final {
+		return &keyboard_mapper_;
+	}
+
+	void set_key_state(const uint16_t key, const bool is_pressed) final {
+		pia0_handler_.set_key_pressed(Keyboard::column(key), Keyboard::row(key), is_pressed);
+	}
+
+	void clear_all_keys() final {
+		pia0_handler_.clear_all_keys();
+	}
 };
 
 }
