@@ -31,6 +31,12 @@ private:
 		void push_next_pulses() override;
 		void reset() override;
 
+		enum class State {
+			PreLeadInPause,
+			LeadIn,
+			Body,
+		} state_ = State::PreLeadInPause;
+		int state_length_ = 0;
 		Storage::FileHolder file_;
 	};
 };

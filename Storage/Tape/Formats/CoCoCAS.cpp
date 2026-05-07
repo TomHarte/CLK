@@ -32,24 +32,55 @@ CoCoCAS::Serialiser::Serialiser(const std::string &name) : file_(name, FileMode:
 }
 
 void CoCoCAS::Serialiser::push_next_pulses() {
-	// Dumb: no enforced gaps between blocks.
-	uint8_t next = file_.get();
-	for(int c = 0; c < 8; c++) {
-		// Generate a single wave of either 1200Hz (for a 0) or 2400Hz tone (for a 1).
-		const Time length(
-			1,
-			next & 0x01 ? 4800 : 2400
-		);
-		next >>= 1;
+	const auto serialise = [&](uint8_t next) {
+		for(int c = 0; c < 8; c++) {
+			// Generate a single wave of either 1200Hz (for a 0) or 2400Hz tone (for a 1).
+			const Time length(
+				1,
+				next & 0x01 ? 4800 : 2400
+			);
+			next >>= 1;
 
-		emplace_back(Pulse::Low, length);
-		emplace_back(Pulse::High, length);
+			emplace_back(Pulse::Low, length);
+			emplace_back(Pulse::High, length);
+		}
+	};
+
+	switch(state_) {
+		case State::PreLeadInPause:
+			emplace_back(Pulse::Zero, Time(1));
+			state_ = State::LeadIn;
+		break;
+
+		case State::LeadIn: {
+			const uint8_t next = file_.get();
+			serialise(next);
+
+			if(next == 0x3c) {
+				state_ = State::Body;
+				state_length_ = -1;
+			}
+		}
+		break;
+
+		case State::Body: {
+			const uint8_t next = file_.get();
+			serialise(next);
+
+			--state_length_;
+			if(state_length_ == -3) {
+				state_length_ = next + 1;
+			} else if(!state_length_) {
+				state_ = State::PreLeadInPause;
+			}
+		}
+		break;
+
 	}
 }
 
 void CoCoCAS::Serialiser::reset() {
-	file_.seek(0, Whence::SET);
-
 	// Add 1s of blank before the tape begins.
-	emplace_back(Pulse::Zero, Time(1));
+	state_ = State::PreLeadInPause;
+	file_.seek(0, Whence::SET);
 }
