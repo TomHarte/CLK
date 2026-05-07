@@ -682,6 +682,7 @@ private:
 	}
 
 	ChangeEffect effect_for_file_did_change(const std::string &) const override {
+		// TODO: unless it's a disk that's already inserted.
 		return ChangeEffect::RestartMachine;
 	}
 

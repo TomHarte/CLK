@@ -83,6 +83,7 @@
 #include "Storage/State/Z80.hpp"
 
 // Tapes
+#include "Storage/Tape/Formats/CoCoCAS.hpp"
 #include "Storage/Tape/Formats/CommodoreTAP.hpp"
 #include "Storage/Tape/Formats/CSW.hpp"
 #include "Storage/Tape/Formats/K7.hpp"
@@ -224,6 +225,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::AllCartridge, "bin");
 
 	accumulator.try_standard<Tape::MSXCAS>(TargetPlatform::MSX, "cas");
+	accumulator.try_standard<Tape::CoCoCAS>(TargetPlatform::TandyCoCo, "cas");
 	accumulator.try_standard<Tape::TZX>(TargetPlatform::AmstradCPC, "cdt");
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Coleco, "col");
 	accumulator.try_standard<FileBundle::LocalFSFileBundle>(TargetPlatform::Enterprise, "com");
