@@ -188,6 +188,36 @@ public:
 		} else {
 			if constexpr (is_read(read_write)) {
 				value = memory_.read(address);
+
+				if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
+					if(allow_fast_tape_loading_ && address == 0xa75d) {
+						// To reproduce:
+						//
+						// LA75D 	CLR CPERTM		; RESET PERIOD TIMER
+						//			TST CBTPHA		; CHECK TO SEE IF SYNC’ED ON THE HI-LO TRANSITION OR LO-HI
+						//			BNE LA773		; BRANCH ON HI-LO TRANSITION
+						//
+						// * LO - HI TRANSITION
+						// LA763	BSR LA76C		; READ CASSETTE INPUT BIT
+						//			BCS LA763		; LOOP UNTIL IT IS LO
+						// LA767	BSR LA76C		; READ CASSETTE INPUT DATA
+						//			BCC LA767		; WAIT UNTIL IT GOES HI
+						//			RTS
+						//
+						// * READ CASSETTE INPUT BIT OF THE PIA
+						// LA76C 	INC CPERTM		; INCREMENT PERIOD TIMER
+						//			LDB PIA1		; GET CASSETTE INPUT BIT
+						//			RORB			; PUT CASSETTE BIT INTO THE CARRY FLAG
+						//			RTS
+						//
+						// * WAIT FOR HI - LO TRANSITION
+						// LA773 	BSR LA76C		; READ CASSETTE INPUT DATA
+						//			BCC LA773		; LOOP UNTIL IT IS HI
+						// LA777 	BSR LA76C		; READ CASSETTE INPUT
+						//			BCS LA777		; LOOP UNTIL IT IS LO
+						//			RTS
+					}
+				}
 			}
 
 			if constexpr (is_write(read_write)) {
@@ -571,6 +601,7 @@ private:
 	// MARK: - MediaTarget and MediaChangeObserver.
 
 	Storage::Tape::BinaryTapePlayer tape_player_;
+	bool allow_fast_tape_loading_ = true;
 
 	bool insert_media(const Analyser::Static::Media &media) override {
 		if(!media.tapes.empty()) {
