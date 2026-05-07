@@ -6,7 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
-#include "CAS.hpp"
+#include "MSXCAS.hpp"
 
 #include <cassert>
 #include <cstring>
@@ -59,7 +59,7 @@ const auto basic_signature = signature<0xd3>;
 const auto ascii_signature = signature<0xea>;
 }
 
-CAS::CAS(const std::string &file_name) {
+MSXCAS::MSXCAS(const std::string &file_name) {
 	Storage::FileHolder file(file_name, FileMode::Read);
 
 	enum class Mode {
@@ -172,24 +172,24 @@ CAS::CAS(const std::string &file_name) {
 	}
 }
 
-std::unique_ptr<FormatSerialiser> CAS::format_serialiser() const {
+std::unique_ptr<FormatSerialiser> MSXCAS::format_serialiser() const {
 	return std::make_unique<Serialiser>(chunks_);
 }
 
-CAS::Serialiser::Serialiser(const std::vector<Chunk> &chunks) : chunks_(chunks) {}
+MSXCAS::Serialiser::Serialiser(const std::vector<Chunk> &chunks) : chunks_(chunks) {}
 
-bool CAS::Serialiser::is_at_end() const {
+bool MSXCAS::Serialiser::is_at_end() const {
 	return phase_ == Phase::EndOfFile;
 }
 
-void CAS::Serialiser::reset() {
+void MSXCAS::Serialiser::reset() {
 	phase_ = Phase::Header;
 	chunk_pointer_ = 0;
 	distance_into_phase_ = 0;
 	distance_into_bit_ = 0;
 }
 
-Pulse CAS::Serialiser::next_pulse() {
+Pulse MSXCAS::Serialiser::next_pulse() {
 	Pulse pulse;
 	pulse.length.clock_rate = 9600;
 	// Clock rate is four times the baud rate (of 2400), because the quickest thing that might need
