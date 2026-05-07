@@ -94,6 +94,8 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 
 			case In::LeftShift:
 			case In::RightShift:	return Key::Shift;
+
+			case In::Backspace:		return Key::Left;
 		}
 	}
 };

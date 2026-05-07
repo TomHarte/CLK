@@ -54,6 +54,8 @@ private:
 	const uint8_t *read_[8]{};
 };
 
+static constexpr double ClockRate = 1'789'772.5;
+
 }
 
 namespace TandyCoCo {
@@ -75,9 +77,9 @@ public:
 		pia1_(pia1_handler_),
 		sam_(memory_),
 		m6847_(sam_),
-		tape_player_(1789772)
+		tape_player_(int(ClockRate))
 	{
-		set_clock_rate(1'789'772.5);
+		set_clock_rate(ClockRate);
 
 		const auto BasicROM = ROM::Name::TandyCoCoColourBasic10;
 		auto request = ROM::Request(BasicROM);
