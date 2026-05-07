@@ -78,6 +78,9 @@ static constexpr uint8_t font[64][12] = {
 	{ 0x00, 0x00, 0x00, 0x18, 0x24, 0x04, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, },
 };
 
+// Empirical, by eye.
+static constexpr uint8_t ColourPhase = 215;
+
 }
 
 using namespace Motorola::MC6847;
@@ -95,7 +98,7 @@ MC6847Base::MC6847Base(const Outputs::Display::Type display_type) :
 void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 	if(line_begin < LineLayout::EndOfLeftBorder && line_end >= LineLayout::EndOfLeftBorder) [[unlikely]] {
 		crt_.output_sync(LineLayout::EndOfSync);
-		crt_.output_colour_burst(LineLayout::EndOfColourBurst - LineLayout::EndOfSync, 32);	// TODO: determine real phase.
+		crt_.output_colour_burst(LineLayout::EndOfColourBurst - LineLayout::EndOfSync, ColourPhase);
 		crt_.output_blank(LineLayout::EndOfLeftBorder - LineLayout::EndOfColourBurst);
 
 		pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(256));
