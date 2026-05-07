@@ -61,6 +61,8 @@ namespace TandyCoCo {
 class ConcreteMachine:
 	public Machine,
 	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MediaChangeObserver,
+	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine
 {
@@ -72,7 +74,8 @@ public:
 		pia1_handler_(*this),
 		pia1_(pia1_handler_),
 		sam_(memory_),
-		m6847_(sam_)
+		m6847_(sam_),
+		tape_player_(1789772)
 	{
 		set_clock_rate(1'789'772.5);
 
@@ -111,6 +114,7 @@ public:
 			pia0_.set<Motorola::MC6821::Control::CA1>(m6847_.get()->hsync());
 			pia0_.set<Motorola::MC6821::Control::CB1>(m6847_.get()->vsync());
 		}
+		tape_player_.run_for(duration);
 
 		using namespace CPU::M6809;
 		if(address >> 8 == 0xff) {
@@ -334,10 +338,10 @@ private:
 		//
 		//	b2-b7: 6-bit DAC output
 		//	b1: RS232 data output
-		//	b0: tape output
+		//	b0: tape input
 		//
 		//	CA1: RS232 carrier detect
-		//	CA2: cassette motor control
+		//	CA2: tape motor control
 
 		//
 		// Port B:
@@ -346,7 +350,7 @@ private:
 		//	b4–b6: VDG GM inputs; also b5 = 6847 invert; b4 = 6847 shift toggle
 		//	b3: colour set select (and RGB monitor detecting input? Probably CoCo3)
 		//	b2: ram size input
-		//	b1: tape input
+		//	b1: 1-bit sound/tape output
 		//	b0: RS232 data input
 		//
 		//	CB1: cartridge interrupt input
@@ -357,7 +361,9 @@ private:
 		template <Motorola::MC6821::Port port>
 		uint8_t input() {
 			if constexpr (port == Motorola::MC6821::Port::A) {
-				return 0xff;
+				return
+					0xfe |
+					(machine_.tape_player_.input() ? 0x01 : 0x00);
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
@@ -394,9 +400,11 @@ private:
 		}
 
 		template <Motorola::MC6821::Control control>
-		void observe(const bool) {
+		void observe(const bool value) {
 			if constexpr (control == Motorola::MC6821::Control::CA2) {
+				machine_.tape_player_.set_motor_control(value);
 			}
+
 			if constexpr (control == Motorola::MC6821::Control::CB2) {
 			}
 		}
@@ -526,7 +534,6 @@ private:
 
 	// MARK: - Video and ScanProducer.
 
-	// TODO: video should go through the SAM and its independent video counter.
 	JustInTimeActor<
 		Motorola::MC6847::MC6847<
 			Motorola::MC6847::FrameTiming::NTSC,
@@ -557,6 +564,22 @@ private:
 
 	void clear_all_keys() final {
 		pia0_handler_.clear_all_keys();
+	}
+
+	// MARK: - MediaTarget and MediaChangeObserver.
+
+	Storage::Tape::BinaryTapePlayer tape_player_;
+
+	bool insert_media(const Analyser::Static::Media &media) override {
+		if(!media.tapes.empty()) {
+			tape_player_.set_tape(media.tapes.front(), TargetPlatform::ThomsonMO);
+		}
+
+		return !media.tapes.empty();
+	}
+
+	ChangeEffect effect_for_file_did_change(const std::string &) const override {
+		return ChangeEffect::RestartMachine;
 	}
 };
 

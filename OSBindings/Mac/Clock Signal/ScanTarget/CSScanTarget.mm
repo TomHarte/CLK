@@ -1159,9 +1159,12 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 		}
 
 		// Add a callback to update the scan target buffer and commit the drawing.
+		__weak auto weakSelf = self;
 		[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
-			@synchronized (self) {
-				self->_scanTarget.complete_output_area(outputArea);
+			auto strongSelf = weakSelf;
+			if(!strongSelf) return;
+			@synchronized (strongSelf) {
+				strongSelf->_scanTarget.complete_output_area(outputArea);
 			}
 		}];
 		[commandBuffer commit];

@@ -20,14 +20,14 @@ namespace Storage::Tape {
 /*!
 	Provides a @c Tape containing a CAS tape image, which is an MSX byte stream.
 */
-class CAS: public Tape {
+class MSXCAS: public Tape {
 public:
 	/*!
 		Constructs a @c CAS containing content from the file with name @c file_name.
 
 		@throws ErrorNotCAS if this file could not be opened and recognised as a valid CAS file.
 	*/
-	CAS(const std::string &file_name);
+	MSXCAS(const std::string &file_name);
 
 	enum {
 		ErrorNotCAS
