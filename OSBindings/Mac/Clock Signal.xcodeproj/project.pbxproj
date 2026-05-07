@@ -353,9 +353,6 @@
 		4B41EF812FA8FDF80086D909 /* 6847.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF7F2FA8FDF80086D909 /* 6847.cpp */; };
 		4B41EF822FA8FDF80086D909 /* 6847.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF7F2FA8FDF80086D909 /* 6847.cpp */; };
 		4B41EF832FA8FDF80086D909 /* 6847.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF7F2FA8FDF80086D909 /* 6847.cpp */; };
-		4B41EF862FAC26590086D909 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF852FAC26590086D909 /* Keyboard.cpp */; };
-		4B41EF872FAC26590086D909 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF852FAC26590086D909 /* Keyboard.cpp */; };
-		4B41EF882FAC26590086D909 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF852FAC26590086D909 /* Keyboard.cpp */; };
 		4B43983929620FC7006B0BFC /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B43983829620FB1006B0BFC /* 9918.cpp */; };
 		4B43983A29620FC8006B0BFC /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B43983829620FB1006B0BFC /* 9918.cpp */; };
 		4B43983B29620FC9006B0BFC /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B43983829620FB1006B0BFC /* 9918.cpp */; };
@@ -1645,7 +1642,6 @@
 		4B41EF7E2FA8FDF80086D909 /* 6847.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 6847.hpp; sourceTree = "<group>"; };
 		4B41EF7F2FA8FDF80086D909 /* 6847.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 6847.cpp; sourceTree = "<group>"; };
 		4B41EF842FAC26590086D909 /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
-		4B41EF852FAC26590086D909 /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
 		4B43983829620FB1006B0BFC /* 9918.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 9918.cpp; sourceTree = "<group>"; };
 		4B43983C29621024006B0BFC /* ClockConverter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ClockConverter.hpp; sourceTree = "<group>"; };
 		4B43983E29628538006B0BFC /* Fetch.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Fetch.hpp; sourceTree = "<group>"; };
@@ -3428,7 +3424,6 @@
 			isa = PBXGroup;
 			children = (
 				4B41EF6F2FA55F980086D909 /* CoCo.cpp */,
-				4B41EF852FAC26590086D909 /* Keyboard.cpp */,
 				4B41EF6E2FA55F980086D909 /* CoCo.hpp */,
 				4B41EF842FAC26590086D909 /* Keyboard.hpp */,
 			);
@@ -6576,7 +6571,6 @@
 				4B055A9E1FAE85DA0060FFFF /* G64.cpp in Sources */,
 				4B055AB81FAE860F0060FFFF /* ZX80O81P.cpp in Sources */,
 				4B055AB01FAE86070060FFFF /* PulseQueuedTape.cpp in Sources */,
-				4B41EF872FAC26590086D909 /* Keyboard.cpp in Sources */,
 				4B2A1CDD2BA775C5004496CE /* I2C.cpp in Sources */,
 				4B0F1C1D2604EA1000B85C66 /* Keyboard.cpp in Sources */,
 				4B055AAC1FAE85FD0060FFFF /* PCMSegment.cpp in Sources */,
@@ -6875,7 +6869,6 @@
 				4B2E86E225DC95150024F1E9 /* Joystick.cpp in Sources */,
 				4BBB70A8202014E2002FE009 /* MultiProducer.cpp in Sources */,
 				4BB505822B962DDF0031C43C /* Keyboard.cpp in Sources */,
-				4B41EF862FAC26590086D909 /* Keyboard.cpp in Sources */,
 				4B8805F71DCFF6C9003085B1 /* Commodore.cpp in Sources */,
 				4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */,
 				4B3BF5B01F146265005B6C36 /* CSW.cpp in Sources */,
@@ -7333,7 +7326,6 @@
 				4B1D08061E0F7A1100763741 /* TimeTests.mm in Sources */,
 				4B75EBFE28FF9CA20088AB22 /* MacintoshVolume.cpp in Sources */,
 				4B06AB0B2C64614B0034D014 /* Electron.cpp in Sources */,
-				4B41EF882FAC26590086D909 /* Keyboard.cpp in Sources */,
 				4B06AAF52C6460600034D014 /* Mouse.cpp in Sources */,
 				4B778F3D23A5F1750000D260 /* ncr5380.cpp in Sources */,
 				4BF701A026FFD32300996424 /* AmigaBlitterTests.mm in Sources */,
