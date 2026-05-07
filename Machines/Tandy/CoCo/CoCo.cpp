@@ -338,7 +338,7 @@ private:
 		//
 		//	b2-b7: 6-bit DAC output
 		//	b1: RS232 data output
-		//	b0: tape output
+		//	b0: tape input
 		//
 		//	CA1: RS232 carrier detect
 		//	CA2: tape motor control
@@ -350,7 +350,7 @@ private:
 		//	b4–b6: VDG GM inputs; also b5 = 6847 invert; b4 = 6847 shift toggle
 		//	b3: colour set select (and RGB monitor detecting input? Probably CoCo3)
 		//	b2: ram size input
-		//	b1: tape input
+		//	b1: 1-bit sound/tape output
 		//	b0: RS232 data input
 		//
 		//	CB1: cartridge interrupt input
@@ -361,13 +361,13 @@ private:
 		template <Motorola::MC6821::Port port>
 		uint8_t input() {
 			if constexpr (port == Motorola::MC6821::Port::A) {
-				return 0xff;
+				return
+					0xfe |
+					(machine_.tape_player_.input() ? 0x01 : 0x00);
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
-				return
-					0xfd |
-					(machine_.tape_player_.input() ? 0x2 : 0x0);
+				return 0xff;
 			}
 
 			__builtin_unreachable();
