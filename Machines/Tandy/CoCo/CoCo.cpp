@@ -81,7 +81,7 @@ public:
 	{
 		set_clock_rate(ClockRate);
 
-		const auto BasicROM = ROM::Name::TandyCoCoColourBasic10;
+		const auto BasicROM = ROM::Name::TandyCoCoColourBasic12;
 		auto request = ROM::Request(BasicROM);
 
 		auto roms = rom_fetcher(request);
@@ -190,7 +190,7 @@ public:
 				value = memory_.read(address);
 
 				if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
-					if(allow_fast_tape_loading_ && address == 0xa75d) {
+					if(allow_fast_tape_loading_ && tape_player_.motor_control() && address == 0xa75d) {
 						// To reproduce:
 						//
 						// LA75D 	CLR CPERTM		; RESET PERIOD TIMER
@@ -198,17 +198,17 @@ public:
 						//			BNE LA773		; BRANCH ON HI-LO TRANSITION
 						//
 						// * LO - HI TRANSITION
-						// LA763	BSR LA76C		; READ CASSETTE INPUT BIT
-						//			BCS LA763		; LOOP UNTIL IT IS LO
+						// LA763	BSR LA76C		; READ CASSETTE INPUT BIT					8D 07;		7 cycles
+						//			BCS LA763		; LOOP UNTIL IT IS LO						25 FC;		3 cycles
 						// LA767	BSR LA76C		; READ CASSETTE INPUT DATA
 						//			BCC LA767		; WAIT UNTIL IT GOES HI
 						//			RTS
 						//
 						// * READ CASSETTE INPUT BIT OF THE PIA
-						// LA76C 	INC CPERTM		; INCREMENT PERIOD TIMER
-						//			LDB PIA1		; GET CASSETTE INPUT BIT
-						//			RORB			; PUT CASSETTE BIT INTO THE CARRY FLAG
-						//			RTS
+						// LA76C 	INC CPERTM		; INCREMENT PERIOD TIMER					0C 83;		6 cycles
+						//			LDB PIA1		; GET CASSETTE INPUT BIT					F6 FF 20;	5 cycles
+						//			RORB			; PUT CASSETTE BIT INTO THE CARRY FLAG		56;			2 cycles
+						//			RTS															39;			5 cycles
 						//
 						// * WAIT FOR HI - LO TRANSITION
 						// LA773 	BSR LA76C		; READ CASSETTE INPUT DATA
@@ -216,6 +216,27 @@ public:
 						// LA777 	BSR LA76C		; READ CASSETTE INPUT
 						//			BCS LA777		; LOOP UNTIL IT IS LO
 						//			RTS
+						//
+						// where: CPERTM = $0083; CBTPHA = $0084.
+						//
+						// The value of B is immediately discared by the caller so all that's needed is to set
+						// CPERTM to the amount of time taken to observe the two transitions required, divided
+						// by 28 cycles = 28/894886.25 s.
+						//
+
+						bool polarity = memory_.read(0x0084);
+
+						Cycles::IntType total = 0;
+						for(int c = 0; c < 2; c++) {
+							while(tape_player_.input() != polarity) {
+								total += tape_player_.get_cycles_until_next_event();
+								tape_player_.run_for_input_pulse();
+							}
+							polarity ^= true;
+						}
+
+						memory_.write(0x0083, uint8_t(total / 56));
+						value = 0x39;
 					}
 				}
 			}
