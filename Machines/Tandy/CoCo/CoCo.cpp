@@ -72,7 +72,7 @@ class ConcreteMachine:
 	public MachineTypes::TimedMachine
 {
 public:
-	ConcreteMachine(const Analyser::Static::TandyCoCo::Target &, const ROMMachine::ROMFetcher &rom_fetcher) :
+	ConcreteMachine(const Analyser::Static::TandyCoCo::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		m6809_(*this),
 		pia0_handler_(*this),
 		pia0_(pia0_handler_),
@@ -100,6 +100,8 @@ public:
 		memory_.set_readwrite(0x0000, 0x8000, ram_.data());
 		memory_.set_read(0xa000, 0xc000, colour_basic_.data());
 		Memory::Fuzz(ram_);
+
+		insert_media(target.media);
 	}
 
 	template <
