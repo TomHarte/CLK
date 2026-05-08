@@ -662,6 +662,7 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 		case Analyser::Machine::Oric:			return @"OricOptions";
 		case Analyser::Machine::Plus4:			return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::PCCompatible:	return @"CompositeOptions";
+		case Analyser::Machine::TandyCoCo:		return @"QuickLoadOptions";
 		case Analyser::Machine::ThomsonMO:		return @"QuickLoadOptions";
 		case Analyser::Machine::Vic20:			return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::ZX8081:			return @"ZX8081Options";

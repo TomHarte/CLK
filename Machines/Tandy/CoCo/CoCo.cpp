@@ -14,10 +14,10 @@
 #include "Components/6821/6821.hpp"
 #include "Components/6847/6847.hpp"
 
-#include "ClockReceiver/JustInTime.hpp"
-
-#include "Machines/MachineTypes.hpp"
+#include "Activity/Source.hpp"
 #include "Analyser/Static/TandyCoCo/Target.hpp"
+#include "ClockReceiver/JustInTime.hpp"
+#include "Machines/MachineTypes.hpp"
 
 using namespace Tandy::CoCo;
 
@@ -61,6 +61,8 @@ static constexpr double ClockRate = 1'789'772.5;
 namespace TandyCoCo {
 
 class ConcreteMachine:
+	public Activity::Source,
+	public Configurable::Device,
 	public Machine,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaChangeObserver,
@@ -81,7 +83,7 @@ public:
 	{
 		set_clock_rate(ClockRate);
 
-		const auto BasicROM = ROM::Name::TandyCoCoColourBasic10;
+		const auto BasicROM = ROM::Name::TandyCoCoColourBasic12;
 		auto request = ROM::Request(BasicROM);
 
 		auto roms = rom_fetcher(request);
@@ -188,6 +190,57 @@ public:
 		} else {
 			if constexpr (is_read(read_write)) {
 				value = memory_.read(address);
+
+				if constexpr (lic == CPU::M6809::LIC::InstructionFetch) {
+					if(allow_fast_tape_loading_ && tape_player_.motor_control() && address == 0xa75d) {
+						// To reproduce:
+						//
+						// LA75D 	CLR CPERTM		; RESET PERIOD TIMER
+						//			TST CBTPHA		; CHECK TO SEE IF SYNC’ED ON THE HI-LO TRANSITION OR LO-HI
+						//			BNE LA773		; BRANCH ON HI-LO TRANSITION
+						//
+						// * LO - HI TRANSITION
+						// LA763	BSR LA76C		; READ CASSETTE INPUT BIT					8D 07;		7 cycles
+						//			BCS LA763		; LOOP UNTIL IT IS LO						25 FC;		3 cycles
+						// LA767	BSR LA76C		; READ CASSETTE INPUT DATA
+						//			BCC LA767		; WAIT UNTIL IT GOES HI
+						//			RTS
+						//
+						// * READ CASSETTE INPUT BIT OF THE PIA
+						// LA76C 	INC CPERTM		; INCREMENT PERIOD TIMER					0C 83;		6 cycles
+						//			LDB PIA1		; GET CASSETTE INPUT BIT					F6 FF 20;	5 cycles
+						//			RORB			; PUT CASSETTE BIT INTO THE CARRY FLAG		56;			2 cycles
+						//			RTS															39;			5 cycles
+						//
+						// * WAIT FOR HI - LO TRANSITION
+						// LA773 	BSR LA76C		; READ CASSETTE INPUT DATA
+						//			BCC LA773		; LOOP UNTIL IT IS HI
+						// LA777 	BSR LA76C		; READ CASSETTE INPUT
+						//			BCS LA777		; LOOP UNTIL IT IS LO
+						//			RTS
+						//
+						// where: CPERTM = $0083; CBTPHA = $0084.
+						//
+						// The value of B is immediately discared by the caller so all that's needed is to set
+						// CPERTM to the amount of time taken to observe the two transitions required, divided
+						// by 28 cycles = 28/894886.25 s.
+						//
+
+						bool polarity = memory_.read(0x0084);
+
+						Cycles::IntType total = 0;
+						for(int c = 0; c < 2; c++) {
+							while(tape_player_.input() != polarity) {
+								total += tape_player_.get_cycles_until_next_event();
+								tape_player_.run_for_input_pulse();
+							}
+							polarity ^= true;
+						}
+
+						memory_.write(0x0083, uint8_t(total / 56));
+						value = 0x39;
+					}
+				}
 			}
 
 			if constexpr (is_write(read_write)) {
@@ -571,6 +624,7 @@ private:
 	// MARK: - MediaTarget and MediaChangeObserver.
 
 	Storage::Tape::BinaryTapePlayer tape_player_;
+	bool allow_fast_tape_loading_ = true;
 
 	bool insert_media(const Analyser::Static::Media &media) override {
 		if(!media.tapes.empty()) {
@@ -582,6 +636,25 @@ private:
 
 	ChangeEffect effect_for_file_did_change(const std::string &) const override {
 		return ChangeEffect::RestartMachine;
+	}
+
+	// MARK: - Configuration options.
+
+	std::unique_ptr<Reflection::Struct> get_options() const final {
+		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+		options->quick_load = allow_fast_tape_loading_;
+		return options;
+	}
+
+	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+		const auto options = dynamic_cast<Options *>(str.get());
+		allow_fast_tape_loading_ = options->quick_load;
+	}
+
+	// MARK: - Activity Source.
+
+	void set_activity_observer(Activity::Observer *const observer) override {
+		tape_player_.set_activity_observer(observer);
 	}
 };
 
