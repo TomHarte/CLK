@@ -327,7 +327,8 @@ private:
 					(keyboard_column_ & 0x08 ? 0xff : keys_[3]) &
 					(keyboard_column_ & 0x04 ? 0xff : keys_[2]) &
 					(keyboard_column_ & 0x02 ? 0xff : keys_[1]) &
-					(keyboard_column_ & 0x01 ? 0xff : keys_[0]);
+					(keyboard_column_ & 0x01 ? 0xff : keys_[0]) &
+					(machine_.dac_level_ > 32 ? 0x7f : 0xff);			// TODO: compare DAC level with actual joystick.
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
@@ -435,6 +436,7 @@ private:
 		template <Motorola::MC6821::Port port>
 		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::A) {
+				machine_.dac_level_ = (value >> 2) & 0b111111;
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
@@ -473,6 +475,8 @@ private:
 	};
 	PIA1Handler pia1_handler_;
 	Motorola::MC6821::MC6821<PIA1Handler> pia1_;
+
+	uint8_t dac_level_ = 0;
 
 	// MARK: - SAM.
 
