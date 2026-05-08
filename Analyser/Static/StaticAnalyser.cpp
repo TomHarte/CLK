@@ -33,6 +33,7 @@
 #include "Analyser/Static/Oric/StaticAnalyser.hpp"
 #include "Analyser/Static/PCCompatible/StaticAnalyser.hpp"
 #include "Analyser/Static/Sega/StaticAnalyser.hpp"
+#include "Analyser/Static/TandyCoCo/StaticAnalyser.hpp"
 #include "Analyser/Static/Thomson/StaticAnalyser.hpp"
 #include "Analyser/Static/ZX8081/StaticAnalyser.hpp"
 #include "Analyser/Static/ZXSpectrum/StaticAnalyser.hpp"
@@ -409,6 +410,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	append(TargetPlatform::Oric, Oric::GetTargets);
 	append(TargetPlatform::PCCompatible, PCCompatible::GetTargets);
 	append(TargetPlatform::Sega, Sega::GetTargets);
+	append(TargetPlatform::TandyCoCo, TandyCoCo::GetTargets);
 	append(TargetPlatform::ThomsonMO | TargetPlatform::ThomsonTO, Thomson::GetTargets);
 	append(TargetPlatform::ZX8081, ZX8081::GetTargets);
 	append(TargetPlatform::ZXSpectrum, ZXSpectrum::GetTargets);
