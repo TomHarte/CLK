@@ -47,7 +47,7 @@ public:
 				}
 			}
 
-			void did_set_input(const Input &input, bool value) final {
+			void did_set_input(const Input &input, const bool value) final {
 				if(input.type == Input::Type::Fire && input.info.control.index < 3) {
 					buttons[input.info.control.index] = value;
 				}
