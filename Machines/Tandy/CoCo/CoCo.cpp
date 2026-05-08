@@ -14,10 +14,10 @@
 #include "Components/6821/6821.hpp"
 #include "Components/6847/6847.hpp"
 
-#include "ClockReceiver/JustInTime.hpp"
-
-#include "Machines/MachineTypes.hpp"
+#include "Activity/Source.hpp"
 #include "Analyser/Static/TandyCoCo/Target.hpp"
+#include "ClockReceiver/JustInTime.hpp"
+#include "Machines/MachineTypes.hpp"
 
 using namespace Tandy::CoCo;
 
@@ -61,6 +61,8 @@ static constexpr double ClockRate = 1'789'772.5;
 namespace TandyCoCo {
 
 class ConcreteMachine:
+	public Activity::Source,
+	public Configurable::Device,
 	public Machine,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaChangeObserver,
@@ -634,6 +636,25 @@ private:
 
 	ChangeEffect effect_for_file_did_change(const std::string &) const override {
 		return ChangeEffect::RestartMachine;
+	}
+
+	// MARK: - Configuration options.
+
+	std::unique_ptr<Reflection::Struct> get_options() const final {
+		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+		options->quick_load = allow_fast_tape_loading_;
+		return options;
+	}
+
+	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+		const auto options = dynamic_cast<Options *>(str.get());
+		allow_fast_tape_loading_ = options->quick_load;
+	}
+
+	// MARK: - Activity Source.
+
+	void set_activity_observer(Activity::Observer *const observer) override {
+		tape_player_.set_activity_observer(observer);
 	}
 };
 
