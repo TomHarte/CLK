@@ -35,6 +35,7 @@ set(CLK_SOURCES
 	Analyser/Static/Oric/Tape.cpp
 	Analyser/Static/PCCompatible/StaticAnalyser.cpp
 	Analyser/Static/Sega/StaticAnalyser.cpp
+	Analyser/Static/TandyCoCo/StaticAnalyser.cpp
 	Analyser/Static/Thomson/StaticAnalyser.cpp
 	Analyser/Static/StaticAnalyser.cpp
 	Analyser/Static/ZX8081/StaticAnalyser.cpp

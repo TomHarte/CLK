@@ -356,6 +356,9 @@
 		4B41EF8B2FACD1340086D909 /* CoCoCAS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF8A2FACD1340086D909 /* CoCoCAS.cpp */; };
 		4B41EF8C2FACD1340086D909 /* CoCoCAS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF8A2FACD1340086D909 /* CoCoCAS.cpp */; };
 		4B41EF8D2FACD1340086D909 /* CoCoCAS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF8A2FACD1340086D909 /* CoCoCAS.cpp */; };
+		4B41EF902FAE196C0086D909 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF8F2FAE196C0086D909 /* StaticAnalyser.cpp */; };
+		4B41EF912FAE196C0086D909 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF8F2FAE196C0086D909 /* StaticAnalyser.cpp */; };
+		4B41EF922FAE196C0086D909 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B41EF8F2FAE196C0086D909 /* StaticAnalyser.cpp */; };
 		4B43983929620FC7006B0BFC /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B43983829620FB1006B0BFC /* 9918.cpp */; };
 		4B43983A29620FC8006B0BFC /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B43983829620FB1006B0BFC /* 9918.cpp */; };
 		4B43983B29620FC9006B0BFC /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B43983829620FB1006B0BFC /* 9918.cpp */; };
@@ -1647,6 +1650,8 @@
 		4B41EF842FAC26590086D909 /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
 		4B41EF892FACD1340086D909 /* CoCoCAS.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CoCoCAS.hpp; sourceTree = "<group>"; };
 		4B41EF8A2FACD1340086D909 /* CoCoCAS.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CoCoCAS.cpp; sourceTree = "<group>"; };
+		4B41EF8E2FAE196C0086D909 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
+		4B41EF8F2FAE196C0086D909 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4B43983829620FB1006B0BFC /* 9918.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 9918.cpp; sourceTree = "<group>"; };
 		4B43983C29621024006B0BFC /* ClockConverter.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ClockConverter.hpp; sourceTree = "<group>"; };
 		4B43983E29628538006B0BFC /* Fetch.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Fetch.hpp; sourceTree = "<group>"; };
@@ -3446,6 +3451,8 @@
 		4B41EF772FA650000086D909 /* TandyCoCo */ = {
 			isa = PBXGroup;
 			children = (
+				4B41EF8F2FAE196C0086D909 /* StaticAnalyser.cpp */,
+				4B41EF8E2FAE196C0086D909 /* StaticAnalyser.hpp */,
 				4B41EF762FA650000086D909 /* Target.hpp */,
 			);
 			path = TandyCoCo;
@@ -6539,6 +6546,7 @@
 				4B055AD31FAE9B0B0060FFFF /* Microdisc.cpp in Sources */,
 				4B055AB41FAE860F0060FFFF /* OricTAP.cpp in Sources */,
 				4B055AB71FAE860F0060FFFF /* TZX.cpp in Sources */,
+				4B41EF912FAE196C0086D909 /* StaticAnalyser.cpp in Sources */,
 				4B2BF19123DCC6A200C3AD60 /* BD500.cpp in Sources */,
 				4B051CA926781D6500CA44E8 /* StaticAnalyser.cpp in Sources */,
 				4B055ADA1FAE9B460060FFFF /* 1770.cpp in Sources */,
@@ -7039,6 +7047,7 @@
 				4B8FE2271DA1DE2D0090D3CE /* NSBundle+DataResource.m in Sources */,
 				4BC91B831D1F160E00884B76 /* CommodoreTAP.cpp in Sources */,
 				4B0F1BFC260300D900B85C66 /* ZXSpectrum.cpp in Sources */,
+				4B41EF922FAE196C0086D909 /* StaticAnalyser.cpp in Sources */,
 				4B55DD8320DF06680043F2E5 /* MachinePicker.swift in Sources */,
 				4B2A539F1D117D36003C6002 /* CSAudioQueue.m in Sources */,
 				4B89453E201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
@@ -7110,6 +7119,7 @@
 				4B680CE223A5553100451D43 /* 68000ComparativeTests.mm in Sources */,
 				4B778F3723A5F11C0000D260 /* Parser.cpp in Sources */,
 				4B06AAE32C645F9E0034D014 /* StringSerialiser.cpp in Sources */,
+				4B41EF902FAE196C0086D909 /* StaticAnalyser.cpp in Sources */,
 				4B06AADB2C645F6D0034D014 /* DiskROM.cpp in Sources */,
 				4B778F4523A5F1CD0000D260 /* SegmentParser.cpp in Sources */,
 				4B90467422C6FADD000E2074 /* 68000BitwiseTests.mm in Sources */,
