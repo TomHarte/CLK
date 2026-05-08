@@ -18,6 +18,7 @@
 #include "Analyser/Static/TandyCoCo/Target.hpp"
 #include "ClockReceiver/JustInTime.hpp"
 #include "Machines/MachineTypes.hpp"
+#include "Machines/Utility/MemoryFuzzer.hpp"
 
 using namespace Tandy::CoCo;
 
@@ -98,6 +99,7 @@ public:
 
 		memory_.set_readwrite(0x0000, 0x8000, ram_.data());
 		memory_.set_read(0xa000, 0xc000, colour_basic_.data());
+		Memory::Fuzz(ram_);
 	}
 
 	template <
@@ -484,6 +486,14 @@ private:
 			//
 			// TODO: this shouldn't be able to go into ROM, possibly?
 			return memory_.read(address + graphics_address_);
+
+			// TODO: ... in the CoCo the most significant VDG data bit is hardwired to the VDG's '*alpha/semi_g' inputs.
+			// This allows it to automatically switch between alphanumeric mode and semi-graphics mode based on the MS
+			// data bit,which allows mixed text and block-graphics on the same screen.
+			//
+			// That can be achieved here; set semigraphics as per the top bit.
+			//
+			//	https://web.archive.org/web/20210214054301/http://www.cs.unc.edu/~yakowenk/coco/text/semigraphics.html
 		}
 
 		template <uint16_t address> void access() {
