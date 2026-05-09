@@ -55,6 +55,31 @@ private:
 	const uint8_t *read_[8]{};
 };
 
+struct Joystick: public Inputs::ConcreteJoystick {
+	Joystick() :
+		ConcreteJoystick({
+			Input(Input::Horizontal),
+			Input(Input::Vertical),
+			Input(Input::Fire, 0),
+			Input(Input::Fire, 1)
+		}) {}
+
+	void did_set_input(const Input &input, const float value) final {
+		const size_t index = input.type == Input::Type::Vertical;
+		axes[index] = std::clamp<uint8_t>(uint8_t(value * 63.0), 0, 63);
+	}
+
+	void did_set_input(const Input &input, const bool value) final {
+		if(input.type != Input::Type::Fire) {
+			return;
+		}
+		buttons[input.info.control.index] = value;
+	}
+
+	uint8_t axes[2]{32, 32};
+	bool buttons[2]{};
+};
+
 static constexpr double ClockRate = 1'789'772.5;
 
 }
@@ -65,6 +90,7 @@ class ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
 	public Machine,
+	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaChangeObserver,
 	public MachineTypes::MediaTarget,
@@ -83,6 +109,7 @@ public:
 		tape_player_(int(ClockRate))
 	{
 		set_clock_rate(ClockRate);
+		construct_joysticks();
 
 		const auto BasicROM = ROM::Name::TandyCoCoColourBasic12;
 		auto request = ROM::Request(BasicROM);
@@ -298,11 +325,11 @@ private:
 		//	b7: joystick comparison input
 		//	b0–b6: keyboard row [input?]
 		//	b0–b1, b2–b3: joystick button inputs;
-		//		0 and 2 = right joystick, 1 and 3 = left joystick;
-		//		0 and 1 = switch 1, 2 and 3 = switch 2.
+		//		0 and 2 = right joystick; 1 and 3 = left joystick;
+		//		0 and 1 = switch 1; 2 and 3 = switch 2.
 		//
 		//	CA1: hsync
-		//	CA2: "select line LSB of MUX"?
+		//	CA2: select line LSB of joystick MUX
 
 		//
 		// Port B:
@@ -310,9 +337,7 @@ private:
 		//	b0-b7: keyboard column [output?]
 		//
 		//	CB1: vsync
-		//	CB2: "select lime MSB of MUX"?
-
-		// TODO: what MUX?
+		//	CB2: select line MSB of joystick MUX
 
 		// Interrupt outputs both connected to IRQ.
 
@@ -327,7 +352,15 @@ private:
 					(keyboard_column_ & 0x08 ? 0xff : keys_[3]) &
 					(keyboard_column_ & 0x04 ? 0xff : keys_[2]) &
 					(keyboard_column_ & 0x02 ? 0xff : keys_[1]) &
-					(keyboard_column_ & 0x01 ? 0xff : keys_[0]);
+					(keyboard_column_ & 0x01 ? 0xff : keys_[0]) &
+					(
+						machine_.dac_level_ > machine_.joystick(joystick_).axes[axis_]
+							? 0x7f : 0xff
+					) &
+					(machine_.joystick(1).buttons[1] ? 0xf7 : 0xff) &
+					(machine_.joystick(0).buttons[1] ? 0xfb : 0xff) &
+					(machine_.joystick(1).buttons[0] ? 0xfd : 0xff) &
+					(machine_.joystick(0).buttons[0] ? 0xfe : 0xff);
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
@@ -356,10 +389,12 @@ private:
 		}
 
 		template <Motorola::MC6821::Control control>
-		void observe(const bool) {
+		void observe(const bool value) {
 			if constexpr (control == Motorola::MC6821::Control::CA2) {
+				joystick_ = value;
 			}
 			if constexpr (control == Motorola::MC6821::Control::CB2) {
+				axis_ = value;
 			}
 		}
 
@@ -377,6 +412,8 @@ private:
 		ConcreteMachine &machine_;
 		uint8_t keyboard_column_ = 0xff;
 		uint8_t keys_[8]{};
+		uint8_t joystick_ = 0;
+		uint8_t axis_ = 0;
 	};
 	PIA0Handler pia0_handler_;
 	Motorola::MC6821::MC6821<PIA0Handler> pia0_;
@@ -435,6 +472,7 @@ private:
 		template <Motorola::MC6821::Port port>
 		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::A) {
+				machine_.dac_level_ = (value >> 2) & 0b111111;
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
@@ -473,6 +511,8 @@ private:
 	};
 	PIA1Handler pia1_handler_;
 	Motorola::MC6821::MC6821<PIA1Handler> pia1_;
+
+	uint8_t dac_level_ = 0;
 
 	// MARK: - SAM.
 
@@ -668,6 +708,24 @@ private:
 	void set_activity_observer(Activity::Observer *const observer) override {
 		tape_player_.set_activity_observer(observer);
 	}
+
+	// MARK: - Joysticks.
+
+	std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+
+	void construct_joysticks() {
+		joysticks_.emplace_back(new Joystick);
+		joysticks_.emplace_back(new Joystick);
+	}
+
+	const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
+		return joysticks_;
+	}
+
+	Joystick &joystick(const size_t index) {
+		return *static_cast<Joystick *>(joysticks_[index].get());
+	}
+
 };
 
 }
