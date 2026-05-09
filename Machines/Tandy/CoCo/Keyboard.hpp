@@ -9,7 +9,10 @@
 #pragma once
 
 #include "Machines/KeyboardMachine.hpp"
+#include "Machines/Utility/Typer.hpp"
+
 #include <cstdint>
+#include <span>
 
 namespace Tandy::CoCo::Keyboard {
 
@@ -47,7 +50,48 @@ enum Key: uint16_t {
 
 	Enter = key(6, 0),		Clear = key(6, 1),		Break = key(6, 2),		Shift = key(6, 7),
 };
-}
+
+static inline std::unordered_map<wchar_t, const std::vector<uint16_t>> sequences = {
+	{L'\n', {Enter}},	{L'\r', {Enter}},
+	{L' ', {Space}},
+
+	{L'0', {k0}},	{L'1', {k1}},	{L'2', {k2}},	{L'3', {k3}},	{L'4', {k4}},
+	{L'5', {k5}},	{L'6', {k6}},	{L'7', {k7}},	{L'8', {k8}},	{L'9', {k9}},
+
+	{L'!', {Shift, k1}},	{L'"', {Shift, k2}},
+	{L'#', {Shift, k3}},	{L'$', {Shift, k4}},
+	{L'%', {Shift, k5}},	{L'&', {Shift, k6}},
+	{L'\'', {Shift, k7}},	{L'(', {Shift, k8}},
+	{L')', {Shift, k9}},
+
+	{L'A', {Shift, A}},	{L'B', {Shift, B}},	{L'C', {Shift, C}},
+	{L'D', {Shift, D}},	{L'E', {Shift, E}},	{L'F', {Shift, F}},
+	{L'G', {Shift, G}},	{L'H', {Shift, H}},	{L'I', {Shift, I}},
+	{L'J', {Shift, J}},	{L'K', {Shift, K}},	{L'L', {Shift, L}},
+	{L'M', {Shift, M}},	{L'N', {Shift, N}},	{L'O', {Shift, O}},
+	{L'P', {Shift, P}},	{L'Q', {Shift, Q}},	{L'R', {Shift, R}},
+	{L'S', {Shift, S}},	{L'T', {Shift, T}},	{L'U', {Shift, U}},
+	{L'V', {Shift, V}},	{L'W', {Shift, W}},	{L'X', {Shift, X}},
+	{L'Y', {Shift, Y}},	{L'Z', {Shift, Z}},
+
+	{L'a', {A}},	{L'b', {B}},	{L'c', {C}},
+	{L'd', {D}},	{L'e', {E}},	{L'f', {F}},
+	{L'g', {G}},	{L'h', {H}},	{L'i', {I}},
+	{L'j', {J}},	{L'k', {K}},	{L'l', {L}},
+	{L'm', {M}},	{L'n', {N}},	{L'o', {O}},
+	{L'p', {P}},	{L'q', {Q}},	{L'r', {R}},
+	{L's', {S}},	{L't', {T}},	{L'u', {U}},
+	{L'v', {V}},	{L'w', {W}},	{L'x', {X}},
+	{L'y', {Y}},	{L'z', {Z}},
+
+	{L'*', {Shift, Colon}},					{L':', {Colon}},
+	{L'=', {Shift, Minus}},					{L'-', {Minus}},
+	{L'@', {At}},
+	{L'+', {Shift, Semicolon}},				{L';', {Semicolon}},
+	{L'<', {Shift, Comma}},					{L',', {Comma}},
+	{L'>', {Shift, FullStop}},				{L'.', {FullStop}},
+	{L'?', {Shift, Slash}},					{L'/', {Slash}},
+};}
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
 	uint16_t mapped_key_for_key(const Inputs::Keyboard::Key key) const {
@@ -97,6 +141,12 @@ struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMappe
 
 			case In::Backspace:		return Key::Left;
 		}
+	}
+};
+
+struct CharacterMapper: public ::Utility::CharacterMapper {
+	std::span<const uint16_t> sequence_for_character(const wchar_t character) const final {
+		return lookup_sequence(Key::sequences, character);
 	}
 };
 }
