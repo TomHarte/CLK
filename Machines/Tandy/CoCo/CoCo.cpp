@@ -95,7 +95,8 @@ class ConcreteMachine:
 	public MachineTypes::MediaChangeObserver,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
-	public MachineTypes::TimedMachine
+	public MachineTypes::TimedMachine,
+	public Utility::TypeRecipient<Tandy::CoCo::Keyboard::CharacterMapper>
 {
 public:
 	ConcreteMachine(const Analyser::Static::TandyCoCo::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -150,6 +151,9 @@ public:
 			pia0_.set<Motorola::MC6821::Control::CB1>(m6847_.get()->vsync());
 		}
 		tape_player_.run_for(duration);
+		if(typer_) {
+			typer_->run_for(duration);
+		}
 
 		using namespace CPU::M6809;
 		if(address >> 8 == 0xff) {
@@ -671,6 +675,26 @@ private:
 
 	void clear_all_keys() final {
 		pia0_handler_.clear_all_keys();
+	}
+
+	void type_string(const std::wstring &string) final {
+		Utility::TypeRecipient<Tandy::CoCo::Keyboard::CharacterMapper>::add_typer(string);
+	}
+
+	bool can_type(const wchar_t c) const final {
+		return Utility::TypeRecipient<Tandy::CoCo::Keyboard::CharacterMapper>::can_type(c);
+	}
+
+	HalfCycles typer_delay(const std::wstring &) const final {
+		if(m6809_.template get<CPU::M6809::Line::PowerOnReset>()) {
+			return Cycles(1'000'000);
+		} else {
+			return Cycles(0);
+		}
+	}
+
+	HalfCycles typer_frequency() const final {
+		return Cycles(40'000);
 	}
 
 	// MARK: - MediaTarget and MediaChangeObserver.
