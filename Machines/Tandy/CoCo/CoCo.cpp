@@ -354,7 +354,7 @@ private:
 					(keyboard_column_ & 0x02 ? 0xff : keys_[1]) &
 					(keyboard_column_ & 0x01 ? 0xff : keys_[0]) &
 					(
-						machine_.dac_level_ > machine_.joystick(mux_ >> 1).axes[mux_ & 1]
+						machine_.dac_level_ > machine_.joystick(joystick_).axes[axis_]
 							? 0x7f : 0xff
 					) &
 					(machine_.joystick(1).buttons[1] ? 0xf7 : 0xff) &
@@ -391,10 +391,10 @@ private:
 		template <Motorola::MC6821::Control control>
 		void observe(const bool value) {
 			if constexpr (control == Motorola::MC6821::Control::CA2) {
-				mux_ = (mux_ & 1) | (value ? 2 : 0);
+				joystick_ = value;
 			}
 			if constexpr (control == Motorola::MC6821::Control::CB2) {
-				mux_ = (mux_ & 2) | (value ? 1 : 0);
+				axis_ = value;
 			}
 		}
 
@@ -412,7 +412,8 @@ private:
 		ConcreteMachine &machine_;
 		uint8_t keyboard_column_ = 0xff;
 		uint8_t keys_[8]{};
-		uint8_t mux_ = 0;
+		uint8_t joystick_ = 0;
+		uint8_t axis_ = 0;
 	};
 	PIA0Handler pia0_handler_;
 	Motorola::MC6821::MC6821<PIA0Handler> pia0_;
