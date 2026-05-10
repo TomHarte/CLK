@@ -273,9 +273,7 @@ public:
 
 		// Pass on any media.
 		insert_media(target.media);
-		if(!target.loading_command.empty()) {
-			type_string(target.loading_command);
-		}
+		type_string(target.loading_command);
 
 		// Ensure the splash screen is automatically skipped if any media has been provided.
 		if(!target.media.empty()) {

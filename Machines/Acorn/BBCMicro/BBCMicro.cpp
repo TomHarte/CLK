@@ -871,9 +871,7 @@ public:
 		}
 
 		insert_media(target.media);
-		if(!target.loading_command.empty()) {
-			type_string(target.loading_command);
-		}
+		type_string(target.loading_command);
 	}
 
 	// MARK: - 6502 bus.

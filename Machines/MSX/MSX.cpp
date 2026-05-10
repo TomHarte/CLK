@@ -351,9 +351,7 @@ public:
 		insert_media(target.media);
 
 		// Type whatever has been requested.
-		if(!target.loading_command.empty()) {
-			type_string(target.loading_command);
-		}
+		type_string(target.loading_command);
 
 		// Establish default paging.
 		page_primary(0);

@@ -861,10 +861,7 @@ public:
 		has_128k_ = target.model == Model::CPC6128;
 
 		// Type whatever is required.
-		if(!target.loading_command.empty()) {
-			type_string(target.loading_command);
-		}
-
+		type_string(target.loading_command);
 		insert_media(target.media);
 	}
 
