@@ -12,10 +12,14 @@
 #include "Reflection/Struct.hpp"
 #include "Analyser/Static/StaticAnalyser.hpp"
 
+#include <string>
+
 namespace Analyser::Static::TandyCoCo {
 
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	Target() : Analyser::Static::Target(Machine::TandyCoCo) {}
+
+	std::wstring loading_command;
 
 private:
 	friend Reflection::StructImpl<Target>;
