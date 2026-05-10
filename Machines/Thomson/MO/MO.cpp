@@ -119,9 +119,7 @@ struct ConcreteMachine:
 		system_pia_.refresh();
 
 		insert_media(target.media);
-		if(!target.loading_command.empty()) {
-			type_string(target.loading_command);
-		}
+		type_string(target.loading_command);
 	}
 
 	~ConcreteMachine() {

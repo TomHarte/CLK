@@ -430,9 +430,7 @@ public:
 
 		// Insert media last so that if there's a conflict between cartridges and RAM, the cartridge wins.
 		insert_media(target.media);
-		if(!target.loading_command.empty()) {
-			type_string(target.loading_command);
-		}
+		type_string(target.loading_command);
 	}
 
 	bool insert_media(const Analyser::Static::Media &media) final {

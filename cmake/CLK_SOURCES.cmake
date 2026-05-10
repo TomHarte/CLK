@@ -274,6 +274,7 @@ set(CLK_SOURCES
 	Storage/Tape/Parsers/MSX.cpp
 	Storage/Tape/Parsers/Oric.cpp
 	Storage/Tape/Parsers/Spectrum.cpp
+	Storage/Tape/Parsers/TandyCoCo.cpp
 	Storage/Tape/Parsers/ThomsonMO.cpp
 	Storage/Tape/Parsers/ZX8081.cpp
 	Storage/Tape/PulseQueuedTape.cpp

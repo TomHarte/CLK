@@ -132,10 +132,7 @@ public:
 
 		insert_media(target.media);
 
-		if(!target.loading_command.empty()) {
-			type_string(target.loading_command);
-		}
-
+		type_string(target.loading_command);
 		if(target.should_shift_restart) {
 			shift_restart_counter_ = 1000000;
 		}

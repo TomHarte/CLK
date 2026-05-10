@@ -392,9 +392,7 @@ public:
 			break;
 		}
 
-		if(!target.loading_command.empty()) {
-			type_string(target.loading_command);
-		}
+		type_string(target.loading_command);
 
 		if(target.should_start_jasmin) {
 			// If Jasmin autostart is requested then plan to do so in 3 seconds; empirically long enough

@@ -22,7 +22,7 @@
 
 using namespace Storage::Tape::ZXSpectrum;
 
-Parser::Parser(MachineType machine_type) :
+Parser::Parser(const MachineType machine_type) :
 	machine_type_(machine_type) {}
 
 void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
@@ -129,14 +129,14 @@ void Parser::process_pulse(const Storage::Tape::Pulse &pulse) {
 	push_wave(t_states > is_one_ ? WaveType::One : WaveType::Zero);
 }
 
-void Parser::set_cpc_read_speed(uint8_t speed) {
+void Parser::set_cpc_read_speed(const uint8_t speed) {
 	// This may not be exactly right; I wish there were more science here but
 	// instead it's empirical based on tape speed versus value stored plus
 	// a guess as to where the CPC puts the dividing line.
 	set_cpc_one_zero_boundary(float(speed) * 14.35f);
 }
 
-void Parser::set_cpc_one_zero_boundary(float boundary) {
+void Parser::set_cpc_one_zero_boundary(const float boundary) {
 	is_one_ = boundary;
 	too_long_ = is_one_ * 16.0f / 9.0f;
 	too_short_ = is_one_ * 0.5f;
@@ -199,7 +199,7 @@ std::vector<uint8_t> Parser::get_block_body(Storage::Tape::TapeSerialiser &seria
 	return result;
 }
 
-void Parser::seed_checksum(uint8_t value) {
+void Parser::seed_checksum(const uint8_t value) {
 	checksum_ = value;
 }
 

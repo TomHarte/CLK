@@ -48,7 +48,7 @@ void CoCoCAS::Serialiser::push_next_pulses() {
 
 	switch(state_) {
 		case State::PreLeadInPause:
-			emplace_back(Pulse::Zero, Time(1));
+			emplace_back(Pulse::Zero, Time(1, 2));
 			state_ = State::LeadIn;
 		break;
 

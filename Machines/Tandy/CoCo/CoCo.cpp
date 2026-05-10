@@ -130,6 +130,7 @@ public:
 		Memory::Fuzz(ram_);
 
 		insert_media(target.media);
+		type_string(target.loading_command);
 	}
 
 	template <
@@ -687,7 +688,7 @@ private:
 
 	HalfCycles typer_delay(const std::wstring &) const final {
 		if(m6809_.template get<CPU::M6809::Line::PowerOnReset>()) {
-			return Cycles(1'000'000);
+			return Cycles(2'250'000);
 		} else {
 			return Cycles(0);
 		}
