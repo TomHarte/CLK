@@ -10,6 +10,10 @@
 
 #include "TapeParser.hpp"
 
+#include <cstdint>
+#include <optional>
+#include <vector>
+
 namespace Storage::Tape::TandyCoCo {
 
 enum class WaveType {
