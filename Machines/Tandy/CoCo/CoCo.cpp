@@ -498,7 +498,7 @@ private:
 			if constexpr (port == Motorola::MC6821::Port::A) {
 				machine_.dac_level_ = value >> 2;
 				if(!machine_.mux_) {
-					machine_.set_audio(true, value >> 2); // std::nullopt
+					machine_.set_audio(std::nullopt, value >> 2);
 				}
 			}
 
@@ -530,7 +530,7 @@ private:
 			}
 
 			if constexpr (control == Motorola::MC6821::Control::CB2) {
-//				machine_.set_audio(value, std::nullopt);
+				machine_.set_audio(value, std::nullopt);
 			}
 		}
 
