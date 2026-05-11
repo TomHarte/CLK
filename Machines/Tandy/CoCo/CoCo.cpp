@@ -86,6 +86,7 @@ struct Joystick: public Inputs::ConcreteJoystick {
 
 static constexpr uint8_t MaxDACLevel = 0b111'111;
 static constexpr double ClockRate = 1'789'772.5;
+static constexpr auto AudioDivider = Cycles(1);
 
 }
 
@@ -118,7 +119,7 @@ public:
 		speaker_(audio_)
 	{
 		set_clock_rate(ClockRate);
-		speaker_.set_input_rate(ClockRate);
+		speaker_.set_input_rate(ClockRate / AudioDivider.as<double>());
 		construct_joysticks();
 
 		const auto BasicROM = ROM::Name::TandyCoCoColourBasic12;
@@ -317,6 +318,7 @@ private:
 	MemoryMap memory_;
 	std::array<uint8_t, 8 * 1024> colour_basic_;
 	std::array<uint8_t, 64 * 1024> ram_;
+	std::vector<uint8_t> cartridge_;
 
 	// MARK: - TimedMachine.
 
@@ -449,6 +451,13 @@ private:
 		m6809_.set<CPU::M6809::Line::IRQ>(irqs_[0] || irqs_[1]);
 	}
 
+	bool firqs_[2]{};
+	template <int slot>
+	void set_firq(const bool active) {
+		firqs_[slot] = active;
+		m6809_.set<CPU::M6809::Line::FIRQ>(firqs_[0] || firqs_[1]);
+	}
+
 	friend struct PIA1Handler;
 	struct PIA1Handler {
 		PIA1Handler(ConcreteMachine &machine) : machine_(machine) {}
@@ -515,11 +524,13 @@ private:
 		}
 
 		template <Motorola::MC6821::IRQ irq>
-		void set(const bool) {
+		void set(const bool active) {
 			if constexpr (irq == Motorola::MC6821::IRQ::A) {
+				machine_.set_firq<0>(active);
 			}
 
 			if constexpr (irq == Motorola::MC6821::IRQ::B) {
+				machine_.set_firq<1>(active);
 			}
 		}
 
@@ -729,6 +740,26 @@ private:
 			tape_player_.set_tape(media.tapes.front(), TargetPlatform::ThomsonMO);
 		}
 
+		bool had_cartridge = false;
+		if(!media.cartridges.empty()) {
+			const auto &segment = media.cartridges.front()->segments().front().data;
+			if(segment.size() <= 16 * 1024) {
+				had_cartridge = true;
+
+				// Cartridges are given 8kb in the memory map; pad to that.
+				cartridge_ = segment;
+				if(cartridge_.size() < 8 * 1024) {
+					cartridge_.resize(8*1024, 0xff);
+				}
+
+				memory_.set_read(0xc000, uint16_t(0xc000 + cartridge_.size()), cartridge_.data());
+
+				// TODO: this trigger seems to occur much later.
+				// Specifically "the clock signal (Q) is shorted to the cartridge interrupt pin."
+				pia1_.set<Motorola::MC6821::Control::CB1>(true);
+			}
+		}
+
 		return !media.tapes.empty();
 	}
 
@@ -780,7 +811,7 @@ private:
 
 	Cycles time_since_audio_update_;
 	void update_audio() {
-		const auto cycles = time_since_audio_update_.flush();
+		const auto cycles = time_since_audio_update_.divide(AudioDivider);
 		speaker_.run_for(audio_queue_, cycles);
 	}
 
@@ -805,7 +836,6 @@ private:
 
 	uint8_t dac_level_ = 0;
 	uint8_t mux_ = 0;
-
 };
 
 }

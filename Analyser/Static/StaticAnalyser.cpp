@@ -227,6 +227,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 
 	accumulator.try_standard<Tape::MSXCAS>(TargetPlatform::MSX, "cas");
 	accumulator.try_standard<Tape::CoCoCAS>(TargetPlatform::TandyCoCo, "cas");
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::TandyCoCo, "ccc");
 	accumulator.try_standard<Tape::TZX>(TargetPlatform::AmstradCPC, "cdt");
 	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Coleco, "col");
 	accumulator.try_standard<FileBundle::LocalFSFileBundle>(TargetPlatform::Enterprise, "com");
