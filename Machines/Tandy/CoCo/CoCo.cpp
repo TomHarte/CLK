@@ -171,6 +171,12 @@ public:
 		}
 		time_since_audio_update_ += duration;
 
+		if(!cartridge_.empty()) {
+			// When a cartridge is inserted: "the clock signal (Q) is shorted to the cartridge interrupt pin."
+			pia1_.set<Motorola::MC6821::Control::CB1>(true);
+			pia1_.set<Motorola::MC6821::Control::CB1>(false);
+		}
+
 		using namespace CPU::M6809;
 		if(address >> 8 == 0xff) {
 			if constexpr (read_write != ReadWrite::NoData) {
@@ -753,10 +759,6 @@ private:
 				}
 
 				memory_.set_read(0xc000, uint16_t(0xc000 + cartridge_.size()), cartridge_.data());
-
-				// TODO: this trigger seems to occur much later.
-				// Specifically "the clock signal (Q) is shorted to the cartridge interrupt pin."
-				pia1_.set<Motorola::MC6821::Control::CB1>(true);
 			}
 		}
 
