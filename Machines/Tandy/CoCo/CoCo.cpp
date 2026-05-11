@@ -20,6 +20,10 @@
 #include "Machines/MachineTypes.hpp"
 #include "Machines/Utility/MemoryFuzzer.hpp"
 
+#include "Components/AudioToggle/AudioToggle.hpp"
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/Speaker/Implementation/BufferSource.hpp"
+
 using namespace Tandy::CoCo;
 
 namespace {
@@ -80,6 +84,7 @@ struct Joystick: public Inputs::ConcreteJoystick {
 	bool buttons[2]{};
 };
 
+static constexpr uint8_t MaxDACLevel = 0b111'111;
 static constexpr double ClockRate = 1'789'772.5;
 
 }
@@ -90,6 +95,7 @@ class ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
 	public Machine,
+	public MachineTypes::AudioProducer,
 	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaChangeObserver,
@@ -107,9 +113,12 @@ public:
 		pia1_(pia1_handler_),
 		sam_(memory_),
 		m6847_(sam_),
-		tape_player_(int(ClockRate))
+		tape_player_(int(ClockRate)),
+		audio_(audio_queue_, MaxDACLevel),
+		speaker_(audio_)
 	{
 		set_clock_rate(ClockRate);
+		speaker_.set_input_rate(ClockRate);
 		construct_joysticks();
 
 		const auto BasicROM = ROM::Name::TandyCoCoColourBasic12;
@@ -131,6 +140,10 @@ public:
 
 		insert_media(target.media);
 		type_string(target.loading_command);
+	}
+
+	~ConcreteMachine() {
+		audio_queue_.lock_flush();
 	}
 
 	template <
@@ -155,6 +168,7 @@ public:
 		if(typer_) {
 			typer_->run_for(duration);
 		}
+		time_since_audio_update_ += duration;
 
 		using namespace CPU::M6809;
 		if(address >> 8 == 0xff) {
@@ -290,7 +304,7 @@ public:
 			}
 		}
 
-		return duration;
+		return delay;
 	}
 
 private:
@@ -313,6 +327,9 @@ private:
 	void flush_output(const int outputs) final {
 		if(outputs & Output::Video) {
 			m6847_.flush();
+		}
+		if(outputs & Output::Audio) {
+			update_audio();
 		}
 	}
 
@@ -397,9 +414,11 @@ private:
 		void observe(const bool value) {
 			if constexpr (control == Motorola::MC6821::Control::CA2) {
 				joystick_ = value;
+				machine_.mux_ = (machine_.mux_ & 1) | (value ? 2 : 0);
 			}
 			if constexpr (control == Motorola::MC6821::Control::CB2) {
 				axis_ = value;
+				machine_.mux_ = (machine_.mux_ & 2) | (value ? 1 : 0);
 			}
 		}
 
@@ -451,7 +470,7 @@ private:
 		//	b4–b6: VDG GM inputs; also b5 = 6847 invert; b4 = 6847 shift toggle
 		//	b3: colour set select (and RGB monitor detecting input? Probably CoCo3)
 		//	b2: ram size input
-		//	b1: 1-bit sound/tape output
+		//	b1: 1-bit sound/tape something?
 		//	b0: RS232 data input
 		//
 		//	CB1: cartridge interrupt input
@@ -477,7 +496,10 @@ private:
 		template <Motorola::MC6821::Port port>
 		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::A) {
-				machine_.dac_level_ = (value >> 2) & 0b111111;
+				machine_.dac_level_ = value >> 2;
+				if(!machine_.mux_) {
+					machine_.set_audio(std::nullopt, value >> 2);
+				}
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
@@ -508,6 +530,7 @@ private:
 			}
 
 			if constexpr (control == Motorola::MC6821::Control::CB2) {
+				machine_.set_audio(value, std::nullopt);
 			}
 		}
 
@@ -516,8 +539,6 @@ private:
 	};
 	PIA1Handler pia1_handler_;
 	Motorola::MC6821::MC6821<PIA1Handler> pia1_;
-
-	uint8_t dac_level_ = 0;
 
 	// MARK: - SAM.
 
@@ -750,6 +771,40 @@ private:
 	Joystick &joystick(const size_t index) {
 		return *static_cast<Joystick *>(joysticks_[index].get());
 	}
+
+	// MARK: - AudioProducer.
+
+	Concurrency::AsyncTaskQueue<false> audio_queue_;
+	Audio::DAC audio_;
+	Outputs::Speaker::PullLowpass<Audio::DAC> speaker_;
+
+	Cycles time_since_audio_update_;
+	void update_audio() {
+		const auto cycles = time_since_audio_update_.flush();
+		speaker_.run_for(audio_queue_, cycles);
+	}
+
+	Outputs::Speaker::Speaker *get_speaker() override {
+		return &speaker_;
+	}
+
+	bool audio_enabled_ = false;
+	uint8_t audio_level_ = 0;
+	void set_audio(const std::optional<bool> enabled, const std::optional<uint8_t> level) {
+		const auto new_audio_enabled = enabled.value_or(audio_enabled_);
+		const auto new_audio_level = level.value_or(audio_level_);
+		if(new_audio_level == audio_level_ && new_audio_enabled == audio_enabled_) {
+			return;
+		}
+
+		audio_level_ = new_audio_level;
+		audio_enabled_ = new_audio_enabled;
+		update_audio();
+		audio_.set_output(audio_enabled_ ? audio_level_ : 0);
+	}
+
+	uint8_t dac_level_ = 0;
+	uint8_t mux_ = 0;
 
 };
 
