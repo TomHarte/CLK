@@ -752,10 +752,11 @@ private:
 			if(segment.size() <= 16 * 1024) {
 				had_cartridge = true;
 
-				// Cartridges are given 8kb in the memory map; pad to that.
+				// My memory map requires things to be a multiple of 0x2000 bytes; pad to that.
 				cartridge_ = segment;
-				if(cartridge_.size() < 8 * 1024) {
-					cartridge_.resize(8*1024, 0xff);
+				if(cartridge_.size() & 0x1fff) {
+					const auto new_size = (cartridge_.size() + 0x2000) & ~size_t(0x1fff);
+					cartridge_.resize(new_size, 0xff);
 				}
 
 				memory_.set_read(0xc000, uint16_t(0xc000 + cartridge_.size()), cartridge_.data());
