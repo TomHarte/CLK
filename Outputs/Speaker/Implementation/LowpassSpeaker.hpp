@@ -27,7 +27,7 @@ public:
 	/*!
 		Sets the clock rate of the input audio.
 	*/
-	void set_input_rate(float cycles_per_second) {
+	void set_input_rate(const float cycles_per_second) {
 		std::lock_guard lock_guard(filter_parameters_mutex_);
 		if(filter_parameters_.input_cycles_per_second == cycles_per_second) {
 			return;
@@ -43,7 +43,7 @@ public:
 		an alternative cut-off. This allows machines with a low-pass filter on their audio output
 		path to be explicit about its effect, and get that simulation for free.
 	*/
-	void set_high_frequency_cutoff(float high_frequency) {
+	void set_high_frequency_cutoff(const float high_frequency) {
 		std::lock_guard lock_guard(filter_parameters_mutex_);
 		if(filter_parameters_.high_frequency_cutoff == high_frequency) {
 			return;
@@ -53,7 +53,7 @@ public:
 	}
 
 private:
-	float get_ideal_clock_rate_in_range(float minimum, float maximum) final {
+	float get_ideal_clock_rate_in_range(const float minimum, const float maximum) final {
 		std::lock_guard lock_guard(filter_parameters_mutex_);
 
 		// Return twice the cut off, if applicable.
@@ -76,7 +76,7 @@ private:
 	}
 
 	// Implemented as per Speaker.
-	void set_computed_output_rate(float cycles_per_second, int buffer_size, bool) final {
+	void set_computed_output_rate(const float cycles_per_second, const int buffer_size, bool) final {
 		std::lock_guard lock_guard(filter_parameters_mutex_);
 		if(filter_parameters_.output_cycles_per_second == cycles_per_second && size_t(buffer_size) == output_buffer_.size()) {
 			return;
@@ -356,10 +356,8 @@ public:
 		sample_source.set_sample_volume_range(32767);
 	}
 
-	void set_output_volume(float volume) final {
-		// Clamp to the acceptable range, and set.
-		volume = std::clamp(volume, 0.0f, 1.0f);
-		sample_source_.set_sample_volume_range(int16_t(32767.0f * volume));
+	void set_output_volume(const float volume) final {
+		sample_source_.set_sample_volume_range(int16_t(32767.0f * std::clamp(volume, 0.0f, 1.0f)));
 	}
 
 	bool get_is_stereo() final {
