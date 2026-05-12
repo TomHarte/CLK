@@ -124,7 +124,7 @@ public:
 		pia1_handler_(*this),
 		pia1_(pia1_handler_),
 		sam_(memory_),
-		m6847_(sam_),
+		m6847_(sam_, sam_),
 		tape_player_(int(ClockRate)),
 		audio_(audio_queue_, MaxDACLevel),
 		speaker_(audio_)
@@ -669,6 +669,10 @@ private:
 			return graphics_address_;
 		}
 
+		void set_hsync(bool) {}
+		void set_field_sync(bool) {}
+		void set_row_preset(bool) {}
+
 	private:
 		MemoryMap &memory_;
 
@@ -693,6 +697,7 @@ private:
 	JustInTimeActor<
 		Motorola::MC6847::MC6847<
 			Motorola::MC6847::FrameTiming::NTSC,
+			SAM,
 			SAM,
 			ModeMapper
 		>,
