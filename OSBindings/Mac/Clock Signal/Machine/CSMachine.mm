@@ -425,13 +425,15 @@ struct ActivityObserver: public Activity::Observer {
 
 
 - (void)setInputMode:(CSMachineKeyboardInputMode)inputMode {
+	if(inputMode == _inputMode) {
+		return;
+	}
 	_inputMode = inputMode;
 
 	// Avoid the risk that the user used a keyboard shortcut to change input mode,
-	// leaving any modifiers associated with that dangling.
-	if(_inputMode == CSMachineKeyboardInputModeJoystick) {
-		[self clearAllKeys];
-	}
+	// leaving any modifiers associated with that dangling or, in the converse,
+	// leaving a joystick button pressed.
+	[self clearAllKeys];
 }
 
 - (void)setJoystickManager:(CSJoystickManager *)joystickManager {
