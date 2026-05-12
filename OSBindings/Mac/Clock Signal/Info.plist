@@ -33,6 +33,7 @@
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>rom</string>
+				<string>ccc</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>chip</string>
