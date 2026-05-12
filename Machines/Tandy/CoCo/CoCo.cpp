@@ -80,6 +80,9 @@ struct Joystick: public Inputs::ConcreteJoystick {
 		buttons[input.info.control.index] = value;
 	}
 
+	float digital_minimum() const { return 0.0f; }
+	float digital_maximum() const { return 1.0f; }
+
 	uint8_t axes[2]{32, 32};
 	bool buttons[2]{};
 };
