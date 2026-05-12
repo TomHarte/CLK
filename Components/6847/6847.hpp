@@ -39,12 +39,6 @@ template <FrameTiming timing> struct FrameLayout {
 static_assert(FrameLayout<FrameTiming::NTSC>::EndOfField == 262, "NTSC frames should be 262 lines long");
 static_assert(FrameLayout<FrameTiming::PALPaddedVsync>::EndOfField == 312, "PAL-padded frames should be 312 lines long");
 
-struct MC6847Delegate {
-	virtual void set_hsync(bool active) = 0;
-	virtual void set_vsync(bool active) = 0;
-	virtual void set_row_preset(bool active) = 0;
-};
-
 namespace Mode {
 using IntT = uint8_t;
 
@@ -193,10 +187,21 @@ struct NullMapper {
 	}
 };
 
-template <FrameTiming timing, typename MemoryAccessT, typename ModeMapperT = NullMapper>
+struct NullDelegate {
+	void set_hsync(bool) {}
+	void set_vsync(bool) {}
+	void set_row_preset(bool) {}
+};
+
+template <
+	FrameTiming timing,
+	typename MemoryAccessT,
+	typename DelegateT = NullDelegate,
+	typename ModeMapperT = NullMapper
+>
 class MC6847: private MC6847Base {
 public:
-	MC6847(MemoryAccessT &);
+	MC6847(MemoryAccessT &, DelegateT &delegate);
 
 	void run_for(const Cycles);
 	Cycles next_sequence_point() const;
@@ -204,7 +209,6 @@ public:
 	bool hsync() const;
 	bool vsync() const;
 	using MC6847Base::set_mode;
-	void set_delegate(MC6847Delegate *);
 
 	// MARK: - ScanTarget entrypoints.
 
@@ -216,31 +220,32 @@ public:
 private:
 	MemoryAccessT &memory_;
 	Numeric::DividingAccumulator<LineLayout::EndOfLine, FrameLayout<timing>::EndOfField> position_{2};
-	MC6847Delegate *delegate_ = nullptr;
+	DelegateT &delegate_;
 };
 
 // MARK: - Implementation.
 
-template <FrameTiming timing, typename MemoryAccessT, typename ModeMapperT>
-MC6847<timing, MemoryAccessT, ModeMapperT>::MC6847(MemoryAccessT &memory) :
+template <FrameTiming timing, typename MemoryAccessT, typename DelegateT, typename ModeMapperT>
+MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::MC6847(MemoryAccessT &memory, DelegateT &delegate) :
 	MC6847Base(is_ntsc(timing) ? Outputs::Display::Type::NTSC60 : Outputs::Display::Type::PAL50),
-	memory_(memory) {
+	memory_(memory),
+	delegate_(delegate) {
 	crt_.set_fixed_framing([&] {
 		run_for(Cycles(10'000));
 	});
 }
 
-template <FrameTiming timing, typename MemoryAccessT, typename ModeMapperT>
-void MC6847<timing, MemoryAccessT, ModeMapperT>::run_for(const Cycles cycles) {
+template <FrameTiming timing, typename MemoryAccessT, typename DelegateT, typename ModeMapperT>
+void MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::run_for(const Cycles cycles) {
 	// This template binds the drawing logic to whatever was supplied
 	// as MemoryAccessT; a consequence of that is that frame layout logic is here.
 	position_.advance(
 		cycles.as<int>(),
 		[&] (const int line, const int begin, const int end) {
-			if(delegate_ && !begin) delegate_->set_hsync(true);
+			if(!begin) delegate_.set_hsync(true);
 
 			if(line < FrameLayout<timing>::EndOfPixels) {
-				if(delegate_ && !begin && !address_.row()) delegate_->set_row_preset(true);
+				if(!begin && !address_.row()) delegate_.set_row_preset(true);
 
 				Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
 					begin,
@@ -259,26 +264,26 @@ void MC6847<timing, MemoryAccessT, ModeMapperT>::run_for(const Cycles cycles) {
 				);
 				pixel_line(begin, end);
 
-				if(delegate_ && end >= LineLayout::EndOfSync) delegate_->set_row_preset(false);
+				if(end >= LineLayout::EndOfSync) delegate_.set_row_preset(false);
 			} else if(line < FrameLayout<timing>::EndOfBottomBorder) {
 				border_line(begin, end);
 			} else if(line < FrameLayout<timing>::EndOfFrontPorch) {
 				porch_line(begin, end);
 			} else if(line < FrameLayout<timing>::EndOfSync) {
-				if(delegate_ && !begin && line == FrameLayout<timing>::EndOfFrontPorch) {
-					delegate_->set_vsync(true);
+				if(!begin && line == FrameLayout<timing>::EndOfFrontPorch) {
+					delegate_.set_vsync(true);
 				}
 				sync_line(begin, end);
 			} else if(line < FrameLayout<timing>::EndOfBackPorch) {
-				if(delegate_ && !begin && line == FrameLayout<timing>::EndOfSync) {
-					delegate_->set_vsync(false);
+				if(!begin && line == FrameLayout<timing>::EndOfSync) {
+					delegate_.set_vsync(false);
 				}
 				porch_line(begin, end);
 			} else {
 				border_line(begin, end);
 			}
 
-			if(delegate_ && end >= LineLayout::EndOfSync) delegate_->set_hsync(false);
+			if(end >= LineLayout::EndOfSync) delegate_.set_hsync(false);
 		},
 		[&] {
 			reset();
@@ -286,44 +291,39 @@ void MC6847<timing, MemoryAccessT, ModeMapperT>::run_for(const Cycles cycles) {
 	);
 }
 
-template <FrameTiming timing, typename MemoryAccessT, typename ModeMapperT>
-Cycles MC6847<timing, MemoryAccessT, ModeMapperT>::next_sequence_point() const {
+template <FrameTiming timing, typename MemoryAccessT, typename DelegateT, typename ModeMapperT>
+Cycles MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::next_sequence_point() const {
 	return MC6847Base::next_sequence_point(position_.subsegment());
 }
 
-template <FrameTiming timing, typename MemoryAccessT, typename ModeMapperT>
-bool MC6847<timing, MemoryAccessT, ModeMapperT>::hsync() const {
+template <FrameTiming timing, typename MemoryAccessT, typename DelegateT, typename ModeMapperT>
+bool MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::hsync() const {
 	return MC6847Base::hsync(position_.subsegment());
 }
 
-template <FrameTiming timing, typename MemoryAccessT, typename ModeMapperT>
-void MC6847<timing, MemoryAccessT, ModeMapperT>::set_delegate(MC6847Delegate *const delegate) {
-	delegate_ = delegate;
-}
-
-template <FrameTiming timing, typename MemoryAccessT, typename ModeMapperT>
-bool MC6847<timing, MemoryAccessT, ModeMapperT>::vsync() const {
+template <FrameTiming timing, typename MemoryAccessT, typename DelegateT, typename ModeMapperT>
+bool MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::vsync() const {
 	const auto segment = position_.segment();
 	return segment >= FrameLayout<timing>::EndOfFrontPorch && segment < FrameLayout<timing>::EndOfSync;
 }
 
-template <FrameTiming timing, typename MemoryAccessT, typename ModeMapperT>
-void MC6847<timing, MemoryAccessT, ModeMapperT>::set_scan_target(Outputs::Display::ScanTarget *const target) {
+template <FrameTiming timing, typename MemoryAccessT, typename DelegateT, typename ModeMapperT>
+void MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::set_scan_target(Outputs::Display::ScanTarget *const target) {
 	crt_.set_scan_target(target);
 }
 
-template <FrameTiming timing, typename MemoryAccessT, typename ModeMapperT>
-Outputs::Display::ScanStatus MC6847<timing, MemoryAccessT, ModeMapperT>::get_scaled_scan_status() const {
+template <FrameTiming timing, typename MemoryAccessT, typename DelegateT, typename ModeMapperT>
+Outputs::Display::ScanStatus MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::get_scaled_scan_status() const {
 	return crt_.get_scaled_scan_status();
 }
 
-template <FrameTiming timing, typename MemoryAccessT, typename ModeMapperT>
-void MC6847<timing, MemoryAccessT, ModeMapperT>::set_display_type(const Outputs::Display::DisplayType display_type) {
+template <FrameTiming timing, typename MemoryAccessT, typename DelegateT, typename ModeMapperT>
+void MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::set_display_type(const Outputs::Display::DisplayType display_type) {
 	crt_.set_display_type(display_type);
 }
 
-template <FrameTiming timing, typename MemoryAccessT, typename ModeMapperT>
-Outputs::Display::DisplayType MC6847<timing, MemoryAccessT, ModeMapperT>::get_display_type() const {
+template <FrameTiming timing, typename MemoryAccessT, typename DelegateT, typename ModeMapperT>
+Outputs::Display::DisplayType MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::get_display_type() const {
 	return crt_.get_display_type();
 }
 
