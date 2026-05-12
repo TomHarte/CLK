@@ -670,7 +670,7 @@ private:
 		}
 
 		void set_hsync(bool) {}
-		void set_vsync(bool) {}
+		void set_field_sync(bool) {}
 		void set_row_preset(bool) {}
 
 	private:

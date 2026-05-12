@@ -189,7 +189,7 @@ struct NullMapper {
 
 struct NullDelegate {
 	void set_hsync(bool) {}
-	void set_vsync(bool) {}
+	void set_field_sync(bool) {}
 	void set_row_preset(bool) {}
 };
 
@@ -266,17 +266,17 @@ void MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::run_for(const Cycles
 
 				if(end >= LineLayout::EndOfSync) delegate_.set_row_preset(false);
 			} else if(line < FrameLayout<timing>::EndOfBottomBorder) {
+				if(!begin && line == FrameLayout<timing>::EndOfPixels) {
+					delegate_.set_field_sync(true);
+				}
 				border_line(begin, end);
 			} else if(line < FrameLayout<timing>::EndOfFrontPorch) {
 				porch_line(begin, end);
 			} else if(line < FrameLayout<timing>::EndOfSync) {
-				if(!begin && line == FrameLayout<timing>::EndOfFrontPorch) {
-					delegate_.set_vsync(true);
-				}
 				sync_line(begin, end);
 			} else if(line < FrameLayout<timing>::EndOfBackPorch) {
 				if(!begin && line == FrameLayout<timing>::EndOfSync) {
-					delegate_.set_vsync(false);
+					delegate_.set_field_sync(false);
 				}
 				porch_line(begin, end);
 			} else {
