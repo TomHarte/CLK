@@ -49,8 +49,8 @@ struct MC6847Delegate {
 namespace Mode {
 using IntT = uint8_t;
 
-constexpr IntT Graphics		= 0b1000'0000;
-constexpr IntT Semigraphics	= 0b0100'0000;
+constexpr IntT Semigraphics	= 0b1000'0000;
+constexpr IntT Graphics		= 0b0100'0000;
 constexpr IntT ExternalROM	= 0b0010'0000;
 constexpr IntT Invert		= 0b0001'0000;
 constexpr IntT ColourSelect	= 0b0000'1000;

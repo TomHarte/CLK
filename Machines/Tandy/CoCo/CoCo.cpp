@@ -84,6 +84,17 @@ struct Joystick: public Inputs::ConcreteJoystick {
 	bool buttons[2]{};
 };
 
+// On the CoCo the most significant VDG data bit is connected to the VDG's '!alpha/semi_g' input.
+// This allows it to switch automatically between alphanumeric mode and semi-graphics mode based
+// on the most significant data bit, allowing mixed text and block-graphics on the same screen.
+//
+//	Cf. https://web.archive.org/web/20210214054301/http://www.cs.unc.edu/~yakowenk/coco/text/semigraphics.html
+struct ModeMapper {
+	Motorola::MC6847::Mode::IntT operator()(const uint8_t data, const Motorola::MC6847::Mode::IntT mode) {
+		return mode | (data & 0x80 ? Motorola::MC6847::Mode::Semigraphics : 0);
+	}
+};
+
 static constexpr uint8_t MaxDACLevel = 0b111'111;
 static constexpr double ClockRate = 1'789'772.5;
 static constexpr auto AudioDivider = Cycles(1);
@@ -523,7 +534,7 @@ private:
 			if constexpr (port == Motorola::MC6821::Port::B) {
 				machine_.m6847_->set_mode(
 					value & 0x80,		// Alpha/graphics.
-					value & 0x80,		// Graphics/semigraphics. [TODO: set by fetched bytes, not here]
+					false,				// Graphics/semigraphics.
 					false,				// External ROM.
 					value & 0x20,		// Invert.
 					(value >> 4) & 7,	// Graphics mode.
@@ -574,14 +585,6 @@ private:
 			//
 			// TODO: this shouldn't be able to go into ROM, possibly?
 			return memory_.read(address + graphics_address_);
-
-			// TODO: ... in the CoCo the most significant VDG data bit is hardwired to the VDG's '*alpha/semi_g' inputs.
-			// This allows it to automatically switch between alphanumeric mode and semi-graphics mode based on the MS
-			// data bit,which allows mixed text and block-graphics on the same screen.
-			//
-			// That can be achieved here; set semigraphics as per the top bit.
-			//
-			//	https://web.archive.org/web/20210214054301/http://www.cs.unc.edu/~yakowenk/coco/text/semigraphics.html
 		}
 
 		template <uint16_t address> void access() {
@@ -690,7 +693,8 @@ private:
 	JustInTimeActor<
 		Motorola::MC6847::MC6847<
 			Motorola::MC6847::FrameTiming::NTSC,
-			SAM
+			SAM,
+			ModeMapper
 		>,
 		Cycles,
 		4
