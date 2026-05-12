@@ -78,6 +78,49 @@ static constexpr uint8_t font[64][12] = {
 	{ 0x00, 0x00, 0x00, 0x18, 0x24, 0x04, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, },
 };
 
+
+namespace Colours {
+constexpr uint32_t rgb(const uint8_t r, const uint8_t g, const uint8_t b) {
+	uint8_t value[] = {
+		r, g, b, 0
+	};
+	return std::bit_cast<uint32_t>(value);
+}
+
+//
+// RGB values below sourced from http://www.hcvgm.org/VDG_Colours.html
+//
+constexpr uint32_t text0[] = { rgb(0x28, 0xe0, 0x28), rgb(0x10, 0x60, 0x10) };
+constexpr uint32_t text1[] = { rgb(0x80, 0x30, 0x10) , rgb(0xf0, 0xb0, 0x40) };
+
+constexpr uint32_t resolution0[] = { rgb(0x28, 0xe0, 0x28), rgb(0x10, 0x60, 0x10) };
+constexpr uint32_t resolution1[] = { rgb(0x00, 0x00, 0x00), rgb(0xf0, 0xf0, 0xf0) };
+
+constexpr uint32_t colour0[] = {
+	rgb(0x28, 0xe0, 0x28),
+	rgb(0xf0, 0xf0, 0x70),
+	rgb(0x20, 0x20, 0xd8),
+	rgb(0xa8, 0x20, 0x20),
+};
+constexpr uint32_t colour1[] = {
+	rgb(0xf0, 0xf0, 0xf0),
+	rgb(0x28, 0xa8, 0xa8),
+	rgb(0xd3, 0x61, 0xfa),
+	rgb(0xf0, 0x88, 0x28),
+};
+
+constexpr uint32_t semigraphics[][2] = {
+	{ rgb(0x00, 0x00, 0x00), rgb(0xf0, 0x88, 0x28), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0xd3, 0x61, 0xfa), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0x28, 0xa8, 0xa8), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0xf0, 0xf0, 0xf0), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0xa8, 0x20, 0x20), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0x20, 0x20, 0xd8), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0xf0, 0xf0, 0x70), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0x28, 0xe0, 0x28), },
+};
+}
+
 // Empirical, by eye.
 static constexpr uint8_t ColourPhase = 215;
 
@@ -90,7 +133,7 @@ MC6847Base::MC6847Base(const Outputs::Display::Type display_type) :
 	455,
 	1,
 	display_type,
-	Outputs::Display::InputDataType::Red4Green4Blue4	// TODO.
+	Outputs::Display::InputDataType::Red8Green8Blue8
 ) {
 	crt_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
 }
@@ -101,7 +144,7 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 		crt_.output_colour_burst(LineLayout::EndOfColourBurst - LineLayout::EndOfSync, ColourPhase);
 		crt_.output_blank(LineLayout::EndOfLeftBorder - LineLayout::EndOfColourBurst);
 
-		pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(256));
+		pixels_ = reinterpret_cast<uint32_t *>(crt_.begin_data(256));
 	}
 	if(pixels_) [[likely]] {
 		Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
@@ -112,33 +155,133 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 				const int column_begin = (begin - LineLayout::EndOfLeftBorder) >> 3;
 				const int column_end = (end - LineLayout::EndOfLeftBorder) >> 3;
 
-				// TODO: properly obey graphics mode here, use colours.
-				if(mode_ <= GraphicsMode::ResolutionGraphics6) {
-					for(int c = column_begin; c < column_end; c++) {
-						const int pixels = line_.data[c];
-						pixels_[0] = (pixels & 0x80) ? 0xffff : 0x0000;
-						pixels_[1] = (pixels & 0x40) ? 0xffff : 0x0000;
-						pixels_[2] = (pixels & 0x20) ? 0xffff : 0x0000;
-						pixels_[3] = (pixels & 0x10) ? 0xffff : 0x0000;
-						pixels_[4] = (pixels & 0x08) ? 0xffff : 0x0000;
-						pixels_[5] = (pixels & 0x04) ? 0xffff : 0x0000;
-						pixels_[6] = (pixels & 0x02) ? 0xffff : 0x0000;
-						pixels_[7] = (pixels & 0x01) ? 0xffff : 0x0000;
-						pixels_ += 8;
+				for(int c = column_begin; c < column_end; c++) {
+					const auto mode = line_.columns[c].mode;
+					const auto data = line_.columns[c & ~(mode & Mode::Columns16)].data;
+
+					if(mode & Mode::Graphics) {
+						switch(mode & (Mode::BPP2 | Mode::Columns16)) {
+							case 0: {	// 1bpp, 32-column.
+								const uint32_t *const palette =
+									mode & Mode::ColourSelect ? Colours::resolution1 : Colours::resolution0;
+
+								pixels_[0] = palette[(data >> 7) & 1];
+								pixels_[1] = palette[(data >> 6) & 1];
+								pixels_[2] = palette[(data >> 5) & 1];
+								pixels_[3] = palette[(data >> 4) & 1];
+								pixels_[4] = palette[(data >> 3) & 1];
+								pixels_[5] = palette[(data >> 2) & 1];
+								pixels_[6] = palette[(data >> 1) & 1];
+								pixels_[7] = palette[(data >> 0) & 1];
+							} break;
+
+							case Mode::Columns16: {	// 1bpp, 16-column.
+								const uint32_t *const palette =
+									mode & Mode::ColourSelect ? Colours::resolution1 : Colours::resolution0;
+
+								if(c & 1) {
+									pixels_[0] =
+									pixels_[1] = palette[(data >> 3) & 1];
+									pixels_[2] =
+									pixels_[3] = palette[(data >> 2) & 1];
+									pixels_[4] =
+									pixels_[5] = palette[(data >> 1) & 1];
+									pixels_[6] =
+									pixels_[7] = palette[(data >> 0) & 1];
+								} else {
+									pixels_[0] =
+									pixels_[1] = palette[(data >> 7) & 1];
+									pixels_[2] =
+									pixels_[3] = palette[(data >> 6) & 1];
+									pixels_[4] =
+									pixels_[5] = palette[(data >> 5) & 1];
+									pixels_[6] =
+									pixels_[7] = palette[(data >> 4) & 1];
+								}
+							} break;
+
+							case Mode::BPP2: {	// 2bpp, 32-column.
+								const uint32_t *const palette =
+									mode & Mode::ColourSelect ? Colours::colour0 : Colours::colour1;
+
+								pixels_[0] =
+								pixels_[1] = palette[(data >> 6) & 3];
+								pixels_[2] =
+								pixels_[3] = palette[(data >> 4) & 3];
+								pixels_[4] =
+								pixels_[5] = palette[(data >> 2) & 3];
+								pixels_[6] =
+								pixels_[7] = palette[(data >> 0) & 3];
+							} break;
+
+							case Mode::BPP2 | Mode::Columns16: {	// 2bpp, 16-column.
+								const uint32_t *const palette =
+									mode & Mode::ColourSelect ? Colours::colour0 : Colours::colour1;
+
+								if(c & 1) {
+									pixels_[0] =
+									pixels_[1] =
+									pixels_[2] =
+									pixels_[3] = palette[(data >> 2) & 3];
+									pixels_[4] =
+									pixels_[5] =
+									pixels_[6] =
+									pixels_[7] = palette[(data >> 0) & 3];
+								} else {
+									pixels_[0] =
+									pixels_[1] =
+									pixels_[2] =
+									pixels_[3] = palette[(data >> 6) & 3];
+									pixels_[4] =
+									pixels_[5] =
+									pixels_[6] =
+									pixels_[7] = palette[(data >> 4) & 3];
+								}
+							} break;
+
+							default: __builtin_unreachable();
+						}
+					} else {
+						if(mode & Mode::Semigraphics) {
+							const uint32_t *palette;
+							uint8_t pixels;
+
+							if(mode & Mode::ExternalROM) {
+								palette = Colours::semigraphics[data >> 6];
+								pixels = [&]() -> uint8_t {
+									if(row < 4) return data >> 4;
+									if(row < 8) return data >> 2;
+									return data;
+								} ();
+							} else {
+								palette = Colours::semigraphics[(data >> 4) & 7];
+								pixels = row < 6 ? data >> 2 : data;
+							}
+
+							pixels_[0] =
+							pixels_[1] =
+							pixels_[2] =
+							pixels_[3] = palette[(pixels >> 1) & 1];
+							pixels_[4] =
+							pixels_[5] =
+							pixels_[6] =
+							pixels_[7] = palette[(pixels >> 0) & 1];
+						} else {
+							const uint32_t *const palette = mode & Mode::ColourSelect ? Colours::text1 : Colours::text0;
+							const uint8_t pixels =
+								font[data & 63][row] ^ (mode & Mode::Invert ? 0xff : 0x00) ^ (data & 64 ? 0xff : 0x00);
+
+							pixels_[0] = palette[(pixels >> 7) & 1];
+							pixels_[1] = palette[(pixels >> 6) & 1];
+							pixels_[2] = palette[(pixels >> 5) & 1];
+							pixels_[3] = palette[(pixels >> 4) & 1];
+							pixels_[4] = palette[(pixels >> 3) & 1];
+							pixels_[5] = palette[(pixels >> 2) & 1];
+							pixels_[6] = palette[(pixels >> 1) & 1];
+							pixels_[7] = palette[(pixels >> 0) & 1];
+						}
 					}
-				} else {
-					for(int c = column_begin; c < column_end; c++) {
-						const int pixels = font[line_.data[c] & 63][row];
-						pixels_[0] = (pixels & 0x80) ? 0xffff : 0x0000;
-						pixels_[1] = (pixels & 0x40) ? 0xffff : 0x0000;
-						pixels_[2] = (pixels & 0x20) ? 0xffff : 0x0000;
-						pixels_[3] = (pixels & 0x10) ? 0xffff : 0x0000;
-						pixels_[4] = (pixels & 0x08) ? 0xffff : 0x0000;
-						pixels_[5] = (pixels & 0x04) ? 0xffff : 0x0000;
-						pixels_[6] = (pixels & 0x02) ? 0xffff : 0x0000;
-						pixels_[7] = (pixels & 0x01) ? 0xffff : 0x0000;
-						pixels_ += 8;
-					}
+					pixels_ += 8;
 				}
 			}
 		);
@@ -205,20 +348,14 @@ void MC6847Base::set_mode(
 	const bool external_rom,
 	const bool invert,
 	const uint8_t graphics_mode,
-	[[maybe_unused]] const bool colour_select
+	const bool colour_select
 ) {
-	mode_ = [&]() {
-		if(graphics) {
-			return GraphicsMode(graphics_mode);
-		}
-
-		if(semigraphics) {
-			return external_rom ? GraphicsMode::Semigraphics6 : GraphicsMode::Semigraphics4;
-		}
-
-		return external_rom ? GraphicsMode::ExternalAlphanumerics : GraphicsMode::InternalAlphanumerics;
-	} ();
-	alphanumerics_inversion_ = invert ? 0xff : 0x00;
+	mode_ =
+		(graphics ? Mode::Graphics : 0) |
+		(semigraphics ? Mode::Semigraphics : 0) |
+		(external_rom ? Mode::ExternalROM : 0) |
+		(invert ? Mode::Invert : 0) |
+		(colour_select ? Mode::ColourSelect : 0);;
 
 	const auto set_32bytes = [&] {
 		address_.increment_mask_ = 1;
@@ -227,50 +364,24 @@ void MC6847Base::set_mode(
 	const auto set_16bytes = [&] {
 		address_.increment_mask_ = 0;
 		address_.line_mask_ = uint16_t(~15);
+		mode_ |= Mode::Columns16;
 	};
 
-	switch(mode_) {
-		case InternalAlphanumerics:
-		case ExternalAlphanumerics:
-		case Semigraphics4:
-		case Semigraphics6:
-			set_32bytes();
-			address_.target_row_ = 12;
-		break;
+	if(graphics) {
+		const auto mode = Mode::GraphicsMode(graphics_mode);
 
-		case ResolutionGraphics1:		// 128x64;
-		case ColourGraphics1:			// 64x64; 1kb required.
+		if(Mode::is_16column(mode)) {
 			set_16bytes();
-			address_.target_row_ = 3;
-		break;
-
-		case ResolutionGraphics2:		// 128x96; 2kb required.
-			set_16bytes();
-			address_.target_row_ = 2;
-		break;
-
-		case ColourGraphics2:			// 128x64: 2kb required.
+		} else {
 			set_32bytes();
-			address_.target_row_ = 3;
-		break;
-
-		case ColourGraphics3:			// 128x96: 3kb required.
-			set_32bytes();
-			address_.target_row_ = 2;
-		break;
-
-		case ColourGraphics6:			// 128x192: 6kb required.
-		case ResolutionGraphics6:		// 256x192, 6kb required.
-			set_32bytes();
-			address_.target_row_ = 1;
-		break;
-
-		case ResolutionGraphics3:		// 128x192; 3 kb required.
-			set_16bytes();
-			address_.target_row_ = 2;
-		break;
-
-		default: __builtin_unreachable();
+		}
+		address_.target_row_ = repeated_rows(mode);
+		if(is_2bpp(mode)) {
+			mode_ |= Mode::BPP2;
+		}
+	} else {
+		set_32bytes();
+		address_.target_row_ = 12;
 	}
 
 	// TODO: apply my net understanding, which is now this:
