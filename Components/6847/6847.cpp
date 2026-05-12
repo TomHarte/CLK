@@ -78,6 +78,49 @@ static constexpr uint8_t font[64][12] = {
 	{ 0x00, 0x00, 0x00, 0x18, 0x24, 0x04, 0x08, 0x08, 0x00, 0x08, 0x00, 0x00, },
 };
 
+
+namespace Colours {
+constexpr uint32_t rgb(const uint8_t r, const uint8_t g, const uint8_t b) {
+	uint8_t value[] = {
+		r, g, b, 0
+	};
+	return std::bit_cast<uint32_t>(value);
+}
+
+//
+// RGB values below sourced from http://www.hcvgm.org/VDG_Colours.html
+//
+constexpr uint32_t text0[] = { rgb(0x28, 0xe0, 0x28), rgb(0x10, 0x60, 0x10) };
+constexpr uint32_t text1[] = { rgb(0x80, 0x30, 0x10) , rgb(0xf0, 0xb0, 0x40) };
+
+constexpr uint32_t resolution0[] = { rgb(0x28, 0xe0, 0x28), rgb(0x10, 0x60, 0x10) };
+constexpr uint32_t resolution1[] = { rgb(0x00, 0x00, 0x00), rgb(0xf0, 0xf0, 0xf0) };
+
+constexpr uint32_t colour0[] = {
+	rgb(0x28, 0xe0, 0x28),
+	rgb(0xf0, 0xf0, 0x70),
+	rgb(0x20, 0x20, 0xd8),
+	rgb(0xa8, 0x20, 0x20),
+};
+constexpr uint32_t colour1[] = {
+	rgb(0xf0, 0xf0, 0xf0),
+	rgb(0x28, 0xa8, 0xa8),
+	rgb(0xd3, 0x61, 0xfa),
+	rgb(0xf0, 0x88, 0x28),
+};
+
+constexpr uint32_t semigraphics[][2] = {
+	{ rgb(0x00, 0x00, 0x00), rgb(0xf0, 0x88, 0x28), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0xd3, 0x61, 0xfa), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0x28, 0xa8, 0xa8), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0xf0, 0xf0, 0xf0), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0xa8, 0x20, 0x20), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0x20, 0x20, 0xd8), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0xf0, 0xf0, 0x70), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0x28, 0xe0, 0x28), },
+};
+}
+
 // Empirical, by eye.
 static constexpr uint8_t ColourPhase = 215;
 
@@ -90,7 +133,7 @@ MC6847Base::MC6847Base(const Outputs::Display::Type display_type) :
 	455,
 	1,
 	display_type,
-	Outputs::Display::InputDataType::Red4Green4Blue4	// TODO.
+	Outputs::Display::InputDataType::Red8Green8Blue8
 ) {
 	crt_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
 }
@@ -101,7 +144,7 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 		crt_.output_colour_burst(LineLayout::EndOfColourBurst - LineLayout::EndOfSync, ColourPhase);
 		crt_.output_blank(LineLayout::EndOfLeftBorder - LineLayout::EndOfColourBurst);
 
-		pixels_ = reinterpret_cast<uint16_t *>(crt_.begin_data(256));
+		pixels_ = reinterpret_cast<uint32_t *>(crt_.begin_data(256));
 	}
 	if(pixels_) [[likely]] {
 		Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
@@ -113,19 +156,131 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 				const int column_end = (end - LineLayout::EndOfLeftBorder) >> 3;
 
 				for(int c = column_begin; c < column_end; c++) {
-					const int mode = line_.columns[c].mode;
-					const int data = line_.columns[c & ~(mode & Mode::Columns16)].data;
-					const int pixels = mode & Mode::Graphics ? data : font[data & 63][row];
+					const auto mode = line_.columns[c].mode;
+					const auto data = line_.columns[c & ~(mode & Mode::Columns16)].data;
 
-					// TODO: 2bpp mode, obey semigraphics mode, invert, external ROM, colour select.
-					pixels_[0] = (pixels & 0x80) ? 0xffff : 0x0000;
-					pixels_[1] = (pixels & 0x40) ? 0xffff : 0x0000;
-					pixels_[2] = (pixels & 0x20) ? 0xffff : 0x0000;
-					pixels_[3] = (pixels & 0x10) ? 0xffff : 0x0000;
-					pixels_[4] = (pixels & 0x08) ? 0xffff : 0x0000;
-					pixels_[5] = (pixels & 0x04) ? 0xffff : 0x0000;
-					pixels_[6] = (pixels & 0x02) ? 0xffff : 0x0000;
-					pixels_[7] = (pixels & 0x01) ? 0xffff : 0x0000;
+					if(mode & Mode::Graphics) {
+						switch(mode & (Mode::BPP2 | Mode::Columns16)) {
+							case 0: {	// 1bpp, 32-column.
+								const uint32_t *const palette =
+									mode & Mode::ColourSelect ? Colours::resolution1 : Colours::resolution0;
+
+								pixels_[0] = palette[(data >> 7) & 1];
+								pixels_[1] = palette[(data >> 6) & 1];
+								pixels_[2] = palette[(data >> 5) & 1];
+								pixels_[3] = palette[(data >> 4) & 1];
+								pixels_[4] = palette[(data >> 3) & 1];
+								pixels_[5] = palette[(data >> 2) & 1];
+								pixels_[6] = palette[(data >> 1) & 1];
+								pixels_[7] = palette[(data >> 0) & 1];
+							} break;
+
+							case Mode::Columns16: {	// 1bpp, 16-column.
+								const uint32_t *const palette =
+									mode & Mode::ColourSelect ? Colours::resolution1 : Colours::resolution0;
+
+								if(c & 1) {
+									pixels_[0] =
+									pixels_[1] = palette[(data >> 3) & 1];
+									pixels_[2] =
+									pixels_[3] = palette[(data >> 2) & 1];
+									pixels_[4] =
+									pixels_[5] = palette[(data >> 1) & 1];
+									pixels_[6] =
+									pixels_[7] = palette[(data >> 0) & 1];
+								} else {
+									pixels_[0] =
+									pixels_[1] = palette[(data >> 7) & 1];
+									pixels_[2] =
+									pixels_[3] = palette[(data >> 6) & 1];
+									pixels_[4] =
+									pixels_[5] = palette[(data >> 5) & 1];
+									pixels_[6] =
+									pixels_[7] = palette[(data >> 4) & 1];
+								}
+							} break;
+
+							case Mode::BPP2: {	// 2bpp, 32-column.
+								const uint32_t *const palette =
+									mode & Mode::ColourSelect ? Colours::colour1 : Colours::colour0;
+
+								pixels_[0] =
+								pixels_[1] = palette[(data >> 6) & 3];
+								pixels_[2] =
+								pixels_[3] = palette[(data >> 4) & 3];
+								pixels_[4] =
+								pixels_[5] = palette[(data >> 2) & 3];
+								pixels_[6] =
+								pixels_[7] = palette[(data >> 0) & 3];
+							} break;
+
+							case Mode::BPP2 | Mode::Columns16: {	// 2bpp, 16-column.
+								const uint32_t *const palette =
+									mode & Mode::ColourSelect ? Colours::colour1 : Colours::colour0;
+
+								if(c & 1) {
+									pixels_[0] =
+									pixels_[1] =
+									pixels_[2] =
+									pixels_[3] = palette[(data >> 2) & 3];
+									pixels_[4] =
+									pixels_[5] =
+									pixels_[6] =
+									pixels_[7] = palette[(data >> 0) & 3];
+								} else {
+									pixels_[0] =
+									pixels_[1] =
+									pixels_[2] =
+									pixels_[3] = palette[(data >> 6) & 3];
+									pixels_[4] =
+									pixels_[5] =
+									pixels_[6] =
+									pixels_[7] = palette[(data >> 4) & 3];
+								}
+							} break;
+
+							default: __builtin_unreachable();
+						}
+					} else {
+						if(mode & Mode::Semigraphics) {
+							const uint32_t *palette;
+							uint8_t pixels;
+
+							if(mode & Mode::ExternalROM) {
+								palette = Colours::semigraphics[data >> 6];
+								pixels = [&]() -> uint8_t {
+									if(row < 4) return data >> 4;
+									if(row < 8) return data >> 2;
+									return data;
+								} ();
+							} else {
+								palette = Colours::semigraphics[(data >> 4) & 7];
+								pixels = row < 6 ? data >> 2 : data;
+							}
+
+							pixels_[0] =
+							pixels_[1] =
+							pixels_[2] =
+							pixels_[3] = palette[(pixels >> 1) & 1];
+							pixels_[4] =
+							pixels_[5] =
+							pixels_[6] =
+							pixels_[7] = palette[(pixels >> 0) & 1];
+						} else {
+							const uint32_t *const palette = mode & Mode::ColourSelect ? Colours::text1 : Colours::text0;
+							const uint8_t pixels =
+								font[data & 63][row] ^ (mode & Mode::Invert ? 0xff : 0x00) ^ (data & 64 ? 0xff : 0x00);
+
+							pixels_[0] = palette[(pixels >> 7) & 1];
+							pixels_[1] = palette[(pixels >> 6) & 1];
+							pixels_[2] = palette[(pixels >> 5) & 1];
+							pixels_[3] = palette[(pixels >> 4) & 1];
+							pixels_[4] = palette[(pixels >> 3) & 1];
+							pixels_[5] = palette[(pixels >> 2) & 1];
+							pixels_[6] = palette[(pixels >> 1) & 1];
+							pixels_[7] = palette[(pixels >> 0) & 1];
+						}
+					}
 					pixels_ += 8;
 				}
 			}

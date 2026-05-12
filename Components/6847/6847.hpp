@@ -143,7 +143,7 @@ struct MC6847Base {
 	};
 
 	Outputs::CRT::CRT crt_;
-	uint16_t *pixels_ = nullptr;
+	uint32_t *pixels_ = nullptr;
 
 	void set_mode(
 		bool graphics,
