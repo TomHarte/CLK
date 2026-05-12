@@ -421,11 +421,11 @@ private:
 		template <Motorola::MC6821::Control control>
 		void observe(const bool value) {
 			if constexpr (control == Motorola::MC6821::Control::CA2) {
-				joystick_ = value;
+				axis_ = value;
 				machine_.mux_ = (machine_.mux_ & 1) | (value ? 2 : 0);
 			}
 			if constexpr (control == Motorola::MC6821::Control::CB2) {
-				axis_ = value;
+				joystick_ = value;
 				machine_.mux_ = (machine_.mux_ & 2) | (value ? 1 : 0);
 			}
 		}
@@ -488,6 +488,9 @@ private:
 		//	b1: 1-bit sound/tape something?
 		//	b0: RS232 data input
 		//
+		// Note to self: semigraphic 6847 line is connected to b7 of the data bus; it is set or unset depending on
+		// the data fetched for that column.
+		//
 		//	CB1: cartridge interrupt input
 		//	CB2: sound enable
 
@@ -520,7 +523,7 @@ private:
 			if constexpr (port == Motorola::MC6821::Port::B) {
 				machine_.m6847_->set_mode(
 					value & 0x80,		// Alpha/graphics.
-					value & 0x80,		// Graphics/semigraphics.
+					value & 0x80,		// Graphics/semigraphics. [TODO: set by fetched bytes, not here]
 					false,				// External ROM.
 					value & 0x20,		// Invert.
 					(value >> 4) & 7,	// Graphics mode.
