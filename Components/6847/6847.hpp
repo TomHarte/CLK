@@ -184,6 +184,8 @@ struct MC6847Base {
 		uint16_t address_ = 0;
 		Numeric::SizedInt<4> row_;
 	} address_;
+
+	Outputs::Display::Type display_type_;
 };
 
 struct NullMapper {

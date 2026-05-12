@@ -130,18 +130,24 @@ using namespace Motorola::MC6847;
 
 MC6847Base::MC6847Base(const Outputs::Display::Type display_type) :
 	crt_(
-	455,
-	1,
-	display_type,
-	Outputs::Display::InputDataType::Red8Green8Blue8
-) {
+		455,
+		1,
+		display_type,
+		Outputs::Display::InputDataType::Red8Green8Blue8
+	),
+	display_type_(display_type)
+{
 	crt_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
 }
 
 void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 	if(line_begin < LineLayout::EndOfLeftBorder && line_end >= LineLayout::EndOfLeftBorder) [[unlikely]] {
 		crt_.output_sync(LineLayout::EndOfSync);
-		crt_.output_colour_burst(LineLayout::EndOfColourBurst - LineLayout::EndOfSync, ColourPhase);
+		if(display_type_ == Outputs::Display::Type::NTSC60) {
+			crt_.output_colour_burst(LineLayout::EndOfColourBurst - LineLayout::EndOfSync, ColourPhase);
+		} else {
+			crt_.output_default_colour_burst(LineLayout::EndOfColourBurst - LineLayout::EndOfSync);
+		}
 		crt_.output_blank(LineLayout::EndOfLeftBorder - LineLayout::EndOfColourBurst);
 
 		pixels_ = reinterpret_cast<uint32_t *>(crt_.begin_data(256));
