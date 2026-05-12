@@ -274,8 +274,13 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 							pixels_[7] = palette[(pixels >> 0) & 1];
 						} else {
 							const uint32_t *const palette = mode & Mode::ColourSelect ? Colours::text1 : Colours::text0;
-							const uint8_t pixels =
-								font[data & 63][row] ^ (mode & Mode::Invert ? 0xff : 0x00) ^ (data & 64 ? 0xff : 0x00);
+							uint8_t pixels = (mode & Mode::Invert ? 0xff : 0x00) ^ (data & 64 ? 0xff : 0x00);
+
+							if(mode & Mode::ExternalROM) {
+								// TODO: external ROM.
+							} else {
+								pixels ^= font[data & 63][row];
+							}
 
 							pixels_[0] = palette[(pixels >> 7) & 1];
 							pixels_[1] = palette[(pixels >> 6) & 1];
