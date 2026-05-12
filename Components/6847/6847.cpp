@@ -112,33 +112,21 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 				const int column_begin = (begin - LineLayout::EndOfLeftBorder) >> 3;
 				const int column_end = (end - LineLayout::EndOfLeftBorder) >> 3;
 
-				// TODO: properly obey graphics mode here, use colours.
-				if(mode_ <= GraphicsMode::ResolutionGraphics6) {
-					for(int c = column_begin; c < column_end; c++) {
-						const int pixels = line_.data[c];
-						pixels_[0] = (pixels & 0x80) ? 0xffff : 0x0000;
-						pixels_[1] = (pixels & 0x40) ? 0xffff : 0x0000;
-						pixels_[2] = (pixels & 0x20) ? 0xffff : 0x0000;
-						pixels_[3] = (pixels & 0x10) ? 0xffff : 0x0000;
-						pixels_[4] = (pixels & 0x08) ? 0xffff : 0x0000;
-						pixels_[5] = (pixels & 0x04) ? 0xffff : 0x0000;
-						pixels_[6] = (pixels & 0x02) ? 0xffff : 0x0000;
-						pixels_[7] = (pixels & 0x01) ? 0xffff : 0x0000;
-						pixels_ += 8;
-					}
-				} else {
-					for(int c = column_begin; c < column_end; c++) {
-						const int pixels = font[line_.data[c] & 63][row];
-						pixels_[0] = (pixels & 0x80) ? 0xffff : 0x0000;
-						pixels_[1] = (pixels & 0x40) ? 0xffff : 0x0000;
-						pixels_[2] = (pixels & 0x20) ? 0xffff : 0x0000;
-						pixels_[3] = (pixels & 0x10) ? 0xffff : 0x0000;
-						pixels_[4] = (pixels & 0x08) ? 0xffff : 0x0000;
-						pixels_[5] = (pixels & 0x04) ? 0xffff : 0x0000;
-						pixels_[6] = (pixels & 0x02) ? 0xffff : 0x0000;
-						pixels_[7] = (pixels & 0x01) ? 0xffff : 0x0000;
-						pixels_ += 8;
-					}
+				for(int c = column_begin; c < column_end; c++) {
+					const int mode = line_.columns[c].mode;
+					const int data = line_.columns[c & ~(mode & Mode::Columns16)].data;
+					const int pixels = mode & Mode::Graphics ? data : font[data & 63][row];
+
+					// TODO: 2bpp mode, obey semigraphics mode, invert, external ROM, colour select.
+					pixels_[0] = (pixels & 0x80) ? 0xffff : 0x0000;
+					pixels_[1] = (pixels & 0x40) ? 0xffff : 0x0000;
+					pixels_[2] = (pixels & 0x20) ? 0xffff : 0x0000;
+					pixels_[3] = (pixels & 0x10) ? 0xffff : 0x0000;
+					pixels_[4] = (pixels & 0x08) ? 0xffff : 0x0000;
+					pixels_[5] = (pixels & 0x04) ? 0xffff : 0x0000;
+					pixels_[6] = (pixels & 0x02) ? 0xffff : 0x0000;
+					pixels_[7] = (pixels & 0x01) ? 0xffff : 0x0000;
+					pixels_ += 8;
 				}
 			}
 		);
@@ -205,20 +193,14 @@ void MC6847Base::set_mode(
 	const bool external_rom,
 	const bool invert,
 	const uint8_t graphics_mode,
-	[[maybe_unused]] const bool colour_select
+	const bool colour_select
 ) {
-	mode_ = [&]() {
-		if(graphics) {
-			return GraphicsMode(graphics_mode);
-		}
-
-		if(semigraphics) {
-			return external_rom ? GraphicsMode::Semigraphics6 : GraphicsMode::Semigraphics4;
-		}
-
-		return external_rom ? GraphicsMode::ExternalAlphanumerics : GraphicsMode::InternalAlphanumerics;
-	} ();
-	alphanumerics_inversion_ = invert ? 0xff : 0x00;
+	mode_ =
+		(graphics ? Mode::Graphics : 0) |
+		(semigraphics ? Mode::Semigraphics : 0) |
+		(external_rom ? Mode::ExternalROM : 0) |
+		(invert ? Mode::Invert : 0) |
+		(colour_select ? Mode::ColourSelect : 0);;
 
 	const auto set_32bytes = [&] {
 		address_.increment_mask_ = 1;
@@ -227,50 +209,24 @@ void MC6847Base::set_mode(
 	const auto set_16bytes = [&] {
 		address_.increment_mask_ = 0;
 		address_.line_mask_ = uint16_t(~15);
+		mode_ |= Mode::Columns16;
 	};
 
-	switch(mode_) {
-		case InternalAlphanumerics:
-		case ExternalAlphanumerics:
-		case Semigraphics4:
-		case Semigraphics6:
-			set_32bytes();
-			address_.target_row_ = 12;
-		break;
+	if(graphics) {
+		const auto mode = Mode::GraphicsMode(graphics_mode);
 
-		case ResolutionGraphics1:		// 128x64;
-		case ColourGraphics1:			// 64x64; 1kb required.
+		if(Mode::is_16column(mode)) {
 			set_16bytes();
-			address_.target_row_ = 3;
-		break;
-
-		case ResolutionGraphics2:		// 128x96; 2kb required.
-			set_16bytes();
-			address_.target_row_ = 2;
-		break;
-
-		case ColourGraphics2:			// 128x64: 2kb required.
+		} else {
 			set_32bytes();
-			address_.target_row_ = 3;
-		break;
-
-		case ColourGraphics3:			// 128x96: 3kb required.
-			set_32bytes();
-			address_.target_row_ = 2;
-		break;
-
-		case ColourGraphics6:			// 128x192: 6kb required.
-		case ResolutionGraphics6:		// 256x192, 6kb required.
-			set_32bytes();
-			address_.target_row_ = 1;
-		break;
-
-		case ResolutionGraphics3:		// 128x192; 3 kb required.
-			set_16bytes();
-			address_.target_row_ = 2;
-		break;
-
-		default: __builtin_unreachable();
+		}
+		address_.target_row_ = repeated_rows(mode);
+		if(is_2bpp(mode)) {
+			mode_ |= Mode::BPP2;
+		}
+	} else {
+		set_32bytes();
+		address_.target_row_ = 12;
 	}
 
 	// TODO: apply my net understanding, which is now this:
