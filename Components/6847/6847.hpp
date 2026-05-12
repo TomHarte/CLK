@@ -39,7 +39,6 @@ template <FrameTiming timing> struct FrameLayout {
 static_assert(FrameLayout<FrameTiming::NTSC>::EndOfField == 262, "NTSC frames should be 262 lines long");
 static_assert(FrameLayout<FrameTiming::PALPaddedVsync>::EndOfField == 312, "PAL-padded frames should be 312 lines long");
 
-// TODO: allow a delegate to be specified, and signal it.
 struct MC6847Delegate {
 	virtual void set_hsync(bool active) = 0;
 	virtual void set_vsync(bool active) = 0;
@@ -205,6 +204,7 @@ public:
 	bool hsync() const;
 	bool vsync() const;
 	using MC6847Base::set_mode;
+	void set_delegate(MC6847Delegate *);
 
 	// MARK: - ScanTarget entrypoints.
 
@@ -216,6 +216,7 @@ public:
 private:
 	MemoryAccessT &memory_;
 	Numeric::DividingAccumulator<LineLayout::EndOfLine, FrameLayout<timing>::EndOfField> position_{2};
+	MC6847Delegate *delegate_ = nullptr;
 };
 
 // MARK: - Implementation.
@@ -236,7 +237,11 @@ void MC6847<timing, MemoryAccessT, ModeMapperT>::run_for(const Cycles cycles) {
 	position_.advance(
 		cycles.as<int>(),
 		[&] (const int line, const int begin, const int end) {
+			if(delegate_ && !begin) delegate_->set_hsync(true);
+
 			if(line < FrameLayout<timing>::EndOfPixels) {
+				if(delegate_ && !begin && !address_.row()) delegate_->set_row_preset(true);
+
 				Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
 					begin,
 					end,
@@ -253,17 +258,27 @@ void MC6847<timing, MemoryAccessT, ModeMapperT>::run_for(const Cycles cycles) {
 					}
 				);
 				pixel_line(begin, end);
+
+				if(delegate_ && end >= LineLayout::EndOfSync) delegate_->set_row_preset(false);
 			} else if(line < FrameLayout<timing>::EndOfBottomBorder) {
 				border_line(begin, end);
 			} else if(line < FrameLayout<timing>::EndOfFrontPorch) {
 				porch_line(begin, end);
 			} else if(line < FrameLayout<timing>::EndOfSync) {
+				if(delegate_ && !begin && line == FrameLayout<timing>::EndOfFrontPorch) {
+					delegate_->set_vsync(true);
+				}
 				sync_line(begin, end);
 			} else if(line < FrameLayout<timing>::EndOfBackPorch) {
+				if(delegate_ && !begin && line == FrameLayout<timing>::EndOfSync) {
+					delegate_->set_vsync(false);
+				}
 				porch_line(begin, end);
 			} else {
 				border_line(begin, end);
 			}
+
+			if(delegate_ && end >= LineLayout::EndOfSync) delegate_->set_hsync(false);
 		},
 		[&] {
 			reset();
@@ -279,6 +294,11 @@ Cycles MC6847<timing, MemoryAccessT, ModeMapperT>::next_sequence_point() const {
 template <FrameTiming timing, typename MemoryAccessT, typename ModeMapperT>
 bool MC6847<timing, MemoryAccessT, ModeMapperT>::hsync() const {
 	return MC6847Base::hsync(position_.subsegment());
+}
+
+template <FrameTiming timing, typename MemoryAccessT, typename ModeMapperT>
+void MC6847<timing, MemoryAccessT, ModeMapperT>::set_delegate(MC6847Delegate *const delegate) {
+	delegate_ = delegate;
 }
 
 template <FrameTiming timing, typename MemoryAccessT, typename ModeMapperT>
