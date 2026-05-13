@@ -580,14 +580,52 @@ private:
 		SAM(MemoryMap &memory) : memory_(memory) {}
 
 		uint8_t operator[](const uint16_t address) {
-			// TODO: this whole thing is phoney; all I'm doing is taking the full 6847-generated
-			// address and adding an offset. The real SAM does a minimal reimplementation of 6847-style
-			// address counting. Do that.
-			//
-			// This is very much bootstrapping stuff.
-			//
-			// TODO: this shouldn't be able to go into ROM, possibly?
-			return memory_.read(address + graphics_address_);
+			b1b3_ += ((previous_6847_address_ ^ address) & previous_6847_address_ & 1) << 1;
+			previous_6847_address_ = address;
+
+			x_ += b1b3_ >> 4;
+			b1b3_ &= 0b0'1110;
+
+			if(x_ == x_divider_) {
+				x_ = 0;
+
+				b4_ += 0b1'0000;
+				y_ += b4_ >> 5;
+				b4_ &= 0b1'0000;
+
+				if(y_ == y_divider_) {
+					y_ = 0;
+					b5b15_ += 0b10'0000;
+				}
+			}
+
+			// TODO: determine whether this should be able to read ROM.
+//			printf("%04x -> %04x\n", address, (address & 1) | b1b3_ | b4_ | b5b15_);
+			return memory_.read((address & 1) | b1b3_ | b4_ | b5b15_);
+		}
+		template <bool active> void set_hsync() {
+			if(active) {
+				b1b3_ &= clear_mask_;
+				b4_ &= clear_mask_;
+//				previous_6847_address_ = 0;	// TODO: probably not appropriate, might be because I'm not doing border fetches?
+//				printf("HS\n");
+			}
+		}
+		template <bool active> void set_field_sync() {
+			if(!active) {
+				b5b15_ = graphics_address_;
+				b4_ = 0;
+				b1b3_ = 0;
+				previous_6847_address_ = 0;
+//				x_ = y_ = 0;
+//				printf("FS\n");
+			}
+		}
+		template <bool active> void set_row_preset() {
+			if(active) {
+				x_ = y_ = 0;
+//				printf("RP\n");
+			}
 		}
 
 		template <uint16_t address> void access() {
@@ -685,14 +723,6 @@ private:
 			return graphics_address_;
 		}
 
-		template <bool active> void set_hsync() {}
-		template <bool active> void set_field_sync() {
-			if(!active) {
-				address_counter_ = graphics_address_;
-			}
-		}
-		template <bool active> void set_row_preset() {}
-
 	private:
 		MemoryMap &memory_;
 
@@ -710,9 +740,34 @@ private:
 		bool page1_ = false;
 		int ram_size_ = 0;
 
-		uint16_t address_counter_;
-		uint16_t clear_mask_;
-		int x_divider_, y_divider_;
+		// 'X' and 'Y' are the data sheet names for these values, which is unfortunate given that they're involved
+		// in data fetch but don't correlate with dimensions.
+		//
+		// Requirements:
+		//
+		//	The low bit of the address coming from the 6847 acts as the low bit of the address fetched.
+		//	It also clocks counting.
+		//
+		//	Above that is a three-bit counter, which it clocks.
+		//
+		//	That three bit counter feeds into the 'x' divider. So if the x divider is 3 then that counter must overflow
+		//	three times in order to propagate carry upwards.
+		//
+		//	Carry from that counter is fed into a one-bit counter.
+		//
+		//	That one bit counter then clocks the 'y' divider, carry from which clocks the remaining 11 bits of output.
+		//
+		// At field sync the top seven bits of the counter are reloaded from the programmed base address.
+		// At horizontal sync the programmed mask is applied to the counters.
+		// Upon row preset, both x and y dividers are reset to 0.
+		//
+		// Observations: the hsync clearing mask never affects the top 11 bits — the portiona after the y divider.
+
+		uint16_t b1b3_, x_, b4_, y_, b5b15_;
+		uint16_t x_divider_ = 1, y_divider_ = 1;
+		uint16_t clear_mask_ = 0xffff;
+
+		uint16_t previous_6847_address_ = 0;
 	};
 	SAM sam_;
 

@@ -264,7 +264,22 @@ void MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::run_for(const Cycles
 				);
 				pixel_line(begin, end);
 
-				if(end >= LineLayout::EndOfSync) delegate_.template set_row_preset<false>();
+				// Extra accesses required: ten more in 32-byte video modes, and six more in 16-byte modes.
+				// That's 80 to 96 more cycles of fetches?
+				//
+				// If fetching continued until end of sync then that'd be 354 cycles of fetching = 44.25 columns.
+				// I'm unclear how to make a meaningful case for 10 vs 6 though. Might need to hack this?
+				//
+				//		static const int EndOfSync = 28;
+				//		static const int EndOfColourBurst = 55;
+				//		static const int EndOfBackPorch = 72;
+				//		static const int EndOfLeftBorder = 130;
+				//		static const int EndOfPixels = 386;
+				//		static const int EndOfRightBorder = 442;
+				//		static const int EndOfLine = 456;
+
+
+				if(end >= LineLayout::EndOfSync && !address_.row()) delegate_.template set_row_preset<false>();
 			} else if(line < FrameLayout<timing>::EndOfBottomBorder) {
 				if(!begin && line == FrameLayout<timing>::EndOfPixels) {
 					delegate_.template set_field_sync<true>();
