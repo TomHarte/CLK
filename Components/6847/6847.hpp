@@ -266,7 +266,7 @@ void MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::run_for(const Cycles
 				);
 
 				// Fetches actually continue until end of line, but they're not used.
-				Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
+				Numeric::clamp<LineLayout::EndOfPixels, LineLayout::EndOfLine>(
 					begin,
 					end,
 					[&](const int fetch_begin, const int fetch_end) {
