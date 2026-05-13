@@ -426,7 +426,7 @@ private:
 
 		template <Motorola::MC6821::Port port>
 		void output(const uint8_t value) {
-			if constexpr (port == Motorola::MC6821::Port::B) {
+			if constexpr (port == Motorola::MC6821::Port::A) {
 				keyboard_row_ = value;
 			}
 			if constexpr (port == Motorola::MC6821::Port::B) {
@@ -458,14 +458,14 @@ private:
 		}
 
 		void set_key_pressed(const int column, const int row, bool is_pressed) {
-			const auto column_mask = uint8_t(0xff ^ (1 << column));
-			const auto row_mask = uint8_t(0xff ^ (1 << row));
+			const auto column_mask = uint8_t(1 << column);
+			const auto row_mask = uint8_t(1 << row);
 
-			key_columns_[row] &= column_mask;
-			key_rows_[column] &= row_mask;
+			key_columns_[row] &= ~column_mask;
+			key_rows_[column] &= ~row_mask;
 			if(!is_pressed) {
-				key_columns_[row] |= ~column_mask;
-				key_rows_[column] |= ~row_mask;
+				key_columns_[row] |= column_mask;
+				key_rows_[column] |= row_mask;
 			}
 		}
 
