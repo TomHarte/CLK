@@ -595,15 +595,28 @@ private:
 				target = target & ~bit;
 				target |= address & 1 ? bit : 0;
 			};
+			const auto configure_counter = [&] {
+				switch(graphics_mode_) {
+					case 0:	x_divider_ = 1;	y_divider_ = 12;	clear_mask_ = 0b1111'1111'1110'0000; break;
+					case 1:	x_divider_ = 3;	y_divider_ = 1; 	clear_mask_ = 0b1111'1111'1111'0000; break;
+					case 2:	x_divider_ = 1;	y_divider_ = 3;		clear_mask_ = 0b1111'1111'1110'0000; break;
+					case 3:	x_divider_ = 2;	y_divider_ = 1;		clear_mask_ = 0b1111'1111'1111'0000; break;
+					case 4:	x_divider_ = 1;	y_divider_ = 2; 	clear_mask_ = 0b1111'1111'1110'0000; break;
+					case 5:	x_divider_ = 1;	y_divider_ = 1;		clear_mask_ = 0b1111'1111'1111'0000; break;
+					case 6:	x_divider_ = 1;	y_divider_ = 1;		clear_mask_ = 0b1111'1111'1110'0000; break;
+					case 7:	x_divider_ = 1;	y_divider_ = 1;		clear_mask_ = 0b1111'1111'1111'1111; break;
+					default: __builtin_unreachable();
+				}
+			};
 
 			switch((address >> 1) & 0xf) {
 				default:
 					printf("Unhandled SAM access %04x\n", address);
 				break;
 
-				case 0:	set(graphics_mode_, 1);	break;
-				case 1:	set(graphics_mode_, 2);	break;
-				case 2:	set(graphics_mode_, 4);	break;
+				case 0:	set(graphics_mode_, 1);	configure_counter(); break;
+				case 1:	set(graphics_mode_, 2);	configure_counter(); break;
+				case 2:	set(graphics_mode_, 4);	configure_counter(); break;
 
 				case 3:	set(graphics_address_, 0x0200);	break;
 				case 4:	set(graphics_address_, 0x0400);	break;
@@ -692,6 +705,10 @@ private:
 		bool all_ram_ = false;
 		bool page1_ = false;
 		int ram_size_ = 0;
+
+		uint16_t address_counter_;
+		uint16_t clear_mask_;
+		int x_divider_, y_divider_;
 	};
 	SAM sam_;
 
