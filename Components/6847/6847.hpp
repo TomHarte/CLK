@@ -247,6 +247,7 @@ void MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::run_for(const Cycles
 			if(line < FrameLayout<timing>::EndOfPixels) {
 				if(!begin && !address_.row()) delegate_.template set_row_preset<true>();
 
+				// Perform meaningful fetches.
 				Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
 					begin,
 					end,
@@ -259,6 +260,21 @@ void MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::run_for(const Cycles
 							line_.columns[c].data = memory_[source];
 							line_.columns[c].mode = ModeMapperT()(line_.columns[c].data, mode_);
 							address_.advance(c);
+						}
+					}
+				);
+
+				// Fetches actually continue until end of line, but they're not used.
+				Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
+					begin,
+					end,
+					[&](const int fetch_begin, const int fetch_end) {
+						const int column_begin = (fetch_begin - LineLayout::EndOfLeftBorder) >> 3;
+						const int column_end = (fetch_end - LineLayout::EndOfLeftBorder) >> 3;
+
+						for(int c = column_begin; c < column_end; c++) {
+							const auto source = address_.address() + c;
+							(void)memory_[source];
 						}
 					}
 				);

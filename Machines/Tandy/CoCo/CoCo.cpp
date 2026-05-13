@@ -24,6 +24,8 @@
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "Outputs/Speaker/Implementation/BufferSource.hpp"
 
+#include <cassert>
+
 using namespace Tandy::CoCo;
 
 namespace {
@@ -600,15 +602,13 @@ private:
 			}
 
 			// TODO: determine whether this should be able to read ROM.
-//			printf("%04x -> %04x\n", address, (address & 1) | b1b3_ | b4_ | b5b15_);
 			return memory_.read((address & 1) | b1b3_ | b4_ | b5b15_);
 		}
 		template <bool active> void set_hsync() {
 			if(active) {
 				b1b3_ &= clear_mask_;
 				b4_ &= clear_mask_;
-//				previous_6847_address_ = 0;	// TODO: probably not appropriate, might be because I'm not doing border fetches?
-//				printf("HS\n");
+				previous_6847_address_ = 0;
 			}
 		}
 		template <bool active> void set_field_sync() {
@@ -617,14 +617,16 @@ private:
 				b4_ = 0;
 				b1b3_ = 0;
 				previous_6847_address_ = 0;
-//				x_ = y_ = 0;
-//				printf("FS\n");
+
+				// TODO: these should be in row preset per my understanding, but I'm not sure that's
+				// signalling correctly. It is definitely true that some titles put the 6847 into one vertical height
+				// and the SAM into a different one, expecting the SAM's setting to win.
+				x_ = y_ = 0;
 			}
 		}
 		template <bool active> void set_row_preset() {
 			if(active) {
-				x_ = y_ = 0;
-//				printf("RP\n");
+//				x_ = y_ = 0;
 			}
 		}
 
