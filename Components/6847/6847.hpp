@@ -188,9 +188,9 @@ struct NullMapper {
 };
 
 struct NullDelegate {
-	void set_hsync(bool) {}
-	void set_field_sync(bool) {}
-	void set_row_preset(bool) {}
+	template <bool> void set_hsync() {}
+	template <bool> void set_field_sync() {}
+	template <bool> void set_row_preset() {}
 };
 
 template <
@@ -242,10 +242,10 @@ void MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::run_for(const Cycles
 	position_.advance(
 		cycles.as<int>(),
 		[&] (const int line, const int begin, const int end) {
-			if(!begin) delegate_.set_hsync(true);
+			if(!begin) delegate_.template set_hsync<true>();
 
 			if(line < FrameLayout<timing>::EndOfPixels) {
-				if(!begin && !address_.row()) delegate_.set_row_preset(true);
+				if(!begin && !address_.row()) delegate_.template set_row_preset<true>();
 
 				Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
 					begin,
@@ -264,10 +264,10 @@ void MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::run_for(const Cycles
 				);
 				pixel_line(begin, end);
 
-				if(end >= LineLayout::EndOfSync) delegate_.set_row_preset(false);
+				if(end >= LineLayout::EndOfSync) delegate_.template set_row_preset<false>();
 			} else if(line < FrameLayout<timing>::EndOfBottomBorder) {
 				if(!begin && line == FrameLayout<timing>::EndOfPixels) {
-					delegate_.set_field_sync(true);
+					delegate_.template set_field_sync<true>();
 				}
 				border_line(begin, end);
 			} else if(line < FrameLayout<timing>::EndOfFrontPorch) {
@@ -276,14 +276,14 @@ void MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::run_for(const Cycles
 				sync_line(begin, end);
 			} else if(line < FrameLayout<timing>::EndOfBackPorch) {
 				if(!begin && line == FrameLayout<timing>::EndOfSync) {
-					delegate_.set_field_sync(false);
+					delegate_.template set_field_sync<false>();
 				}
 				porch_line(begin, end);
 			} else {
 				border_line(begin, end);
 			}
 
-			if(end >= LineLayout::EndOfSync) delegate_.set_hsync(false);
+			if(end >= LineLayout::EndOfSync) delegate_.template set_hsync<false>();
 		},
 		[&] {
 			reset();

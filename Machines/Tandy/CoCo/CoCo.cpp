@@ -685,9 +685,13 @@ private:
 			return graphics_address_;
 		}
 
-		void set_hsync(bool) {}
-		void set_field_sync(bool) {}
-		void set_row_preset(bool) {}
+		template <bool active> void set_hsync() {}
+		template <bool active> void set_field_sync() {
+			if(!active) {
+				address_counter_ = graphics_address_;
+			}
+		}
+		template <bool active> void set_row_preset() {}
 
 	private:
 		MemoryMap &memory_;
