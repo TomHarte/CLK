@@ -168,6 +168,7 @@ struct MC6847Base {
 		void advance(int column);
 		void apply_vertical_preload();
 		void apply_hsync();
+		void reset_row();
 
 		uint16_t increment_mask_ = 1;
 		uint16_t line_mask_ = uint16_t(~31);
@@ -273,7 +274,7 @@ void MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::run_for(const Cycles
 						const int column_end = (fetch_end - LineLayout::EndOfLeftBorder) >> 3;
 
 						for(int c = column_begin; c < column_end; c++) {
-							const auto source = address_.address() + c;
+							const auto source = uint16_t(address_.address() + c);
 							(void)memory_[source];
 						}
 					}
