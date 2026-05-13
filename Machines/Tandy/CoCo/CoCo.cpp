@@ -391,14 +391,14 @@ private:
 		uint8_t input() {
 			if constexpr (port == Motorola::MC6821::Port::A) {
 				return
-					(keyboard_column_ & 0x80 ? 0xff : keys_[7]) &
-					(keyboard_column_ & 0x40 ? 0xff : keys_[6]) &
-					(keyboard_column_ & 0x20 ? 0xff : keys_[5]) &
-					(keyboard_column_ & 0x10 ? 0xff : keys_[4]) &
-					(keyboard_column_ & 0x08 ? 0xff : keys_[3]) &
-					(keyboard_column_ & 0x04 ? 0xff : keys_[2]) &
-					(keyboard_column_ & 0x02 ? 0xff : keys_[1]) &
-					(keyboard_column_ & 0x01 ? 0xff : keys_[0]) &
+					(keyboard_column_ & 0x80 ? 0xff : key_columns_[7]) &
+					(keyboard_column_ & 0x40 ? 0xff : key_columns_[6]) &
+					(keyboard_column_ & 0x20 ? 0xff : key_columns_[5]) &
+					(keyboard_column_ & 0x10 ? 0xff : key_columns_[4]) &
+					(keyboard_column_ & 0x08 ? 0xff : key_columns_[3]) &
+					(keyboard_column_ & 0x04 ? 0xff : key_columns_[2]) &
+					(keyboard_column_ & 0x02 ? 0xff : key_columns_[1]) &
+					(keyboard_column_ & 0x01 ? 0xff : key_columns_[0]) &
 					(
 						machine_.dac_level_ > machine_.joystick(joystick_).axes[axis_]
 							? 0x7f : 0xff
@@ -410,7 +410,15 @@ private:
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
-				return 0xff;
+				return
+					(keyboard_row_ & 0x80 ? 0xff : key_rows_[7]) &
+					(keyboard_row_ & 0x40 ? 0xff : key_rows_[6]) &
+					(keyboard_row_ & 0x20 ? 0xff : key_rows_[5]) &
+					(keyboard_row_ & 0x10 ? 0xff : key_rows_[4]) &
+					(keyboard_row_ & 0x08 ? 0xff : key_rows_[3]) &
+					(keyboard_row_ & 0x04 ? 0xff : key_rows_[2]) &
+					(keyboard_row_ & 0x02 ? 0xff : key_rows_[1]) &
+					(keyboard_row_ & 0x01 ? 0xff : key_rows_[0]);
 			}
 
 			__builtin_unreachable();
@@ -418,6 +426,9 @@ private:
 
 		template <Motorola::MC6821::Port port>
 		void output(const uint8_t value) {
+			if constexpr (port == Motorola::MC6821::Port::B) {
+				keyboard_row_ = value;
+			}
 			if constexpr (port == Motorola::MC6821::Port::B) {
 				keyboard_column_ = value;
 			}
@@ -447,19 +458,27 @@ private:
 		}
 
 		void set_key_pressed(const int column, const int row, bool is_pressed) {
-			const auto mask = uint8_t(0xff ^ (1 << column));
-			keys_[row] &= mask;
-			if(!is_pressed) keys_[row] |= ~mask;
+			const auto column_mask = uint8_t(0xff ^ (1 << column));
+			const auto row_mask = uint8_t(0xff ^ (1 << row));
+
+			key_columns_[row] &= column_mask;
+			key_rows_[column] &= row_mask;
+			if(!is_pressed) {
+				key_columns_[row] |= ~column_mask;
+				key_rows_[column] |= ~row_mask;
+			}
 		}
 
 		void clear_all_keys() {
-			std::fill(std::begin(keys_), std::end(keys_), 0xff);
+			std::fill(std::begin(key_columns_), std::end(key_columns_), 0xff);
+			std::fill(std::begin(key_rows_), std::end(key_rows_), 0xff);
 		}
 
 	private:
 		ConcreteMachine &machine_;
-		uint8_t keyboard_column_ = 0xff;
-		uint8_t keys_[8]{};
+		uint8_t keyboard_column_ = 0xff, keyboard_row_ = 0xff;
+		uint8_t key_columns_[8]{}, key_rows_[8]{};
+
 		uint8_t joystick_ = 0;
 		uint8_t axis_ = 0;
 	};
