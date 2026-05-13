@@ -168,6 +168,7 @@ struct MC6847Base {
 		void advance(int column);
 		void apply_vertical_preload();
 		void apply_hsync();
+		void reset_row();
 
 		uint16_t increment_mask_ = 1;
 		uint16_t line_mask_ = uint16_t(~31);
@@ -207,7 +208,7 @@ public:
 	Cycles next_sequence_point() const;
 
 	bool hsync() const;
-	bool vsync() const;
+	bool fsync() const;
 	using MC6847Base::set_mode;
 
 	// MARK: - ScanTarget entrypoints.
@@ -247,6 +248,7 @@ void MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::run_for(const Cycles
 			if(line < FrameLayout<timing>::EndOfPixels) {
 				if(!begin && !address_.row()) delegate_.template set_row_preset<true>();
 
+				// Perform meaningful fetches.
 				Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
 					begin,
 					end,
@@ -262,9 +264,39 @@ void MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::run_for(const Cycles
 						}
 					}
 				);
+
+				// Fetches actually continue until end of line, but they're not used.
+				Numeric::clamp<LineLayout::EndOfPixels, LineLayout::EndOfLine>(
+					begin,
+					end,
+					[&](const int fetch_begin, const int fetch_end) {
+						const int column_begin = (fetch_begin - LineLayout::EndOfLeftBorder) >> 3;
+						const int column_end = (fetch_end - LineLayout::EndOfLeftBorder) >> 3;
+
+						for(int c = column_begin; c < column_end; c++) {
+							const auto source = uint16_t(address_.address() + c);
+							(void)memory_[source];
+						}
+					}
+				);
 				pixel_line(begin, end);
 
-				if(end >= LineLayout::EndOfSync) delegate_.template set_row_preset<false>();
+				// Extra accesses required: ten more in 32-byte video modes, and six more in 16-byte modes.
+				// That's 80 to 96 more cycles of fetches?
+				//
+				// If fetching continued until end of sync then that'd be 354 cycles of fetching = 44.25 columns.
+				// I'm unclear how to make a meaningful case for 10 vs 6 though. Might need to hack this?
+				//
+				//		static const int EndOfSync = 28;
+				//		static const int EndOfColourBurst = 55;
+				//		static const int EndOfBackPorch = 72;
+				//		static const int EndOfLeftBorder = 130;
+				//		static const int EndOfPixels = 386;
+				//		static const int EndOfRightBorder = 442;
+				//		static const int EndOfLine = 456;
+
+
+				if(end >= LineLayout::EndOfSync && !address_.row()) delegate_.template set_row_preset<false>();
 			} else if(line < FrameLayout<timing>::EndOfBottomBorder) {
 				if(!begin && line == FrameLayout<timing>::EndOfPixels) {
 					delegate_.template set_field_sync<true>();
@@ -302,9 +334,9 @@ bool MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::hsync() const {
 }
 
 template <FrameTiming timing, typename MemoryAccessT, typename DelegateT, typename ModeMapperT>
-bool MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::vsync() const {
+bool MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::fsync() const {
 	const auto segment = position_.segment();
-	return segment >= FrameLayout<timing>::EndOfFrontPorch && segment < FrameLayout<timing>::EndOfSync;
+	return segment >= FrameLayout<timing>::EndOfPixels && segment < FrameLayout<timing>::EndOfSync;
 }
 
 template <FrameTiming timing, typename MemoryAccessT, typename DelegateT, typename ModeMapperT>

@@ -353,6 +353,10 @@ void MC6847Base::Address::apply_hsync() {
 	address_ &= line_mask_;
 }
 
+void MC6847Base::Address::reset_row() {
+	row_ = 0;
+}
+
 void MC6847Base::set_mode(
 	const bool graphics,
 	const bool semigraphics,
@@ -361,6 +365,11 @@ void MC6847Base::set_mode(
 	const uint8_t graphics_mode,
 	const bool colour_select
 ) {
+	// "the font row is reset each time the VDG is switched from graphics to text mode".
+	if((mode_ & Mode::Graphics) && !graphics) {
+		address_.reset_row();
+	}
+
 	mode_ =
 		(graphics ? Mode::Graphics : 0) |
 		(semigraphics ? Mode::Semigraphics : 0) |
