@@ -208,7 +208,7 @@ public:
 	Cycles next_sequence_point() const;
 
 	bool hsync() const;
-	bool vsync() const;
+	bool fsync() const;
 	using MC6847Base::set_mode;
 
 	// MARK: - ScanTarget entrypoints.
@@ -334,9 +334,9 @@ bool MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::hsync() const {
 }
 
 template <FrameTiming timing, typename MemoryAccessT, typename DelegateT, typename ModeMapperT>
-bool MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::vsync() const {
+bool MC6847<timing, MemoryAccessT, DelegateT, ModeMapperT>::fsync() const {
 	const auto segment = position_.segment();
-	return segment >= FrameLayout<timing>::EndOfFrontPorch && segment < FrameLayout<timing>::EndOfSync;
+	return segment >= FrameLayout<timing>::EndOfPixels && segment < FrameLayout<timing>::EndOfSync;
 }
 
 template <FrameTiming timing, typename MemoryAccessT, typename DelegateT, typename ModeMapperT>

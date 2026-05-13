@@ -179,7 +179,7 @@ public:
 		const auto duration = delay + CPU::M6809::duration<Cycles>(bus_phase);
 		if(m6847_ += duration) {
 			pia0_.set<Motorola::MC6821::Control::CA1>(m6847_.get()->hsync());
-			pia0_.set<Motorola::MC6821::Control::CB1>(m6847_.get()->vsync());
+			pia0_.set<Motorola::MC6821::Control::CB1>(m6847_.get()->fsync());
 		}
 		tape_player_.run_for(duration);
 		if(typer_) {
@@ -374,7 +374,7 @@ private:
 		//		0 and 2 = right joystick; 1 and 3 = left joystick;
 		//		0 and 1 = switch 1; 2 and 3 = switch 2.
 		//
-		//	CA1: hsync
+		//	CA1: horizontal sync
 		//	CA2: select line LSB of joystick MUX
 
 		//
@@ -382,7 +382,7 @@ private:
 		//
 		//	b0-b7: keyboard column [output?]
 		//
-		//	CB1: vsync
+		//	CB1: field sync
 		//	CB2: select line MSB of joystick MUX
 
 		// Interrupt outputs both connected to IRQ.
