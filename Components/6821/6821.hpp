@@ -64,11 +64,12 @@ public:
 		static constexpr int port = bool(address & RS1Mask);
 		if constexpr(address & RS0Mask) {
 			const auto result = ports_[port].control;
-			ports_[port].clear_irq();
-			update_interrupts();
 			return result;
 		} else {
 			if(ports_[port].control & Flag::DataVisible) {
+				ports_[port].clear_irq();
+				update_interrupts();
+
 				return ports_[port].input(port_handler_.template input<Port(port)>());
 			} else {
 				return ports_[port].direction;
