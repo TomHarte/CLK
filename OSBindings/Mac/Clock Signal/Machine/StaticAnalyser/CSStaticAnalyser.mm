@@ -30,6 +30,10 @@
 #include "Analyser/Static/ZX8081/Target.hpp"
 #include "Analyser/Static/ZXSpectrum/Target.hpp"
 
+#include "Configurable/Configurable.hpp"
+#include "Configurable/StandardOptions.hpp"
+#include "Machines/Utility/MachineForTarget.hpp"
+
 #include "Storage/FileBundle/FileBundle.hpp"
 
 #import "Clock_Signal-Swift.h"
@@ -644,30 +648,42 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 // MARK: - NIB mapping
 
 - (NSString *)optionsNibName {
-	// TODO: the below could be worked out dynamically, I think. It's a bit of a hangover from before configuration
-	// options were reflective.
 	switch(_targets.front()->machine) {
-		case Analyser::Machine::AmstradCPC:		return @"CompositeDynamicCropOptions";
-		case Analyser::Machine::Archimedes:		return @"QuickLoadOptions";
 		case Analyser::Machine::AppleII:		return @"AppleIIOptions";
 		case Analyser::Machine::Atari2600:		return @"Atari2600Options";
-		case Analyser::Machine::AtariST:		return @"CompositeOptions";
-		case Analyser::Machine::BBCMicro:		return @"DynamicCropOptions";
-		case Analyser::Machine::ColecoVision:	return @"CompositeOptions";
-		case Analyser::Machine::Electron:		return @"QuickLoadCompositeOptions";
-		case Analyser::Machine::Enterprise:		return @"CompositeOptions";
 		case Analyser::Machine::Macintosh:		return @"MacintoshOptions";
-		case Analyser::Machine::MasterSystem:	return @"CompositeOptions";
-		case Analyser::Machine::MSX:			return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::Oric:			return @"OricOptions";
-		case Analyser::Machine::Plus4:			return @"QuickLoadCompositeOptions";
-		case Analyser::Machine::PCCompatible:	return @"CompositeOptions";
-		case Analyser::Machine::TandyCoCo:		return @"QuickLoadCompositeOptions";
-		case Analyser::Machine::ThomsonMO:		return @"QuickLoadOptions";
-		case Analyser::Machine::Vic20:			return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::ZX8081:			return @"ZX8081Options";
-		case Analyser::Machine::ZXSpectrum:		return @"QuickLoadCompositeOptions";
-		default: return nil;
+		default: {
+			const auto allOptions = Machine::AllOptionsByMachine();
+			auto options = allOptions.find(_targets.front()->machine);
+			if(options == allOptions.end()) {
+				return nil;
+			}
+
+			const auto allKeys = options->second->all_keys();
+
+			const bool hasDynamicCrop =
+				std::find(allKeys.begin(), allKeys.end(), Configurable::Options::DynamicCropOptionName)
+					!= allKeys.end();
+			const auto hasDisplay = !options->second->values_for(Configurable::Options::DisplayOptionName).empty();
+			const bool hasQuickLoad =
+				std::find(allKeys.begin(), allKeys.end(), Configurable::Options::QuickLoadOptionName)
+					!= allKeys.end();
+
+			const auto type = (hasDynamicCrop ? 1 : 0) | (hasDisplay ? 2 : 0) | (hasQuickLoad ? 4 : 0);
+			switch(type) {
+				default:
+					NSLog(@"No NIB defined for options %d", type);
+					[[fallthrough]];
+				case 0: return nil;
+				case 1:	return @"DynamicCropOptions";
+				case 2:	return @"CompositeOptions";
+				case 3:	return @"CompositeDynamicCropOptions";
+				case 4:	return @"QuickLoadOptions";
+				case 6: return @"QuickLoadCompositeOptions";
+			}
+		}
 	}
 }
 
