@@ -40,18 +40,22 @@ struct MemoryMap {
 		write_[address >> 13][address] = value;
 	}
 
-	void set_read(const uint16_t begin, const uint16_t end, const uint8_t *data) {
+	void set_read(const size_t begin, const size_t end, const uint8_t *data) {
 		assert(!(begin & 0x1fff));
+		assert(begin >= 0 && begin <= 0x10000);
 		assert(!(end & 0x1fff));
-		for(int page = begin >> 13; page < end >> 13; page++) {
+		assert(end >= 0 && end <= 0x10000);
+		for(auto page = begin >> 13; page < end >> 13; page++) {
 			read_[page] = data - begin;
 		}
 	}
 
-	void set_readwrite(const uint16_t begin, const uint16_t end, uint8_t *data) {
+	void set_readwrite(const size_t begin, const size_t end, uint8_t *data) {
 		assert(!(begin & 0x1fff));
+		assert(begin >= 0 && begin <= 0x10000);
 		assert(!(end & 0x1fff));
-		for(int page = begin >> 13; page < end >> 13; page++) {
+		assert(end >= 0 && end <= 0x10000);
+		for(auto page = begin >> 13; page < end >> 13; page++) {
 			read_[page] = write_[page] = data - begin;
 		}
 	}
@@ -879,11 +883,11 @@ private:
 					cartridge_.resize(new_size, 0xff);
 				}
 
-				memory_.set_read(0xc000, uint16_t(0xc000 + cartridge_.size()), cartridge_.data());
+				memory_.set_read(0xc000, 0xc000 + cartridge_.size(), cartridge_.data());
 			}
 		}
 
-		return !media.tapes.empty();
+		return !media.tapes.empty() || had_cartridge;
 	}
 
 	ChangeEffect effect_for_file_did_change(const std::string &) const override {
