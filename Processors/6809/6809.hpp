@@ -1214,6 +1214,8 @@ struct Processor {
 
 			sync:
 				addressed_internal_cycle(LIC::Inactive, Address::Literal(registers_.pc.full));
+
+			sync_loop:
 			[[fallthrough]]; case ResumePoint::Sync:
 				// Always consider taking a break here, regardless of selected pause precision; otherwise there's
 				// a risk of never exiting.
@@ -1232,7 +1234,7 @@ struct Processor {
 					>(Address::Fixed<0xffff>(), Data::NoValue());
 
 				if(!(exceptions_ & (uint8_t(Exception::NMI) | uint8_t(Exception::IRQ) | uint8_t(Exception::FIRQ)))) {
-					goto sync;
+					goto sync_loop;
 				}
 
 				// Per AN-865 there is a one-cycle latency in response.
