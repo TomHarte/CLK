@@ -559,10 +559,10 @@ private:
 				machine_.m6847_->set_mode(
 					value & 0x80,		// Alpha/graphics.
 					false,				// Graphics/semigraphics.
-					false,				// External ROM.
-					value & 0x20,		// Invert.
+					value & 0x10,		// External ROM.
+					false,				// Invert.
 					(value >> 4) & 7,	// Graphics mode.
-					value & 0x80		// Colour select.
+					value & 0x08		// Colour select.
 				);
 			}
 		}

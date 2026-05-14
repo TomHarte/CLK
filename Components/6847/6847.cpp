@@ -208,7 +208,7 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 
 							case Mode::BPP2: {	// 2bpp, 32-column.
 								const uint32_t *const palette =
-									mode & Mode::ColourSelect ? Colours::colour0 : Colours::colour1;
+									mode & Mode::ColourSelect ? Colours::colour1 : Colours::colour0;
 
 								pixels_[0] =
 								pixels_[1] = palette[(data >> 6) & 3];
@@ -222,7 +222,7 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 
 							case Mode::BPP2 | Mode::Columns16: {	// 2bpp, 16-column.
 								const uint32_t *const palette =
-									mode & Mode::ColourSelect ? Colours::colour0 : Colours::colour1;
+									mode & Mode::ColourSelect ? Colours::colour1 : Colours::colour0;
 
 								if(c & 1) {
 									pixels_[0] =
