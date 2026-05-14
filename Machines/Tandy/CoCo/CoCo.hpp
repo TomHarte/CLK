@@ -23,11 +23,19 @@ struct Machine {
 
 	class Options:
 		public Reflection::StructImpl<Options>,
+		public Configurable::Options::Display<Options>,
 		public Configurable::Options::QuickLoad<Options>
 	{
+		friend Configurable::Options::Display<Options>;
 		friend Configurable::Options::QuickLoad<Options>;
 	public:
 		Options(const Configurable::OptionsType type) :
+			Configurable::Options::Display<Options>(
+				Configurable::Display::CompositeColour	// Some games use artefact colour; therefore a composite display
+														// is not only most accurate but also most user-friendly in not
+														// requiring further configuration should the user play one
+														// of those.
+			),
 			Configurable::Options::QuickLoad<Options>(
 				type == Configurable::OptionsType::UserFriendly) {}
 
@@ -36,6 +44,7 @@ struct Machine {
 
 		friend Reflection::StructImpl<Options>;
 		void declare_fields() {
+			declare_display_option();
 			declare_quickload_option();
 		}
 	};

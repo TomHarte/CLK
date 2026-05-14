@@ -810,7 +810,15 @@ private:
 	}
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const final {
-		return m6847_.get()->get_scaled_scan_status() / 2.0;
+		return m6847_.get()->get_scaled_scan_status() / 4.0;
+	}
+
+	void set_display_type(Outputs::Display::DisplayType display_type) final {
+		m6847_.get()->set_display_type(display_type);
+	}
+
+	Outputs::Display::DisplayType get_display_type() const final {
+		return m6847_.get()->get_display_type();
 	}
 
 	// MARK: - MappedKeyboardMachine.
@@ -887,12 +895,14 @@ private:
 	std::unique_ptr<Reflection::Struct> get_options() const final {
 		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
 		options->quick_load = allow_fast_tape_loading_;
+		options->output = get_video_signal_configurable();
 		return options;
 	}
 
 	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
 		const auto options = dynamic_cast<Options *>(str.get());
 		allow_fast_tape_loading_ = options->quick_load;
+		set_video_signal_configurable(options->output);
 	}
 
 	// MARK: - Activity Source.
