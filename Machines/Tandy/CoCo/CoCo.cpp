@@ -463,6 +463,7 @@ private:
 				joystick_ = value;
 				machine_.mux_ = (machine_.mux_ & 2) | (value ? 1 : 0);
 			}
+			machine_.set_audio(std::nullopt);
 		}
 
 		void set_key_pressed(const int column, const int row, bool is_pressed) {
@@ -558,9 +559,7 @@ private:
 		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::A) {
 				machine_.dac_level_ = value >> 2;
-				if(!machine_.mux_) {
-					machine_.set_audio(std::nullopt, machine_.dac_level_);
-				}
+				machine_.set_audio(std::nullopt);
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
@@ -593,7 +592,7 @@ private:
 			}
 
 			if constexpr (control == Motorola::MC6821::Control::CB2) {
-				machine_.set_audio(value, std::nullopt);
+				machine_.set_audio(value);
 			}
 		}
 
@@ -960,23 +959,26 @@ private:
 		return &speaker_;
 	}
 
+	uint8_t dac_level_ = 0;
+	uint8_t mux_ = 0;
 	bool audio_enabled_ = false;
-	uint8_t audio_level_ = 0;
-	void set_audio(const std::optional<bool> enabled, const std::optional<uint8_t> level) {
+
+	uint8_t audio_output_ = 0;
+	void set_audio(const std::optional<bool> enabled) {
 		const auto new_audio_enabled = enabled.value_or(audio_enabled_);
-		const auto new_audio_level = level.value_or(audio_level_);
-		if(new_audio_level == audio_level_ && new_audio_enabled == audio_enabled_) {
+		audio_enabled_ = new_audio_enabled;
+
+		// When audio is enabled, the MUX determines the audio source. Source 0 is the DAC.
+		const uint8_t new_audio_output = (new_audio_enabled && !mux_) ? dac_level_ : 0;
+		if(new_audio_output == audio_output_) {
 			return;
 		}
 
-		audio_level_ = new_audio_level;
-		audio_enabled_ = new_audio_enabled;
+		audio_output_ = new_audio_output;
 		update_audio();
-		audio_.set_output(audio_enabled_ ? audio_level_ : 0);
+		audio_.set_output(new_audio_output);
 	}
 
-	uint8_t dac_level_ = 0;
-	uint8_t mux_ = 0;
 };
 
 }
