@@ -321,14 +321,21 @@ void MC6847Base::sync_line(const int, const int end) {
 	}
 }
 
+//
+// Assumed in these two functions: hsync is signalled from the start of the sync level until the end of the back
+// porch (with, conveniently, the start of the sync level falling at position 0 in my line counting).
+//
 bool MC6847Base::hsync(const int column) const {
-	return column <= LineLayout::EndOfSync;
+	return column <= LineLayout::EndOfBackPorch;
 }
 
 Cycles MC6847Base::next_sequence_point(const int column) const {
-	if(column < LineLayout::EndOfSync) return LineLayout::EndOfSync - column;
+	if(column < LineLayout::EndOfColourBurst) return LineLayout::EndOfBackPorch - column;
 	return LineLayout::EndOfLine - column;
 }
+//
+// Belief about hsync timing full expressed as of here.
+//
 
 void MC6847Base::reset() {
 	address_.apply_vertical_preload();
