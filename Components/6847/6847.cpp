@@ -321,12 +321,16 @@ void MC6847Base::sync_line(const int, const int end) {
 	}
 }
 
+namespace {
+constexpr auto EndOfHSyncPinOutput = MC6847Base::LineLayout::EndOfBackPorch;
+}
+
 bool MC6847Base::hsync(const int column) const {
-	return column <= LineLayout::EndOfSync;
+	return column <= EndOfHSyncPinOutput;
 }
 
 Cycles MC6847Base::next_sequence_point(const int column) const {
-	if(column < LineLayout::EndOfSync) return LineLayout::EndOfSync - column;
+	if(column < EndOfHSyncPinOutput) return EndOfHSyncPinOutput - column;
 	return LineLayout::EndOfLine - column;
 }
 
