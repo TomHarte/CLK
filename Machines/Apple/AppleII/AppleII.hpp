@@ -32,7 +32,7 @@ struct Machine {
 		Options(const Configurable::OptionsType) :
 			Configurable::Options::Display<Options>(Configurable::Display::CompositeColour) {}
 	private:
-		Options() : Options( Configurable::OptionsType::UserFriendly) {}
+		Options() : Options(Configurable::OptionsType::UserFriendly) {}
 
 		friend Reflection::StructImpl<Options>;
 		void declare_fields() {
