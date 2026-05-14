@@ -179,8 +179,11 @@ public:
 		CPU::M6809::data_t<read_write> value
 	) {
 		// TODO, maybe: pull the switch inside this SAM call outside the loop?
-		const auto delay = sam_.cycle_cost<bus_phase, read_write>(address);
+		const auto delay = sam_.cycle_cost<bus_phase, read_write>(address, bus_phase_);
 		const auto duration = delay + CPU::M6809::duration<Cycles>(bus_phase);
+
+		bus_phase_ += duration;
+		bus_phase_ &= 1;
 		if(m6847_ += duration) {
 			pia0_.set<Motorola::MC6821::Control::CA1>(m6847_.get()->hsync());
 			pia0_.set<Motorola::MC6821::Control::CB1>(m6847_.get()->fsync());
@@ -601,6 +604,7 @@ private:
 
 	// MARK: - SAM.
 
+	Cycles bus_phase_;
 	struct SAM {
 		SAM(MemoryMap &memory) : memory_(memory) {}
 
@@ -718,21 +722,28 @@ private:
 			CPU::M6809::BusPhase bus_phase,
 			CPU::M6809::ReadWrite read_write,
 			typename AddressT
-		> Cycles cycle_cost(const AddressT address) {
+		> Cycles cycle_cost(const AddressT address, const Cycles phase) {
+			//
+			// Without documentation I've made a guess here that the half-speed bus has an alignment requirement,
+			// so switching from full-speed to half-speed might result in a two-cycle access but might result in
+			// a three-cycle access (followed by two-cycle accesses).
+			//
+			// If that proves to be untrue, `phase` can be eliminated as an argument.
+			//
 			switch(speed_) {
 				case ClockSpeed::Full1:
 				case ClockSpeed::Full2:
 				return Cycles(0);
 
 				case ClockSpeed::Half:
-				return duration<Cycles>(bus_phase);
+				return duration<Cycles>(bus_phase) + phase;
 
 				case ClockSpeed::HalfInRAM:
 					if constexpr (read_write == CPU::M6809::ReadWrite::NoData) {
 						return Cycles(0);
 					} else {
 						if(address < 0x8000 || all_ram_) {
-							return duration<Cycles>(bus_phase);
+							return duration<Cycles>(bus_phase) + phase;
 						} else {
 							return Cycles(0);
 						}
