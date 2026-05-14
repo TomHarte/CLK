@@ -90,10 +90,10 @@ constexpr uint32_t rgb(const uint8_t r, const uint8_t g, const uint8_t b) {
 //
 // RGB values below sourced from http://www.hcvgm.org/VDG_Colours.html
 //
-constexpr uint32_t text0[] = { rgb(0x10, 0x60, 0x10), rgb(0x28, 0xe0, 0x28)};
+constexpr uint32_t text0[] = { rgb(0x10, 0x60, 0x10), rgb(0x28, 0xe0, 0x28) };
 constexpr uint32_t text1[] = { rgb(0xf0, 0xb0, 0x40), rgb(0x80, 0x30, 0x10) };
 
-constexpr uint32_t resolution0[] = { rgb(0x28, 0xe0, 0x28), rgb(0x10, 0x60, 0x10) };
+constexpr uint32_t resolution0[] = { rgb(0x10, 0x60, 0x10), rgb(0x28, 0xe0, 0x28) };
 constexpr uint32_t resolution1[] = { rgb(0x00, 0x00, 0x00), rgb(0xf0, 0xf0, 0xf0) };
 
 constexpr uint32_t colour0[] = {
@@ -110,14 +110,14 @@ constexpr uint32_t colour1[] = {
 };
 
 constexpr uint32_t semigraphics[][2] = {
-	{ rgb(0x00, 0x00, 0x00), rgb(0xf0, 0x88, 0x28), },
-	{ rgb(0x00, 0x00, 0x00), rgb(0xd3, 0x61, 0xfa), },
-	{ rgb(0x00, 0x00, 0x00), rgb(0x28, 0xa8, 0xa8), },
-	{ rgb(0x00, 0x00, 0x00), rgb(0xf0, 0xf0, 0xf0), },
-	{ rgb(0x00, 0x00, 0x00), rgb(0xa8, 0x20, 0x20), },
-	{ rgb(0x00, 0x00, 0x00), rgb(0x20, 0x20, 0xd8), },
-	{ rgb(0x00, 0x00, 0x00), rgb(0xf0, 0xf0, 0x70), },
 	{ rgb(0x00, 0x00, 0x00), rgb(0x28, 0xe0, 0x28), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0xf0, 0xf0, 0x70), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0x20, 0x20, 0xd8), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0xa8, 0x20, 0x20), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0xf0, 0xf0, 0xf0), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0x28, 0xa8, 0xa8), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0xd3, 0x61, 0xfa), },
+	{ rgb(0x00, 0x00, 0x00), rgb(0xf0, 0x88, 0x28), },
 };
 }
 
@@ -208,7 +208,7 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 
 							case Mode::BPP2: {	// 2bpp, 32-column.
 								const uint32_t *const palette =
-									mode & Mode::ColourSelect ? Colours::colour0 : Colours::colour1;
+									mode & Mode::ColourSelect ? Colours::colour1 : Colours::colour0;
 
 								pixels_[0] =
 								pixels_[1] = palette[(data >> 6) & 3];
@@ -222,7 +222,7 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 
 							case Mode::BPP2 | Mode::Columns16: {	// 2bpp, 16-column.
 								const uint32_t *const palette =
-									mode & Mode::ColourSelect ? Colours::colour0 : Colours::colour1;
+									mode & Mode::ColourSelect ? Colours::colour1 : Colours::colour0;
 
 								if(c & 1) {
 									pixels_[0] =
@@ -274,12 +274,12 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 							pixels_[7] = palette[(pixels >> 0) & 1];
 						} else {
 							const uint32_t *const palette = mode & Mode::ColourSelect ? Colours::text1 : Colours::text0;
-							uint8_t pixels = (mode & Mode::Invert ? 0xff : 0x00) ^ (data & 64 ? 0xff : 0x00);
+							uint8_t pixels = mode & Mode::Invert ? 0xff : 0x00;
 
 							if(mode & Mode::ExternalROM) {
 								// TODO: external ROM.
 							} else {
-								pixels ^= font[data & 63][row];
+								pixels ^= font[data & 63][row] ^ (data & 64 ? 0xff : 0x00);
 							}
 
 							pixels_[0] = palette[(pixels >> 7) & 1];
