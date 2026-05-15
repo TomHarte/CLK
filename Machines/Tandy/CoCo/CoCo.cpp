@@ -132,7 +132,7 @@ public:
 		pia0_(pia0_handler_),
 		pia1_handler_(*this),
 		pia1_(pia1_handler_),
-		sam_(memory_),
+		sam_(memory_, ram_.data()),
 		m6847_(sam_, sam_),
 		tape_player_(int(ClockRate)),
 		audio_(audio_queue_, MaxDACLevel),
@@ -155,7 +155,6 @@ public:
 			std::copy_n(rom.begin(), 8 * 1024, colour_basic_.begin());
 		}
 
-		memory_.set_readwrite(0x0000, 0x8000, ram_.data());
 		memory_.set_read(0xa000, 0xc000, colour_basic_.data());
 		Memory::Fuzz(ram_);
 
@@ -606,7 +605,9 @@ private:
 
 	Cycles bus_phase_;
 	struct SAM {
-		SAM(MemoryMap &memory) : memory_(memory) {}
+		SAM(MemoryMap &memory, uint8_t *const ram_base) : memory_(memory), ram_base_(ram_base) {
+			page_ram(0);
+		}
 
 		uint8_t operator[](const uint16_t address) {
 			b1b3_ += ((previous_6847_address_ ^ address) & previous_6847_address_ & 1) << 1;
@@ -689,11 +690,7 @@ private:
 				case 9:	set(graphics_address_, 0x8000);	break;
 
 				case 10:
-					page1_ = address & 1;
-					if(page1_) {
-						printf("TODO: RAM page 1\n");
-						// TODO: communicate to memory map.
-					}
+					page_ram(address & 1);
 				break;
 
 				case 11: { int tc = int(speed_); set(tc, 1); speed_ = ClockSpeed(tc); }	break;
@@ -768,8 +765,12 @@ private:
 		uint16_t graphics_address_ = 0;
 		ClockSpeed speed_ = ClockSpeed::Half;
 		bool all_ram_ = false;
-		bool page1_ = false;
 		int ram_size_ = 0;
+
+		uint8_t *ram_base_ = nullptr;
+		void page_ram(const int page) {
+			memory_.set_readwrite(0x0000, 0x8000, ram_base_ + page * 32768);
+		}
 
 		// 'X' and 'Y' are the data sheet names for these values, which is unfortunate given that they're involved
 		// in data fetch but don't correlate with dimensions.
