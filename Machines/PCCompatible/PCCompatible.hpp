@@ -35,7 +35,7 @@ struct Machine {
 			Configurable::Options::Display<Options>(Configurable::Display::RGB) {}
 
 	private:
-		Options() : Options( Configurable::OptionsType::UserFriendly) {}
+		Options() : Options(Configurable::OptionsType::UserFriendly) {}
 
 		friend Reflection::StructImpl<Options>;
 		void declare_fields() {

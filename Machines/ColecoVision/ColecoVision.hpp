@@ -29,7 +29,7 @@ struct Machine {
 				Configurable::Display::SVideo : Configurable::Display::CompositeColour) {}
 
 	private:
-		Options() : Options( Configurable::OptionsType::UserFriendly) {}
+		Options() : Options(Configurable::OptionsType::UserFriendly) {}
 
 		friend Reflection::StructImpl<Options>;
 		void declare_fields() {
