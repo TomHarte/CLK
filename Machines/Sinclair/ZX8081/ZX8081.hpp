@@ -36,7 +36,7 @@ struct Machine {
 			automatic_tape_motor_control(type == Configurable::OptionsType::UserFriendly) {}
 
 	private:
-		Options() : Options( Configurable::OptionsType::UserFriendly) {}
+		Options() : Options(Configurable::OptionsType::UserFriendly) {}
 
 		friend Reflection::StructImpl<Options>;
 		void declare_fields() {

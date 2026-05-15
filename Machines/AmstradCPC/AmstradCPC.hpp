@@ -44,7 +44,7 @@ struct Machine {
 		friend Configurable::Options::QuickLoad<Options>;
 		friend Configurable::Options::DynamicCrop<Options>;
 
-		Options() : Options( Configurable::OptionsType::UserFriendly) {}
+		Options() : Options(Configurable::OptionsType::UserFriendly) {}
 
 		friend Reflection::StructImpl<Options>;
 		void declare_fields() {

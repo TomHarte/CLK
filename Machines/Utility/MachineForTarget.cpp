@@ -104,22 +104,27 @@ private:
 	Creates a map from machine long name to default user-friendly options.
 */
 struct OptionsList {
-	std::map<std::string, std::unique_ptr<Reflection::Struct>> options;
+	std::map<std::string, std::unique_ptr<Reflection::Struct>> options_by_name;
+	std::map<Analyser::Machine, std::unique_ptr<Reflection::Struct>> options_by_machine;
 
 	template <typename MachineT>
 	struct Adder {
 		void operator()(OptionsList &list) {
-			list.emplace<typename MachineT::Machine>();
+			list.emplace<MachineT>();
 		}
 	};
 
 private:
 	template <typename MachineT>
 	void emplace() {
-		if constexpr (requires{ MachineT::Options(Configurable::OptionsType()); }) {
-			options.emplace(
+		if constexpr (requires{ typename MachineT::Machine::Options(Configurable::OptionsType::UserFriendly); }) {
+			options_by_name.emplace(
 				MachineT::long_name,
-				std::make_unique<typename MachineT::Options>(Configurable::OptionsType::UserFriendly)
+				std::make_unique<typename MachineT::Machine::Options>(Configurable::OptionsType::UserFriendly)
+			);
+			options_by_machine.emplace(
+				MachineT::name,
+				std::make_unique<typename MachineT::Machine::Options>(Configurable::OptionsType::UserFriendly)
 			);
 		}
 	};
@@ -251,7 +256,14 @@ std::vector<std::string> Machine::AllMachines(const Type type, const bool long_n
 std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsByMachineName() {
 	OptionsList options;
 	MachineRegister::for_all_machines<OptionsList::Adder>(options);
-	return std::move(options.options);
+	return std::move(options.options_by_name);
+}
+
+std::map<Analyser::Machine, std::unique_ptr<Reflection::Struct>>
+Machine::AllOptionsByMachine(const bool include_incomplete) {
+	OptionsList options;
+	MachineRegister::for_all_machines<OptionsList::Adder>(options, include_incomplete);
+	return std::move(options.options_by_machine);
 }
 
 std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::TargetsByMachineName(

@@ -34,7 +34,7 @@ struct Machine {
 			Configurable::Options::QuickLoad<Options>(type == Configurable::OptionsType::UserFriendly) {}
 
 	private:
-		Options() : Options( Configurable::OptionsType::UserFriendly) {}
+		Options() : Options(Configurable::OptionsType::UserFriendly) {}
 
 		friend Reflection::StructImpl<Options>;
 		void declare_fields() {
