@@ -655,7 +655,7 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 		case Analyser::Machine::Oric:			return @"OricOptions";
 		case Analyser::Machine::ZX8081:			return @"ZX8081Options";
 		default: {
-			const auto allOptions = Machine::AllOptionsByMachine();
+			const auto allOptions = Machine::AllOptionsByMachine(true);
 			auto options = allOptions.find(_targets.front()->machine);
 			if(options == allOptions.end()) {
 				return nil;
