@@ -322,7 +322,7 @@ struct Details<Analyser::Machine::ZXSpectrum> {
 };
 
 template <template<typename> typename FuncT, Analyser::Machine machine, typename TargetT>
-void for_machine(TargetT &target, bool include_incomplete) {
+void for_machine(TargetT &target, const bool include_incomplete) {
 	if constexpr (requires{ Details<machine>::is_incomplete; }) {
 		if(Details<machine>::is_incomplete && !include_incomplete) {
 			return;
@@ -332,7 +332,7 @@ void for_machine(TargetT &target, bool include_incomplete) {
 }
 
 template <template<typename> typename FuncT, typename TargetT>
-void for_all_machines(TargetT &target, bool include_incomplete = false) {
+void for_all_machines(TargetT &target, const bool include_incomplete = false) {
 	using enum Analyser::Machine;
 
 	for_machine<FuncT, Amiga>(target, include_incomplete);
