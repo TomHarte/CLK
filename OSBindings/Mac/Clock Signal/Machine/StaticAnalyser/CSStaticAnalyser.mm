@@ -682,6 +682,7 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 				case 3:	return @"CompositeDynamicCropOptions";
 				case 4:	return @"QuickLoadOptions";
 				case 6: return @"QuickLoadCompositeOptions";
+				case 7: return @"QuickLoadCompositeDynamicCropOptions";
 			}
 		}
 	}
