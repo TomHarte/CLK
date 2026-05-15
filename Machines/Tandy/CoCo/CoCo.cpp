@@ -644,16 +644,11 @@ private:
 				b4_ = 0;
 				b1b3_ = 0;
 				previous_6847_address_ = 0;
-
-				// TODO: these should be in row preset per my understanding, but I'm not sure that's
-				// signalling correctly. It is definitely true that some titles put the 6847 into one vertical height
-				// and the SAM into a different one, expecting the SAM's setting to win.
-				x_ = y_ = 0;
 			}
 		}
 		template <bool active> void set_row_preset() {
 			if(active) {
-//				x_ = y_ = 0;
+				x_ = y_ = 0;
 			}
 		}
 
