@@ -61,7 +61,7 @@ struct Details<Analyser::Machine::Amiga> {
 	static constexpr auto name = Analyser::Machine::Amiga;
 	static constexpr bool requires_media = false;
 
-	using Machine = ::Amiga::Machine;
+	using Machine = Amiga::Machine;
 	using Target = Analyser::Static::Amiga::Target;
 
 	static constexpr const char *short_name = "Amiga";
@@ -73,7 +73,7 @@ struct Details<Analyser::Machine::AmstradCPC> {
 	static constexpr auto name = Analyser::Machine::AmstradCPC;
 	static constexpr bool requires_media = false;
 
-	using Machine = ::AmstradCPC::Machine;
+	using Machine = AmstradCPC::Machine;
 	using Target = Analyser::Static::AmstradCPC::Target;
 
 	static constexpr const char *short_name = "AmstradCPC";
@@ -110,7 +110,7 @@ struct Details<Analyser::Machine::Archimedes> {
 	static constexpr auto name = Analyser::Machine::Archimedes;
 	static constexpr bool requires_media = false;
 
-	using Machine = ::Archimedes::Machine;
+	using Machine = Archimedes::Machine;
 	using Target = Analyser::Static::Acorn::ArchimedesTarget;
 
 	static constexpr const char *short_name = "Archimedes";
@@ -122,7 +122,7 @@ struct Details<Analyser::Machine::Atari2600> {
 	static constexpr auto name = Analyser::Machine::Atari2600;
 	static constexpr bool requires_media = true;
 
-	using Machine = ::Atari2600::Machine;
+	using Machine = Atari2600::Machine;
 	using Target = Analyser::Static::Atari2600::Target;
 
 	static constexpr const char *short_name = "Atari2600";
@@ -146,7 +146,7 @@ struct Details<Analyser::Machine::BBCMicro> {
 	static constexpr auto name = Analyser::Machine::BBCMicro;
 	static constexpr bool requires_media = false;
 
-	using Machine = ::BBCMicro::Machine;
+	using Machine = BBCMicro::Machine;
 	using Target = Analyser::Static::Acorn::BBCMicroTarget;
 
 	static constexpr const char *short_name = "BBCMicro";
@@ -169,7 +169,7 @@ struct Details<Analyser::Machine::Electron> {
 	static constexpr auto name = Analyser::Machine::Electron;
 	static constexpr bool requires_media = false;
 
-	using Machine = ::Electron::Machine;
+	using Machine = Electron::Machine;
 	using Target = Analyser::Static::Acorn::ElectronTarget;
 
 	static constexpr const char *short_name = "Electron";
@@ -181,7 +181,7 @@ struct Details<Analyser::Machine::Enterprise> {
 	static constexpr auto name = Analyser::Machine::Enterprise;
 	static constexpr bool requires_media = false;
 
-	using Machine = ::Enterprise::Machine;
+	using Machine = Enterprise::Machine;
 	using Target = Analyser::Static::Enterprise::Target;
 
 	static constexpr const char *short_name = "Enterprise";
@@ -217,7 +217,7 @@ struct Details<Analyser::Machine::MSX> {
 	static constexpr auto name = Analyser::Machine::MSX;
 	static constexpr bool requires_media = false;
 
-	using Machine = Sega::MasterSystem::Machine;
+	using Machine = MSX::Machine;
 	using Target = Analyser::Static::MSX::Target;
 
 	static constexpr const char *short_name = "MSX";
@@ -229,7 +229,7 @@ struct Details<Analyser::Machine::Oric> {
 	static constexpr auto name = Analyser::Machine::Oric;
 	static constexpr bool requires_media = false;
 
-	using Machine = ::Oric::Machine;
+	using Machine = Oric::Machine;
 	using Target = Analyser::Static::Oric::Target;
 
 	static constexpr const char *short_name = "Oric";
@@ -241,7 +241,7 @@ struct Details<Analyser::Machine::PCCompatible> {
 	static constexpr auto name = Analyser::Machine::PCCompatible;
 	static constexpr bool requires_media = false;
 
-	using Machine = ::PCCompatible::Machine;
+	using Machine = PCCompatible::Machine;
 	using Target = Analyser::Static::PCCompatible::Target;
 
 	static constexpr const char *short_name = "PCCompatible";
