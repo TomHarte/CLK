@@ -60,6 +60,11 @@ struct MemoryMap {
 		}
 	}
 
+	void reset() {
+		std::fill(std::begin(write_), std::end(write_), nullptr);
+		std::fill(std::begin(read_), std::end(read_), nullptr);
+	}
+
 private:
 	uint8_t *write_[8]{};
 	const uint8_t *read_[8]{};
@@ -132,7 +137,7 @@ public:
 		pia0_(pia0_handler_),
 		pia1_handler_(*this),
 		pia1_(pia1_handler_),
-		sam_(memory_),
+		sam_(memory_, target.memory_size == Analyser::Static::TandyCoCo::Target::MemorySize::SixtyFourKB),
 		m6847_(sam_, sam_),
 		tape_player_(int(ClockRate)),
 		audio_(audio_queue_, MaxDACLevel),
@@ -152,12 +157,9 @@ public:
 
 		{
 			auto rom = roms.find(BasicROM)->second;
-			std::copy_n(rom.begin(), 8 * 1024, colour_basic_.begin());
+			sam_.set_basic(rom);
 		}
 
-		memory_.set_readwrite(0x0000, 0x8000, ram_.data());
-		memory_.set_read(0xa000, 0xc000, colour_basic_.data());
-		Memory::Fuzz(ram_);
 
 		insert_media(target.media);
 		type_string(target.loading_command);
@@ -194,7 +196,7 @@ public:
 		}
 		time_since_audio_update_ += duration;
 
-		if(!cartridge_.empty()) {
+		if(sam_.has_cartridge()) {
 			// When a cartridge is inserted: "the clock signal (Q) is shorted to the cartridge interrupt pin."
 			pia1_.set<Motorola::MC6821::Control::CB1>(true);
 			pia1_.set<Motorola::MC6821::Control::CB1>(false);
@@ -345,9 +347,6 @@ private:
 	};
 	CPU::M6809::Processor<M6809Traits> m6809_;
 	MemoryMap memory_;
-	std::array<uint8_t, 8 * 1024> colour_basic_;
-	std::array<uint8_t, 64 * 1024> ram_;
-	std::vector<uint8_t> cartridge_;
 
 	// MARK: - TimedMachine.
 
@@ -606,7 +605,10 @@ private:
 
 	Cycles bus_phase_;
 	struct SAM {
-		SAM(MemoryMap &memory) : memory_(memory) {}
+		SAM(MemoryMap &memory, const bool is_64kb) : memory_(memory), is_64kb_(is_64kb) {
+			Memory::Fuzz(ram_);
+			update_memory();
+		}
 
 		uint8_t operator[](const uint16_t address) {
 			b1b3_ += ((previous_6847_address_ ^ address) & previous_6847_address_ & 1) << 1;
@@ -644,16 +646,11 @@ private:
 				b4_ = 0;
 				b1b3_ = 0;
 				previous_6847_address_ = 0;
-
-				// TODO: these should be in row preset per my understanding, but I'm not sure that's
-				// signalling correctly. It is definitely true that some titles put the 6847 into one vertical height
-				// and the SAM into a different one, expecting the SAM's setting to win.
-				x_ = y_ = 0;
 			}
 		}
 		template <bool active> void set_row_preset() {
 			if(active) {
-//				x_ = y_ = 0;
+				x_ = y_ = 0;
 			}
 		}
 
@@ -693,14 +690,6 @@ private:
 				case 8:	set(graphics_address_, 0x4000);	break;
 				case 9:	set(graphics_address_, 0x8000);	break;
 
-				case 10:
-					page1_ = address & 1;
-					if(page1_) {
-						printf("TODO: RAM page 1\n");
-						// TODO: communicate to memory map.
-					}
-				break;
-
 				case 11: { int tc = int(speed_); set(tc, 1); speed_ = ClockSpeed(tc); }	break;
 				case 12: { int tc = int(speed_); set(tc, 2); speed_ = ClockSpeed(tc); }	break;
 
@@ -708,13 +697,8 @@ private:
 				case 13: set(ram_size_, 1);	break;
 				case 14: set(ram_size_, 2);	break;
 
-				case 15:
-					all_ram_ = address & 1;
-					if(all_ram_) {
-						printf("TODO: all-RAM mode\n");
-						// TODO: communicate to memory map.
-					}
-				break;
+				case 10:	page_ram(address & 1);		break;
+				case 15:	set_all_ram(address & 1);	break;
 			}
 		}
 
@@ -759,6 +743,30 @@ private:
 			return graphics_address_;
 		}
 
+		bool insert_cartridge(const std::vector<uint8_t> &contents) {
+			if(contents.size() > 16 * 1024) {
+				return false;
+			}
+
+			// My memory map requires things to be a multiple of 0x2000 bytes; pad to that.
+			cartridge_ = contents;
+			if(cartridge_.size() & 0x1fff) {
+				const auto new_size = (cartridge_.size() + 0x2000) & ~size_t(0x1fff);
+				cartridge_.resize(new_size, 0xff);
+			}
+
+			update_memory();
+			return true;
+		}
+
+		bool has_cartridge() const {
+			return !cartridge_.empty();
+		}
+
+		void set_basic(const std::vector<uint8_t> rom) {
+			std::copy_n(rom.begin(), 8 * 1024, colour_basic_.begin());
+		}
+
 	private:
 		MemoryMap &memory_;
 
@@ -772,8 +780,6 @@ private:
 		int graphics_mode_ = 0;
 		uint16_t graphics_address_ = 0;
 		ClockSpeed speed_ = ClockSpeed::Half;
-		bool all_ram_ = false;
-		bool page1_ = false;
 		int ram_size_ = 0;
 
 		// 'X' and 'Y' are the data sheet names for these values, which is unfortunate given that they're involved
@@ -804,6 +810,32 @@ private:
 		uint16_t clear_mask_ = 0xffff;
 
 		uint16_t previous_6847_address_ = 0;
+
+		std::vector<uint8_t> cartridge_;
+		std::array<uint8_t, 8 * 1024> colour_basic_;
+		std::array<uint8_t, 64 * 1024> ram_;
+
+		int ram_page_ = 0;
+		bool all_ram_ = false;
+		bool is_64kb_ = true;
+		void page_ram(const int page) {
+			ram_page_ = page;
+			update_memory();
+		}
+		void set_all_ram(const bool all_ram) {
+			all_ram_ = all_ram;
+			update_memory();
+		}
+		void update_memory() {
+			memory_.reset();
+			if(all_ram_ && is_64kb_) {
+				memory_.set_readwrite(0x0000, 0x1'0000, ram_.data());
+			} else {
+				memory_.set_readwrite(0x0000, 0x8000, ram_.data() + (is_64kb_ ? ram_page_ : 0) * 32768);
+				memory_.set_read(0xa000, 0xc000, colour_basic_.data());
+				memory_.set_read(0xc000, 0xc000 + cartridge_.size(), cartridge_.data());
+			}
+		}
 	};
 	SAM sam_;
 
@@ -881,22 +913,9 @@ private:
 			tape_player_.set_tape(media.tapes.front(), TargetPlatform::ThomsonMO);
 		}
 
-		bool had_cartridge = false;
-		if(!media.cartridges.empty()) {
-			const auto &segment = media.cartridges.front()->segments().front().data;
-			if(segment.size() <= 16 * 1024) {
-				had_cartridge = true;
-
-				// My memory map requires things to be a multiple of 0x2000 bytes; pad to that.
-				cartridge_ = segment;
-				if(cartridge_.size() & 0x1fff) {
-					const auto new_size = (cartridge_.size() + 0x2000) & ~size_t(0x1fff);
-					cartridge_.resize(new_size, 0xff);
-				}
-
-				memory_.set_read(0xc000, 0xc000 + cartridge_.size(), cartridge_.data());
-			}
-		}
+		const bool had_cartridge =
+			!media.cartridges.empty() &&
+			sam_.insert_cartridge(media.cartridges.front()->segments().front().data);
 
 		return !media.tapes.empty() || had_cartridge;
 	}

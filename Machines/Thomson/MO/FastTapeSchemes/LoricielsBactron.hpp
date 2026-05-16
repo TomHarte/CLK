@@ -228,7 +228,7 @@ struct LoricielsBactron: public Loader {
 			level ^= 0xff;
 		}
 
-		registers.reg<CPU::M6809::R8::A>() = is_one ? ~registers.reg<CPU::M6809::R8::A>() : 0;
+		registers.reg<CPU::M6809::R8::A>() = uint8_t(is_one ? ~registers.reg<CPU::M6809::R8::A>() : 0);
 
 		return std::make_pair(TrapAction::RTS, true);
 	}
