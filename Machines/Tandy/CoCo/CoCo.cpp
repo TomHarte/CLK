@@ -132,7 +132,7 @@ public:
 		pia0_(pia0_handler_),
 		pia1_handler_(*this),
 		pia1_(pia1_handler_),
-		sam_(memory_, ram_.data()),
+		sam_(memory_),
 		m6847_(sam_, sam_),
 		tape_player_(int(ClockRate)),
 		audio_(audio_queue_, MaxDACLevel),
@@ -152,11 +152,9 @@ public:
 
 		{
 			auto rom = roms.find(BasicROM)->second;
-			std::copy_n(rom.begin(), 8 * 1024, colour_basic_.begin());
+			sam_.set_basic(rom);
 		}
 
-		memory_.set_read(0xa000, 0xc000, colour_basic_.data());
-		Memory::Fuzz(ram_);
 
 		insert_media(target.media);
 		type_string(target.loading_command);
@@ -193,7 +191,7 @@ public:
 		}
 		time_since_audio_update_ += duration;
 
-		if(!cartridge_.empty()) {
+		if(sam_.has_cartridge()) {
 			// When a cartridge is inserted: "the clock signal (Q) is shorted to the cartridge interrupt pin."
 			pia1_.set<Motorola::MC6821::Control::CB1>(true);
 			pia1_.set<Motorola::MC6821::Control::CB1>(false);
@@ -344,9 +342,6 @@ private:
 	};
 	CPU::M6809::Processor<M6809Traits> m6809_;
 	MemoryMap memory_;
-	std::array<uint8_t, 8 * 1024> colour_basic_;
-	std::array<uint8_t, 64 * 1024> ram_;
-	std::vector<uint8_t> cartridge_;
 
 	// MARK: - TimedMachine.
 
@@ -605,7 +600,10 @@ private:
 
 	Cycles bus_phase_;
 	struct SAM {
-		SAM(MemoryMap &memory, uint8_t *const ram_base) : memory_(memory), ram_base_(ram_base) {
+		SAM(MemoryMap &memory) : memory_(memory) {
+			Memory::Fuzz(ram_);
+
+			memory_.set_read(0xa000, 0xc000, colour_basic_.data());
 			page_ram(0);
 		}
 
@@ -751,6 +749,30 @@ private:
 			return graphics_address_;
 		}
 
+		bool insert_cartridge(const std::vector<uint8_t> &contents) {
+			if(contents.size() > 16 * 1024) {
+				return false;
+			}
+
+			// My memory map requires things to be a multiple of 0x2000 bytes; pad to that.
+			cartridge_ = contents;
+			if(cartridge_.size() & 0x1fff) {
+				const auto new_size = (cartridge_.size() + 0x2000) & ~size_t(0x1fff);
+				cartridge_.resize(new_size, 0xff);
+			}
+
+			memory_.set_read(0xc000, 0xc000 + cartridge_.size(), cartridge_.data());
+			return true;
+		}
+
+		bool has_cartridge() const {
+			return !cartridge_.empty();
+		}
+
+		void set_basic(const std::vector<uint8_t> rom) {
+			std::copy_n(rom.begin(), 8 * 1024, colour_basic_.begin());
+		}
+
 	private:
 		MemoryMap &memory_;
 
@@ -766,11 +788,6 @@ private:
 		ClockSpeed speed_ = ClockSpeed::Half;
 		bool all_ram_ = false;
 		int ram_size_ = 0;
-
-		uint8_t *ram_base_ = nullptr;
-		void page_ram(const int page) {
-			memory_.set_readwrite(0x0000, 0x8000, ram_base_ + page * 32768);
-		}
 
 		// 'X' and 'Y' are the data sheet names for these values, which is unfortunate given that they're involved
 		// in data fetch but don't correlate with dimensions.
@@ -800,6 +817,14 @@ private:
 		uint16_t clear_mask_ = 0xffff;
 
 		uint16_t previous_6847_address_ = 0;
+
+		std::vector<uint8_t> cartridge_;
+		std::array<uint8_t, 8 * 1024> colour_basic_;
+		std::array<uint8_t, 64 * 1024> ram_;
+
+		void page_ram(const int page) {
+			memory_.set_readwrite(0x0000, 0x8000, ram_.data() + page * 32768);
+		}
 	};
 	SAM sam_;
 
@@ -877,22 +902,9 @@ private:
 			tape_player_.set_tape(media.tapes.front(), TargetPlatform::ThomsonMO);
 		}
 
-		bool had_cartridge = false;
-		if(!media.cartridges.empty()) {
-			const auto &segment = media.cartridges.front()->segments().front().data;
-			if(segment.size() <= 16 * 1024) {
-				had_cartridge = true;
-
-				// My memory map requires things to be a multiple of 0x2000 bytes; pad to that.
-				cartridge_ = segment;
-				if(cartridge_.size() & 0x1fff) {
-					const auto new_size = (cartridge_.size() + 0x2000) & ~size_t(0x1fff);
-					cartridge_.resize(new_size, 0xff);
-				}
-
-				memory_.set_read(0xc000, 0xc000 + cartridge_.size(), cartridge_.data());
-			}
-		}
+		const bool had_cartridge =
+			!media.cartridges.empty() &&
+			sam_.insert_cartridge(media.cartridges.front()->segments().front().data);
 
 		return !media.tapes.empty() || had_cartridge;
 	}
