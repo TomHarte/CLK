@@ -137,7 +137,7 @@ public:
 		pia0_(pia0_handler_),
 		pia1_handler_(*this),
 		pia1_(pia1_handler_),
-		sam_(memory_),
+		sam_(memory_, target.memory_size == Analyser::Static::TandyCoCo::Target::MemorySize::SixtyFourKB),
 		m6847_(sam_, sam_),
 		tape_player_(int(ClockRate)),
 		audio_(audio_queue_, MaxDACLevel),
@@ -605,7 +605,7 @@ private:
 
 	Cycles bus_phase_;
 	struct SAM {
-		SAM(MemoryMap &memory) : memory_(memory) {
+		SAM(MemoryMap &memory, const bool is_64kb) : memory_(memory), is_64kb_(is_64kb) {
 			Memory::Fuzz(ram_);
 			update_memory();
 		}
@@ -817,6 +817,7 @@ private:
 
 		int ram_page_ = 0;
 		bool all_ram_ = false;
+		bool is_64kb_ = true;
 		void page_ram(const int page) {
 			ram_page_ = page;
 			update_memory();
@@ -827,10 +828,10 @@ private:
 		}
 		void update_memory() {
 			memory_.reset();
-			if(all_ram_) {
+			if(all_ram_ && is_64kb_) {
 				memory_.set_readwrite(0x0000, 0x1'0000, ram_.data());
 			} else {
-				memory_.set_readwrite(0x0000, 0x8000, ram_.data() + ram_page_ * 32768);
+				memory_.set_readwrite(0x0000, 0x8000, ram_.data() + (is_64kb_ ? ram_page_ : 0) * 32768);
 				memory_.set_read(0xa000, 0xc000, colour_basic_.data());
 				memory_.set_read(0xc000, 0xc000 + cartridge_.size(), cartridge_.data());
 			}
