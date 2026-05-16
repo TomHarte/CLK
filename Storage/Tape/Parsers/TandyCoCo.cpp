@@ -113,5 +113,5 @@ std::optional<Block> Parser::block(Storage::Tape::TapeSerialiser &serialiser) {
 	if(!checksum.has_value()) return std::nullopt;
 
 	block.checksum_error = uint8_t(*checksum - expected_checksum);
-	return std::move(block);
+	return block;
 }
