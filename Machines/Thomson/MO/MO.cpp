@@ -49,6 +49,8 @@ constexpr Keyboard::Machine machine(const Target::Model model) {
 			return Keyboard::Machine::MO6;
 		case Target::Model::Prodest128:
 			return Keyboard::Machine::Prodest128;
+
+		default: __builtin_unreachable();
 	}
 }
 
@@ -734,6 +736,7 @@ std::unique_ptr<Machine> machine(const Target &target, const ROMMachine::ROMFetc
 		using enum Target::Floppy;
 		case None:		return std::make_unique<ConcreteMachine<false, is_mo6>>(target, rom_fetcher);
 		case CD90_640:	return std::make_unique<ConcreteMachine<true, is_mo6>>(target, rom_fetcher);
+		default:		__builtin_unreachable();
 	}
 }
 }
