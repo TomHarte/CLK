@@ -60,6 +60,11 @@ struct MemoryMap {
 		}
 	}
 
+	void reset() {
+		std::fill(std::begin(write_), std::end(write_), nullptr);
+		std::fill(std::begin(read_), std::end(read_), nullptr);
+	}
+
 private:
 	uint8_t *write_[8]{};
 	const uint8_t *read_[8]{};
@@ -602,9 +607,7 @@ private:
 	struct SAM {
 		SAM(MemoryMap &memory) : memory_(memory) {
 			Memory::Fuzz(ram_);
-
-			memory_.set_read(0xa000, 0xc000, colour_basic_.data());
-			page_ram(0);
+			update_memory();
 		}
 
 		uint8_t operator[](const uint16_t address) {
@@ -687,10 +690,6 @@ private:
 				case 8:	set(graphics_address_, 0x4000);	break;
 				case 9:	set(graphics_address_, 0x8000);	break;
 
-				case 10:
-					page_ram(address & 1);
-				break;
-
 				case 11: { int tc = int(speed_); set(tc, 1); speed_ = ClockSpeed(tc); }	break;
 				case 12: { int tc = int(speed_); set(tc, 2); speed_ = ClockSpeed(tc); }	break;
 
@@ -698,13 +697,8 @@ private:
 				case 13: set(ram_size_, 1);	break;
 				case 14: set(ram_size_, 2);	break;
 
-				case 15:
-					all_ram_ = address & 1;
-					if(all_ram_) {
-						printf("TODO: all-RAM mode\n");
-						// TODO: communicate to memory map.
-					}
-				break;
+				case 10:	page_ram(address & 1);		break;
+				case 15:	set_all_ram(address & 1);	break;
 			}
 		}
 
@@ -761,7 +755,7 @@ private:
 				cartridge_.resize(new_size, 0xff);
 			}
 
-			memory_.set_read(0xc000, 0xc000 + cartridge_.size(), cartridge_.data());
+			update_memory();
 			return true;
 		}
 
@@ -786,7 +780,6 @@ private:
 		int graphics_mode_ = 0;
 		uint16_t graphics_address_ = 0;
 		ClockSpeed speed_ = ClockSpeed::Half;
-		bool all_ram_ = false;
 		int ram_size_ = 0;
 
 		// 'X' and 'Y' are the data sheet names for these values, which is unfortunate given that they're involved
@@ -822,8 +815,25 @@ private:
 		std::array<uint8_t, 8 * 1024> colour_basic_;
 		std::array<uint8_t, 64 * 1024> ram_;
 
+		int ram_page_ = 0;
+		bool all_ram_ = false;
 		void page_ram(const int page) {
-			memory_.set_readwrite(0x0000, 0x8000, ram_.data() + page * 32768);
+			ram_page_ = page;
+			update_memory();
+		}
+		void set_all_ram(const bool all_ram) {
+			all_ram_ = all_ram;
+			update_memory();
+		}
+		void update_memory() {
+			memory_.reset();
+			if(all_ram_) {
+				memory_.set_readwrite(0x0000, 0x1'0000, ram_.data());
+			} else {
+				memory_.set_readwrite(0x0000, 0x8000, ram_.data() + ram_page_ * 32768);
+				memory_.set_read(0xa000, 0xc000, colour_basic_.data());
+				memory_.set_read(0xc000, 0xc000 + cartridge_.size(), cartridge_.data());
+			}
 		}
 	};
 	SAM sam_;
