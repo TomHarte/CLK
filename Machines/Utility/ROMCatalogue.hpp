@@ -102,6 +102,12 @@ enum Name {
 	DiskIIStateMachine13Sector,
 	DiskIIBoot13Sector,
 
+	// Dragon.
+	Dragon32,
+	Dragon64ROM1,
+	TanoDragon64ROM1,
+	Dragon64ROM2,
+
 	// Enterprise.
 	EnterpriseEXOS10,
 	EnterpriseEXOS20,
