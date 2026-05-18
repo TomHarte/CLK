@@ -109,6 +109,259 @@ struct ModeMapper {
 	}
 };
 
+struct SAM {
+	SAM(MemoryMap &memory, const bool is_64kb) : memory_(memory), is_64kb_(is_64kb) {
+		Memory::Fuzz(ram_);
+		update_memory();
+	}
+
+	uint8_t operator[](const uint16_t address) {
+		b1b3_ += ((previous_6847_address_ ^ address) & previous_6847_address_ & 1) << 1;
+		previous_6847_address_ = address;
+
+		x_ += b1b3_ >> 4;
+		b1b3_ &= 0b0'1110;
+
+		if(x_ == x_divider_) {
+			x_ = 0;
+
+			b4_ += 0b1'0000;
+			y_ += b4_ >> 5;
+			b4_ &= 0b1'0000;
+
+			if(y_ == y_divider_) {
+				y_ = 0;
+				b5b15_ += 0b10'0000;
+			}
+		}
+
+		// TODO: determine whether this should be able to read ROM.
+		return memory_.read((address & 1) | b1b3_ | b4_ | b5b15_);
+	}
+	template <bool active> void set_hsync() {
+		if(active) {
+			b1b3_ &= clear_mask_;
+			b4_ &= clear_mask_;
+			previous_6847_address_ = 0;
+		}
+	}
+	template <bool active> void set_field_sync() {
+		if(!active) {
+			b5b15_ = graphics_address_;
+			b4_ = 0;
+			b1b3_ = 0;
+			previous_6847_address_ = 0;
+		}
+	}
+	template <bool active> void set_row_preset() {
+		if(active) {
+			x_ = y_ = 0;
+		}
+	}
+
+	template <uint16_t address> void access() {
+		const auto set = [&](auto &target, auto bit) {
+			target = target & ~bit;
+			target |= address & 1 ? bit : 0;
+		};
+		const auto configure_counter = [&] {
+			switch(graphics_mode_) {
+				case 0:	x_divider_ = 1;	y_divider_ = 12;	clear_mask_ = 0b1111'1111'1110'0000; break;
+				case 1:	x_divider_ = 3;	y_divider_ = 1; 	clear_mask_ = 0b1111'1111'1111'0000; break;
+				case 2:	x_divider_ = 1;	y_divider_ = 3;		clear_mask_ = 0b1111'1111'1110'0000; break;
+				case 3:	x_divider_ = 2;	y_divider_ = 1;		clear_mask_ = 0b1111'1111'1111'0000; break;
+				case 4:	x_divider_ = 1;	y_divider_ = 2; 	clear_mask_ = 0b1111'1111'1110'0000; break;
+				case 5:	x_divider_ = 1;	y_divider_ = 1;		clear_mask_ = 0b1111'1111'1111'0000; break;
+				case 6:	x_divider_ = 1;	y_divider_ = 1;		clear_mask_ = 0b1111'1111'1110'0000; break;
+				case 7:	x_divider_ = 1;	y_divider_ = 1;		clear_mask_ = 0b1111'1111'1111'1111; break;
+				default: __builtin_unreachable();
+			}
+		};
+
+		switch((address >> 1) & 0xf) {
+			default:
+				printf("Unhandled SAM access %04x\n", address);
+			break;
+
+			case 0:	set(graphics_mode_, 1);	configure_counter(); break;
+			case 1:	set(graphics_mode_, 2);	configure_counter(); break;
+			case 2:	set(graphics_mode_, 4);	configure_counter(); break;
+
+			case 3:	set(graphics_address_, 0x0200);	break;
+			case 4:	set(graphics_address_, 0x0400);	break;
+			case 5:	set(graphics_address_, 0x0800);	break;
+			case 6:	set(graphics_address_, 0x1000);	break;
+			case 7:	set(graphics_address_, 0x2000);	break;
+			case 8:	set(graphics_address_, 0x4000);	break;
+			case 9:	set(graphics_address_, 0x8000);	break;
+
+			case 11: { int tc = int(speed_); set(tc, 1); speed_ = ClockSpeed(tc); }	break;
+			case 12: { int tc = int(speed_); set(tc, 2); speed_ = ClockSpeed(tc); }	break;
+
+			// Likely these are to effect refresh; TODO: look into this.
+			case 13: set(ram_size_, 1);	break;
+			case 14: set(ram_size_, 2);	break;
+
+			case 10:	page_ram(address & 1);		break;
+			case 15:	set_all_ram(address & 1);	break;
+		}
+	}
+
+	template <
+		CPU::M6809::BusPhase bus_phase,
+		CPU::M6809::ReadWrite read_write,
+		typename AddressT
+	> Cycles cycle_cost(const AddressT address, const Cycles phase) {
+		//
+		// Without documentation I've made a guess here that the half-speed bus has an alignment requirement,
+		// so switching from full-speed to half-speed might result in a two-cycle access but might result in
+		// a three-cycle access (followed by two-cycle accesses).
+		//
+		// If that proves to be untrue, `phase` can be eliminated as an argument.
+		//
+		switch(speed_) {
+			case ClockSpeed::Full1:
+			case ClockSpeed::Full2:
+			return Cycles(0);
+
+			case ClockSpeed::Half:
+			return duration<Cycles>(bus_phase) + phase;
+
+			case ClockSpeed::HalfInRAM:
+				if constexpr (read_write == CPU::M6809::ReadWrite::NoData) {
+					return Cycles(0);
+				} else {
+					if(address < 0x8000 || all_ram_) {
+						return duration<Cycles>(bus_phase) + phase;
+					} else {
+						return Cycles(0);
+					}
+				}
+			break;
+
+			default: break;
+		}
+		__builtin_unreachable();
+	}
+
+	uint16_t graphics_address() const {
+		return graphics_address_;
+	}
+
+	bool insert_cartridge(const std::vector<uint8_t> &contents) {
+		if(contents.size() > 16 * 1024) {
+			return false;
+		}
+
+		// My memory map requires things to be a multiple of 0x2000 bytes; pad to that.
+		cartridge_ = contents;
+		if(cartridge_.size() & 0x1fff) {
+			const auto new_size = (cartridge_.size() + 0x2000) & ~size_t(0x1fff);
+			cartridge_.resize(new_size, 0xff);
+		}
+
+		update_memory();
+		return true;
+	}
+
+	bool has_cartridge() const {
+		return !cartridge_.empty();
+	}
+
+	void set_basic(const std::vector<uint8_t> rom) {
+		std::fill(basic_.begin(), basic_.end(), 0xff);
+		std::copy_n(rom.begin(), rom.size(), basic_.end() - rom.size());
+	}
+
+	void set_alternate_basic(const std::vector<uint8_t> rom) {
+		std::fill(alternate_basic_.begin(), alternate_basic_.end(), 0xff);
+		std::copy_n(rom.begin(), rom.size(), alternate_basic_.end() - rom.size());
+	}
+
+	void set_no_alternate_basic() {
+		std::copy(basic_.begin(), basic_.end(), alternate_basic_.begin());
+	}
+
+private:
+	MemoryMap &memory_;
+
+	enum class ClockSpeed {
+		Half,
+		HalfInRAM,
+		Full1,
+		Full2,
+	};
+
+	int graphics_mode_ = 0;
+	uint16_t graphics_address_ = 0;
+	ClockSpeed speed_ = ClockSpeed::Half;
+	int ram_size_ = 0;
+
+	// 'X' and 'Y' are the data sheet names for these values, which is unfortunate given that they're involved
+	// in data fetch but don't correlate with dimensions.
+	//
+	// Requirements:
+	//
+	//	The low bit of the address coming from the 6847 acts as the low bit of the address fetched.
+	//	It also clocks counting.
+	//
+	//	Above that is a three-bit counter, which it clocks.
+	//
+	//	That three bit counter feeds into the 'x' divider. So if the x divider is 3 then that counter must overflow
+	//	three times in order to propagate carry upwards.
+	//
+	//	Carry from that counter is fed into a one-bit counter.
+	//
+	//	That one bit counter then clocks the 'y' divider, carry from which clocks the remaining 11 bits of output.
+	//
+	// At field sync the top seven bits of the counter are reloaded from the programmed base address.
+	// At horizontal sync the programmed mask is applied to the counters.
+	// Upon row preset, both x and y dividers are reset to 0.
+	//
+	// Observations: the hsync clearing mask never affects the top 11 bits — the portiona after the y divider.
+
+	uint16_t b1b3_, x_, b4_, y_, b5b15_;
+	uint16_t x_divider_ = 1, y_divider_ = 1;
+	uint16_t clear_mask_ = 0xffff;
+
+	uint16_t previous_6847_address_ = 0;
+
+	std::vector<uint8_t> cartridge_;
+	std::array<uint8_t, 16 * 1024> basic_;
+	std::array<uint8_t, 16 * 1024> alternate_basic_;
+	std::array<uint8_t, 64 * 1024> ram_;
+
+	int ram_page_ = 0;
+	bool all_ram_ = false;
+	bool is_64kb_ = true;
+	void page_ram(const int page) {
+		ram_page_ = page;
+		update_memory();
+	}
+	void set_all_ram(const bool all_ram) {
+		all_ram_ = all_ram;
+		update_memory();
+	}
+	void update_memory() {
+		memory_.reset();
+		if(all_ram_ && is_64kb_) {
+			memory_.set_readwrite(0x0000, 0x1'0000, ram_.data());
+		} else {
+			memory_.set_readwrite(0x0000, 0x8000, ram_.data() + (is_64kb_ ? ram_page_ : 0) * 32768);
+			if(ram_page_) {
+				memory_.set_read(0x8000, 0xc000, alternate_basic_.data());
+			} else {
+				memory_.set_read(0x8000, 0xc000, basic_.data());
+			}
+			memory_.set_read(0xc000, 0xc000 + cartridge_.size(), cartridge_.data());
+		}
+	}
+};
+
+constexpr bool is_64kb(const Analyser::Static::TandyCoCo::Target::MemorySize size) {
+	return size == Analyser::Static::TandyCoCo::Target::MemorySize::SixtyFourKB;
+}
+
 static constexpr uint8_t MaxDACLevel = 0b111'111;
 static constexpr double ClockRate = 1'789'772.5;
 static constexpr auto AudioDivider = Cycles(1);
@@ -117,6 +370,7 @@ static constexpr auto AudioDivider = Cycles(1);
 
 namespace TandyCoCo {
 
+template <bool is_pal>
 class ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
@@ -137,7 +391,7 @@ public:
 		pia0_(pia0_handler_),
 		pia1_handler_(*this),
 		pia1_(pia1_handler_),
-		sam_(memory_, target.memory_size == Analyser::Static::TandyCoCo::Target::MemorySize::SixtyFourKB),
+		sam_(memory_, is_64kb(target.memory_size)),
 		m6847_(sam_, sam_),
 		tape_player_(int(ClockRate)),
 		audio_(audio_queue_, MaxDACLevel),
@@ -146,20 +400,35 @@ public:
 		set_clock_rate(ClockRate);
 		speaker_.set_input_rate(ClockRate / AudioDivider.as<double>());
 		construct_joysticks();
+		is_dragon_ = Analyser::Static::TandyCoCo::is_dragon(target.model);
 
-		const auto BasicROM = ROM::Name::TandyCoCoColourBasic12;
+		const auto BasicROM = [&] {
+			if(!is_dragon_) {
+				return ROM::Name::TandyCoCoColourBasic12;
+			}
+			return is_64kb(target.memory_size) ? ROM::Name::Dragon64ROM1 : ROM::Name::Dragon32;
+		} ();
+		const auto alternateBasicROM = [&]() -> std::optional<ROM::Name> {
+			if(!is_dragon_ || !is_64kb(target.memory_size)) {
+				return std::nullopt;
+			}
+			return ROM::Name::Dragon64ROM2;
+		} ();
+
 		auto request = ROM::Request(BasicROM);
+		if(alternateBasicROM.has_value()) request = request && ROM::Request(*alternateBasicROM);
 
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
 			throw ROMMachine::Error::MissingROMs;
 		}
 
-		{
-			auto rom = roms.find(BasicROM)->second;
-			sam_.set_basic(rom);
+		sam_.set_basic(roms.find(BasicROM)->second);
+		if(alternateBasicROM.has_value()) {
+			sam_.set_alternate_basic(roms.find(*alternateBasicROM)->second);
+		} else {
+			sam_.set_no_alternate_basic();
 		}
-
 
 		insert_media(target.media);
 		type_string(target.loading_command);
@@ -187,8 +456,8 @@ public:
 		bus_phase_ += duration;
 		bus_phase_ &= 1;
 		if(m6847_ += duration) {
-			pia0_.set<Motorola::MC6821::Control::CA1>(m6847_.get()->hsync());
-			pia0_.set<Motorola::MC6821::Control::CB1>(m6847_.get()->fsync());
+			pia0_.template set<Motorola::MC6821::Control::CA1>(m6847_.get()->hsync());
+			pia0_.template set<Motorola::MC6821::Control::CB1>(m6847_.get()->fsync());
 		}
 		tape_player_.run_for(duration);
 		if(typer_) {
@@ -198,8 +467,8 @@ public:
 
 		if(sam_.has_cartridge()) {
 			// When a cartridge is inserted: "the clock signal (Q) is shorted to the cartridge interrupt pin."
-			pia1_.set<Motorola::MC6821::Control::CB1>(true);
-			pia1_.set<Motorola::MC6821::Control::CB1>(false);
+			pia1_.template set<Motorola::MC6821::Control::CB1>(true);
+			pia1_.template set<Motorola::MC6821::Control::CB1>(false);
 		}
 
 		using namespace CPU::M6809;
@@ -497,14 +766,14 @@ private:
 	template <int slot>
 	void set_irq(const bool active) {
 		irqs_[slot] = active;
-		m6809_.set<CPU::M6809::Line::IRQ>(irqs_[0] || irqs_[1]);
+		m6809_.template set<CPU::M6809::Line::IRQ>(irqs_[0] || irqs_[1]);
 	}
 
 	bool firqs_[2]{};
 	template <int slot>
 	void set_firq(const bool active) {
 		firqs_[slot] = active;
-		m6809_.set<CPU::M6809::Line::FIRQ>(firqs_[0] || firqs_[1]);
+		m6809_.template set<CPU::M6809::Line::FIRQ>(firqs_[0] || firqs_[1]);
 	}
 
 	friend struct PIA1Handler;
@@ -604,246 +873,13 @@ private:
 	// MARK: - SAM.
 
 	Cycles bus_phase_;
-	struct SAM {
-		SAM(MemoryMap &memory, const bool is_64kb) : memory_(memory), is_64kb_(is_64kb) {
-			Memory::Fuzz(ram_);
-			update_memory();
-		}
-
-		uint8_t operator[](const uint16_t address) {
-			b1b3_ += ((previous_6847_address_ ^ address) & previous_6847_address_ & 1) << 1;
-			previous_6847_address_ = address;
-
-			x_ += b1b3_ >> 4;
-			b1b3_ &= 0b0'1110;
-
-			if(x_ == x_divider_) {
-				x_ = 0;
-
-				b4_ += 0b1'0000;
-				y_ += b4_ >> 5;
-				b4_ &= 0b1'0000;
-
-				if(y_ == y_divider_) {
-					y_ = 0;
-					b5b15_ += 0b10'0000;
-				}
-			}
-
-			// TODO: determine whether this should be able to read ROM.
-			return memory_.read((address & 1) | b1b3_ | b4_ | b5b15_);
-		}
-		template <bool active> void set_hsync() {
-			if(active) {
-				b1b3_ &= clear_mask_;
-				b4_ &= clear_mask_;
-				previous_6847_address_ = 0;
-			}
-		}
-		template <bool active> void set_field_sync() {
-			if(!active) {
-				b5b15_ = graphics_address_;
-				b4_ = 0;
-				b1b3_ = 0;
-				previous_6847_address_ = 0;
-			}
-		}
-		template <bool active> void set_row_preset() {
-			if(active) {
-				x_ = y_ = 0;
-			}
-		}
-
-		template <uint16_t address> void access() {
-			const auto set = [&](auto &target, auto bit) {
-				target = target & ~bit;
-				target |= address & 1 ? bit : 0;
-			};
-			const auto configure_counter = [&] {
-				switch(graphics_mode_) {
-					case 0:	x_divider_ = 1;	y_divider_ = 12;	clear_mask_ = 0b1111'1111'1110'0000; break;
-					case 1:	x_divider_ = 3;	y_divider_ = 1; 	clear_mask_ = 0b1111'1111'1111'0000; break;
-					case 2:	x_divider_ = 1;	y_divider_ = 3;		clear_mask_ = 0b1111'1111'1110'0000; break;
-					case 3:	x_divider_ = 2;	y_divider_ = 1;		clear_mask_ = 0b1111'1111'1111'0000; break;
-					case 4:	x_divider_ = 1;	y_divider_ = 2; 	clear_mask_ = 0b1111'1111'1110'0000; break;
-					case 5:	x_divider_ = 1;	y_divider_ = 1;		clear_mask_ = 0b1111'1111'1111'0000; break;
-					case 6:	x_divider_ = 1;	y_divider_ = 1;		clear_mask_ = 0b1111'1111'1110'0000; break;
-					case 7:	x_divider_ = 1;	y_divider_ = 1;		clear_mask_ = 0b1111'1111'1111'1111; break;
-					default: __builtin_unreachable();
-				}
-			};
-
-			switch((address >> 1) & 0xf) {
-				default:
-					printf("Unhandled SAM access %04x\n", address);
-				break;
-
-				case 0:	set(graphics_mode_, 1);	configure_counter(); break;
-				case 1:	set(graphics_mode_, 2);	configure_counter(); break;
-				case 2:	set(graphics_mode_, 4);	configure_counter(); break;
-
-				case 3:	set(graphics_address_, 0x0200);	break;
-				case 4:	set(graphics_address_, 0x0400);	break;
-				case 5:	set(graphics_address_, 0x0800);	break;
-				case 6:	set(graphics_address_, 0x1000);	break;
-				case 7:	set(graphics_address_, 0x2000);	break;
-				case 8:	set(graphics_address_, 0x4000);	break;
-				case 9:	set(graphics_address_, 0x8000);	break;
-
-				case 11: { int tc = int(speed_); set(tc, 1); speed_ = ClockSpeed(tc); }	break;
-				case 12: { int tc = int(speed_); set(tc, 2); speed_ = ClockSpeed(tc); }	break;
-
-				// Likely these are to effect refresh; TODO: look into this.
-				case 13: set(ram_size_, 1);	break;
-				case 14: set(ram_size_, 2);	break;
-
-				case 10:	page_ram(address & 1);		break;
-				case 15:	set_all_ram(address & 1);	break;
-			}
-		}
-
-		template <
-			CPU::M6809::BusPhase bus_phase,
-			CPU::M6809::ReadWrite read_write,
-			typename AddressT
-		> Cycles cycle_cost(const AddressT address, const Cycles phase) {
-			//
-			// Without documentation I've made a guess here that the half-speed bus has an alignment requirement,
-			// so switching from full-speed to half-speed might result in a two-cycle access but might result in
-			// a three-cycle access (followed by two-cycle accesses).
-			//
-			// If that proves to be untrue, `phase` can be eliminated as an argument.
-			//
-			switch(speed_) {
-				case ClockSpeed::Full1:
-				case ClockSpeed::Full2:
-				return Cycles(0);
-
-				case ClockSpeed::Half:
-				return duration<Cycles>(bus_phase) + phase;
-
-				case ClockSpeed::HalfInRAM:
-					if constexpr (read_write == CPU::M6809::ReadWrite::NoData) {
-						return Cycles(0);
-					} else {
-						if(address < 0x8000 || all_ram_) {
-							return duration<Cycles>(bus_phase) + phase;
-						} else {
-							return Cycles(0);
-						}
-					}
-				break;
-
-				default: break;
-			}
-			__builtin_unreachable();
-		}
-
-		uint16_t graphics_address() const {
-			return graphics_address_;
-		}
-
-		bool insert_cartridge(const std::vector<uint8_t> &contents) {
-			if(contents.size() > 16 * 1024) {
-				return false;
-			}
-
-			// My memory map requires things to be a multiple of 0x2000 bytes; pad to that.
-			cartridge_ = contents;
-			if(cartridge_.size() & 0x1fff) {
-				const auto new_size = (cartridge_.size() + 0x2000) & ~size_t(0x1fff);
-				cartridge_.resize(new_size, 0xff);
-			}
-
-			update_memory();
-			return true;
-		}
-
-		bool has_cartridge() const {
-			return !cartridge_.empty();
-		}
-
-		void set_basic(const std::vector<uint8_t> rom) {
-			std::copy_n(rom.begin(), 8 * 1024, colour_basic_.begin());
-		}
-
-	private:
-		MemoryMap &memory_;
-
-		enum class ClockSpeed {
-			Half,
-			HalfInRAM,
-			Full1,
-			Full2,
-		};
-
-		int graphics_mode_ = 0;
-		uint16_t graphics_address_ = 0;
-		ClockSpeed speed_ = ClockSpeed::Half;
-		int ram_size_ = 0;
-
-		// 'X' and 'Y' are the data sheet names for these values, which is unfortunate given that they're involved
-		// in data fetch but don't correlate with dimensions.
-		//
-		// Requirements:
-		//
-		//	The low bit of the address coming from the 6847 acts as the low bit of the address fetched.
-		//	It also clocks counting.
-		//
-		//	Above that is a three-bit counter, which it clocks.
-		//
-		//	That three bit counter feeds into the 'x' divider. So if the x divider is 3 then that counter must overflow
-		//	three times in order to propagate carry upwards.
-		//
-		//	Carry from that counter is fed into a one-bit counter.
-		//
-		//	That one bit counter then clocks the 'y' divider, carry from which clocks the remaining 11 bits of output.
-		//
-		// At field sync the top seven bits of the counter are reloaded from the programmed base address.
-		// At horizontal sync the programmed mask is applied to the counters.
-		// Upon row preset, both x and y dividers are reset to 0.
-		//
-		// Observations: the hsync clearing mask never affects the top 11 bits — the portiona after the y divider.
-
-		uint16_t b1b3_, x_, b4_, y_, b5b15_;
-		uint16_t x_divider_ = 1, y_divider_ = 1;
-		uint16_t clear_mask_ = 0xffff;
-
-		uint16_t previous_6847_address_ = 0;
-
-		std::vector<uint8_t> cartridge_;
-		std::array<uint8_t, 8 * 1024> colour_basic_;
-		std::array<uint8_t, 64 * 1024> ram_;
-
-		int ram_page_ = 0;
-		bool all_ram_ = false;
-		bool is_64kb_ = true;
-		void page_ram(const int page) {
-			ram_page_ = page;
-			update_memory();
-		}
-		void set_all_ram(const bool all_ram) {
-			all_ram_ = all_ram;
-			update_memory();
-		}
-		void update_memory() {
-			memory_.reset();
-			if(all_ram_ && is_64kb_) {
-				memory_.set_readwrite(0x0000, 0x1'0000, ram_.data());
-			} else {
-				memory_.set_readwrite(0x0000, 0x8000, ram_.data() + (is_64kb_ ? ram_page_ : 0) * 32768);
-				memory_.set_read(0xa000, 0xc000, colour_basic_.data());
-				memory_.set_read(0xc000, 0xc000 + cartridge_.size(), cartridge_.data());
-			}
-		}
-	};
 	SAM sam_;
 
 	// MARK: - Video and ScanProducer.
 
 	JustInTimeActor<
 		Motorola::MC6847::MC6847<
-			Motorola::MC6847::FrameTiming::NTSC,
+			is_pal ? Motorola::MC6847::FrameTiming::PALPaddedVsync : Motorola::MC6847::FrameTiming::NTSC,
 			SAM,
 			SAM,
 			ModeMapper
@@ -870,13 +906,36 @@ private:
 
 	// MARK: - MappedKeyboardMachine.
 
+	bool is_dragon_ = false;
 	Tandy::CoCo::Keyboard::KeyboardMapper keyboard_mapper_;
 	KeyboardMapper *keyboard_mapper() final {
 		return &keyboard_mapper_;
 	}
 
 	void set_key_state(const uint16_t key, const bool is_pressed) final {
-		pia0_handler_.set_key_pressed(Keyboard::column(key), Keyboard::row(key), is_pressed);
+		// The CoCo and Dragon differ in columns; a mapping from CoCo to Dragon column is:
+		//
+		//	0 -> 2
+		//	1 -> 3
+		//	2 -> 4
+		//	3 -> 5
+		//	4 -> 0
+		// 	5 -> 1
+		//	6 -> 6
+		//	7 -> 7
+
+		const auto mapped_column = [&](const int column) {
+			if(!is_dragon_ || column >= 6) {
+				return column;
+			}
+			return (column + 2) % 6;
+		};
+
+		pia0_handler_.set_key_pressed(
+			mapped_column(Keyboard::column(key)),
+			Keyboard::row(key),
+			is_pressed
+		);
 	}
 
 	void clear_all_keys() final {
@@ -997,7 +1056,6 @@ private:
 		update_audio();
 		audio_.set_output(new_audio_output);
 	}
-
 };
 
 }
@@ -1007,5 +1065,9 @@ std::unique_ptr<Machine> Machine::create(
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	const auto &coco_target = static_cast<const Analyser::Static::TandyCoCo::Target &>(target);
-	return std::make_unique<TandyCoCo::ConcreteMachine>(coco_target, rom_fetcher);
+	if(Analyser::Static::TandyCoCo::is_pal(coco_target.model)) {
+		return std::make_unique<TandyCoCo::ConcreteMachine<true>>(coco_target, rom_fetcher);
+	} else {
+		return std::make_unique<TandyCoCo::ConcreteMachine<false>>(coco_target, rom_fetcher);
+	}
 }
