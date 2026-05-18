@@ -153,6 +153,7 @@ set(CLK_SOURCES
 	Machines/Sinclair/ZX8081/Video.cpp
 	Machines/Sinclair/ZX8081/ZX8081.cpp
 	Machines/Sinclair/ZXSpectrum/ZXSpectrum.cpp
+	Machines/Tandy/CoCo/DiskController.cpp
 	Machines/Tandy/CoCo/CoCo.cpp
 	Machines/Thomson/MO/CD90-640.cpp
 	Machines/Thomson/MO/MO.cpp
