@@ -548,6 +548,42 @@ const std::vector<Description> &Description::all_roms() {
 		},
 
 	//
+	// Dragon.
+	//
+		{
+			Dragon32,
+			"Dragon",
+			"the Dragon 32 BASIC ROM",
+			"d32.rom",
+			16_kb,
+			0xe3879310u
+		},
+		{
+			Dragon64ROM1,
+			"Dragon",
+			"the Dragon 64 ROM 1",
+			"d64rom1.rom",
+			16_kb,
+			0x60a4634cu
+		},
+		{
+			TanoDragon64ROM1,
+			"Dragon",
+			"the Tano Dragon 64 ROM 1",
+			Files{ "d64tano.rom", "d200rom1.rom" },
+			16_kb,
+			0x84f68bf9u
+		},
+		{
+			Dragon64ROM2,
+			"Dragon",
+			"the Dragon 64 ROM 2",
+			Files{ "d64rom2.rom", "d64tano2.rom", "d200rom2.rom" },
+			16_kb,
+			0x17893a42u
+		},
+
+	//
 	// Enterprise.
 	//
 		{
