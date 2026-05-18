@@ -19,6 +19,10 @@ namespace Analyser::Static::TandyCoCo {
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	Target() : Analyser::Static::Target(Machine::TandyCoCo) {}
 
+	ReflectableEnum(Model,
+		TandyCoCo,
+		Dragon,
+	);
 	ReflectableEnum(MemorySize,
 		ThirtyTwoKB,
 		SixtyFourKB,
@@ -26,11 +30,14 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 
 	std::wstring loading_command;
 	MemorySize memory_size = MemorySize::SixtyFourKB;
+	Model model = Model::TandyCoCo;
 
 private:
 	friend Reflection::StructImpl<Target>;
 	void declare_fields() {
+		AnnounceEnum(Model);
 		AnnounceEnum(MemorySize);
+		DeclareField(model);
 		DeclareField(memory_size);
 	}
 };
