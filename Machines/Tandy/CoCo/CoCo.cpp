@@ -273,6 +273,15 @@ struct SAM {
 		std::copy_n(rom.begin(), rom.size(), basic_.end() - rom.size());
 	}
 
+	void set_alternate_basic(const std::vector<uint8_t> rom) {
+		std::fill(alternate_basic_.begin(), alternate_basic_.end(), 0xff);
+		std::copy_n(rom.begin(), rom.size(), alternate_basic_.end() - rom.size());
+	}
+
+	void set_no_alternate_basic() {
+		std::copy(basic_.begin(), basic_.end(), alternate_basic_.begin());
+	}
+
 private:
 	MemoryMap &memory_;
 
@@ -319,6 +328,7 @@ private:
 
 	std::vector<uint8_t> cartridge_;
 	std::array<uint8_t, 16 * 1024> basic_;
+	std::array<uint8_t, 16 * 1024> alternate_basic_;
 	std::array<uint8_t, 64 * 1024> ram_;
 
 	int ram_page_ = 0;
@@ -338,7 +348,11 @@ private:
 			memory_.set_readwrite(0x0000, 0x1'0000, ram_.data());
 		} else {
 			memory_.set_readwrite(0x0000, 0x8000, ram_.data() + (is_64kb_ ? ram_page_ : 0) * 32768);
-			memory_.set_read(0x8000, 0xc000, basic_.data());
+			if(ram_page_) {
+				memory_.set_read(0x8000, 0xc000, alternate_basic_.data());
+			} else {
+				memory_.set_read(0x8000, 0xc000, basic_.data());
+			}
 			memory_.set_read(0xc000, 0xc000 + cartridge_.size(), cartridge_.data());
 		}
 	}
@@ -394,7 +408,7 @@ public:
 			}
 			return is_64kb(target.memory_size) ? ROM::Name::Dragon64ROM1 : ROM::Name::Dragon32;
 		} ();
-		const auto extensionROM = [&]() -> std::optional<ROM::Name> {
+		const auto alternateBasicROM = [&]() -> std::optional<ROM::Name> {
 			if(!is_dragon_ || !is_64kb(target.memory_size)) {
 				return std::nullopt;
 			}
@@ -402,7 +416,7 @@ public:
 		} ();
 
 		auto request = ROM::Request(BasicROM);
-		if(extensionROM.has_value()) request = request && ROM::Request(*extensionROM);
+		if(alternateBasicROM.has_value()) request = request && ROM::Request(*alternateBasicROM);
 
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
@@ -410,9 +424,11 @@ public:
 		}
 
 		sam_.set_basic(roms.find(BasicROM)->second);
-//		if(extensionROM.has_value()) {
-//			sam_.set_extension(roms.find(*extensionROM)->second);
-//		}
+		if(alternateBasicROM.has_value()) {
+			sam_.set_alternate_basic(roms.find(*alternateBasicROM)->second);
+		} else {
+			sam_.set_no_alternate_basic();
+		}
 
 		insert_media(target.media);
 		type_string(target.loading_command);
