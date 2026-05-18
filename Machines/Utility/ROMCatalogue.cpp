@@ -1098,6 +1098,15 @@ const std::vector<Description> &Description::all_roms() {
 			0xcbdc1ba2u
 		},
 
+		{
+			TandyCoCoDiskBASIC21,
+			"TandyCoCo",
+			"Disk BASIC 2.1",
+			Files{"Disk21.bin", "DISK21.ROM"},
+			16_kb,
+			0xdf9dd220u
+		},
+
 	//
 	// Thomson MO and TO machines.
 	//

@@ -419,6 +419,11 @@ public:
 		auto request = ROM::Request(BasicROM);
 		if(alternateBasicROM.has_value()) request = request && ROM::Request(*alternateBasicROM);
 
+		static constexpr auto DiskBASIC = ROM::Name::TandyCoCoDiskBASIC21;
+		if(has_disk_drive) {
+			request = request && ROM::Request(DiskBASIC);
+		}
+
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
 			throw ROMMachine::Error::MissingROMs;
@@ -429,6 +434,10 @@ public:
 			sam_.set_alternate_basic(roms.find(*alternateBasicROM)->second);
 		} else {
 			sam_.set_no_alternate_basic();
+		}
+
+		if(has_disk_drive) {
+			sam_.insert_cartridge(roms.find(DiskBASIC)->second);
 		}
 
 		insert_media(target.media);
@@ -456,6 +465,15 @@ public:
 
 		bus_phase_ += duration;
 		bus_phase_ &= 1;
+
+		if constexpr (has_disk_drive) {
+			// Piggy-back off the existing bus_phase_ counter to multiply the clock by 4.5,
+			// giving very close to the standard 8Mhz. Unless and until a real clock speed emerges.
+			disk_controller_.run_for(
+				duration * 4 + bus_phase_
+			);
+		}
+
 		if(m6847_ += duration) {
 			pia0_.template set<Motorola::MC6821::Control::CA1>(m6847_.get()->hsync());
 			pia0_.template set<Motorola::MC6821::Control::CB1>(m6847_.get()->fsync());
@@ -511,6 +529,12 @@ public:
 					case 0xff33:	case 0xff37:	case 0xff3b:	case 0xff3f:
 						access<0xff23, read_write>(pia1_, value);
 					break;
+
+					case 0xff40:	if(has_disk_drive) access<0xff40, read_write>(disk_controller_, value); break;
+					case 0xff48:	if(has_disk_drive) access<0xff48, read_write>(disk_controller_, value); break;
+					case 0xff49:	if(has_disk_drive) access<0xff49, read_write>(disk_controller_, value); break;
+					case 0xff4a:	if(has_disk_drive) access<0xff4a, read_write>(disk_controller_, value); break;
+					case 0xff4b:	if(has_disk_drive) access<0xff4b, read_write>(disk_controller_, value); break;
 
 					case 0xffc0:	sam_.access<0xffc0>();	break;		case 0xffc1:	sam_.access<0xffc1>();	break;
 					case 0xffc2:	sam_.access<0xffc2>();	break;		case 0xffc3:	sam_.access<0xffc3>();	break;

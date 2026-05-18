@@ -8,3 +8,6 @@ One or more of:
 * Color Basic v1.2 (1982) (Tandy).rom;
 * Color Basic v1.3 (1982) (Tandy).rom; and
 * Color Basic v1.4 (1985) (Tandy).rom.
+
+For accessing disks:
+* Disk21.bin.
