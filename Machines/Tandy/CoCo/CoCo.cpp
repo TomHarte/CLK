@@ -8,6 +8,7 @@
 
 #include "CoCo.hpp"
 
+#include "DiskController.hpp"
 #include "Keyboard.hpp"
 
 #include "Processors/6809/6809.hpp"
@@ -370,7 +371,7 @@ static constexpr auto AudioDivider = Cycles(1);
 
 namespace TandyCoCo {
 
-template <bool is_pal>
+template <bool is_pal, bool has_disk_drive>
 class ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
@@ -1056,7 +1057,27 @@ private:
 		update_audio();
 		audio_.set_output(new_audio_output);
 	}
+
+	// MARK: - Disk.
+
+	DiskController disk_controller_;
 };
+
+}
+
+namespace {
+
+template <bool has_disk_drive>
+std::unique_ptr<Machine> create(
+	const Analyser::Static::TandyCoCo::Target &target,
+	const ROMMachine::ROMFetcher &rom_fetcher
+) {
+	if(Analyser::Static::TandyCoCo::is_pal(target.model)) {
+		return std::make_unique<TandyCoCo::ConcreteMachine<true, has_disk_drive>>(target, rom_fetcher);
+	} else {
+		return std::make_unique<TandyCoCo::ConcreteMachine<false, has_disk_drive>>(target, rom_fetcher);
+	}
+}
 
 }
 
@@ -1065,9 +1086,9 @@ std::unique_ptr<Machine> Machine::create(
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	const auto &coco_target = static_cast<const Analyser::Static::TandyCoCo::Target &>(target);
-	if(Analyser::Static::TandyCoCo::is_pal(coco_target.model)) {
-		return std::make_unique<TandyCoCo::ConcreteMachine<true>>(coco_target, rom_fetcher);
+	if(coco_target.has_disk_drive) {
+		return ::create<true>(coco_target, rom_fetcher);
 	} else {
-		return std::make_unique<TandyCoCo::ConcreteMachine<false>>(coco_target, rom_fetcher);
+		return ::create<false>(coco_target, rom_fetcher);
 	}
 }
