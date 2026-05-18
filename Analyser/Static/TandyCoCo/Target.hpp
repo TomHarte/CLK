@@ -42,4 +42,12 @@ private:
 	}
 };
 
+constexpr bool is_pal(const Target::Model model) {
+	return model == Target::Model::Dragon;
+}
+
+constexpr bool is_dragon(const Target::Model model) {
+	return model == Target::Model::Dragon;
+}
+
 }

@@ -269,7 +269,8 @@ struct SAM {
 	}
 
 	void set_basic(const std::vector<uint8_t> rom) {
-		std::copy_n(rom.begin(), 8 * 1024, colour_basic_.begin());
+		std::fill(basic_.begin(), basic_.end(), 0xff);
+		std::copy_n(rom.begin(), rom.size(), basic_.end() - rom.size());
 	}
 
 private:
@@ -317,7 +318,7 @@ private:
 	uint16_t previous_6847_address_ = 0;
 
 	std::vector<uint8_t> cartridge_;
-	std::array<uint8_t, 8 * 1024> colour_basic_;
+	std::array<uint8_t, 16 * 1024> basic_;
 	std::array<uint8_t, 64 * 1024> ram_;
 
 	int ram_page_ = 0;
@@ -337,11 +338,15 @@ private:
 			memory_.set_readwrite(0x0000, 0x1'0000, ram_.data());
 		} else {
 			memory_.set_readwrite(0x0000, 0x8000, ram_.data() + (is_64kb_ ? ram_page_ : 0) * 32768);
-			memory_.set_read(0xa000, 0xc000, colour_basic_.data());
+			memory_.set_read(0x8000, 0xc000, basic_.data());
 			memory_.set_read(0xc000, 0xc000 + cartridge_.size(), cartridge_.data());
 		}
 	}
 };
+
+constexpr bool is_64kb(const Analyser::Static::TandyCoCo::Target::MemorySize size) {
+	return size == Analyser::Static::TandyCoCo::Target::MemorySize::SixtyFourKB;
+}
 
 static constexpr uint8_t MaxDACLevel = 0b111'111;
 static constexpr double ClockRate = 1'789'772.5;
@@ -372,7 +377,7 @@ public:
 		pia0_(pia0_handler_),
 		pia1_handler_(*this),
 		pia1_(pia1_handler_),
-		sam_(memory_, target.memory_size == Analyser::Static::TandyCoCo::Target::MemorySize::SixtyFourKB),
+		sam_(memory_, is_64kb(target.memory_size)),
 		m6847_(sam_, sam_),
 		tape_player_(int(ClockRate)),
 		audio_(audio_queue_, MaxDACLevel),
@@ -381,20 +386,33 @@ public:
 		set_clock_rate(ClockRate);
 		speaker_.set_input_rate(ClockRate / AudioDivider.as<double>());
 		construct_joysticks();
+		is_dragon_ = Analyser::Static::TandyCoCo::is_dragon(target.model);
 
-		const auto BasicROM = ROM::Name::TandyCoCoColourBasic12;
+		const auto BasicROM = [&] {
+			if(!is_dragon_) {
+				return ROM::Name::TandyCoCoColourBasic12;
+			}
+			return is_64kb(target.memory_size) ? ROM::Name::Dragon64ROM1 : ROM::Name::Dragon32;
+		} ();
+		const auto extensionROM = [&]() -> std::optional<ROM::Name> {
+			if(!is_dragon_ || !is_64kb(target.memory_size)) {
+				return std::nullopt;
+			}
+			return ROM::Name::Dragon64ROM2;
+		} ();
+
 		auto request = ROM::Request(BasicROM);
+		if(extensionROM.has_value()) request = request && ROM::Request(*extensionROM);
 
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
 			throw ROMMachine::Error::MissingROMs;
 		}
 
-		{
-			auto rom = roms.find(BasicROM)->second;
-			sam_.set_basic(rom);
-		}
-
+		sam_.set_basic(roms.find(BasicROM)->second);
+//		if(extensionROM.has_value()) {
+//			sam_.set_extension(roms.find(*extensionROM)->second);
+//		}
 
 		insert_media(target.media);
 		type_string(target.loading_command);
@@ -872,13 +890,36 @@ private:
 
 	// MARK: - MappedKeyboardMachine.
 
+	bool is_dragon_ = false;
 	Tandy::CoCo::Keyboard::KeyboardMapper keyboard_mapper_;
 	KeyboardMapper *keyboard_mapper() final {
 		return &keyboard_mapper_;
 	}
 
 	void set_key_state(const uint16_t key, const bool is_pressed) final {
-		pia0_handler_.set_key_pressed(Keyboard::column(key), Keyboard::row(key), is_pressed);
+		// The CoCo and Dragon differ in columns; a mapping from CoCo to Dragon column is:
+		//
+		//	0 -> 2
+		//	1 -> 3
+		//	2 -> 4
+		//	3 -> 5
+		//	4 -> 0
+		// 	5 -> 1
+		//	6 -> 6
+		//	7 -> 7
+
+		const auto mapped_column = [&](const int column) {
+			if(!is_dragon_ || column >= 6) {
+				return column;
+			}
+			return (column + 2) % 6;
+		};
+
+		pia0_handler_.set_key_pressed(
+			mapped_column(Keyboard::column(key)),
+			Keyboard::row(key),
+			is_pressed
+		);
 	}
 
 	void clear_all_keys() final {
@@ -999,7 +1040,6 @@ private:
 		update_audio();
 		audio_.set_output(new_audio_output);
 	}
-
 };
 
 }
@@ -1009,5 +1049,9 @@ std::unique_ptr<Machine> Machine::create(
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	const auto &coco_target = static_cast<const Analyser::Static::TandyCoCo::Target &>(target);
-	return std::make_unique<TandyCoCo::ConcreteMachine<false>>(coco_target, rom_fetcher);
+	if(Analyser::Static::TandyCoCo::is_pal(coco_target.model)) {
+		return std::make_unique<TandyCoCo::ConcreteMachine<true>>(coco_target, rom_fetcher);
+	} else {
+		return std::make_unique<TandyCoCo::ConcreteMachine<false>>(coco_target, rom_fetcher);
+	}
 }
