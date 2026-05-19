@@ -274,6 +274,10 @@ struct SAM {
 		std::copy_n(rom.begin(), rom.size(), basic_.end() - rom.size());
 	}
 
+	void set_extended_basic(const std::vector<uint8_t> rom) {
+		std::copy_n(rom.begin(), rom.size(), basic_.begin());
+	}
+
 	void set_alternate_basic(const std::vector<uint8_t> rom) {
 		std::fill(alternate_basic_.begin(), alternate_basic_.end(), 0xff);
 		std::copy_n(rom.begin(), rom.size(), alternate_basic_.end() - rom.size());
@@ -409,6 +413,12 @@ public:
 			}
 			return is_64kb(target.memory_size) ? ROM::Name::Dragon64ROM1 : ROM::Name::Dragon32;
 		} ();
+		const auto extendedBasicROM = [&]() -> std::optional<ROM::Name> {
+			if(is_dragon_) {
+				return std::nullopt;
+			}
+			return ROM::Name::TandyExtendedBASIC10;
+		} ();
 		const auto alternateBasicROM = [&]() -> std::optional<ROM::Name> {
 			if(!is_dragon_ || !is_64kb(target.memory_size)) {
 				return std::nullopt;
@@ -418,8 +428,9 @@ public:
 
 		auto request = ROM::Request(BasicROM);
 		if(alternateBasicROM.has_value()) request = request && ROM::Request(*alternateBasicROM);
+		if(extendedBasicROM.has_value()) request = request && ROM::Request(*extendedBasicROM);
 
-		static constexpr auto DiskBASIC = ROM::Name::TandyCoCoDiskBASIC10;
+		static constexpr auto DiskBASIC = ROM::Name::TandyCoCoDiskBASIC11;
 		if(has_disk_drive) {
 			request = request && ROM::Request(DiskBASIC);
 		}
@@ -430,6 +441,10 @@ public:
 		}
 
 		sam_.set_basic(roms.find(BasicROM)->second);
+		if(extendedBasicROM.has_value()) {
+			sam_.set_extended_basic(roms.find(*extendedBasicROM)->second);
+		}
+
 		if(alternateBasicROM.has_value()) {
 			sam_.set_alternate_basic(roms.find(*alternateBasicROM)->second);
 		} else {
@@ -484,7 +499,7 @@ public:
 		}
 		time_since_audio_update_ += duration;
 
-		if(sam_.has_cartridge()) {
+		if(!has_disk_drive && sam_.has_cartridge()) {
 			// When a cartridge is inserted: "the clock signal (Q) is shorted to the cartridge interrupt pin."
 			pia1_.template set<Motorola::MC6821::Control::CB1>(true);
 			pia1_.template set<Motorola::MC6821::Control::CB1>(false);
