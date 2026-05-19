@@ -53,3 +53,10 @@ const Storage::Disk::Disk *DiskController::disk(const std::string &name) {
 	});
 	return result;
 }
+
+//
+// TODO:
+//
+//	* not INTRQ hits a NOR gate with DDEN; NOR of that is piped to NMI; and
+//	* DRQ informs HALT, if enabled.
+//
