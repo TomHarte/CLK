@@ -44,6 +44,11 @@ Analyser::Static::TargetList Analyser::Static::TandyCoCo::GetTargets(
 		}
 	}
 
+	if(!media.disks.empty()) {
+		target->has_disk_drive = true;
+		// TODO: examine further?
+	}
+
 	targets.push_back(std::move(target));
 	return targets;
 }
