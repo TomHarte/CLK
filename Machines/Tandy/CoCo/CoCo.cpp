@@ -419,7 +419,7 @@ public:
 		auto request = ROM::Request(BasicROM);
 		if(alternateBasicROM.has_value()) request = request && ROM::Request(*alternateBasicROM);
 
-		static constexpr auto DiskBASIC = ROM::Name::TandyCoCoDiskBASIC21;
+		static constexpr auto DiskBASIC = ROM::Name::TandyCoCoDiskBASIC10;
 		if(has_disk_drive) {
 			request = request && ROM::Request(DiskBASIC);
 		}

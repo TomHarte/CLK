@@ -188,6 +188,8 @@ enum Name {
 	TandyCoCoColourBasic13,
 	TandyCoCoColourBasic14,
 
+	TandyCoCoDiskBASIC10,
+	TandyCoCoDiskBASIC11,
 	TandyCoCoDiskBASIC21,
 
 	// Thomson MO and TO machines.

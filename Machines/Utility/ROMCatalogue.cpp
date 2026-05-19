@@ -1099,6 +1099,22 @@ const std::vector<Description> &Description::all_roms() {
 		},
 
 		{
+			TandyCoCoDiskBASIC10,
+			"TandyCoCo",
+			"Disk BASIC 1.0",
+			"disk10.rom",
+			8_kb,
+			0xb4f9968eu
+		},
+		{
+			TandyCoCoDiskBASIC11,
+			"TandyCoCo",
+			"Disk BASIC 1.1",
+			"disk11.rom",
+			8_kb,
+			0x0b9c5415u
+		},
+		{
 			TandyCoCoDiskBASIC21,
 			"TandyCoCo",
 			"Disk BASIC 2.1",
