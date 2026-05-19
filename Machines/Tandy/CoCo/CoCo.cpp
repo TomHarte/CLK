@@ -482,11 +482,9 @@ public:
 		bus_phase_ &= 1;
 
 		if constexpr (has_disk_drive) {
-			// Piggy-back off the existing bus_phase_ counter to multiply the clock by 4.5,
-			// giving very close to the standard 8Mhz. Unless and until a real clock speed emerges.
-			disk_controller_.run_for(
-				duration * 4 + bus_phase_
-			);
+			// Multiply by 4.5 to get very close to 8Mhz for the controller.
+			cycles_16mhz_ += duration * 9;
+			disk_controller_.run_for(cycles_16mhz_.divide(2));
 		}
 
 		if(m6847_ += duration) {
@@ -1012,11 +1010,18 @@ private:
 			tape_player_.set_tape(media.tapes.front(), TargetPlatform::ThomsonMO);
 		}
 
+		if(has_disk_drive && !media.disks.empty()) {
+			for(size_t c = 0; c < media.disks.size() && c < 4; c++) {
+				disk_controller_.set_disk(media.disks[c], c);
+			}
+		}
+
 		const bool had_cartridge =
+			!has_disk_drive &&
 			!media.cartridges.empty() &&
 			sam_.insert_cartridge(media.cartridges.front()->segments().front().data);
 
-		return !media.tapes.empty() || had_cartridge;
+		return !media.tapes.empty() || had_cartridge || (has_disk_drive && !media.disks.empty());
 	}
 
 	ChangeEffect effect_for_file_did_change(const std::string &) const override {
@@ -1042,6 +1047,9 @@ private:
 
 	void set_activity_observer(Activity::Observer *const observer) override {
 		tape_player_.set_activity_observer(observer);
+		if(has_disk_drive) {
+			disk_controller_.set_activity_observer(observer);
+		}
 	}
 
 	// MARK: - Joysticks.
@@ -1100,6 +1108,7 @@ private:
 	// MARK: - Disk.
 
 	DiskController disk_controller_;
+	Cycles cycles_16mhz_;
 };
 
 }

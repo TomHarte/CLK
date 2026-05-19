@@ -9,6 +9,9 @@
 #pragma once
 
 #include "Components/1770/1770.hpp"
+#include "Activity/Observer.hpp"
+
+#include <string>
 
 namespace Tandy::CoCo {
 
@@ -35,6 +38,10 @@ public:
 			set_control(value);
 		}
 	}
+
+	void set_activity_observer(Activity::Observer *);
+	void set_disk(std::shared_ptr<Storage::Disk::Disk>, size_t drive);
+	const Storage::Disk::Disk *disk(const std::string &);
 };
 
 }
