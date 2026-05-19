@@ -63,15 +63,15 @@ public:
 	};
 
 	/// @returns The current value of the IRQ line output.
-	inline bool get_interrupt_request_line() const	{	return status_.interrupt_request;	}
+	inline bool get_interrupt_request_line() const		{	return status_.interrupt_request;	}
 
 	/// @returns The current value of the DRQ line output.
-	inline bool get_data_request_line() const		{	return status_.data_request;		}
+	inline bool get_data_request_line() const			{	return status_.data_request;		}
 
 	struct Delegate {
 		virtual void wd1770_did_change_output(WD1770 &) = 0;
 	};
-	inline void set_delegate(Delegate *delegate)	{	delegate_ = delegate;				}
+	inline void set_delegate(Delegate *const delegate)	{	delegate_ = delegate;				}
 
 	ClockingHint::Preference preferred_clocking() const final;
 
@@ -127,7 +127,7 @@ private:
 		IndexHoleTarget	= (1 << 6),	// Indicates that index_hole_count_ has reached index_hole_count_target_.
 		ForceInterrupt	= (1 << 7)	// Indicates a forced interrupt.
 	};
-	void posit_event(int type);
+	void posit_event(int);
 	int interesting_event_mask_;
 	Cycles::IntType delay_time_ = 0;
 

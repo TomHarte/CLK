@@ -42,6 +42,12 @@ public:
 	void set_activity_observer(Activity::Observer *);
 	void set_disk(std::shared_ptr<Storage::Disk::Disk>, size_t drive);
 	const Storage::Disk::Disk *disk(const std::string &);
+
+	bool halt() const;
+	bool nmi() const;
+
+private:
+	bool double_density_ = false;
 };
 
 }

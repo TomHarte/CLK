@@ -24,6 +24,7 @@ void DiskController::set_control(const uint8_t value) {
 	//	b3: drive motors, 1 = on
 	//	b0–b2: drive selects
 
+	double_density_ = value & 0x20;
 	set_is_double_density(value & 0x20);
 	for_all_drives([&] (Storage::Disk::Drive &drive, size_t) {
 		drive.set_motor_on(value & 0x8);
@@ -60,3 +61,11 @@ const Storage::Disk::Disk *DiskController::disk(const std::string &name) {
 //	* not INTRQ hits a NOR gate with DDEN; NOR of that is piped to NMI; and
 //	* DRQ informs HALT, if enabled.
 //
+
+bool DiskController::halt() const {
+	return get_data_request_line();
+}
+
+bool DiskController::nmi() const {
+	return get_interrupt_request_line() && double_density_;
+}
