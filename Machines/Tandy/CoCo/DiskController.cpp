@@ -30,8 +30,7 @@ void DiskController::set_control(const uint8_t value) {
 		drive.set_motor_on(value & 0x8);
 	});
 	set_drive((value & 7) | ((value >> 3) & 8));
-
-	// TODO: HALT connection.
+	enable_halt_ = value & 0x80;
 }
 
 void DiskController::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, const size_t drive) {
@@ -63,7 +62,7 @@ const Storage::Disk::Disk *DiskController::disk(const std::string &name) {
 //
 
 bool DiskController::halt() const {
-	return get_data_request_line();
+	return get_data_request_line() && enable_halt_;
 }
 
 bool DiskController::nmi() const {

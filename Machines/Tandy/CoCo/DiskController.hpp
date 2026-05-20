@@ -48,6 +48,7 @@ public:
 
 private:
 	bool double_density_ = false;
+	bool enable_halt_ = false;
 };
 
 }
