@@ -429,7 +429,7 @@ public:
 
 		auto request = ROM::Request(BasicROM);
 		if(alternateBasicROM.has_value()) request = request && ROM::Request(*alternateBasicROM);
-		if(extendedBasicROM.has_value()) request = request && ROM::Request(*extendedBasicROM);
+		if(extendedBasicROM.has_value()) request = request && ROM::Request(*extendedBasicROM, !has_disk_drive);
 
 		static constexpr auto DiskBASIC = ROM::Name::TandyCoCoDiskBASIC11;
 		if(has_disk_drive) {
@@ -443,7 +443,10 @@ public:
 
 		sam_.set_basic(roms.find(BasicROM)->second);
 		if(extendedBasicROM.has_value()) {
-			sam_.set_extended_basic(roms.find(*extendedBasicROM)->second);
+			const auto rom = roms.find(*extendedBasicROM);
+			if(rom != roms.end()) {
+				sam_.set_extended_basic(roms.find(*extendedBasicROM)->second);
+			}
 		}
 
 		if(alternateBasicROM.has_value()) {
