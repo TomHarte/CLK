@@ -61,8 +61,10 @@ const Storage::Disk::Disk *DiskController::disk(const std::string &name) {
 //	* DRQ informs HALT, if enabled.
 //
 
-bool DiskController::halt() const {
-	return get_data_request_line() && enable_halt_;
+bool DiskController::halt() {
+	const bool halt = !get_data_request_line() && enable_halt_;
+	if(halt) enable_halt_ = false;
+	return halt;
 }
 
 bool DiskController::nmi() const {

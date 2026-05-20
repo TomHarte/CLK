@@ -43,7 +43,7 @@ public:
 	void set_disk(std::shared_ptr<Storage::Disk::Disk>, size_t drive);
 	const Storage::Disk::Disk *disk(const std::string &);
 
-	bool halt() const;
+	bool halt();
 	bool nmi() const;
 
 private:
