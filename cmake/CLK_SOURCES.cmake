@@ -207,6 +207,7 @@ set(CLK_SOURCES
 	Storage/Disk/DiskImage/Formats/AcornADF.cpp
 	Storage/Disk/DiskImage/Formats/AmigaADF.cpp
 	Storage/Disk/DiskImage/Formats/AppleDSK.cpp
+	Storage/Disk/DiskImage/Formats/CoCoDSK.cpp
 	Storage/Disk/DiskImage/Formats/CPCDSK.cpp
 	Storage/Disk/DiskImage/Formats/D64.cpp
 	Storage/Disk/DiskImage/Formats/DMK.cpp

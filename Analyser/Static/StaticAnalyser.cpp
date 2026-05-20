@@ -47,6 +47,7 @@
 #include "Storage/Disk/DiskImage/Formats/AcornADF.hpp"
 #include "Storage/Disk/DiskImage/Formats/AmigaADF.hpp"
 #include "Storage/Disk/DiskImage/Formats/AppleDSK.hpp"
+#include "Storage/Disk/DiskImage/Formats/CoCoDSK.hpp"
 #include "Storage/Disk/DiskImage/Formats/CPCDSK.hpp"
 #include "Storage/Disk/DiskImage/Formats/D64.hpp"
 #include "Storage/Disk/DiskImage/Formats/G64.hpp"
@@ -237,6 +238,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	accumulator.try_standard<MassStorage::DAT>(TargetPlatform::Acorn, "dat");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::DMK>>(TargetPlatform::MSX, "dmk");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::AppleDSK>>(TargetPlatform::DiskII, "do");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::CoCoDSK>>(TargetPlatform::TandyCoCo, "dsk");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::SSD>>(TargetPlatform::Acorn, "dsd");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::CPCDSK>>(
 		TargetPlatform::AmstradCPC | TargetPlatform::Oric | TargetPlatform::ZXSpectrum, "dsk");
