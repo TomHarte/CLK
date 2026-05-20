@@ -44,7 +44,7 @@ public:
 	const Storage::Disk::Disk *disk(const std::string &);
 
 	bool halt();
-	bool nmi() const;
+	bool nmi();
 
 private:
 	bool double_density_ = false;

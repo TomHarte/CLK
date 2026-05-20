@@ -54,19 +54,27 @@ const Storage::Disk::Disk *DiskController::disk(const std::string &name) {
 	return result;
 }
 
+// Reading code used on the machine per Disk BASIC Unravelled II:
 //
-// TODO:
+// LD881	LDB FDCREG+3
+// 			STB ,X+
+// 			STA DSKREG
+// 			BRA LD881
 //
-//	* not INTRQ hits a NOR gate with DDEN; NOR of that is piped to NMI; and
-//	* DRQ informs HALT, if enabled.
+// There's no obvious reason to STA DSKREG (i.e. the control register) within that loop unless
+// something about the values previously set by it has mutated.
 //
+// The schematic appears to show that NMI clears the HALT enable bit, so I've placed code
+// appropriately. But I also found the ROM to work if halt() itself cleared the halt enable.
+//
+// Possibly more research to do here.
 
 bool DiskController::halt() {
-	const bool halt = !get_data_request_line() && enable_halt_;
-	if(halt) enable_halt_ = false;
-	return halt;
+	return !get_data_request_line() && enable_halt_;
 }
 
-bool DiskController::nmi() const {
-	return get_interrupt_request_line() && double_density_;
+bool DiskController::nmi() {
+	const bool nmi = get_interrupt_request_line() && double_density_;
+	if(nmi) enable_halt_ = false;
+	return nmi;
 }
