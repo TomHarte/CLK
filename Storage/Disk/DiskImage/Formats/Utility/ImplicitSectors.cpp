@@ -15,39 +15,52 @@
 #include "Storage/Disk/Track/TrackSerialiser.hpp"
 
 #include <cstring>
+#include <limits>
 
 using namespace Storage::Disk;
 
 std::unique_ptr<Track> Storage::Disk::track_for_sectors(
 	const uint8_t *const source,
-	int number_of_sectors,
-	uint8_t track,
-	uint8_t side,
-	uint8_t first_sector,
-	uint8_t size,
-	Storage::Encodings::MFM::Density density
+	const int number_of_sectors,
+	const uint8_t track,
+	const uint8_t side,
+	const uint8_t first_sector,
+	const uint8_t size,
+	const Storage::Encodings::MFM::Density density,
+	const int ideal_sector_spacing
 ) {
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
+	sectors.reserve(size_t(number_of_sectors));
+
+	// Brute-force an attempt at interleaving.
+	static constexpr auto Unassigned = std::numeric_limits<size_t>::max();
+	std::vector<size_t> slots(size_t(number_of_sectors), Unassigned);
+	size_t slot = 0;
+	for(int sector = 0; sector < number_of_sectors; sector++) {
+		while(slots[slot % size_t(number_of_sectors)] != Unassigned) ++slot;
+		slot %= size_t(number_of_sectors);
+		slots[slot] = size_t(sector);
+		slot += size_t(ideal_sector_spacing);
+	}
 
 	const size_t byte_size = size_t(128 << size);
-	size_t source_pointer = 0;
 	for(int sector = 0; sector < number_of_sectors; sector++) {
 		sectors.emplace_back();
+		const auto logical = slots[size_t(sector)];
 
 		Storage::Encodings::MFM::Sector &new_sector = sectors.back();
 		new_sector.address.track = track;
 		new_sector.address.side = side;
-		new_sector.address.sector = first_sector;
-		first_sector++;
+		new_sector.address.sector = uint8_t(first_sector + logical);
+//		printf("Wrote %d from offset %d\n", uint8_t(first_sector + logical), int(byte_size * logical));
 		new_sector.size = size;
 
 		new_sector.samples.emplace_back();
 		new_sector.samples[0].insert(
 			new_sector.samples[0].begin(),
-			source + source_pointer,
-			source + source_pointer + byte_size
+			source + logical * byte_size,
+			source + (logical + 1) * byte_size
 		);
-		source_pointer += byte_size;
 	}
 
 	if(!sectors.empty()) {

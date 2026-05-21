@@ -18,12 +18,14 @@ void MFMSectorDump::set_geometry(
 	const int sectors_per_track,
 	const uint8_t sector_size,
 	const uint8_t first_sector,
-	const Encodings::MFM::Density density
+	const Encodings::MFM::Density density,
+	const int ideal_sector_spacing
 ) {
 	sectors_per_track_ = sectors_per_track;
 	sector_size_ = sector_size;
 	density_ = density;
 	first_sector_ = first_sector;
+	ideal_sector_spacing_ = ideal_sector_spacing;
 }
 
 std::unique_ptr<Track> MFMSectorDump::track_at_position(const Track::Address address) const {
@@ -47,7 +49,9 @@ std::unique_ptr<Track> MFMSectorDump::track_at_position(const Track::Address add
 		uint8_t(address.head),
 		first_sector_,
 		sector_size_,
-		density_);
+		density_,
+		ideal_sector_spacing_
+	);
 }
 
 void MFMSectorDump::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks) {

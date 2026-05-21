@@ -19,7 +19,7 @@ using namespace Storage::Disk;
 CoCoDSK::CoCoDSK(const std::string &file_name) : MFMSectorDump(file_name) {
 	// Complete validation at present: is this a multiple of the track size?
 	if(file_.stats().st_size % TrackSize) throw Error::InvalidFormat;
-	set_geometry(SectorsPerTrack, SectorSize, 1, Encodings::MFM::Density::Double);
+	set_geometry(SectorsPerTrack, SectorSize, 1, Encodings::MFM::Density::Double, 5);
 }
 
 HeadPosition CoCoDSK::maximum_head_position() const {

@@ -23,8 +23,10 @@ std::unique_ptr<Track> track_for_sectors(
 	uint8_t side,
 	uint8_t first_sector,
 	uint8_t size,
-	Storage::Encodings::MFM::Density density
+	Storage::Encodings::MFM::Density density,
+	int ideal_sector_spacing = 1
 );
+
 void decode_sectors(
 	const Track &track,
 	uint8_t *destination,
