@@ -11,18 +11,19 @@
 namespace {
 constexpr int SectorsPerTrack = 18;
 constexpr int SectorSize = 1;
+constexpr int TrackSize = SectorsPerTrack * (128 << SectorSize);
 }
 
 using namespace Storage::Disk;
 
 CoCoDSK::CoCoDSK(const std::string &file_name) : MFMSectorDump(file_name) {
 	// Complete validation at present: is this a multiple of the track size?
-	if(file_.stats().st_size % (SectorsPerTrack * SectorSize)) throw Error::InvalidFormat;
+	if(file_.stats().st_size % TrackSize) throw Error::InvalidFormat;
 	set_geometry(SectorsPerTrack, SectorSize, 1, Encodings::MFM::Density::Double);
 }
 
 HeadPosition CoCoDSK::maximum_head_position() const {
-	return HeadPosition(int(file_.stats().st_size / (SectorsPerTrack * SectorSize)));
+	return HeadPosition(int(file_.stats().st_size / TrackSize));
 }
 
 int CoCoDSK::head_count() const {
@@ -30,5 +31,5 @@ int CoCoDSK::head_count() const {
 }
 
 long CoCoDSK::get_file_offset_for_position(const Track::Address address) const {
-	return address.position.as_int() * SectorsPerTrack * (128 << SectorSize);
+	return address.position.as_int() * TrackSize;
 }
