@@ -40,7 +40,7 @@ FD::FD(const std::string &file_name) : MFMSectorDump(file_name) {
 		break;
 	}
 
-	set_geometry(sectors_per_track, sector_size, 1, Encodings::MFM::Density::Double);
+	set_geometry(sectors_per_track, sector_size, 1, Encodings::MFM::Density::Double, 3);
 }
 
 HeadPosition FD::maximum_head_position() const {
