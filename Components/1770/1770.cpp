@@ -112,7 +112,7 @@ uint8_t WD1770::read(const int address) {
 			return sector_;
 		case 3:
 			if(!status_.data_request) {
-				Logger::info().append("Repeat read", data_, status_.data_request);
+				Logger::info().append("Repeat read.");
 			}
 			update_status([] (Status &status) {
 				status.data_request = false;
