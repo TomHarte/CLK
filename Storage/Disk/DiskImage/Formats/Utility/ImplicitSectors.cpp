@@ -52,7 +52,6 @@ std::unique_ptr<Track> Storage::Disk::track_for_sectors(
 		new_sector.address.track = track;
 		new_sector.address.side = side;
 		new_sector.address.sector = uint8_t(first_sector + logical);
-//		printf("Wrote %d from offset %d\n", uint8_t(first_sector + logical), int(byte_size * logical));
 		new_sector.size = size;
 
 		new_sector.samples.emplace_back();
