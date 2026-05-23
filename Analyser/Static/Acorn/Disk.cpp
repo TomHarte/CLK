@@ -17,7 +17,7 @@
 
 using namespace Analyser::Static::Acorn;
 
-std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetDFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk) {
+std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetDFSCatalogue(const Storage::Disk::Disk &disk) {
 	// c.f. http://beebwiki.mdfs.net/Acorn_DFS_disc_format
 	auto catalogue = std::make_unique<Catalogue>();
 	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Single, disk);
@@ -95,7 +95,7 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetDFSCatalogue(const std::s
 	Primary resource used: "Acorn 8-Bit ADFS Filesystem Structure";
 	http://mdfs.net/Docs/Comp/Disk/Format/ADFS
 */
-std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk) {
+std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const Storage::Disk::Disk &disk) {
 	auto catalogue = std::make_unique<Catalogue>();
 	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
 

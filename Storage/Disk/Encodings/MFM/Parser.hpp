@@ -24,10 +24,10 @@ namespace Storage::Encodings::MFM {
 class Parser {
 public:
 	/// Creates a parser that will only attempt to interpret the underlying disk as being of @c density.
-	Parser(Density density, const std::shared_ptr<Storage::Disk::Disk> &disk);
+	Parser(Density density, const Storage::Disk::Disk &disk);
 
 	/// Creates a parser that will automatically try all available FM and MFM densities to try to extract sectors.
-	Parser(const std::shared_ptr<Storage::Disk::Disk> &disk);
+	Parser(const Storage::Disk::Disk &disk);
 
 	/*!
 		Seeks to the physical track at @c head and @c track. Searches on it for a sector
@@ -48,7 +48,7 @@ public:
 	// TODO: set_sector.
 
 private:
-	std::shared_ptr<Storage::Disk::Disk> disk_;
+	const Storage::Disk::Disk &disk_;
 	std::optional<Density> density_;
 
 	using SectorByIDMap = std::unordered_map<int, Sector>;

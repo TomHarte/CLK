@@ -413,7 +413,8 @@ private:
 		}
 
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> image) {
-			parser_ = std::make_unique<Storage::Encodings::MFM::Parser>(image);
+			disk_ = image;
+			parser_ = std::make_unique<Storage::Encodings::MFM::Parser>(*disk_);
 			ready = false;
 		}
 
@@ -426,6 +427,7 @@ private:
 		}
 
 	private:
+		std::shared_ptr<Storage::Disk::Disk> disk_;
 		std::unique_ptr<Storage::Encodings::MFM::Parser> parser_;
 	} drives_[4];
 	ssize_t last_seeking_drive_ = 0;

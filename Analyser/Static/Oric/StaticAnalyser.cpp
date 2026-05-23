@@ -220,7 +220,7 @@ Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(
 		// 8-DOS is recognised by a dedicated Disk II analyser, so check only for Microdisc,
 		// Jasmin and BD-DOS formats here.
 		for(auto &disk: media.disks) {
-			Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
+			Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, *disk);
 
 			if(is_microdisc(parser)) {
 				target->disk_interface = Target::DiskInterface::Microdisc;

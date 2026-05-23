@@ -52,7 +52,7 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(
 		target->dos = Target::DOS::EXDOS;
 
 		// Grab the volume information, which includes the root directory.
-		auto volume = Storage::Disk::FAT::GetVolume(media.disks.front());
+		auto volume = Storage::Disk::FAT::GetVolume(*media.disks.front());
 		if(volume) {
 			// If there's an EXDOS.INI then this disk should be able to boot itself.
 			// If not but if there's only one visible .COM or .BAS, automatically load

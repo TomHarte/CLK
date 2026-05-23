@@ -64,6 +64,6 @@ struct Catalogue {
 	bool is_zx_spectrum_booter();
 };
 
-std::unique_ptr<Catalogue> GetCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk, const ParameterBlock &parameters, bool with_contents);
+std::unique_ptr<Catalogue> GetCatalogue(const Storage::Disk::Disk &, const ParameterBlock &, bool with_contents);
 
 }
