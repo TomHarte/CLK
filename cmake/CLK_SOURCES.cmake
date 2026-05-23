@@ -153,6 +153,7 @@ set(CLK_SOURCES
 	Machines/Sinclair/ZX8081/Video.cpp
 	Machines/Sinclair/ZX8081/ZX8081.cpp
 	Machines/Sinclair/ZXSpectrum/ZXSpectrum.cpp
+	Machines/Tandy/CoCo/DiskController.cpp
 	Machines/Tandy/CoCo/CoCo.cpp
 	Machines/Thomson/MO/CD90-640.cpp
 	Machines/Thomson/MO/MO.cpp
@@ -206,6 +207,7 @@ set(CLK_SOURCES
 	Storage/Disk/DiskImage/Formats/AcornADF.cpp
 	Storage/Disk/DiskImage/Formats/AmigaADF.cpp
 	Storage/Disk/DiskImage/Formats/AppleDSK.cpp
+	Storage/Disk/DiskImage/Formats/CoCoDSK.cpp
 	Storage/Disk/DiskImage/Formats/CPCDSK.cpp
 	Storage/Disk/DiskImage/Formats/D64.cpp
 	Storage/Disk/DiskImage/Formats/DMK.cpp

@@ -43,6 +43,9 @@
 		42EB812E2B4700B700429AF4 /* MemoryMap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42EB812C2B47008D00429AF4 /* MemoryMap.cpp */; };
 		42EB812F2B4700B800429AF4 /* MemoryMap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42EB812C2B47008D00429AF4 /* MemoryMap.cpp */; };
 		4B01710F2FB6ADA700302CEF /* QuickLoadCompositeDynamicCropOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B01710D2FB6ADA700302CEF /* QuickLoadCompositeDynamicCropOptions.xib */; };
+		4B0171122FBBA40F00302CEF /* DiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0171112FBBA40F00302CEF /* DiskController.cpp */; };
+		4B0171132FBBA40F00302CEF /* DiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0171112FBBA40F00302CEF /* DiskController.cpp */; };
+		4B0171142FBBA40F00302CEF /* DiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0171112FBBA40F00302CEF /* DiskController.cpp */; };
 		4B018B89211930DE002A3937 /* 65C02_extended_opcodes_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */; };
 		4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */; };
 		4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0333AD2094081A0050B93D /* AppleDSK.cpp */; };
@@ -422,6 +425,9 @@
 		4B56173E2F44B384003CB7FE /* ROMLibrary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B56173C2F44B384003CB7FE /* ROMLibrary.cpp */; };
 		4B5617402F44D533003CB7FE /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
 		4B5617412F44D533003CB7FE /* ROMCatalogue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B051C5826670A9300CA44E8 /* ROMCatalogue.cpp */; };
+		4B56997C2FBE201E00D272F0 /* CoCoDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B56997B2FBE201E00D272F0 /* CoCoDSK.cpp */; };
+		4B56997D2FBE201E00D272F0 /* CoCoDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B56997B2FBE201E00D272F0 /* CoCoDSK.cpp */; };
+		4B56997E2FBE201E00D272F0 /* CoCoDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B56997B2FBE201E00D272F0 /* CoCoDSK.cpp */; };
 		4B58601E1F806AB200AEE2E3 /* MFMSectorDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */; };
 		4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B59199A1DAC6C46005BB85C /* OricTAP.cpp */; };
 		4B595FAD2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */; };
@@ -1398,6 +1404,8 @@
 		42EB81272B23AAC300429AF4 /* IMD.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = IMD.hpp; sourceTree = "<group>"; };
 		42EB812C2B47008D00429AF4 /* MemoryMap.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MemoryMap.cpp; sourceTree = "<group>"; };
 		4B01710E2FB6ADA700302CEF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/QuickLoadCompositeDynamicCropOptions.xib; sourceTree = "<group>"; };
+		4B0171102FBBA40F00302CEF /* DiskController.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DiskController.hpp; sourceTree = "<group>"; };
+		4B0171112FBBA40F00302CEF /* DiskController.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DiskController.cpp; sourceTree = "<group>"; };
 		4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = 65C02_extended_opcodes_test.bin; path = "Klaus Dormann/65C02_extended_opcodes_test.bin"; sourceTree = "<group>"; };
 		4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80MemptrTests.swift; sourceTree = "<group>"; };
 		4B03291F2D0923E300C51EB5 /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
@@ -1754,6 +1762,8 @@
 		4B5617322F42ADB8003CB7FE /* MOOF.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MOOF.cpp; sourceTree = "<group>"; };
 		4B56173B2F44B384003CB7FE /* ROMLibrary.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ROMLibrary.hpp; sourceTree = "<group>"; };
 		4B56173C2F44B384003CB7FE /* ROMLibrary.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ROMLibrary.cpp; sourceTree = "<group>"; };
+		4B56997A2FBE201E00D272F0 /* CoCoDSK.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CoCoDSK.hpp; sourceTree = "<group>"; };
+		4B56997B2FBE201E00D272F0 /* CoCoDSK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CoCoDSK.cpp; sourceTree = "<group>"; };
 		4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MFMSectorDump.cpp; sourceTree = "<group>"; };
 		4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MFMSectorDump.hpp; sourceTree = "<group>"; };
 		4B59199A1DAC6C46005BB85C /* OricTAP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OricTAP.cpp; sourceTree = "<group>"; };
@@ -3441,7 +3451,9 @@
 			isa = PBXGroup;
 			children = (
 				4B41EF6F2FA55F980086D909 /* CoCo.cpp */,
+				4B0171112FBBA40F00302CEF /* DiskController.cpp */,
 				4B41EF6E2FA55F980086D909 /* CoCo.hpp */,
+				4B0171102FBBA40F00302CEF /* DiskController.hpp */,
 				4B41EF842FAC26590086D909 /* Keyboard.hpp */,
 			);
 			path = CoCo;
@@ -3526,6 +3538,7 @@
 				4B45188D1F75FD1B00926311 /* AcornADF.cpp */,
 				4BC080C826A238CC00D03FD8 /* AmigaADF.cpp */,
 				4B0333AD2094081A0050B93D /* AppleDSK.cpp */,
+				4B56997B2FBE201E00D272F0 /* CoCoDSK.cpp */,
 				4B45188F1F75FD1B00926311 /* CPCDSK.cpp */,
 				4B4518911F75FD1B00926311 /* D64.cpp */,
 				4BAF2B4C2004580C00480230 /* DMK.cpp */,
@@ -3551,6 +3564,7 @@
 				4B45188E1F75FD1B00926311 /* AcornADF.hpp */,
 				4BC080C926A238CC00D03FD8 /* AmigaADF.hpp */,
 				4B0333AE2094081A0050B93D /* AppleDSK.hpp */,
+				4B56997A2FBE201E00D272F0 /* CoCoDSK.hpp */,
 				4B4518901F75FD1B00926311 /* CPCDSK.hpp */,
 				4B4518921F75FD1B00926311 /* D64.hpp */,
 				4BAF2B4D2004580C00480230 /* DMK.hpp */,
@@ -6588,6 +6602,7 @@
 				4B8318B322D3E540006DB630 /* Audio.cpp in Sources */,
 				4B055AAE1FAE85FD0060FFFF /* TrackSerialiser.cpp in Sources */,
 				4B6AAEAC230E40250078E864 /* SCSI.cpp in Sources */,
+				4B56997D2FBE201E00D272F0 /* CoCoDSK.cpp in Sources */,
 				4B055A981FAE85C50060FFFF /* Drive.cpp in Sources */,
 				4BD424E62193B5830097291A /* Shader.cpp in Sources */,
 				4BC080CB26A238CC00D03FD8 /* AmigaADF.cpp in Sources */,
@@ -6639,6 +6654,7 @@
 				4B9BE401203A0C0600FFAE60 /* MultiSpeaker.cpp in Sources */,
 				4BB505812B962DDF0031C43C /* Plus3.cpp in Sources */,
 				4B055AA61FAE85EF0060FFFF /* Parser.cpp in Sources */,
+				4B0171142FBBA40F00302CEF /* DiskController.cpp in Sources */,
 				4BF8D4D6251C11DD00BBE21B /* 65816Storage.cpp in Sources */,
 				4B055AEF1FAE9BF00060FFFF /* Typer.cpp in Sources */,
 				4B89453F201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
@@ -6928,6 +6944,8 @@
 				4BEDA3BA25B25563000C2DBD /* Decoder.cpp in Sources */,
 				4BFEA2EF2682A7B900EBF94C /* Dave.cpp in Sources */,
 				4B4518A21F75FD1C00926311 /* G64.cpp in Sources */,
+				4B0171132FBBA40F00302CEF /* DiskController.cpp in Sources */,
+				4B56997E2FBE201E00D272F0 /* CoCoDSK.cpp in Sources */,
 				4B0B23A62D6AC53B00153879 /* CSFileContentChangeObserver.m in Sources */,
 				4B89452C201967B4007DE474 /* Tape.cpp in Sources */,
 				4B448E811F1C45A00009ABD6 /* TZX.cpp in Sources */,
@@ -7217,6 +7235,7 @@
 				4B06AAE42C645FA50034D014 /* DiskIICard.cpp in Sources */,
 				4B04C899285E3DC800AA8FD6 /* 65816ComparativeTests.mm in Sources */,
 				4B06AAF92C64607C0034D014 /* AudioToggle.cpp in Sources */,
+				4B56997C2FBE201E00D272F0 /* CoCoDSK.cpp in Sources */,
 				4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */,
 				4B778EFA23A5EB790000D260 /* DMK.cpp in Sources */,
 				4BEE1EC122B5E2FD000A26A6 /* Encoder.cpp in Sources */,
@@ -7402,6 +7421,7 @@
 				4B06AB0E2C6461700034D014 /* MultiMediaTarget.cpp in Sources */,
 				42437B332AC70833006DFED1 /* HDV.cpp in Sources */,
 				4B06AAE82C645FCD0034D014 /* RP5C01.cpp in Sources */,
+				4B0171122FBBA40F00302CEF /* DiskController.cpp in Sources */,
 				4B06AAEC2C645FF50034D014 /* Keyboard.cpp in Sources */,
 				4B06AAF02C6460240034D014 /* ReactiveDevice.cpp in Sources */,
 				4B7752C028217F3D0073E2C5 /* Line.cpp in Sources */,

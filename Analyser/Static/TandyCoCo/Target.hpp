@@ -31,6 +31,7 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	std::wstring loading_command;
 	MemorySize memory_size = MemorySize::SixtyFourKB;
 	Model model = Model::TandyCoCo;
+	bool has_disk_drive = false;
 
 private:
 	friend Reflection::StructImpl<Target>;
@@ -39,6 +40,7 @@ private:
 		AnnounceEnum(MemorySize);
 		DeclareField(model);
 		DeclareField(memory_size);
+		DeclareField(has_disk_drive);
 	}
 };
 

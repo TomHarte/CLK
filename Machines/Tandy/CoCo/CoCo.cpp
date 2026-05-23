@@ -8,6 +8,7 @@
 
 #include "CoCo.hpp"
 
+#include "DiskController.hpp"
 #include "Keyboard.hpp"
 
 #include "Processors/6809/6809.hpp"
@@ -273,6 +274,10 @@ struct SAM {
 		std::copy_n(rom.begin(), rom.size(), basic_.end() - rom.size());
 	}
 
+	void set_extended_basic(const std::vector<uint8_t> rom) {
+		std::copy_n(rom.begin(), rom.size(), basic_.begin());
+	}
+
 	void set_alternate_basic(const std::vector<uint8_t> rom) {
 		std::fill(alternate_basic_.begin(), alternate_basic_.end(), 0xff);
 		std::copy_n(rom.begin(), rom.size(), alternate_basic_.end() - rom.size());
@@ -370,7 +375,7 @@ static constexpr auto AudioDivider = Cycles(1);
 
 namespace TandyCoCo {
 
-template <bool is_pal>
+template <bool is_pal, bool has_disk_drive>
 class ConcreteMachine:
 	public Activity::Source,
 	public Configurable::Device,
@@ -408,6 +413,12 @@ public:
 			}
 			return is_64kb(target.memory_size) ? ROM::Name::Dragon64ROM1 : ROM::Name::Dragon32;
 		} ();
+		const auto extendedBasicROM = [&]() -> std::optional<ROM::Name> {
+			if(is_dragon_) {
+				return std::nullopt;
+			}
+			return ROM::Name::TandyExtendedBASIC10;
+		} ();
 		const auto alternateBasicROM = [&]() -> std::optional<ROM::Name> {
 			if(!is_dragon_ || !is_64kb(target.memory_size)) {
 				return std::nullopt;
@@ -417,6 +428,12 @@ public:
 
 		auto request = ROM::Request(BasicROM);
 		if(alternateBasicROM.has_value()) request = request && ROM::Request(*alternateBasicROM);
+		if(extendedBasicROM.has_value()) request = request && ROM::Request(*extendedBasicROM, !has_disk_drive);
+
+		static constexpr auto DiskBASIC = ROM::Name::TandyCoCoDiskBASIC11;
+		if(has_disk_drive) {
+			request = request && ROM::Request(DiskBASIC);
+		}
 
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
@@ -424,10 +441,21 @@ public:
 		}
 
 		sam_.set_basic(roms.find(BasicROM)->second);
+		if(extendedBasicROM.has_value()) {
+			const auto rom = roms.find(*extendedBasicROM);
+			if(rom != roms.end()) {
+				sam_.set_extended_basic(roms.find(*extendedBasicROM)->second);
+			}
+		}
+
 		if(alternateBasicROM.has_value()) {
 			sam_.set_alternate_basic(roms.find(*alternateBasicROM)->second);
 		} else {
 			sam_.set_no_alternate_basic();
+		}
+
+		if(has_disk_drive) {
+			sam_.insert_cartridge(roms.find(DiskBASIC)->second);
 		}
 
 		insert_media(target.media);
@@ -455,6 +483,18 @@ public:
 
 		bus_phase_ += duration;
 		bus_phase_ &= 1;
+
+		if constexpr (has_disk_drive) {
+			// Update after the fact due to the internal mechanics of WD177x posting; these signals from the WD should
+			// occur when it observes that the access cycle is over. It is now over because the next has begun.
+			m6809_.template set<CPU::M6809::Line::NMI>(disk_controller_.nmi());
+			m6809_.template set<CPU::M6809::Line::Halt>(disk_controller_.halt());
+
+			// Multiply by 4.5 to get very close to 8Mhz for the controller.
+			cycles_16mhz_ += duration * 9;
+			disk_controller_.run_for(cycles_16mhz_.divide(2));
+		}
+
 		if(m6847_ += duration) {
 			pia0_.template set<Motorola::MC6821::Control::CA1>(m6847_.get()->hsync());
 			pia0_.template set<Motorola::MC6821::Control::CB1>(m6847_.get()->fsync());
@@ -465,7 +505,7 @@ public:
 		}
 		time_since_audio_update_ += duration;
 
-		if(sam_.has_cartridge()) {
+		if(!has_disk_drive && sam_.has_cartridge()) {
 			// When a cartridge is inserted: "the clock signal (Q) is shorted to the cartridge interrupt pin."
 			pia1_.template set<Motorola::MC6821::Control::CB1>(true);
 			pia1_.template set<Motorola::MC6821::Control::CB1>(false);
@@ -510,6 +550,12 @@ public:
 					case 0xff33:	case 0xff37:	case 0xff3b:	case 0xff3f:
 						access<0xff23, read_write>(pia1_, value);
 					break;
+
+					case 0xff40:	if(has_disk_drive) access<0xff40, read_write>(disk_controller_, value); break;
+					case 0xff48:	if(has_disk_drive) access<0xff48, read_write>(disk_controller_, value); break;
+					case 0xff49:	if(has_disk_drive) access<0xff49, read_write>(disk_controller_, value); break;
+					case 0xff4a:	if(has_disk_drive) access<0xff4a, read_write>(disk_controller_, value); break;
+					case 0xff4b:	if(has_disk_drive) access<0xff4b, read_write>(disk_controller_, value); break;
 
 					case 0xffc0:	sam_.access<0xffc0>();	break;		case 0xffc1:	sam_.access<0xffc1>();	break;
 					case 0xffc2:	sam_.access<0xffc2>();	break;		case 0xffc3:	sam_.access<0xffc3>();	break;
@@ -972,11 +1018,18 @@ private:
 			tape_player_.set_tape(media.tapes.front(), TargetPlatform::ThomsonMO);
 		}
 
+		if(has_disk_drive && !media.disks.empty()) {
+			for(size_t c = 0; c < media.disks.size() && c < 4; c++) {
+				disk_controller_.set_disk(media.disks[c], c);
+			}
+		}
+
 		const bool had_cartridge =
+			!has_disk_drive &&
 			!media.cartridges.empty() &&
 			sam_.insert_cartridge(media.cartridges.front()->segments().front().data);
 
-		return !media.tapes.empty() || had_cartridge;
+		return !media.tapes.empty() || had_cartridge || (has_disk_drive && !media.disks.empty());
 	}
 
 	ChangeEffect effect_for_file_did_change(const std::string &) const override {
@@ -1002,6 +1055,9 @@ private:
 
 	void set_activity_observer(Activity::Observer *const observer) override {
 		tape_player_.set_activity_observer(observer);
+		if(has_disk_drive) {
+			disk_controller_.set_activity_observer(observer);
+		}
 	}
 
 	// MARK: - Joysticks.
@@ -1056,7 +1112,28 @@ private:
 		update_audio();
 		audio_.set_output(new_audio_output);
 	}
+
+	// MARK: - Disk.
+
+	DiskController disk_controller_;
+	Cycles cycles_16mhz_;
 };
+
+}
+
+namespace {
+
+template <bool has_disk_drive>
+std::unique_ptr<Machine> create(
+	const Analyser::Static::TandyCoCo::Target &target,
+	const ROMMachine::ROMFetcher &rom_fetcher
+) {
+	if(Analyser::Static::TandyCoCo::is_pal(target.model)) {
+		return std::make_unique<TandyCoCo::ConcreteMachine<true, has_disk_drive>>(target, rom_fetcher);
+	} else {
+		return std::make_unique<TandyCoCo::ConcreteMachine<false, has_disk_drive>>(target, rom_fetcher);
+	}
+}
 
 }
 
@@ -1065,9 +1142,9 @@ std::unique_ptr<Machine> Machine::create(
 	const ROMMachine::ROMFetcher &rom_fetcher
 ) {
 	const auto &coco_target = static_cast<const Analyser::Static::TandyCoCo::Target &>(target);
-	if(Analyser::Static::TandyCoCo::is_pal(coco_target.model)) {
-		return std::make_unique<TandyCoCo::ConcreteMachine<true>>(coco_target, rom_fetcher);
+	if(coco_target.has_disk_drive) {
+		return ::create<true>(coco_target, rom_fetcher);
 	} else {
-		return std::make_unique<TandyCoCo::ConcreteMachine<false>>(coco_target, rom_fetcher);
+		return ::create<false>(coco_target, rom_fetcher);
 	}
 }

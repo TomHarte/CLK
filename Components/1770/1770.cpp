@@ -111,6 +111,9 @@ uint8_t WD1770::read(const int address) {
 			Logger::info().append("Returned sector %d", sector_);
 			return sector_;
 		case 3:
+			if(!status_.data_request) {
+				Logger::info().append("Repeat read.");
+			}
 			update_status([] (Status &status) {
 				status.data_request = false;
 			});
@@ -521,7 +524,7 @@ void WD1770::posit_event(const int new_event_type) {
 
 	type2_check_crc:
 		WAIT_FOR_EVENT(Event::Token);
-		if(get_latest_token().type != Token::Byte) goto type2_read_byte;
+		if(get_latest_token().type != Token::Byte) goto type2_check_crc;
 		header_[distance_into_section_] = get_latest_token().byte_value;
 		distance_into_section_++;
 		if(distance_into_section_ == 2) {

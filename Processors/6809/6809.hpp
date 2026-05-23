@@ -208,7 +208,11 @@ struct Processor {
 		switch(line) {
 			case Line::PowerOnReset:	set_exception(Exception::PowerOnReset);				break;
 			case Line::Reset: 			set_exception(Exception::Reset);					break;
-			case Line::NMI: 			if(value) exceptions_ |= uint8_t(Exception::NMI);	break;
+			case Line::NMI:
+				// Capture raising edge only.
+				if(value && !nmi_) exceptions_ |= uint8_t(Exception::NMI);
+				nmi_ = value;
+			break;
 			case Line::IRQ: 			set_exception(Exception::IRQ);						break;
 			case Line::FIRQ: 			set_exception(Exception::FIRQ);						break;
 			case Line::MRDY:			mrdy_ = value;										break;
@@ -1365,6 +1369,7 @@ private:
 	};
 	uint8_t exceptions_ = uint8_t(Exception::PowerOnReset);
 	bool mrdy_ = false;
+	bool nmi_ = false;
 
 	// Transient storage.
 	Data::Writeable target_;

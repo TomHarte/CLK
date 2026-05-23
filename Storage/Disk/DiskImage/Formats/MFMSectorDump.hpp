@@ -30,7 +30,13 @@ public:
 
 protected:
 	mutable Storage::FileHolder file_;
-	void set_geometry(int sectors_per_track, uint8_t sector_size, uint8_t first_sector, Encodings::MFM::Density);
+	void set_geometry(
+		int sectors_per_track,
+		uint8_t sector_size,
+		uint8_t first_sector,
+		Encodings::MFM::Density,
+		int ideal_sector_spacing = 1
+	);
 
 private:
 	virtual int head_count() const = 0;
@@ -41,6 +47,7 @@ private:
 	uint8_t sector_size_ = 0;
 	Encodings::MFM::Density density_ = Encodings::MFM::Density::Single;
 	uint8_t first_sector_ = 0;
+	int ideal_sector_spacing_ = 0;
 };
 
 }

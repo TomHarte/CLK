@@ -1098,6 +1098,48 @@ const std::vector<Description> &Description::all_roms() {
 			0xcbdc1ba2u
 		},
 
+		{
+			TandyExtendedBASIC10,
+			"TandyCoCo",
+			"Extended BASIC 1.0",
+			"extbas10.rom",
+			8_kb,
+			0xe031d076u
+		},
+		{
+			TandyExtendedBASIC11,
+			"TandyCoCo",
+			"Extended BASIC 1.1",
+			"extbas11.rom",
+			8_kb,
+			0xa82a6254u
+		},
+
+		{
+			TandyCoCoDiskBASIC10,
+			"TandyCoCo",
+			"Disk BASIC 1.0",
+			"disk10.rom",
+			8_kb,
+			0xb4f9968eu
+		},
+		{
+			TandyCoCoDiskBASIC11,
+			"TandyCoCo",
+			"Disk BASIC 1.1",
+			"disk11.rom",
+			8_kb,
+			0x0b9c5415u
+		},
+		{
+			TandyCoCoDiskBASIC21,
+			"TandyCoCo",
+			"Disk BASIC 2.1",
+			Files{"Disk21.bin", "DISK21.ROM"},
+			16_kb,
+			0xdf9dd220u
+		},
+
 	//
 	// Thomson MO and TO machines.
 	//
