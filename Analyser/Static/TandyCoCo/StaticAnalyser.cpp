@@ -9,6 +9,7 @@
 #include "StaticAnalyser.hpp"
 
 #include "Storage/Tape/Parsers/TandyCoCo.hpp"
+#include "Storage/Disk/Parsers/TandyCoCo.hpp"
 
 #include "Target.hpp"
 
@@ -46,7 +47,19 @@ Analyser::Static::TargetList Analyser::Static::TandyCoCo::GetTargets(
 
 	if(!media.disks.empty()) {
 		target->has_disk_drive = true;
-		// TODO: examine further?
+
+		const auto directory = Storage::Disk::TandyCoCo::directory(*media.disks.front());
+		if(directory.has_value() && directory->size() == 1) {
+			auto &entry = directory.value()[0];
+			const bool is_basic = entry.file_type == Storage::Disk::TandyCoCo::DirectoryEntry::FileType::BASIC;
+
+			target->loading_command = is_basic ? L"LOAD\"" : L"LOADM\"";
+			target->loading_command += std::wstring(entry.name.begin(), entry.name.end());
+			target->loading_command += L"\":";
+			target->loading_command += is_basic ? L"RUN\n" : L"EXEC\n";
+		} else {
+			target->loading_command = L"DIR\n";
+		}
 	}
 
 	targets.push_back(std::move(target));

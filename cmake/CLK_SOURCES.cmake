@@ -240,6 +240,7 @@ set(CLK_SOURCES
 	Storage/Disk/Encodings/MFM/Shifter.cpp
 	Storage/Disk/Parsers/CPM.cpp
 	Storage/Disk/Parsers/FAT.cpp
+	Storage/Disk/Parsers/TandyCoCo.cpp
 	Storage/Disk/Track/PCMSegment.cpp
 	Storage/Disk/Track/PCMTrack.cpp
 	Storage/Disk/Track/TrackSerialiser.cpp
