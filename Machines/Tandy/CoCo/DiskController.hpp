@@ -15,9 +15,10 @@
 
 namespace Tandy::CoCo {
 
-class DiskController final: public WD::WD1770 {
+class DiskController final: private WD::WD1770, public WD::WD1770::Delegate {
 public:
 	DiskController();
+	using WD::WD1770::run_for;
 
 	void set_control(uint8_t);
 
@@ -43,12 +44,24 @@ public:
 	void set_disk(std::shared_ptr<Storage::Disk::Disk>, size_t drive);
 	const Storage::Disk::Disk *disk(const std::string &);
 
-	bool halt();
-	bool nmi();
+	bool halt() const;
+	bool nmi() const;
+
+	struct Delegate {
+		virtual void set_halt_nmi(bool halt, bool nmi) = 0;
+	};
+	void set_delegate(Delegate *);
 
 private:
 	bool double_density_ = false;
 	bool enable_halt_ = false;
+
+	Delegate *delegate_ = nullptr;
+	bool nmi_ = false;
+	bool halt_ = false;
+
+	void wd1770_did_change_output(WD::WD1770 &) final;
+	void update_halt_nmi();
 };
 
 }

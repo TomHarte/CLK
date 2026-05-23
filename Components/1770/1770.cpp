@@ -111,6 +111,9 @@ uint8_t WD1770::read(const int address) {
 			Logger::info().append("Returned sector %d", sector_);
 			return sector_;
 		case 3:
+			if(!status_.data_request) {
+				Logger::info().append("Repeat read", data_, status_.data_request);
+			}
 			update_status([] (Status &status) {
 				status.data_request = false;
 			});

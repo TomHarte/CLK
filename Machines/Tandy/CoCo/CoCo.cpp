@@ -388,7 +388,7 @@ class ConcreteMachine:
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
 	public Utility::TypeRecipient<Tandy::CoCo::Keyboard::CharacterMapper>,
-	public WD::WD1770::Delegate
+	public DiskController::Delegate
 {
 public:
 	ConcreteMachine(const Analyser::Static::TandyCoCo::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -1114,9 +1114,9 @@ private:
 
 	DiskController disk_controller_;
 	Cycles cycles_16mhz_;
-	void wd1770_did_change_output(WD::WD1770 &) override {
-		m6809_.template set<CPU::M6809::Line::NMI>(disk_controller_.nmi());
-		m6809_.template set<CPU::M6809::Line::Halt>(disk_controller_.halt());
+	void set_halt_nmi(const bool halt, const bool nmi) {
+		m6809_.template set<CPU::M6809::Line::NMI>(nmi);
+		m6809_.template set<CPU::M6809::Line::Halt>(halt);
 	}
 };
 
