@@ -479,11 +479,6 @@ public:
 		const AddressT address,
 		CPU::M6809::data_t<read_write> value
 	) {
-		// Update after the fact due to the internal mechanics of WD177x posting; these signals from the WD should
-		// occur when it observes that the access cycle is over. It is now over because the next has begun.
-		m6809_.template set<CPU::M6809::Line::NMI>(nmi_);
-		m6809_.template set<CPU::M6809::Line::Halt>(halt_);
-
 		// TODO, maybe: pull the switch inside this SAM call outside the loop?
 		const auto delay = sam_.cycle_cost<bus_phase, read_write>(address, bus_phase_);
 		const auto duration = delay + CPU::M6809::duration<Cycles>(bus_phase);
@@ -492,6 +487,11 @@ public:
 		bus_phase_ &= 1;
 
 		if constexpr (has_disk_drive) {
+			// Update after the fact due to the internal mechanics of WD177x posting; these signals from the WD should
+			// occur when it observes that the access cycle is over. It is now over because the next has begun.
+			m6809_.template set<CPU::M6809::Line::NMI>(nmi_);
+			m6809_.template set<CPU::M6809::Line::Halt>(halt_);
+
 			// Multiply by 4.5 to get very close to 8Mhz for the controller.
 			cycles_16mhz_ += duration * 9;
 			disk_controller_.run_for(cycles_16mhz_.divide(2));
