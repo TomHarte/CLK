@@ -14,10 +14,10 @@
 
 using namespace Storage::Encodings::MFM;
 
-Parser::Parser(const std::shared_ptr<Storage::Disk::Disk> &disk) :
+Parser::Parser(const Storage::Disk::Disk &disk) :
 		disk_(disk) {}
 
-Parser::Parser(Density density, const std::shared_ptr<Storage::Disk::Disk> &disk) :
+Parser::Parser(Density density, const Storage::Disk::Disk &disk) :
 		disk_(disk), density_(density) {}
 
 void Parser::install_track(const Storage::Disk::Track::Address &address) {
@@ -25,7 +25,7 @@ void Parser::install_track(const Storage::Disk::Track::Address &address) {
 		return;
 	}
 
-	const auto track = disk_->track_at_position(address);
+	const auto track = disk_.track_at_position(address);
 	if(!track) {
 		return;
 	}

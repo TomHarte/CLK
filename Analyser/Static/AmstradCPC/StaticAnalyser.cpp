@@ -198,7 +198,7 @@ void InspectCatalogue(
 }
 
 bool CheckBootSector(
-	const std::shared_ptr<Storage::Disk::Disk> &disk,
+	const Storage::Disk::Disk &disk,
 	const std::unique_ptr<Analyser::Static::AmstradCPC::Target> &target
 ) {
 	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
@@ -282,7 +282,7 @@ Analyser::Static::TargetList Analyser::Static::AmstradCPC::GetTargets(
 		for(auto &disk: media.disks) {
 			// Check for an ordinary catalogue, making sure this isn't actually a ZX Spectrum disk.
 			std::unique_ptr<Storage::Disk::CPM::Catalogue> data_catalogue =
-				Storage::Disk::CPM::GetCatalogue(disk, data_format, false);
+				Storage::Disk::CPM::GetCatalogue(*disk, data_format, false);
 			if(data_catalogue && !data_catalogue->is_zx_spectrum_booter()) {
 				InspectCatalogue(*data_catalogue, target);
 				target->media.disks.push_back(disk);
@@ -290,14 +290,14 @@ Analyser::Static::TargetList Analyser::Static::AmstradCPC::GetTargets(
 			}
 
 			// Failing that check for a boot sector.
-			if(CheckBootSector(disk, target)) {
+			if(CheckBootSector(*disk, target)) {
 				target->media.disks.push_back(disk);
 				continue;
 			}
 
 			// Failing that check for a system catalogue.
 			std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue =
-				Storage::Disk::CPM::GetCatalogue(disk, system_format, false);
+				Storage::Disk::CPM::GetCatalogue(*disk, system_format, false);
 			if(system_catalogue && !system_catalogue->is_zx_spectrum_booter()) {
 				InspectCatalogue(*system_catalogue, target);
 				target->media.disks.push_back(disk);

@@ -127,8 +127,8 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 		std::unique_ptr<Catalogue> dfs_catalogue, adfs_catalogue;
 
 		// Get any sort of catalogue that can be found.
-		dfs_catalogue = GetDFSCatalogue(disk);
-		if(dfs_catalogue == nullptr) adfs_catalogue = GetADFSCatalogue(disk);
+		dfs_catalogue = GetDFSCatalogue(*disk);
+		if(dfs_catalogue == nullptr) adfs_catalogue = GetADFSCatalogue(*disk);
 
 		// 8-bit options: DFS and Hugo-style ADFS.
 		if(dfs_catalogue || (adfs_catalogue && !adfs_catalogue->has_large_sectors && adfs_catalogue->is_hugo)) {

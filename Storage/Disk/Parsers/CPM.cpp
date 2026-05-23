@@ -15,7 +15,7 @@
 using namespace Storage::Disk::CPM;
 
 std::unique_ptr<Storage::Disk::CPM::Catalogue> Storage::Disk::CPM::GetCatalogue(
-	const std::shared_ptr<Storage::Disk::Disk> &disk,
+	const Storage::Disk::Disk &disk,
 	const ParameterBlock &parameters,
 	const bool with_contents
 ) {

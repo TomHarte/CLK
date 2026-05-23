@@ -65,8 +65,8 @@ struct Volume {
 	int sector_for_cluster(uint16_t cluster) const;
 };
 
-std::optional<Volume> GetVolume(const std::shared_ptr<Storage::Disk::Disk> &disk);
-std::optional<std::vector<uint8_t>> GetFile(const std::shared_ptr<Storage::Disk::Disk> &disk, const Volume &volume, const File &file);
-std::optional<Directory> GetDirectory(const std::shared_ptr<Storage::Disk::Disk> &disk, const Volume &volume, const File &file);
+std::optional<Volume> GetVolume(const Storage::Disk::Disk &);
+std::optional<std::vector<uint8_t>> GetFile(const Storage::Disk::Disk &, const Volume &, const File &);
+std::optional<Directory> GetDirectory(const Storage::Disk::Disk &disk, const Volume &, const File &);
 
 }

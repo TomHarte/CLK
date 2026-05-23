@@ -35,7 +35,7 @@ bool IsSpectrumTape(Storage::Tape::TapeSerialiser &tape) {
 	return false;
 }
 
-bool IsSpectrumDisk(const std::shared_ptr<Storage::Disk::Disk> &disk) {
+bool IsSpectrumDisk(const Storage::Disk::Disk &disk) {
 	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
 
 	// Grab absolutely any sector from the first track to determine general encoding.
@@ -129,7 +129,7 @@ Analyser::Static::TargetList Analyser::Static::ZXSpectrum::GetTargets(
 		bool has_spectrum_disk = false;
 
 		for(auto &disk: media.disks) {
-			has_spectrum_disk |= IsSpectrumDisk(disk);
+			has_spectrum_disk |= IsSpectrumDisk(*disk);
 		}
 
 		if(has_spectrum_disk) {
