@@ -479,6 +479,11 @@ public:
 		const AddressT address,
 		CPU::M6809::data_t<read_write> value
 	) {
+		// Update after the fact due to the internal mechanics of WD177x posting; these signals from the WD should
+		// occur when it observes that the access cycle is over. It is now over because the next has begun.
+		m6809_.template set<CPU::M6809::Line::NMI>(nmi_);
+		m6809_.template set<CPU::M6809::Line::Halt>(halt_);
+
 		// TODO, maybe: pull the switch inside this SAM call outside the loop?
 		const auto delay = sam_.cycle_cost<bus_phase, read_write>(address, bus_phase_);
 		const auto duration = delay + CPU::M6809::duration<Cycles>(bus_phase);
@@ -1114,10 +1119,12 @@ private:
 
 	DiskController disk_controller_;
 	Cycles cycles_16mhz_;
+	bool nmi_ = false, halt_ = false;
 	void set_halt_nmi(const bool halt, const bool nmi) override {
-		// TODO: these should actually occur at the end of the cycle.
-		m6809_.template set<CPU::M6809::Line::NMI>(nmi);
-		m6809_.template set<CPU::M6809::Line::Halt>(halt);
+		// These flags have been supplied by the WD1770 based on its belief that the bus cycle is over.
+		// It isn't yet, so store them away to take effect once it is.
+		halt_ = halt;
+		nmi_ = nmi;
 	}
 };
 
