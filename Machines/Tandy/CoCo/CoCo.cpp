@@ -387,8 +387,7 @@ class ConcreteMachine:
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
 	public MachineTypes::TimedMachine,
-	public Utility::TypeRecipient<Tandy::CoCo::Keyboard::CharacterMapper>,
-	public DiskController::Delegate
+	public Utility::TypeRecipient<Tandy::CoCo::Keyboard::CharacterMapper>
 {
 public:
 	ConcreteMachine(const Analyser::Static::TandyCoCo::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -457,7 +456,6 @@ public:
 
 		if(has_disk_drive) {
 			sam_.insert_cartridge(roms.find(DiskBASIC)->second);
-			disk_controller_.set_delegate(this);
 		}
 
 		insert_media(target.media);
@@ -489,8 +487,8 @@ public:
 		if constexpr (has_disk_drive) {
 			// Update after the fact due to the internal mechanics of WD177x posting; these signals from the WD should
 			// occur when it observes that the access cycle is over. It is now over because the next has begun.
-			m6809_.template set<CPU::M6809::Line::NMI>(nmi_);
-			m6809_.template set<CPU::M6809::Line::Halt>(halt_);
+			m6809_.template set<CPU::M6809::Line::NMI>(disk_controller_.nmi());
+			m6809_.template set<CPU::M6809::Line::Halt>(disk_controller_.halt());
 
 			// Multiply by 4.5 to get very close to 8Mhz for the controller.
 			cycles_16mhz_ += duration * 9;
@@ -1119,13 +1117,6 @@ private:
 
 	DiskController disk_controller_;
 	Cycles cycles_16mhz_;
-	bool nmi_ = false, halt_ = false;
-	void set_halt_nmi(const bool halt, const bool nmi) override {
-		// These flags have been supplied by the WD1770 based on its belief that the bus cycle is over.
-		// It isn't yet, so store them away to take effect once it is.
-		halt_ = halt;
-		nmi_ = nmi;
-	}
 };
 
 }

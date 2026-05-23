@@ -44,19 +44,13 @@ public:
 	void set_disk(std::shared_ptr<Storage::Disk::Disk>, size_t drive);
 	const Storage::Disk::Disk *disk(const std::string &);
 
-	bool halt() const;
-	bool nmi() const;
-
-	struct Delegate {
-		virtual void set_halt_nmi(bool halt, bool nmi) = 0;
-	};
-	void set_delegate(Delegate *);
+	bool halt() const { return halt_; }
+	bool nmi() const { return nmi_; }
 
 private:
 	bool double_density_ = false;
 	bool enable_halt_ = false;
 
-	Delegate *delegate_ = nullptr;
 	bool nmi_ = false;
 	bool halt_ = false;
 

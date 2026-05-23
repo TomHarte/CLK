@@ -57,29 +57,6 @@ const Storage::Disk::Disk *DiskController::disk(const std::string &name) {
 	return result;
 }
 
-// Reading code used on the machine per Disk BASIC Unravelled II:
-//
-// LD881	LDB FDCREG+3
-// 			STB ,X+
-// 			STA DSKREG
-// 			BRA LD881
-//
-// There's no obvious reason to STA DSKREG (i.e. the control register) within that loop unless
-// something about the values previously set by it has mutated.
-//
-// The schematic appears to show that NMI clears the HALT enable bit, so I've placed code
-// appropriately. But I also found the ROM to work if halt() itself cleared the halt enable.
-//
-// Possibly more research to do here.
-
-bool DiskController::halt() const {
-	return halt_;
-}
-
-bool DiskController::nmi() const {
-	return nmi_;
-}
-
 void DiskController::wd1770_did_change_output(WD::WD1770 &) {
 	update_halt_nmi();
 }
@@ -87,18 +64,6 @@ void DiskController::wd1770_did_change_output(WD::WD1770 &) {
 void DiskController::update_halt_nmi() {
 	enable_halt_ &= !get_interrupt_request_line();
 
-	const bool new_nmi = get_interrupt_request_line() && double_density_;
-	const bool new_halt = !get_data_request_line() && enable_halt_;
-
-	if(new_nmi != nmi_ || new_halt != halt_) {
-		halt_ = new_halt;
-		nmi_ = new_nmi;
-		if(delegate_) {
-			delegate_->set_halt_nmi(halt_, nmi_);
-		}
-	}
-}
-
-void DiskController::set_delegate(Delegate *const delegate) {
-	delegate_ = delegate;
+	nmi_ = get_interrupt_request_line() && double_density_;
+	halt_ = !get_data_request_line() && enable_halt_;
 }
