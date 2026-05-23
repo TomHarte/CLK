@@ -1114,7 +1114,8 @@ private:
 
 	DiskController disk_controller_;
 	Cycles cycles_16mhz_;
-	void set_halt_nmi(const bool halt, const bool nmi) {
+	void set_halt_nmi(const bool halt, const bool nmi) override {
+		// TODO: these should actually occur at the end of the cycle.
 		m6809_.template set<CPU::M6809::Line::NMI>(nmi);
 		m6809_.template set<CPU::M6809::Line::Halt>(halt);
 	}
