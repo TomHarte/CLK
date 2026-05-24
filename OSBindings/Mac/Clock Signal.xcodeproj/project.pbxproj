@@ -46,6 +46,9 @@
 		4B0171122FBBA40F00302CEF /* DiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0171112FBBA40F00302CEF /* DiskController.cpp */; };
 		4B0171132FBBA40F00302CEF /* DiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0171112FBBA40F00302CEF /* DiskController.cpp */; };
 		4B0171142FBBA40F00302CEF /* DiskController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0171112FBBA40F00302CEF /* DiskController.cpp */; };
+		4B0171172FC205E700302CEF /* TandyCoCo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0171162FC205E700302CEF /* TandyCoCo.cpp */; };
+		4B0171182FC205E700302CEF /* TandyCoCo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0171162FC205E700302CEF /* TandyCoCo.cpp */; };
+		4B0171192FC205E700302CEF /* TandyCoCo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0171162FC205E700302CEF /* TandyCoCo.cpp */; };
 		4B018B89211930DE002A3937 /* 65C02_extended_opcodes_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */; };
 		4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */; };
 		4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0333AD2094081A0050B93D /* AppleDSK.cpp */; };
@@ -1406,6 +1409,8 @@
 		4B01710E2FB6ADA700302CEF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/QuickLoadCompositeDynamicCropOptions.xib; sourceTree = "<group>"; };
 		4B0171102FBBA40F00302CEF /* DiskController.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DiskController.hpp; sourceTree = "<group>"; };
 		4B0171112FBBA40F00302CEF /* DiskController.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DiskController.cpp; sourceTree = "<group>"; };
+		4B0171152FC205E700302CEF /* TandyCoCo.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = TandyCoCo.hpp; path = Parsers/TandyCoCo.hpp; sourceTree = "<group>"; };
+		4B0171162FC205E700302CEF /* TandyCoCo.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TandyCoCo.cpp; path = Parsers/TandyCoCo.cpp; sourceTree = "<group>"; };
 		4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = 65C02_extended_opcodes_test.bin; path = "Klaus Dormann/65C02_extended_opcodes_test.bin"; sourceTree = "<group>"; };
 		4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80MemptrTests.swift; sourceTree = "<group>"; };
 		4B03291F2D0923E300C51EB5 /* Video.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Video.hpp; sourceTree = "<group>"; };
@@ -3441,8 +3446,10 @@
 			children = (
 				4B3FE75C1F3CF68B00448EE4 /* CPM.cpp */,
 				4B477709268FBE4D005C2340 /* FAT.cpp */,
+				4B0171162FC205E700302CEF /* TandyCoCo.cpp */,
 				4B3FE75D1F3CF68B00448EE4 /* CPM.hpp */,
 				4B47770A268FBE4D005C2340 /* FAT.hpp */,
+				4B0171152FC205E700302CEF /* TandyCoCo.hpp */,
 			);
 			name = Parsers;
 			sourceTree = "<group>";
@@ -6557,6 +6564,7 @@
 				4B2E86BF25D74F160024F1E9 /* Mouse.cpp in Sources */,
 				4BCF1AD12ECE759000109999 /* FileBundle.cpp in Sources */,
 				4B6ED2F1208E2F8A0047B343 /* WOZ.cpp in Sources */,
+				4B0171172FC205E700302CEF /* TandyCoCo.cpp in Sources */,
 				4B7C681727517A59001671EC /* Sprites.cpp in Sources */,
 				4B2E86D025D8D8C70024F1E9 /* Keyboard.cpp in Sources */,
 				4B89452F201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
@@ -6892,6 +6900,7 @@
 				4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */,
 				4B894518201967B4007DE474 /* ConfidenceCounter.cpp in Sources */,
 				4BCE005A227CFFCA000CA200 /* Macintosh.cpp in Sources */,
+				4B0171182FC205E700302CEF /* TandyCoCo.cpp in Sources */,
 				4BB505802B962DDF0031C43C /* Plus3.cpp in Sources */,
 				42EB81282B23AAC300429AF4 /* IMD.cpp in Sources */,
 				4B6AAEA4230E3E1D0078E864 /* MassStorageDevice.cpp in Sources */,
@@ -7170,6 +7179,7 @@
 				4B7BC7F51F58F27800D1B1B4 /* 6502AllRAM.cpp in Sources */,
 				4B06AAD82C645F370034D014 /* MasterSystem.cpp in Sources */,
 				4BC5C3E022C994CD00795658 /* 68000MoveTests.mm in Sources */,
+				4B0171192FC205E700302CEF /* TandyCoCo.cpp in Sources */,
 				4B778F5923A5F2D00000D260 /* Z80.cpp in Sources */,
 				4BD971392BFC3D9D00C907AA /* ArchimedesStaticAnalyserTests.mm in Sources */,
 				4B062D212F81589C00472717 /* FD.cpp in Sources */,
