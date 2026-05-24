@@ -80,4 +80,12 @@ void clamp(const int begin, const int end, const FuncT &&function) {
 	}
 }
 
+/// Calls @c function if and only if [begin, end] contains the event point.
+template <int EventPoint, typename FuncT>
+void if_includes(const int begin, const int end, const FuncT &&function) {
+	if(begin <= EventPoint && end > EventPoint) {
+		function();
+	}
+}
+
 }

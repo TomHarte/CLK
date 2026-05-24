@@ -116,6 +116,8 @@ constexpr uint8_t repeated_rows(const GraphicsMode mode) {
 struct MC6847Base {
 	MC6847Base(Outputs::Display::Type);
 
+	void sync_and_burst(int begin, int end);
+
 	void pixel_line(int begin, int end);
 	void border_line(int begin, int end);
 	void porch_line(int begin, int end);
@@ -137,6 +139,7 @@ struct MC6847Base {
 
 	Outputs::CRT::CRT crt_;
 	uint32_t *pixels_ = nullptr;
+	uint32_t border_colour_ = 0;
 
 	void set_mode(
 		bool graphics,
