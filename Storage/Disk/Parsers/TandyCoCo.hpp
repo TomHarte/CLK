@@ -24,7 +24,7 @@ struct DirectoryEntry {
 		BASIC = 0,
 		BASICData = 1,
 		MachineLanguage = 2,
-		TextEditorsource = 3,
+		TextEditorSource = 3,
 	};
 	FileType file_type;
 
