@@ -297,10 +297,13 @@ private:
 std::vector<Description> all_descriptions();
 
 struct Request {
-	Request(Name name, bool optional = false);
+	Request(Name);
 	Request() = default;
 
 	// TODO: the following is definitely not const correct.
+
+	/// Returns this request, but makes it optional.
+	Request optional();
 
 	/// Forms the request that would be satisfied by @c this plus the right-hand side.
 	Request operator &&(const Request &);

@@ -311,10 +311,10 @@ public:
 		using Request = ::ROM::Request;
 		using Name = ::ROM::Name;
 		auto request = (
-			Request(Name::OricColourROM128, true) ||
-			Request(Name::OricColourROM256, true) ||
-			Request(Name::OricPravetzColourROM, true)
-		);
+			Request(Name::OricColourROM128) ||
+			Request(Name::OricColourROM256) ||
+			Request(Name::OricPravetzColourROM)
+		).optional();
 		const auto basic = [&]() {
 			switch(target.rom) {
 				case Analyser::Static::Oric::Target::ROM::BASIC10:	return Name::OricBASIC10;
