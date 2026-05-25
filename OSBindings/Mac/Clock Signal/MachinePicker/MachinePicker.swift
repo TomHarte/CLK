@@ -85,7 +85,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 	@IBOutlet var spectrumModelTypeButton: NSPopUpButton!
 
 	// MARK: - Tandy CoCo
-	@IBOutlet var tandyCoCoMachineSizeButton: NSPopUpButton!
+	@IBOutlet var tandyCoCoMemorySizeButton: NSPopUpButton!
 	@IBOutlet var tandyCoCoDiskButton: NSButton!
 
 	// MARK: - Thomson
@@ -173,7 +173,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 			"spectrumModel": spectrumModelTypeButton,
 
 			// Tandy CoCo
-			"tandyCoCoMemorySize": tandyCoCoMachineSizeButton,
+			"tandyCoCoMemorySize": tandyCoCoMemorySizeButton,
 			"tandyCoCoDiskDrive": tandyCoCoDiskButton,
 
 			// Thomson MO
@@ -203,7 +203,7 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 
 		#if !DEBUG
 		// Remove options that are not yet fully working, except in debug builds.
-		for hidden in ["appleiigs", "tandycoco"] {
+		for hidden in ["appleiigs"] {
 			let tabIndex = machineSelector.indexOfTabViewItem(withIdentifier: hidden)
 			machineSelector.removeTabViewItem(machineSelector.tabViewItem(at: tabIndex))
 		}
@@ -499,7 +499,10 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 				return CSStaticAnalyser(spectrumModel: model)
 
 			case "tandycoco":
-				return CSStaticAnalyser(tandyCoCo: ())
+				return CSStaticAnalyser(
+					tandyCoCoMemorySize: Kilobytes(tandyCoCoMemorySizeButton.selectedTag()),
+					hasDiskDrive: tandyCoCoDiskButton.state == .on
+				)
 
 			case "thomsonmo":
 				var model: CSMachineThomsonModel = .MO5

@@ -1359,7 +1359,7 @@ Gw
                 <outlet property="plus4HasC1541Button" destination="c7C-7n-u1N" id="v29-j6-o43"/>
                 <outlet property="spectrumModelTypeButton" destination="gFZ-d4-WFv" id="tdX-Cv-Swe"/>
                 <outlet property="tandyCoCoDiskButton" destination="fH1-0N-e8C" id="B8c-Or-P9G"/>
-                <outlet property="tandyCoCoMachineSizeButton" destination="S3f-Ym-bna" id="Ig8-iv-i4H"/>
+                <outlet property="tandyCoCoMemorySizeButton" destination="S3f-Ym-bna" id="Ig8-iv-i4H"/>
                 <outlet property="thomsonDiskButton" destination="iXv-3w-3t5" id="qgb-SD-Ql0"/>
                 <outlet property="thomsonModelTypeButton" destination="FoB-T7-dKp" id="Bhb-eQ-bbI"/>
                 <outlet property="vic20HasC1540Button" destination="Lrf-gL-6EI" id="21g-dJ-mOo"/>

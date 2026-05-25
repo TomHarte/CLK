@@ -552,11 +552,21 @@ PermissionDelegate permission_delegate;
 	return self;
 }
 
-- (instancetype)initWithTandyCoCo {
+- (instancetype)initWithTandyCoCoMemorySize:(Kilobytes)memorySize hasDiskDrive:(BOOL)hasDiskDrive {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::TandyCoCo::Target;
 		auto target = std::make_unique<Target>();
+
+		auto memory_size = target->memory_size;
+		switch(memorySize) {
+			default:	break;
+			case 32:	memory_size = Target::MemorySize::ThirtyTwoKB;		break;
+			case 64:	memory_size = Target::MemorySize::SixtyFourKB;		break;
+		}
+		target->memory_size = memory_size;
+
+		target->has_disk_drive = hasDiskDrive;
 		_targets.push_back(std::move(target));
 	}
 	return self;
