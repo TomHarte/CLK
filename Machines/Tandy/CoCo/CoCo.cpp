@@ -412,55 +412,96 @@ public:
 		construct_joysticks();
 		is_dragon_ = Analyser::Static::TandyCoCo::is_dragon(target.model);
 
-		const auto BasicROM = [&] {
-			if(!is_dragon_) {
-				return ROM::Name::TandyCoCoColourBasic12;
-			}
-			return is_64kb(target.memory_size) ? ROM::Name::Dragon64ROM1 : ROM::Name::Dragon32;
-		} ();
-		const auto extendedBasicROM = [&]() -> std::optional<ROM::Name> {
+		auto request = [&]() {
 			if(is_dragon_) {
-				return std::nullopt;
+				if(is_64kb(target.memory_size)) {
+					return ROM::Request(ROM::Name::Dragon64ROM1) && ROM::Request(ROM::Name::Dragon64ROM2);
+				} else {
+					return ROM::Request(ROM::Name::Dragon32);
+				}
 			}
-			return ROM::Name::TandyExtendedBASIC10;
-		} ();
-		const auto alternateBasicROM = [&]() -> std::optional<ROM::Name> {
-			if(!is_dragon_ || !is_64kb(target.memory_size)) {
-				return std::nullopt;
+
+			auto request = ROM::Request(ROM::Name::TandyExtendedBASIC10) || ROM::Request(ROM::Name::TandyExtendedBASIC11);
+			if(!has_disk_drive) request = request.optional();
+
+			if(has_disk_drive) {
+				auto disk_request = ROM::Request(ROM::Name::TandyCoCoDiskBASIC10) || ROM::Request(ROM::Name::TandyCoCoDiskBASIC11)  || ROM::Request(ROM::Name::TandyCoCoDiskBASIC21);
+				request = request && disk_request;
 			}
-			return ROM::Name::Dragon64ROM2;
+
+			switch(target.rom_version) {
+				using enum Analyser::Static::TandyCoCo::Target::ROMVersion;
+
+				case V10: request = request && ROM::Request(ROM::Name::TandyCoCoColourBasic10);	break;
+				case V11: request = request && ROM::Request(ROM::Name::TandyCoCoColourBasic11);	break;
+				case V12: request = request && ROM::Request(ROM::Name::TandyCoCoColourBasic12);	break;
+				case V13: request = request && ROM::Request(ROM::Name::TandyCoCoColourBasic13);	break;
+
+				default: {
+					auto basic_request =
+						ROM::Request(ROM::Name::TandyCoCoColourBasic11) ||
+						ROM::Request(ROM::Name::TandyCoCoColourBasic12) ||
+						ROM::Request(ROM::Name::TandyCoCoColourBasic13);
+
+					if(target.rom_version != V11OrAbove) {
+						basic_request = basic_request || ROM::Request(ROM::Name::TandyCoCoColourBasic10);
+					}
+					request = request && basic_request;
+				} break;
+			}
+
+			return request;
 		} ();
-
-		auto request = ROM::Request(BasicROM);
-		if(alternateBasicROM.has_value()) request = request && ROM::Request(*alternateBasicROM);
-		if(extendedBasicROM.has_value()) request = request && ROM::Request(*extendedBasicROM, !has_disk_drive);
-
-		static constexpr auto DiskBASIC = ROM::Name::TandyCoCoDiskBASIC11;
-		if(has_disk_drive) {
-			request = request && ROM::Request(DiskBASIC);
-		}
 
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
 			throw ROMMachine::Error::MissingROMs;
 		}
 
-		sam_.set_basic(roms.find(BasicROM)->second);
-		if(extendedBasicROM.has_value()) {
-			const auto rom = roms.find(*extendedBasicROM);
-			if(rom != roms.end()) {
-				sam_.set_extended_basic(roms.find(*extendedBasicROM)->second);
+		const auto any_of = [&](const std::initializer_list<ROM::Name> &options) -> std::optional<std::vector<uint8_t>> {
+			for(auto &key: options) {
+				const auto rom = roms.find(key);
+				if(rom != roms.end()) {
+					return rom->second;
+				}
 			}
+			return std::nullopt;
+		};
+
+		const auto basic = any_of({
+			ROM::Name::Dragon64ROM1,
+			ROM::Name::Dragon32,
+			ROM::Name::TandyCoCoColourBasic13,
+			ROM::Name::TandyCoCoColourBasic12,
+			ROM::Name::TandyCoCoColourBasic11,
+			ROM::Name::TandyCoCoColourBasic10,
+		});
+		sam_.set_basic(*basic);
+
+		const auto extended_basic = any_of({
+			ROM::Name::TandyExtendedBASIC11,
+			ROM::Name::TandyExtendedBASIC10,
+		});
+		if(extended_basic.has_value()) {
+			sam_.set_extended_basic(*extended_basic);
 		}
 
-		if(alternateBasicROM.has_value()) {
-			sam_.set_alternate_basic(roms.find(*alternateBasicROM)->second);
+		const auto alternate_basic = any_of({
+			ROM::Name::Dragon64ROM2,
+		});
+		if(alternate_basic.has_value()) {
+			sam_.set_alternate_basic(*alternate_basic);
 		} else {
 			sam_.set_no_alternate_basic();
 		}
 
-		if(has_disk_drive) {
-			sam_.insert_cartridge(roms.find(DiskBASIC)->second);
+		const auto disk_rom = any_of({
+			ROM::Name::TandyCoCoDiskBASIC21,
+			ROM::Name::TandyCoCoDiskBASIC11,
+			ROM::Name::TandyCoCoDiskBASIC10,
+		});
+		if(disk_rom.has_value()) {
+			sam_.insert_cartridge(*disk_rom);
 		}
 
 		insert_media(target.media);
