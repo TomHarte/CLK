@@ -140,23 +140,40 @@ MC6847Base::MC6847Base(const Outputs::Display::Type display_type) :
 	crt_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
 }
 
-void MC6847Base::pixel_line(const int line_begin, const int line_end) {
-	if(line_begin < LineLayout::EndOfLeftBorder && line_end >= LineLayout::EndOfLeftBorder) [[unlikely]] {
-		crt_.output_sync(LineLayout::EndOfSync);
-		if(display_type_ == Outputs::Display::Type::NTSC60) {
-			crt_.output_colour_burst(LineLayout::EndOfColourBurst - LineLayout::EndOfSync, ColourPhase);
-		} else {
-			crt_.output_default_colour_burst(LineLayout::EndOfColourBurst - LineLayout::EndOfSync);
+void MC6847Base::sync_and_burst(const int line_begin, const int line_end) {
+	Numeric::if_includes<LineLayout::EndOfColourBurst>(
+		line_begin,
+		line_end,
+		[&] {
+			crt_.output_sync(LineLayout::EndOfSync);
+			if(display_type_ == Outputs::Display::Type::NTSC60) {
+				crt_.output_colour_burst(LineLayout::EndOfColourBurst - LineLayout::EndOfSync, ColourPhase);
+			} else {
+				crt_.output_default_colour_burst(LineLayout::EndOfColourBurst - LineLayout::EndOfSync);
+			}
 		}
-		crt_.output_blank(LineLayout::EndOfLeftBorder - LineLayout::EndOfColourBurst);
+	);
+}
 
-		pixels_ = reinterpret_cast<uint32_t *>(crt_.begin_data(256));
-	}
-	if(pixels_) [[likely]] {
-		Numeric::clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
-			line_begin,
-			line_end,
+void MC6847Base::pixel_line(const int line_begin, const int line_end) {
+	sync_and_burst(line_begin, line_end);
+	Numeric::ActionRange(line_begin, line_end)
+		.clamp<LineLayout::EndOfColourBurst, LineLayout::EndOfLeftBorder>(
 			[&](const int begin, const int end) {
+				crt_.output_level<uint32_t>(end - begin, border_colour_);
+			}
+		)
+		.if_includes<LineLayout::EndOfLeftBorder>(
+			[&] {
+				pixels_ = reinterpret_cast<uint32_t *>(crt_.begin_data(256));
+			}
+		)
+		.clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
+			[&](const int begin, const int end) {
+				if(!pixels_) [[unlikely]] {
+					return;
+				}
+
 				const int row = address_.row();
 				const int column_begin = (begin - LineLayout::EndOfLeftBorder) >> 3;
 				const int column_end = (end - LineLayout::EndOfLeftBorder) >> 3;
@@ -295,24 +312,40 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 					pixels_ += 8;
 				}
 			}
+		)
+		.if_includes<LineLayout::EndOfPixels>(
+			[&] {
+				crt_.output_data(256);
+			}
+		)
+		.clamp<LineLayout::EndOfPixels, LineLayout::EndOfLine>(
+			[&](const int begin, const int end) {
+				crt_.output_level<uint32_t>(end - begin, border_colour_);
+			}
+		)
+		.if_ends_at<LineLayout::EndOfLine>(
+			[&] {
+				address_.apply_hsync();
+			}
 		);
-	}
-	if(line_end == LineLayout::EndOfLine) [[unlikely]] {
-		crt_.output_data(256);
-		address_.apply_hsync();
-		crt_.output_blank(LineLayout::EndOfLine - LineLayout::EndOfPixels);
-	}
 }
 
-void MC6847Base::border_line(const int, const int end) {
+void MC6847Base::border_line(const int line_begin, const int line_end) {
+	sync_and_burst(line_begin, line_end);
+	Numeric::clamp<LineLayout::EndOfColourBurst, LineLayout::EndOfLine>(
+		line_begin,
+		line_end,
+		[&](const int begin, const int end) {
+			crt_.output_level<uint32_t>(end - begin, border_colour_);
+		}
+	);
+}
+
+void MC6847Base::porch_line(const int, const int end) {
 	if(end == LineLayout::EndOfLine) {
 		crt_.output_sync(LineLayout::EndOfSync);
 		crt_.output_blank(LineLayout::EndOfLine - LineLayout::EndOfSync);
 	}
-}
-
-void MC6847Base::porch_line(const int begin, const int end) {
-	border_line(begin, end);
 }
 
 void MC6847Base::sync_line(const int, const int end) {
@@ -402,10 +435,14 @@ void MC6847Base::set_mode(
 		address_.target_row_ = repeated_rows(mode);
 		if(is_2bpp(mode)) {
 			mode_ |= Mode::BPP2;
+			border_colour_ = colour_select ? Colours::colour1[0] : Colours::colour0[0];
+		} else {
+			border_colour_ = colour_select ? Colours::resolution1[1] : Colours::resolution0[1];
 		}
 	} else {
 		set_32bytes();
 		address_.target_row_ = 12;
+		border_colour_ = 0;
 	}
 
 	// TODO: apply my net understanding, which is now this:
