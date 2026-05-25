@@ -429,6 +429,9 @@ public:
 				request = request && disk_request;
 			}
 
+			// BASIC 1.3 is not used unless explicitly requested for now, as it doesn't 'just work' with disks
+			// as the rest of this code proceeds. I don't know whether its fussy about other ROMs or whether I've
+			// got a blocking implementation issue elsewhere.
 			switch(target.rom_version) {
 				using enum Analyser::Static::TandyCoCo::Target::ROMVersion;
 
@@ -440,8 +443,7 @@ public:
 				default: {
 					auto basic_request =
 						ROM::Request(ROM::Name::TandyCoCoColourBasic11) ||
-						ROM::Request(ROM::Name::TandyCoCoColourBasic12) ||
-						ROM::Request(ROM::Name::TandyCoCoColourBasic13);
+						ROM::Request(ROM::Name::TandyCoCoColourBasic12);
 
 					if(target.rom_version != V11OrAbove) {
 						basic_request = basic_request || ROM::Request(ROM::Name::TandyCoCoColourBasic10);
