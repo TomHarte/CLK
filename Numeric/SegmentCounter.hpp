@@ -95,6 +95,8 @@ class ActionRange {
 public:
 	ActionRange(const int span_begin, const int span_end) : begin_(span_begin), end_(span_end) {}
 
+	/// Perform @c function if this range's static @c begin is within the dynamic range.
+	/// @returns This static range.
 	template <typename FuncT>
 	auto then(const FuncT &&function) {
 		if(begin_ <= begin && end_ > begin) {
@@ -103,14 +105,18 @@ public:
 		return *this;
 	}
 
+	/// Perform @c function if this range's static @c begin is equal to the end of the dynamic range..
 	template <typename FuncT>
-	auto finally(const FuncT &&function) {
+	void finally(const FuncT &&function) {
 		if(begin == end_) {
 			function();
 		}
-		return *this;
 	}
 
+	/// If the intersection of this range's static @c begin and this function's @c end with the dynamic
+	/// range is not empty, call @c function and provide that intersection.
+	///
+	/// @returns A new static range that begins at @c end.
 	template <int end, typename FuncT>
 	auto until(const FuncT &&function) {
 		const int range_begin = std::max(begin_, begin);
