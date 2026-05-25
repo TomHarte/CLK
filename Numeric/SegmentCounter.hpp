@@ -88,48 +88,41 @@ void if_includes(const int begin, const int end, const FuncT &&function) {
 	}
 }
 
-// Provides a factory-method-esque means of chaining potential events across a fixed range
-// without repeating the range ad nauseam,
+// Provides a continuation-esque means of describing events with a fixed sequencing and executing
+// a subset of them.
+template <int begin = 0>
 class ActionRange {
 public:
-	ActionRange(const int begin, const int end) : begin_(begin), end_(end) {}
+	ActionRange(const int span_begin, const int span_end) : begin_(span_begin), end_(span_end) {}
 
-	template <int EventPoint, typename FuncT>
-	ActionRange &if_at_start(const FuncT &&function) {
-		if(!begin_) {
+	template <typename FuncT>
+	auto then(const FuncT &&function) {
+		if(begin_ <= begin && end_ > begin) {
 			function();
 		}
 		return *this;
 	}
 
-	template <int RangeBegin, int RangeEnd, typename FuncT>
-	ActionRange &clamp(const FuncT &&function) {
-		const int range_begin = std::max(begin_, RangeBegin);
-		const int range_end = std::min(end_, RangeEnd);
+	template <typename FuncT>
+	auto finally(const FuncT &&function) {
+		if(begin == end_) {
+			function();
+		}
+		return *this;
+	}
+
+	template <int end, typename FuncT>
+	auto until(const FuncT &&function) {
+		const int range_begin = std::max(begin_, begin);
+		const int range_end = std::min(end_, end);
 		if(range_end > range_begin) {
 			function(range_begin, range_end);
 		}
-		return *this;
-	}
-
-	template <int EventPoint, typename FuncT>
-	ActionRange &if_includes(const FuncT &&function) {
-		if(begin_ <= EventPoint && end_ > EventPoint) {
-			function();
-		}
-		return *this;
-	}
-
-	template <int EventPoint, typename FuncT>
-	ActionRange &if_ends_at(const FuncT &&function) {
-		if(end_ == EventPoint) {
-			function();
-		}
-		return *this;
+		return ActionRange<end>(begin_, end_);
 	}
 
 private:
-	int begin_, end_;
+	const int begin_, end_;
 };
 
 }
