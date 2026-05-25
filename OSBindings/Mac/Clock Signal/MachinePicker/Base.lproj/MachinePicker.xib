@@ -1001,19 +1001,44 @@ Gw
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="4fr-ok-2dY">
-                                            <rect key="frame" x="18" y="272" width="364" height="16"/>
-                                            <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="Work in progress." id="rRf-PT-0jI">
+                                            <rect key="frame" x="18" y="270" width="91" height="16"/>
+                                            <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="Memory Size:" id="rRf-PT-0jI">
                                                 <font key="font" usesAppearanceFont="YES"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
+                                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="S3f-Ym-bna">
+                                            <rect key="frame" x="112" y="264" width="71" height="25"/>
+                                            <popUpButtonCell key="cell" type="push" title="32kb" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="32" imageScaling="proportionallyDown" inset="2" selectedItem="Lz0-xd-kzj" id="Sx4-Cp-oZO">
+                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="menu"/>
+                                                <menu key="menu" id="ceK-om-CL9">
+                                                    <items>
+                                                        <menuItem title="32kb" state="on" tag="32" id="Lz0-xd-kzj"/>
+                                                        <menuItem title="64kb" tag="64" id="AMG-ZV-Au3"/>
+                                                    </items>
+                                                </menu>
+                                            </popUpButtonCell>
+                                        </popUpButton>
+                                        <button verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fH1-0N-e8C">
+                                            <rect key="frame" x="18" y="245" width="119" height="18"/>
+                                            <buttonCell key="cell" type="check" title="With Disk Drive" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="rWB-ah-9Dc">
+                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                        </button>
                                     </subviews>
                                     <constraints>
+                                        <constraint firstItem="S3f-Ym-bna" firstAttribute="centerY" secondItem="4fr-ok-2dY" secondAttribute="centerY" id="P8L-Oo-84H"/>
+                                        <constraint firstItem="S3f-Ym-bna" firstAttribute="top" secondItem="dw5-dF-Px8" secondAttribute="top" constant="20" symbolic="YES" id="SZg-q0-f34"/>
                                         <constraint firstItem="4fr-ok-2dY" firstAttribute="leading" secondItem="dw5-dF-Px8" secondAttribute="leading" constant="20" symbolic="YES" id="T47-o6-IGP"/>
-                                        <constraint firstItem="4fr-ok-2dY" firstAttribute="top" secondItem="dw5-dF-Px8" secondAttribute="top" constant="20" symbolic="YES" id="V7c-0O-Ep8"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="S3f-Ym-bna" secondAttribute="trailing" constant="20" symbolic="YES" id="TxY-eV-7H0"/>
+                                        <constraint firstItem="S3f-Ym-bna" firstAttribute="leading" secondItem="4fr-ok-2dY" secondAttribute="trailing" constant="8" symbolic="YES" id="ZKJ-Eg-1Jh"/>
+                                        <constraint firstItem="fH1-0N-e8C" firstAttribute="leading" secondItem="dw5-dF-Px8" secondAttribute="leading" constant="20" symbolic="YES" id="dMi-02-2h6"/>
                                         <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="4fr-ok-2dY" secondAttribute="bottom" constant="20" symbolic="YES" id="eQq-Si-Rf9"/>
-                                        <constraint firstAttribute="trailing" secondItem="4fr-ok-2dY" secondAttribute="trailing" constant="20" symbolic="YES" id="p0n-YN-D0a"/>
+                                        <constraint firstItem="fH1-0N-e8C" firstAttribute="top" secondItem="S3f-Ym-bna" secondAttribute="bottom" constant="8" symbolic="YES" id="gXZ-nI-cKt"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="fH1-0N-e8C" secondAttribute="trailing" constant="20" symbolic="YES" id="zzC-VB-eYh"/>
                                     </constraints>
                                 </view>
                             </tabViewItem>
@@ -1333,6 +1358,8 @@ Gw
                 <outlet property="pcVideoAdaptorButton" destination="stw-i3-ikG" id="6VO-Q9-4kV"/>
                 <outlet property="plus4HasC1541Button" destination="c7C-7n-u1N" id="v29-j6-o43"/>
                 <outlet property="spectrumModelTypeButton" destination="gFZ-d4-WFv" id="tdX-Cv-Swe"/>
+                <outlet property="tandyCoCoDiskButton" destination="fH1-0N-e8C" id="B8c-Or-P9G"/>
+                <outlet property="tandyCoCoMachineSizeButton" destination="S3f-Ym-bna" id="Ig8-iv-i4H"/>
                 <outlet property="thomsonDiskButton" destination="iXv-3w-3t5" id="qgb-SD-Ql0"/>
                 <outlet property="thomsonModelTypeButton" destination="FoB-T7-dKp" id="Bhb-eQ-bbI"/>
                 <outlet property="vic20HasC1540Button" destination="Lrf-gL-6EI" id="21g-dJ-mOo"/>

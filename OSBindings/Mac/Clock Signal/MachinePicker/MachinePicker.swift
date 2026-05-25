@@ -84,6 +84,10 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 	// MARK: - Spectrum properties
 	@IBOutlet var spectrumModelTypeButton: NSPopUpButton!
 
+	// MARK: - Tandy CoCo
+	@IBOutlet var tandyCoCoMachineSizeButton: NSPopUpButton!
+	@IBOutlet var tandyCoCoDiskButton: NSButton!
+
 	// MARK: - Thomson
 	@IBOutlet var thomsonModelTypeButton: NSPopUpButton!
 	@IBOutlet var thomsonDiskButton: NSButton!
@@ -167,6 +171,10 @@ class MachinePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSPat
 
 			// Spectrum
 			"spectrumModel": spectrumModelTypeButton,
+
+			// Tandy CoCo
+			"tandyCoCoMemorySize": tandyCoCoMachineSizeButton,
+			"tandyCoCoDiskDrive": tandyCoCoDiskButton,
 
 			// Thomson MO
 			"thomsonModel": thomsonModelTypeButton,
