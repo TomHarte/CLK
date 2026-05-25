@@ -157,18 +157,18 @@ void MC6847Base::sync_and_burst(const int line_begin, const int line_end) {
 
 void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 	sync_and_burst(line_begin, line_end);
-	Numeric::ActionRange(line_begin, line_end)
-		.clamp<LineLayout::EndOfColourBurst, LineLayout::EndOfLeftBorder>(
+	Numeric::ActionRange<LineLayout::EndOfColourBurst>(line_begin, line_end)
+		.until<LineLayout::EndOfLeftBorder>(
 			[&](const int begin, const int end) {
 				crt_.output_level<uint32_t>(end - begin, border_colour_);
 			}
 		)
-		.if_includes<LineLayout::EndOfLeftBorder>(
+		.then(
 			[&] {
 				pixels_ = reinterpret_cast<uint32_t *>(crt_.begin_data(256));
 			}
 		)
-		.clamp<LineLayout::EndOfLeftBorder, LineLayout::EndOfPixels>(
+		.until<LineLayout::EndOfPixels>(
 			[&](const int begin, const int end) {
 				if(!pixels_) [[unlikely]] {
 					return;
@@ -313,17 +313,17 @@ void MC6847Base::pixel_line(const int line_begin, const int line_end) {
 				}
 			}
 		)
-		.if_includes<LineLayout::EndOfPixels>(
+		.then(
 			[&] {
 				crt_.output_data(256);
 			}
 		)
-		.clamp<LineLayout::EndOfPixels, LineLayout::EndOfLine>(
+		.until<LineLayout::EndOfLine>(
 			[&](const int begin, const int end) {
 				crt_.output_level<uint32_t>(end - begin, border_colour_);
 			}
 		)
-		.if_ends_at<LineLayout::EndOfLine>(
+		.finally(
 			[&] {
 				address_.apply_hsync();
 			}
