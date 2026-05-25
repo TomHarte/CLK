@@ -16,8 +16,6 @@ DiskController::DiskController() : WD::WD1770(P1773) {
 }
 
 void DiskController::set_control(const uint8_t value) {
-	// TODO:
-	//
 	//	b7: halt flag, 1 = enabled
 	//	b6: drive select 3
 	//	b5: density, 1 = double
