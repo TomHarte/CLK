@@ -14,9 +14,9 @@
 #include <cstdio>
 #include <memory>
 
+#include "../../Configurable/StandardOptions.hpp"
 #include "../../Machines/Utility/ROMLibrary.hpp"
 #include "../../Numeric/CRC.hpp"
-#include "../../Configurable/StandardOptions.hpp"
 
 namespace {
 
@@ -1024,6 +1024,7 @@ void MainWindow::setButtonPressed(const int index, const bool isPressed) {
 #include "../../Analyser/Static/MSX/Target.hpp"
 #include "../../Analyser/Static/Oric/Target.hpp"
 #include "../../Analyser/Static/PCCompatible/Target.hpp"
+#include "../../Analyser/Static/TandyCoCo/Target.hpp"
 #include "../../Analyser/Static/Thomson/Target.hpp"
 #include "../../Analyser/Static/ZX8081/Target.hpp"
 #include "../../Analyser/Static/ZXSpectrum/Target.hpp"
@@ -1283,6 +1284,17 @@ void MainWindow::start_spectrum() {
 	launchTarget(std::move(target));
 }
 
+void MainWindow::start_tandyCoCo() {
+	using Target = Analyser::Static::TandyCoCo::Target;
+	auto target = std::make_unique<Target>();
+	switch(ui->tandyCoCoMemorySizeComboBox->currentIndex()) {
+		default:	target->memory_size = Target::MemorySize::ThirtyTwoKB;		break;
+		case 1:		target->memory_size = Target::MemorySize::SixtyFourKB;		break;
+	}
+	target->has_disk_drive = ui->tandyCoCoDiskDriveCheckBox->isChecked();
+	launchTarget(std::move(target));
+}
+
 void MainWindow::start_thomson() {
 	using Target = Analyser::Static::Thomson::MOTarget;
 	auto target = std::make_unique<Target>();
@@ -1432,6 +1444,10 @@ void MainWindow::processAllSettings() {
 	/* PC Compatible. */
 	applier(ui->pcSpeedComboBox, "pc.speed");
 	applier(ui->pcVideoAdaptorComboBox, "pc.videoAdaptor");
+
+	/* Tandy CoCo. */
+	applier(ui->tandyCoCoMemorySizeComboBox, "tandy.memorySize");
+	applier(ui->tandyCoCoDiskDriveCheckBox, "tandy.hasDiskDrive");
 
 	/* Thomson. */
 	applier(ui->thomsonModelComboBox, "thomson.model");

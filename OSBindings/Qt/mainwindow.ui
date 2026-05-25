@@ -222,17 +222,17 @@
          <widget class="QComboBox" name="appleIIgsMemorySizeComboBox">
           <item>
            <property name="text">
-            <string>256kb</string>
+            <string>256 kb</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>1mb</string>
+            <string>1 mb</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>8mb</string>
+            <string>8 mb</string>
            </property>
           </item>
          </widget>
@@ -821,6 +821,52 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="tandyCoCoTab">
+       <attribute name="title">
+        <string>Tandy CoCo</string>
+       </attribute>
+       <layout class="QVBoxLayout">
+        <item>
+         <layout class="QFormLayout">
+          <item row="1" column="0">
+           <widget class="QLabel">
+            <property name="text">
+             <string>Memory Size:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QComboBox" name="tandyCoCoMemorySizeComboBox">
+            <item>
+             <property name="text">
+              <string>32 kb</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>64 kb</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="tandyCoCoDiskDriveCheckBox">
+          <property name="text">
+           <string>With Disk Drive</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer>
+          <property name="orientation">
+           <enum>Qt::Orientation::Vertical</enum>
+          </property>
+         </spacer>
+        </item>
+	</layout>
+      </widget>
       <widget class="QWidget" name="thomsonTab">
        <attribute name="title">
         <string>Thomson MO</string>
@@ -1049,17 +1095,17 @@
          <widget class="QComboBox" name="spectrumModelComboBox">
           <item>
            <property name="text">
-            <string>16kb</string>
+            <string>16 kb</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>48kb</string>
+            <string>48 kb</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>128kb</string>
+            <string>128 kb</string>
            </property>
           </item>
           <item>
