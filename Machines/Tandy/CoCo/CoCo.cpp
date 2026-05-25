@@ -160,7 +160,12 @@ struct SAM {
 		}
 	}
 
-	template <uint16_t address> void access() {
+	template <uint16_t address, CPU::M6809::ReadWrite read_write>
+	void access() {
+		if(!is_write(read_write)) {
+			return;
+		}
+
 		const auto set = [&](auto &target, auto bit) {
 			target = target & ~bit;
 			target |= address & 1 ? bit : 0;
@@ -557,22 +562,22 @@ public:
 					case 0xff4a:	if(has_disk_drive) access<0xff4a, read_write>(disk_controller_, value); break;
 					case 0xff4b:	if(has_disk_drive) access<0xff4b, read_write>(disk_controller_, value); break;
 
-					case 0xffc0:	sam_.access<0xffc0>();	break;		case 0xffc1:	sam_.access<0xffc1>();	break;
-					case 0xffc2:	sam_.access<0xffc2>();	break;		case 0xffc3:	sam_.access<0xffc3>();	break;
-					case 0xffc4:	sam_.access<0xffc4>();	break;		case 0xffc5:	sam_.access<0xffc5>();	break;
-					case 0xffc6:	sam_.access<0xffc6>();	break;		case 0xffc7:	sam_.access<0xffc7>();	break;
-					case 0xffc8:	sam_.access<0xffc8>();	break;		case 0xffc9:	sam_.access<0xffc9>();	break;
-					case 0xffca:	sam_.access<0xffca>();	break;		case 0xffcb:	sam_.access<0xffcb>();	break;
-					case 0xffcc:	sam_.access<0xffcc>();	break;		case 0xffcd:	sam_.access<0xffcd>();	break;
-					case 0xffce:	sam_.access<0xffce>();	break;		case 0xffcf:	sam_.access<0xffcf>();	break;
-					case 0xffd0:	sam_.access<0xffd0>();	break;		case 0xffd1:	sam_.access<0xffd1>();	break;
-					case 0xffd2:	sam_.access<0xffd2>();	break;		case 0xffd3:	sam_.access<0xffd3>();	break;
-					case 0xffd4:	sam_.access<0xffd4>();	break;		case 0xffd5:	sam_.access<0xffd5>();	break;
-					case 0xffd6:	sam_.access<0xffd6>();	break;		case 0xffd7:	sam_.access<0xffd7>();	break;
-					case 0xffd8:	sam_.access<0xffd8>();	break;		case 0xffd9:	sam_.access<0xffd9>();	break;
-					case 0xffda:	sam_.access<0xffda>();	break;		case 0xffdb:	sam_.access<0xffdb>();	break;
-					case 0xffdc:	sam_.access<0xffdc>();	break;		case 0xffdd:	sam_.access<0xffdd>();	break;
-					case 0xffde:	sam_.access<0xffde>();	break;		case 0xffdf:	sam_.access<0xffdf>();	break;
+					case 0xffc0:	sam_.access<0xffc0, read_write>();	break;		case 0xffc1:	sam_.access<0xffc1, read_write>();	break;
+					case 0xffc2:	sam_.access<0xffc2, read_write>();	break;		case 0xffc3:	sam_.access<0xffc3, read_write>();	break;
+					case 0xffc4:	sam_.access<0xffc4, read_write>();	break;		case 0xffc5:	sam_.access<0xffc5, read_write>();	break;
+					case 0xffc6:	sam_.access<0xffc6, read_write>();	break;		case 0xffc7:	sam_.access<0xffc7, read_write>();	break;
+					case 0xffc8:	sam_.access<0xffc8, read_write>();	break;		case 0xffc9:	sam_.access<0xffc9, read_write>();	break;
+					case 0xffca:	sam_.access<0xffca, read_write>();	break;		case 0xffcb:	sam_.access<0xffcb, read_write>();	break;
+					case 0xffcc:	sam_.access<0xffcc, read_write>();	break;		case 0xffcd:	sam_.access<0xffcd, read_write>();	break;
+					case 0xffce:	sam_.access<0xffce, read_write>();	break;		case 0xffcf:	sam_.access<0xffcf, read_write>();	break;
+					case 0xffd0:	sam_.access<0xffd0, read_write>();	break;		case 0xffd1:	sam_.access<0xffd1, read_write>();	break;
+					case 0xffd2:	sam_.access<0xffd2, read_write>();	break;		case 0xffd3:	sam_.access<0xffd3, read_write>();	break;
+					case 0xffd4:	sam_.access<0xffd4, read_write>();	break;		case 0xffd5:	sam_.access<0xffd5, read_write>();	break;
+					case 0xffd6:	sam_.access<0xffd6, read_write>();	break;		case 0xffd7:	sam_.access<0xffd7, read_write>();	break;
+					case 0xffd8:	sam_.access<0xffd8, read_write>();	break;		case 0xffd9:	sam_.access<0xffd9, read_write>();	break;
+					case 0xffda:	sam_.access<0xffda, read_write>();	break;		case 0xffdb:	sam_.access<0xffdb, read_write>();	break;
+					case 0xffdc:	sam_.access<0xffdc, read_write>();	break;		case 0xffdd:	sam_.access<0xffdd, read_write>();	break;
+					case 0xffde:	sam_.access<0xffde, read_write>();	break;		case 0xffdf:	sam_.access<0xffdf, read_write>();	break;
 
 					case 0xfff2:	case 0xfff3:	case 0xfff4:	case 0xfff5:
 					case 0xfff6:	case 0xfff7:	case 0xfff8:	case 0xfff9:
