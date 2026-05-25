@@ -38,5 +38,6 @@ struct DirectoryEntry {
 	uint16_t bytes_in_last_granule;
 };
 
+bool has_boot_track(const Storage::Disk::Disk &disk);
 std::optional<std::vector<DirectoryEntry>> directory(const Storage::Disk::Disk &disk);
 }
