@@ -19,6 +19,14 @@ namespace Analyser::Static::TandyCoCo {
 struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	Target() : Analyser::Static::Target(Machine::TandyCoCo) {}
 
+	ReflectableEnum(ROMVersion,
+		V10,
+		V11,
+		V12,
+		V13,
+		Any,
+		V11OrAbove,
+	);
 	ReflectableEnum(Model,
 		TandyCoCo,
 		Dragon,
@@ -31,6 +39,7 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 	std::wstring loading_command;
 	MemorySize memory_size = MemorySize::SixtyFourKB;
 	Model model = Model::TandyCoCo;
+	ROMVersion rom_version = ROMVersion::Any;
 	bool has_disk_drive = false;
 
 private:
@@ -38,9 +47,12 @@ private:
 	void declare_fields() {
 		AnnounceEnum(Model);
 		AnnounceEnum(MemorySize);
+		AnnounceEnum(ROMVersion);
+
 		DeclareField(model);
 		DeclareField(memory_size);
 		DeclareField(has_disk_drive);
+		DeclareField(rom_version);
 	}
 };
 

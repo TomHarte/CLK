@@ -1348,9 +1348,14 @@ const std::vector<Description> &Description::all_roms() {
 	return descriptions;
 }
 
-Request::Request(const Name name, const bool optional) {
+Request::Request(const Name name) {
 	node.name = name;
-	node.is_optional = optional;
+}
+
+Request Request::optional() {
+	auto copy = *this;
+	copy.node.is_optional = true;
+	return copy;
 }
 
 Request Request::append(const Node::Type type, const Request &rhs) {

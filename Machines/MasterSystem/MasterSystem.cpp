@@ -137,7 +137,7 @@ public:
 		const bool is_japanese = target.region == Target::Region::Japan;
 		const ROM::Name bios_name =
 			is_japanese ? ROM::Name::MasterSystemJapaneseBIOS : ROM::Name::MasterSystemWesternBIOS;
-		ROM::Request request(bios_name, true);
+		auto request = ROM::Request(bios_name).optional();
 		auto roms = rom_fetcher(request);
 		request.validate(roms);
 

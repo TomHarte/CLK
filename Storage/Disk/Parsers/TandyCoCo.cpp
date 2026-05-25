@@ -12,6 +12,15 @@
 
 using namespace Storage::Disk;
 
+bool TandyCoCo::has_boot_track(const Storage::Disk::Disk &disk) {
+	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
+	const Storage::Encodings::MFM::Sector *sector = parser.sector(0, 34, 1);
+	if(!sector) return false;
+
+	const auto &body = sector->samples.front();
+	return body[0] == 'O' && body[1] == 'S';
+}
+
 std::optional<std::vector<TandyCoCo::DirectoryEntry>> TandyCoCo::directory(const Storage::Disk::Disk &disk) {
 	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
 	std::vector<TandyCoCo::DirectoryEntry> entries;
