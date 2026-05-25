@@ -1286,7 +1286,7 @@ void MainWindow::start_spectrum() {
 void MainWindow::start_thomson() {
 	using Target = Analyser::Static::Thomson::MOTarget;
 	auto target = std::make_unique<Target>();
-	switch(thomsonModelComboBox->currentIndex()) {
+	switch(ui->thomsonModelComboBox->currentIndex()) {
 		default:	target->model = Target::Model::MO5v11;		break;
 		case 1:		target->model = Target::Model::MO6v3;		break;
 		case 2:		target->model = Target::Model::Prodest128;	break;
