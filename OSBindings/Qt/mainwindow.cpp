@@ -282,7 +282,7 @@ void MainWindow::launchMachine() {
 				}
 			}
 
-			// Fallback: check the ROM catalogue.
+			// Fallback: check the ROM library.
 			if(results.find(description.name) == results.end()) {
 				auto data = ROM::included_rom_image(description.name);
 				if(data.has_value()) {
@@ -1286,6 +1286,11 @@ void MainWindow::start_spectrum() {
 void MainWindow::start_thomson() {
 	using Target = Analyser::Static::Thomson::MOTarget;
 	auto target = std::make_unique<Target>();
+	switch(thomsonModelComboBox->currentIndex()) {
+		default:	target->model = Target::Model::MO5v11;		break;
+		case 1:		target->model = Target::Model::MO6v3;		break;
+		case 2:		target->model = Target::Model::Prodest128;	break;
+	}
 	target->floppy = ui->thomsonDiskDriveCheckBox->isChecked() ? Target::Floppy::CD90_640 : Target::Floppy::None;
 	launchTarget(std::move(target));
 }
@@ -1429,6 +1434,7 @@ void MainWindow::processAllSettings() {
 	applier(ui->pcVideoAdaptorComboBox, "pc.videoAdaptor");
 
 	/* Thomson. */
+	applier(ui->thomsonModelComboBox, "thomson.model");
 	applier(ui->thomsonDiskDriveCheckBox, "thomson.hasDiskDrive");
 
 	/* Vic-20 */

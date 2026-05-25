@@ -823,9 +823,39 @@
       </widget>
       <widget class="QWidget" name="thomsonTab">
        <attribute name="title">
-        <string>Thomson MO5</string>
+        <string>Thomson MO</string>
        </attribute>
        <layout class="QVBoxLayout">
+        <item>
+         <layout class="QFormLayout">
+          <item row="1" column="0">
+           <widget class="QLabel">
+            <property name="text">
+             <string>Model:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QComboBox" name="thomsonModelComboBox">
+            <item>
+             <property name="text">
+              <string>MO5</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>MO6</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Prodest 128</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
+        </item>
         <item>
          <widget class="QCheckBox" name="thomsonDiskDriveCheckBox">
           <property name="text">
