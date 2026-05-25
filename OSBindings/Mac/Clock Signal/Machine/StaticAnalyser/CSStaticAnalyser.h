@@ -219,7 +219,7 @@ typedef int Kilobytes;
 
 - (instancetype)initWithSpectrumModel:(CSMachineSpectrumModel)model;
 
-- (instancetype)initWithTandyCoCo;
+- (instancetype)initWithTandyCoCoMemorySize:(Kilobytes)memorySize hasDiskDrive:(BOOL)hasDiskDrive;
 
 - (instancetype)initWithThomsonMOModel:(CSMachineThomsonModel)model hasDiskDrive:(BOOL)hasDiskDrive;
 
