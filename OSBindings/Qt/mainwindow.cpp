@@ -14,9 +14,9 @@
 #include <cstdio>
 #include <memory>
 
+#include "../../Configurable/StandardOptions.hpp"
 #include "../../Machines/Utility/ROMLibrary.hpp"
 #include "../../Numeric/CRC.hpp"
-#include "../../Configurable/StandardOptions.hpp"
 
 namespace {
 
@@ -282,7 +282,7 @@ void MainWindow::launchMachine() {
 				}
 			}
 
-			// Fallback: check the ROM catalogue.
+			// Fallback: check the ROM library.
 			if(results.find(description.name) == results.end()) {
 				auto data = ROM::included_rom_image(description.name);
 				if(data.has_value()) {
@@ -1024,6 +1024,7 @@ void MainWindow::setButtonPressed(const int index, const bool isPressed) {
 #include "../../Analyser/Static/MSX/Target.hpp"
 #include "../../Analyser/Static/Oric/Target.hpp"
 #include "../../Analyser/Static/PCCompatible/Target.hpp"
+#include "../../Analyser/Static/TandyCoCo/Target.hpp"
 #include "../../Analyser/Static/Thomson/Target.hpp"
 #include "../../Analyser/Static/ZX8081/Target.hpp"
 #include "../../Analyser/Static/ZXSpectrum/Target.hpp"
@@ -1283,9 +1284,25 @@ void MainWindow::start_spectrum() {
 	launchTarget(std::move(target));
 }
 
+void MainWindow::start_tandyCoCo() {
+	using Target = Analyser::Static::TandyCoCo::Target;
+	auto target = std::make_unique<Target>();
+	switch(ui->tandyCoCoMemorySizeComboBox->currentIndex()) {
+		default:	target->memory_size = Target::MemorySize::ThirtyTwoKB;		break;
+		case 1:		target->memory_size = Target::MemorySize::SixtyFourKB;		break;
+	}
+	target->has_disk_drive = ui->tandyCoCoDiskDriveCheckBox->isChecked();
+	launchTarget(std::move(target));
+}
+
 void MainWindow::start_thomson() {
 	using Target = Analyser::Static::Thomson::MOTarget;
 	auto target = std::make_unique<Target>();
+	switch(ui->thomsonModelComboBox->currentIndex()) {
+		default:	target->model = Target::Model::MO5v11;		break;
+		case 1:		target->model = Target::Model::MO6v3;		break;
+		case 2:		target->model = Target::Model::Prodest128;	break;
+	}
 	target->floppy = ui->thomsonDiskDriveCheckBox->isChecked() ? Target::Floppy::CD90_640 : Target::Floppy::None;
 	launchTarget(std::move(target));
 }
@@ -1428,7 +1445,12 @@ void MainWindow::processAllSettings() {
 	applier(ui->pcSpeedComboBox, "pc.speed");
 	applier(ui->pcVideoAdaptorComboBox, "pc.videoAdaptor");
 
+	/* Tandy CoCo. */
+	applier(ui->tandyCoCoMemorySizeComboBox, "tandy.memorySize");
+	applier(ui->tandyCoCoDiskDriveCheckBox, "tandy.hasDiskDrive");
+
 	/* Thomson. */
+	applier(ui->thomsonModelComboBox, "thomson.model");
 	applier(ui->thomsonDiskDriveCheckBox, "thomson.hasDiskDrive");
 
 	/* Vic-20 */
