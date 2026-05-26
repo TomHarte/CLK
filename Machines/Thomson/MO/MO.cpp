@@ -63,8 +63,9 @@ struct ConcreteMachine:
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaChangeObserver,
 	public MachineTypes::MediaTarget,
-	public MachineTypes::TimedMachine,
+	public MachineTypes::SoftResettable,
 	public MachineTypes::ScanProducer,
+	public MachineTypes::TimedMachine,
 	public Machine,
 	public Utility::TypeRecipient<Thomson::MO::Keyboard::CharacterMapper>
 {
@@ -618,6 +619,13 @@ private:
 			update_audio();
 			audio_queue_.perform();
 		}
+	}
+
+	// MARK: - Resettable.
+
+	void soft_reset() final {
+		m6809_.template set<CPU::M6809::Line::PowerOnReset>(true);
+		memory_.reset();
 	}
 
 	// MARK: - MappedKeyboardMachine.
