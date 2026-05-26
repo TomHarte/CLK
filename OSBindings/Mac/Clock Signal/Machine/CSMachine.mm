@@ -879,4 +879,44 @@ struct ActivityObserver: public Activity::Observer {
 	return CSInstallROM(url);
 }
 
+- (void)hardReset {
+	const auto updater = _updater.load(std::memory_order_relaxed);
+	if(!updater) return;
+
+	__weak CSMachine *weakSelf = self;
+	updater->enqueue([weakSelf, updater] {
+		CSMachine *const strongSelf = weakSelf;
+		if(strongSelf) {
+			auto *const resettable = updater->performer.machine->hard_resettable();
+			if(resettable) resettable->hard_reset();
+		}
+	});
+}
+
+- (BOOL)canHardReset {
+	const auto updater = _updater.load(std::memory_order_relaxed);
+	if(!updater) return NO;
+	return updater->performer.machine->hard_resettable() != nullptr;
+}
+
+- (void)softReset {
+	const auto updater = _updater.load(std::memory_order_relaxed);
+	if(!updater) return;
+
+	__weak CSMachine *weakSelf = self;
+	updater->enqueue([weakSelf, updater] {
+		CSMachine *const strongSelf = weakSelf;
+		if(strongSelf) {
+			auto *const resettable = updater->performer.machine->soft_resettable();
+			if(resettable) resettable->soft_reset();
+		}
+	});
+}
+
+- (BOOL)canSoftReset {
+	const auto updater = _updater.load(std::memory_order_relaxed);
+	if(!updater) return NO;
+	return updater->performer.machine->soft_resettable() != nullptr;
+}
+
 @end

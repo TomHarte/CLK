@@ -16,6 +16,7 @@
 #include "Analyser/Dynamic/MultiMachine/Implementation/MultiJoystickMachine.hpp"
 #include "Analyser/Dynamic/MultiMachine/Implementation/MultiKeyboardMachine.hpp"
 #include "Analyser/Dynamic/MultiMachine/Implementation/MultiMediaTarget.hpp"
+#include "Analyser/Dynamic/MultiMachine/Implementation/MultiResettable.hpp"
 
 #include <memory>
 #include <mutex>
@@ -59,6 +60,8 @@ public:
 	MachineTypes::MouseMachine *mouse_machine() final;
 	MachineTypes::MediaTarget *media_target() final;
 	MachineTypes::MediaChangeObserver *media_change_observer() final;
+	MachineTypes::SoftResettable *soft_resettable() final;
+	MachineTypes::HardResettable *hard_resettable() final;
 	void *raw_pointer() final;
 
 private:
@@ -75,6 +78,8 @@ private:
 	MultiKeyboardMachine keyboard_machine_;
 	MultiMediaTarget media_target_;
 	MultiMediaChangeObserver media_change_observer_;
+	MultiSoftResettable soft_resettable_;
+	MultiHardResettable hard_resettable_;
 
 	void pick_first();
 	bool has_picked_ = false;

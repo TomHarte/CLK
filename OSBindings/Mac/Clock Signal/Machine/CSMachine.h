@@ -114,6 +114,13 @@ typedef NS_ENUM(NSInteger, CSMachineChangeEffect) {
 @property (nonatomic, assign) CSMachineKeyboardInputMode inputMode;
 @property (nonatomic, nullable) CSJoystickManager *joystickManager;
 
+// Reset.
+- (void)hardReset;
+@property (nonatomic, readonly) BOOL canHardReset;
+
+- (void)softReset;
+@property (nonatomic, readonly) BOOL canSoftReset;
+
 // LED list.
 @property (nonatomic, readonly, nonnull) NSArray<CSMachineLED *> *leds;
 

@@ -160,6 +160,17 @@
                                     <action selector="useKeyboardAsJoystick:" target="-1" id="Yz7-CL-f0y"/>
                                 </connections>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="lPh-v8-Vrv"/>
+                            <menuItem title="Soft Reset" tag="200" enabled="NO" keyEquivalent="r" id="jrz-ME-uL6">
+                                <connections>
+                                    <action selector="softReset:" target="-1" id="070-LI-krq"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Hard Reset" tag="201" enabled="NO" keyEquivalent="R" id="Z84-pv-CRj">
+                                <connections>
+                                    <action selector="hardReset:" target="-1" id="U77-s2-UB4"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>
