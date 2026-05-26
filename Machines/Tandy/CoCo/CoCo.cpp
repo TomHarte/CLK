@@ -888,7 +888,7 @@ private:
 		//	b4–b6: VDG GM inputs; also b5 = 6847 invert; b4 = 6847 shift toggle
 		//	b3: colour set select (and RGB monitor detecting input? Probably CoCo3)
 		//	b2: ram size input
-		//	b1: 1-bit sound/tape something?
+		//	b1: 1-bit audio output
 		//	b0: RS232 data input
 		//
 		// Note to self: semigraphic 6847 line is connected to b7 of the data bus; it is set or unset depending on
@@ -918,10 +918,10 @@ private:
 		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::A) {
 				machine_.dac_level_ = value >> 2;
-				machine_.set_audio(std::nullopt);
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
+				machine_.audio_toggle_ = value & 0x2;
 				machine_.m6847_->set_mode(
 					value & 0x80,		// Alpha/graphics.
 					false,				// Graphics/semigraphics.
@@ -931,6 +931,8 @@ private:
 					value & 0x08		// Colour select.
 				);
 			}
+
+			machine_.set_audio(std::nullopt);
 		}
 
 		template <Motorola::MC6821::IRQ irq>
@@ -1139,6 +1141,7 @@ private:
 	}
 
 	uint8_t dac_level_ = 0;
+	bool audio_toggle_ = false;
 	uint8_t mux_ = 0;
 	bool audio_enabled_ = false;
 
@@ -1148,7 +1151,22 @@ private:
 		audio_enabled_ = new_audio_enabled;
 
 		// When audio is enabled, the MUX determines the audio source. Source 0 is the DAC.
-		const uint8_t new_audio_output = (new_audio_enabled && !mux_) ? dac_level_ : 0;
+		const auto new_audio_output = [&]() -> uint8_t {
+			if(!audio_enabled_) {
+				return audio_toggle_ ? 48 : 0;
+			}
+
+			switch(mux_) {
+				default: return 0;
+				case 0: return dac_level_;
+
+				// Omitted at present (with a possibility that I've read the two mux lines the wrong way around):
+				//
+				//	1 -> cassette;
+				//	2 -> cartridge;
+				//	3 -> not used.
+			}
+		} ();
 		if(new_audio_output == audio_output_) {
 			return;
 		}
