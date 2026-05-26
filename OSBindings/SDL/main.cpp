@@ -547,15 +547,26 @@ int main(int argc, char *argv[]) {
 	const ParsedArguments arguments = parse_arguments(argc, argv);
 
 	// This may be printed either as
-	const std::string usage_suffix = " [file or --new={machine}] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}] [--logical-keyboard] [--volume={0.0 to 1.0}]";
+	const std::string usage_suffix =
+		" [file or --new={machine}]"
+		" [OPTIONS]"
+		" [--rompath={path to ROMs}]"
+		" [--speed={speed multiplier, e.g. 1.5}]"
+		" [--logical-keyboard]"
+		" [--volume={0.0 to 1.0}]";
 
 	// Print a help message if requested.
-	if(arguments.selections.find("help") != arguments.selections.end() || arguments.selections.find("h") != arguments.selections.end()) {
+	if(
+		arguments.selections.find("help") != arguments.selections.end() ||
+		arguments.selections.find("h") != arguments.selections.end()
+	) {
 		const auto all_machines = Machine::AllMachines(Machine::Type::DoesntRequireMedia, false);
 
 		std::cout << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl << std::endl;
 		std::cout <<
-			"Use alt+enter to toggle full screen display. Use control+shift+V to paste text." << std::endl << std::endl;
+			"Use: alt+enter to toggle full screen display; "
+			"control+shift+V to paste text; "
+			"control+shift+R to perform a soft reset." << std::endl << std::endl;
 		std::cout <<
 			"Required machine type and hardware options are determined from the file if specified; otherwise use:"
 				<< std::endl << std::endl;
@@ -1122,14 +1133,24 @@ int main(int argc, char *argv[]) {
 				case SDL_KEYDOWN:
 				case SDL_KEYUP: {
 					if(event.type == SDL_KEYDOWN) {
-						// Syphon off the key-press if it's control+shift+V (paste).
-						if(event.key.keysym.sym == SDLK_v && (SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {
-							if(keyboard_machine) {
-								char *const utf8 = SDL_GetClipboardText();
-								std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-								keyboard_machine->type_string(converter.from_bytes(utf8));
-								SDL_free(utf8);
-								break;
+						// Syphon off the key-press if it's control+shift+V (paste) or +R (soft reset).
+						if((SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {
+							if(event.key.keysym.sym == SDLK_v) {
+								if(keyboard_machine) {
+									char *const utf8 = SDL_GetClipboardText();
+									std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+									keyboard_machine->type_string(converter.from_bytes(utf8));
+									SDL_free(utf8);
+									break;
+								}
+							}
+
+							if(event.key.keysym.sym == SDLK_r) {
+								auto *resettable = machine->soft_resettable();
+								if(resettable) {
+									resettable->soft_reset();
+									break;
+								}
 							}
 						}
 
