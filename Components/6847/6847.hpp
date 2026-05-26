@@ -126,6 +126,8 @@ struct MC6847Base {
 	bool hsync(int column) const;
 	Cycles next_sequence_point(int column) const;
 
+	void toggle_colour_phase();
+
 	struct LineLayout {
 		// Start of line: sync is active.
 		static const int EndOfSync = 28;
@@ -183,6 +185,8 @@ struct MC6847Base {
 	} address_;
 
 	Outputs::Display::Type display_type_;
+	static constexpr uint8_t DefaultColourPhase = 215;
+	uint8_t colour_burst_phase_ = DefaultColourPhase;
 };
 
 struct NullMapper {
@@ -213,6 +217,7 @@ public:
 	bool hsync() const;
 	bool fsync() const;
 	using MC6847Base::set_mode;
+	using MC6847Base::toggle_colour_phase;
 
 	// MARK: - ScanTarget entrypoints.
 
