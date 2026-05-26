@@ -456,7 +456,7 @@ private:
 				case Key::PageUp:
 				case Key::PageDown:
 				case Key::End:
-					// Accept a bunch non-symbolic other keys, as
+					// Accept a bunch of non-symbolic other keys, as
 					// reset, in the hope that the user can find
 					// at least one usable key.
 					m6502_.set_reset_line(is_pressed);
