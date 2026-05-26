@@ -896,7 +896,7 @@ struct ActivityObserver: public Activity::Observer {
 - (BOOL)canHardReset {
 	const auto updater = _updater.load(std::memory_order_relaxed);
 	if(!updater) return NO;
-	return updater->performer.machine->hard_resettable();
+	return updater->performer.machine->hard_resettable() != nullptr;
 }
 
 - (void)softReset {
@@ -916,7 +916,7 @@ struct ActivityObserver: public Activity::Observer {
 - (BOOL)canSoftReset {
 	const auto updater = _updater.load(std::memory_order_relaxed);
 	if(!updater) return NO;
-	return updater->performer.machine->soft_resettable();
+	return updater->performer.machine->soft_resettable() != nullptr;
 }
 
 @end
