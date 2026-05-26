@@ -18,6 +18,7 @@
 #include "KeyboardMachine.hpp"
 #include "MediaTarget.hpp"
 #include "MouseMachine.hpp"
+#include "Resettable.hpp"
 #include "ScanProducer.hpp"
 #include "StateProducer.hpp"
 #include "TimedMachine.hpp"

@@ -26,7 +26,9 @@ MultiMachine::MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machin
 	joystick_machine_(machines_),
 	keyboard_machine_(machines_),
 	media_target_(machines_),
-	media_change_observer_(machines_)
+	media_change_observer_(machines_),
+	soft_resettable_(machines_),
+	hard_resettable_(machines_)
 {
 	timed_machine_.set_delegate(this);
 }
@@ -53,12 +55,26 @@ Provider(MachineTypes::KeyboardMachine, keyboard_machine, keyboard_machine_)
 Provider(MachineTypes::MediaTarget, media_target, media_target_)
 Provider(MachineTypes::MediaChangeObserver, media_change_observer, media_change_observer_)
 
+#undef Provider
+
 MachineTypes::MouseMachine *MultiMachine::mouse_machine() {
 	// TODO.
 	return nullptr;
 }
 
-#undef Provider
+MachineTypes::SoftResettable *MultiMachine::soft_resettable() {
+	if(has_picked_ || soft_resettable_.empty()) {
+		return machines_.front()->soft_resettable();
+	}
+	return &soft_resettable_;
+}
+
+MachineTypes::HardResettable *MultiMachine::hard_resettable() {
+	if(has_picked_ || hard_resettable_.empty()) {
+		return machines_.front()->hard_resettable();
+	}
+	return &hard_resettable_;
+}
 
 bool MultiMachine::would_collapse(const std::vector<std::unique_ptr<DynamicMachine>> &machines) {
 	return

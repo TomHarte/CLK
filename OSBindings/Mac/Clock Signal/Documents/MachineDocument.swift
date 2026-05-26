@@ -603,6 +603,14 @@ class MachineDocument:
 		machine.inputMode = .joystick
 	}
 
+	@IBAction func softReset(_ sender: NSMenuItem?) {
+		machine.softReset()
+	}
+
+	@IBAction func hardReset(_ sender: NSMenuItem?) {
+		machine.hardReset()
+	}
+
 	/// Determines which of the menu items to enable and disable based on the ability of the
 	/// current machine to handle keyboard and joystick input, accept new media and whether
 	/// it has an associted activity window.
@@ -638,6 +646,12 @@ class MachineDocument:
 
 				case #selector(self.insertMedia(_:)):
 					return self.machine != nil && self.machine.canInsertMedia
+
+				case #selector(self.softReset(_:)):
+					return self.machine != nil && self.machine.canSoftReset
+
+				case #selector(self.hardReset(_:)):
+					return self.machine != nil && self.machine.canHardReset
 
 				default: break
 			}

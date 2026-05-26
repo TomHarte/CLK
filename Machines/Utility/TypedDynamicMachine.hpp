@@ -41,6 +41,8 @@ public:
 	Provide(MachineTypes::MouseMachine, mouse_machine)
 	Provide(MachineTypes::MediaTarget, media_target)
 	Provide(MachineTypes::MediaChangeObserver, media_change_observer)
+	Provide(MachineTypes::SoftResettable, soft_resettable)
+	Provide(MachineTypes::HardResettable, hard_resettable)
 
 #undef Provide
 

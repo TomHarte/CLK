@@ -8,6 +8,7 @@ set(CLK_SOURCES
 	Analyser/Dynamic/MultiMachine/Implementation/MultiKeyboardMachine.cpp
 	Analyser/Dynamic/MultiMachine/Implementation/MultiMediaTarget.cpp
 	Analyser/Dynamic/MultiMachine/Implementation/MultiProducer.cpp
+	Analyser/Dynamic/MultiMachine/Implementation/MultiResettable.cpp
 	Analyser/Dynamic/MultiMachine/Implementation/MultiSpeaker.cpp
 	Analyser/Dynamic/MultiMachine/MultiMachine.cpp
 	Analyser/Static/Acorn/Disk.cpp
