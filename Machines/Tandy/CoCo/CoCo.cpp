@@ -152,13 +152,10 @@ struct SAM {
 			b4_ = 0;
 			b1b3_ = 0;
 			previous_6847_address_ = 0;
-		}
-	}
-	template <bool active> void set_row_preset() {
-		if(active) {
 			x_ = y_ = 0;
 		}
 	}
+	template <bool active> void set_row_preset() {}
 
 	template <uint16_t address, CPU::M6809::ReadWrite read_write>
 	void access() {
