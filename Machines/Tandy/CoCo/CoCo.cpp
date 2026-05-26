@@ -116,6 +116,12 @@ struct SAM {
 		update_memory();
 	}
 
+	void reset() {
+		speed_ = ClockSpeed::Half;
+		set_all_ram(false);
+		page_ram(0);
+	}
+
 	uint8_t operator[](const uint16_t address) {
 		b1b3_ += ((previous_6847_address_ ^ address) & previous_6847_address_ & 1) << 1;
 		previous_6847_address_ = address;
@@ -388,6 +394,7 @@ class ConcreteMachine:
 	public MachineTypes::MediaChangeObserver,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
+	public MachineTypes::SoftResettable,
 	public MachineTypes::TimedMachine,
 	public Utility::TypeRecipient<Tandy::CoCo::Keyboard::CharacterMapper>
 {
@@ -722,6 +729,14 @@ private:
 			update_audio();
 			audio_queue_.perform();
 		}
+	}
+
+	// MARK: - Resettable.
+
+	void soft_reset() final {
+		m6847_->toggle_colour_phase();
+		sam_.reset();
+		m6809_.template set<CPU::M6809::Line::PowerOnReset>(true);
 	}
 
 	// MARK: - PIAs.

@@ -135,6 +135,21 @@ public:
 		Memory::Fuzz(video_);
 	}
 
+	void reset() {
+		page_video(false);
+
+		cartridge_page_ = 0;
+		cartridge_page_ = 0;
+		rom_page_ = 0;
+		ram_page_ = 1;
+		basic_selection_ = false;
+		b000page_ = B000Page::Empty;
+
+		access_mode_ = AccessMode::LightPen;
+		update_commutable_ram();
+		update_commutable_rom();
+	}
+
 	// MARK: - ROM installation and connection for video.
 
 	void set_rom(const std::vector<uint8_t> &rom) {

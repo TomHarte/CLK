@@ -121,9 +121,6 @@ constexpr uint32_t semigraphics[][2] = {
 };
 }
 
-// Empirical, by eye.
-static constexpr uint8_t ColourPhase = 215;
-
 }
 
 using namespace Motorola::MC6847;
@@ -140,6 +137,10 @@ MC6847Base::MC6847Base(const Outputs::Display::Type display_type) :
 	crt_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
 }
 
+void MC6847Base::toggle_colour_phase() {
+	colour_burst_phase_ ^= 0x80;
+}
+
 void MC6847Base::sync_and_burst(const int line_begin, const int line_end) {
 	Numeric::if_includes<LineLayout::EndOfColourBurst>(
 		line_begin,
@@ -147,7 +148,7 @@ void MC6847Base::sync_and_burst(const int line_begin, const int line_end) {
 		[&] {
 			crt_.output_sync(LineLayout::EndOfSync);
 			if(display_type_ == Outputs::Display::Type::NTSC60) {
-				crt_.output_colour_burst(LineLayout::EndOfColourBurst - LineLayout::EndOfSync, ColourPhase);
+				crt_.output_colour_burst(LineLayout::EndOfColourBurst - LineLayout::EndOfSync, colour_burst_phase_);
 			} else {
 				crt_.output_default_colour_burst(LineLayout::EndOfColourBurst - LineLayout::EndOfSync);
 			}
