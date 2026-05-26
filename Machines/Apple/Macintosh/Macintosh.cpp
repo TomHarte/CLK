@@ -66,19 +66,22 @@ namespace Apple {
 namespace Macintosh {
 
 template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachine:
+	public Activity::Source,
+	public ClockingHint::Observer,
+	public Configurable::Device,
+	public CPU::MC68000::BusHandler,
+	public DriveSpeedAccumulator::Delegate,
 	public Machine,
-	public MachineTypes::TimedMachine,
-	public MachineTypes::ScanProducer,
 	public MachineTypes::AudioProducer,
+//	public MachineTypes::HardResettable,	// TODO: my 68000 doesn't actually implement the reset line yet.
+	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::MouseMachine,
-	public MachineTypes::MappedKeyboardMachine,
-	public CPU::MC68000::BusHandler,
-	public Zilog::SCC::z8530::Delegate,
-	public Activity::Source,
-	public Configurable::Device,
-	public DriveSpeedAccumulator::Delegate,
-	public ClockingHint::Observer {
+	public MachineTypes::ScanProducer,
+	public MachineTypes::SoftResettable,
+	public MachineTypes::TimedMachine,
+	public Zilog::SCC::z8530::Delegate
+{
 public:
 	using Target = Analyser::Static::Macintosh::Target;
 
@@ -189,6 +192,16 @@ public:
 
 	void run_for(const Cycles cycles) final {
 		mc68000_.run_for(cycles);
+
+		if(soft_reset_) {
+			soft_reset_ = false;
+			update_interrupt_input();
+		}
+	}
+
+	void soft_reset() final {
+		soft_reset_ = true;
+		update_interrupt_input();
 	}
 
 	template <typename Microcycle> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
@@ -485,7 +498,9 @@ public:
 	void update_interrupt_input() {
 		// Update interrupt input.
 		// TODO: does this really cascade like this?
-		if(scc_.get_interrupt_line()) {
+		if(soft_reset_) {
+			mc68000_.set_interrupt_level(7);
+		} else if(scc_.get_interrupt_line()) {
 			mc68000_.set_interrupt_level(2);
 		} else if(via_.get_interrupt_line()) {
 			mc68000_.set_interrupt_level(1);
@@ -770,6 +785,7 @@ private:
 	NCR::NCR5380::NCR5380 scsi_;
 	SCSI::Target::Target<SCSI::DirectAccessDevice> hard_drive_;
 	bool scsi_bus_is_clocked_ = false;
+	bool soft_reset_ = false;
 
 	HalfCycles via_clock_;
 	HalfCycles real_time_clock_;
