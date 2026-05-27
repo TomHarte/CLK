@@ -95,6 +95,7 @@ template <
 	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
+	public MachineTypes::SoftResettable,
 	public MachineTypes::TimedMachine,
 	public Utility::TypeRecipient<CharacterMapper> {
 private:
@@ -747,6 +748,16 @@ private:
 	// MARK: - TimedMachine
 	void run_for(const Cycles cycles) override {
 		z80_.run_for(cycles);
+	}
+
+	// MARK: - Resettable.
+
+	void soft_reset() override {
+		page<0>(0x00);
+		page<1>(0x00);
+		page<2>(0x00);
+		page<3>(0x00);
+		z80_.set_power_on_reset();
 	}
 
 	// MARK: - KeyboardMachine

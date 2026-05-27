@@ -465,6 +465,12 @@ public:
 	inline void set_reset_line(bool);
 
 	/*!
+		Sets the internal emulator fiction 'power-on reset', i.e. a reset condition that holds only for
+		exactly as long as it takes the CPU to act upon it.
+	*/
+	inline void set_power_on_reset();
+
+	/*!
 		Gets whether the Z80 would reset at the next opportunity.
 
 		@returns @c true if the line is logically active; @c false otherwise.
