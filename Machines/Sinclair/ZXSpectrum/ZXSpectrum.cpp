@@ -137,6 +137,7 @@ template<Model model> class ConcreteMachine:
 	public MachineTypes::MediaChangeObserver,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::ScanProducer,
+	public MachineTypes::SoftResettable,
 	public MachineTypes::TimedMachine,
 	public Utility::TypeRecipient<CharacterMapper> {
 public:
@@ -270,6 +271,8 @@ public:
 				duration_to_press_enter_ -= cycles;
 			}
 		}
+
+		z80_.set_reset_line(false);
 	}
 
 	void flush_output(int outputs) override {
@@ -285,6 +288,17 @@ public:
 		if constexpr (model == Model::Plus3) {
 			fdc_.flush();
 		}
+	}
+
+	// MARK: - Resettable.
+
+	void soft_reset() override {
+		disable_paging_ = false;
+		port1ffd_ = 0;
+		port7ffd_ = 0;
+		update_memory_map();
+		update_video_base();
+		z80_.set_reset_line(true);
 	}
 
 	// MARK: - ScanProducer.
