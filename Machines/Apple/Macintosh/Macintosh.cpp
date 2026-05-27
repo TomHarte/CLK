@@ -66,19 +66,22 @@ namespace Apple {
 namespace Macintosh {
 
 template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachine:
+	public Activity::Source,
+	public ClockingHint::Observer,
+	public Configurable::Device,
+	public CPU::MC68000::BusHandler,
+	public DriveSpeedAccumulator::Delegate,
 	public Machine,
-	public MachineTypes::TimedMachine,
-	public MachineTypes::ScanProducer,
 	public MachineTypes::AudioProducer,
+	public MachineTypes::HardResettable,
+	public MachineTypes::MappedKeyboardMachine,
 	public MachineTypes::MediaTarget,
 	public MachineTypes::MouseMachine,
-	public MachineTypes::MappedKeyboardMachine,
-	public CPU::MC68000::BusHandler,
-	public Zilog::SCC::z8530::Delegate,
-	public Activity::Source,
-	public Configurable::Device,
-	public DriveSpeedAccumulator::Delegate,
-	public ClockingHint::Observer {
+	public MachineTypes::ScanProducer,
+	public MachineTypes::SoftResettable,
+	public MachineTypes::TimedMachine,
+	public Zilog::SCC::z8530::Delegate
+{
 public:
 	using Target = Analyser::Static::Macintosh::Target;
 
@@ -189,6 +192,21 @@ public:
 
 	void run_for(const Cycles cycles) final {
 		mc68000_.run_for(cycles);
+
+		if(soft_reset_) {
+			soft_reset_ = false;
+			update_interrupt_input();
+		}
+	}
+
+	void soft_reset() final {
+		soft_reset_ = true;
+		update_interrupt_input();
+	}
+
+	void hard_reset() final {
+		setup_memory_map();
+		mc68000_.reset();
 	}
 
 	template <typename Microcycle> HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
@@ -383,7 +401,7 @@ public:
 		iwm_.flush();
 	}
 
-	void set_rom_is_overlay(bool rom_is_overlay) {
+	void set_rom_is_overlay(const bool rom_is_overlay) {
 		ROM_is_overlay_ = rom_is_overlay;
 
 		using Model = Analyser::Static::Macintosh::Target::Model;
@@ -485,7 +503,9 @@ public:
 	void update_interrupt_input() {
 		// Update interrupt input.
 		// TODO: does this really cascade like this?
-		if(scc_.get_interrupt_line()) {
+		if(soft_reset_) {
+			mc68000_.set_interrupt_level(7);
+		} else if(scc_.get_interrupt_line()) {
 			mc68000_.set_interrupt_level(2);
 		} else if(via_.get_interrupt_line()) {
 			mc68000_.set_interrupt_level(1);
@@ -663,10 +683,10 @@ private:
 							b3:	0 = use alternate sound buffer, 1 = use ordinary sound buffer
 							b2–b0:	audio output volume
 					*/
-					iwm_->set_select(!!(value & 0x20));
+					iwm_->set_select(value & 0x20);
 
 					machine_.set_use_alternate_buffers(!(value & 0x40), !(value&0x08));
-					machine_.set_rom_is_overlay(!!(value & 0x10));
+					machine_.set_rom_is_overlay(value & 0x10);
 
 					audio_.flush();
 					audio_.audio.set_volume(value & 7);
@@ -685,7 +705,7 @@ private:
 							b0:	clock's serial data line
 					*/
 					if(value & 0x4) clock_.abort();
-					else clock_.set_input(!!(value & 0x2), !!(value & 0x1));
+					else clock_.set_input(value & 0x2, value & 0x1);
 
 					audio_.flush();
 					audio_.audio.set_enabled(!(value & 0x80));
@@ -770,6 +790,7 @@ private:
 	NCR::NCR5380::NCR5380 scsi_;
 	SCSI::Target::Target<SCSI::DirectAccessDevice> hard_drive_;
 	bool scsi_bus_is_clocked_ = false;
+	bool soft_reset_ = false;
 
 	HalfCycles via_clock_;
 	HalfCycles real_time_clock_;

@@ -463,22 +463,22 @@ public:
 	// TODO: bus ack/grant, halt,
 
 	/// Sets the DTack line — @c true for active, @c false for inactive.
-	inline void set_dtack(bool dtack) {
+	inline void set_dtack(const bool dtack) {
 		dtack_ = dtack;
 	}
 
 	/// Sets the VPA (valid peripheral address) line — @c true for active, @c false for inactive.
-	inline void set_is_peripheral_address(bool is_peripheral_address) {
+	inline void set_is_peripheral_address(const bool is_peripheral_address) {
 		vpa_ = is_peripheral_address;
 	}
 
 	/// Sets the bus error line — @c true for active, @c false for inactive.
-	inline void set_bus_error(bool bus_error) {
+	inline void set_bus_error(const bool bus_error) {
 		berr_ = bus_error;
 	}
 
 	/// Sets the interrupt lines, IPL0, IPL1 and IPL2.
-	inline void set_interrupt_level(int interrupt_level) {
+	inline void set_interrupt_level(const int interrupt_level) {
 		bus_interrupt_level_ = interrupt_level;
 	}
 
@@ -488,7 +488,7 @@ public:
 	///
 	/// This is guaranteed to be 0 at initial 68000 construction. It is not guaranteed
 	/// to return the correct result if called during a bus transaction.
-	HalfCycles get_e_clock_phase() {
+	HalfCycles get_e_clock_phase() const {
 		return e_clock_phase_;
 	}
 
