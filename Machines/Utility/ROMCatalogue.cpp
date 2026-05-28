@@ -149,7 +149,10 @@ const std::vector<Description> &Description::all_roms() {
 			"the Electron MOS ROM v1.00",
 			"os.rom",
 			16_kb,
-			0xbf63fb1fu
+			std::set{0x406a42ceu, 0x0886741bu, 0xbf63fb1fu, 0x6fea0978u, 0xd61135d7u}	// Covers a perfect ROM image plus various instances of the
+																						// credits text being corrupted or missing. The credits text
+																						// is on the IO page in the real machine so in practice those
+																						// differences are acceptable.
 		},
 
 	//
