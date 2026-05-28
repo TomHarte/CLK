@@ -173,13 +173,14 @@ class ConcreteMachine:
 	public BusController,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
+	public Machine,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
-	public MachineTypes::TimedMachine,
-	public MachineTypes::ScanProducer,
 	public MachineTypes::MediaTarget,
-	public Machine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::SoftResettable,
+	public MachineTypes::TimedMachine,
 	public Utility::TypeRecipient<CharacterMapper> {
 public:
 	ConcreteMachine(const Analyser::Static::Commodore::Plus4Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -211,10 +212,7 @@ public:
 		basic_ = roms.find(basic)->second;
 
 		Memory::Fuzz(ram_);
-		map_.page<PagerSide::ReadWrite, 0, 65536>(ram_.data());
-		page_cpu_rom();
-
-		video_map_.page<PagerSide::ReadWrite, 0, 65536>(ram_.data());
+		soft_reset();
 
 		if(target.has_c1541) {
 			c1541_ = std::make_unique<C1540::Machine>(C1540::Personality::C1541, roms);
@@ -624,11 +622,18 @@ private:
 		audio_queue_.perform();
 	}
 
-	void flush_output(int outputs) override {
+	void flush_output(const int outputs) override {
 		if(outputs & Output::Audio) {
 			update_audio();
 			audio_queue_.perform();
 		}
+	}
+
+	void soft_reset() override {
+		m6502_.template set<CPU::MOS6502Mk2::Line::PowerOn>(true);
+		map_.page<PagerSide::ReadWrite, 0, 65536>(ram_.data());
+		page_cpu_rom();
+		video_map_.page<PagerSide::ReadWrite, 0, 65536>(ram_.data());
 	}
 
 	bool insert_media(const Analyser::Static::Media &media) final {
