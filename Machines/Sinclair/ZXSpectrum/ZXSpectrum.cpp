@@ -271,8 +271,6 @@ public:
 				duration_to_press_enter_ -= cycles;
 			}
 		}
-
-		z80_.set_reset_line(false);
 	}
 
 	void flush_output(int outputs) override {
@@ -298,7 +296,7 @@ public:
 		port7ffd_ = 0;
 		update_memory_map();
 		update_video_base();
-		z80_.set_reset_line(true);
+		z80_.set_power_on_reset();
 	}
 
 	// MARK: - ScanProducer.
