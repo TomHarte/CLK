@@ -80,7 +80,6 @@ private:
 	// Scans are accumulated to the accumulation texture; the full-display
 	// rectangle is used to ensure untouched pixels properly decay.
 	Rectangle full_display_rectangle_;
-	bool stencil_is_valid_ = false;
 
 	// Receives scan target modals.
 	std::optional<ScanTarget::Modals> existing_modals_;
