@@ -264,7 +264,6 @@ template <>
 struct Details<Analyser::Machine::TandyCoCo> {
 	static constexpr auto name = Analyser::Machine::TandyCoCo;
 	static constexpr bool requires_media = false;
-	static constexpr bool is_incomplete = true;
 
 	using Machine = Tandy::CoCo::Machine;
 	using Target = Analyser::Static::TandyCoCo::Target;
