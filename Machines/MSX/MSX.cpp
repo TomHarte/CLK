@@ -178,17 +178,18 @@ using Target = Analyser::Static::MSX::Target;
 
 template <Target::Model model, bool has_opll>
 class ConcreteMachine:
-	public Machine,
-	public CPU::Z80::BusHandler,
-	public MachineTypes::TimedMachine,
-	public MachineTypes::AudioProducer,
-	public MachineTypes::ScanProducer,
-	public MachineTypes::MediaTarget,
-	public MachineTypes::MappedKeyboardMachine,
-	public MachineTypes::JoystickMachine,
-	public Configurable::Device,
-	public ClockingHint::Observer,
 	public Activity::Source,
+	public ClockingHint::Observer,
+	public Configurable::Device,
+	public CPU::Z80::BusHandler,
+	public Machine,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::JoystickMachine,
+	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::SoftResettable,
+	public MachineTypes::TimedMachine,
 	public MSX::MemorySlotChangeHandler {
 private:
 	// Provide 512kb of memory for an MSX 2; 64kb for an MSX 1. 'Slightly' arbitrary.
@@ -385,6 +386,11 @@ public:
 		z80_.run_for(cycles);
 	}
 
+	void soft_reset() final {
+		page_primary(0);
+		z80_.set_power_on_reset();
+	}
+
 	float get_confidence() final {
 		if(performed_unmapped_access_ || pc_zero_accesses_ > 1) return 0.0f;
 		if(cartridge_primary().handler) {
@@ -464,7 +470,7 @@ public:
 	}
 
 	// MARK: Memory paging.
-	void page_primary(uint8_t value) {
+	void page_primary(const uint8_t value) {
 		primary_slots_ = value;
 		update_paging();
 	}
