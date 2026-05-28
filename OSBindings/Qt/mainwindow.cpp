@@ -417,6 +417,7 @@ void MainWindow::launchMachine() {
 
 		if(softResettable) {
 			QAction *const softResetAction = new QAction(tr("Soft"), this);
+			softResetAction->setShortcuts(QKeySequence::Refresh);
 			resetMenu->addAction(softResetAction);
 			connect(softResetAction, &QAction::triggered, this, [=, this] {
 				auto softResettable = machine->soft_resettable();
