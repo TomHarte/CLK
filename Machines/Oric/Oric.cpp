@@ -268,20 +268,21 @@ private:
 };
 
 template <Analyser::Static::Oric::Target::DiskInterface disk_interface, CPU::MOS6502Esque::Type processor_type> class ConcreteMachine:
-	public MachineTypes::TimedMachine,
-	public MachineTypes::ScanProducer,
-	public MachineTypes::AudioProducer,
-	public MachineTypes::JoystickMachine,
-	public MachineTypes::MediaTarget,
-	public MachineTypes::MappedKeyboardMachine,
+	public Activity::Source,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
-	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
-	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public DiskController::Delegate,
-	public Activity::Source,
+	public Keyboard::SpecialKeyHandler,
 	public Machine,
-	public Keyboard::SpecialKeyHandler {
+	public MachineTypes::AudioProducer,
+	public MachineTypes::JoystickMachine,
+	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::SoftResettable,
+	public MachineTypes::TimedMachine,
+	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
+	public Storage::Tape::BinaryTapePlayer::Delegate {
 
 public:
 	ConcreteMachine(const Analyser::Static::Oric::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -626,6 +627,12 @@ public:
 
 	void run_for(const Cycles cycles) final {
 		m6502_.run_for(cycles);
+	}
+
+	void soft_reset() final {
+		// Toggle the NMI line; it's edge activated.
+		m6502_.set_nmi_line(true);
+		m6502_.set_nmi_line(false);
 	}
 
 	// to satisfy MOS::MOS6522IRQDelegate::Delegate
