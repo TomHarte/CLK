@@ -46,22 +46,23 @@ constexpr int CLOCK_RATE = 8021247;
 
 using Target = Analyser::Static::AtariST::Target;
 class ConcreteMachine:
+	public Activity::Source,
 	public Atari::ST::Machine,
+	public ClockingHint::Observer,
+	public Configurable::Device,
 	public CPU::MC68000::BusHandler,
-	public MachineTypes::TimedMachine,
-	public MachineTypes::ScanProducer,
+	public DMAController::Delegate,
+	public GI::AY38910::PortHandler,
 	public MachineTypes::AudioProducer,
-	public MachineTypes::MouseMachine,
 	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MouseMachine,
+	public MachineTypes::SoftResettable,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::TimedMachine,
 	public MachineTypes::MediaTarget,
-	public ClockingHint::Observer,
 	public Motorola::ACIA::ACIA::InterruptDelegate,
 	public Motorola::MFP68901::MFP68901::InterruptDelegate,
-	public DMAController::Delegate,
-	public Activity::Source,
-	public GI::AY38910::PortHandler,
-	public Configurable::Device,
 	public Video::RangeObserver {
 public:
 	ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -175,6 +176,10 @@ public:
 		}
 
 		mc68000_.run_for(cycles);
+	}
+
+	void soft_reset() final {
+		mc68000_.reset();
 	}
 
 	// MARK: MC68000::BusHandler
