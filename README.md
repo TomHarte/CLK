@@ -21,6 +21,7 @@ It currently contains emulations of the:
 * Atari ST;
 * BBC Micro;
 * ColecoVision;
+* Commodore Plus 4;
 * Commodore Vic-20;
 * Enterprise 64/128;
 * Macintosh 128K, 512K, 512Ke, and Plus;
@@ -28,13 +29,13 @@ It currently contains emulations of the:
 * Oric 1/Atmos;
 * Sega Master System;
 * Sinclair ZX80/81;
-* Sinclair ZX Spectrum; and
+* Sinclair ZX Spectrum;
+* Tandy CoCo 1/2; and
 * Thomson MO5/6.
 
-Also present but very much upcoming are the:
+Also present but less rounded are the:
 
 * Acorn Archimedes;
-* Commodore Plus 4;
 * Commodore Amiga; and
 * early PC compatible.
 
@@ -149,8 +150,8 @@ This emulator attempts cycle-accurate emulation of all supported machines. In so
 		<td width=50%><img alt="Vic-20 Gridrunner" src="READMEImages/Vic20Gridrunner.png"></td>
 		<td width=50%><img alt="ZX Spectrum Chromatrons Attack" src="READMEImages/ZXSpectrumChromatronsAttack.png"></td>
 	</tr><tr>
+		<td width=50%><img alt="Tandy CoCo Dragonfire" src="READMEImages/CoCoDragonfire.png"></td>
 		<td width=50%><img alt="ZX80 Kong" src="READMEImages/ZX80Kong.png"></td>
-		<td width=50%><img alt="VIC-20 BASIC" src="READMEImages/Vic20BASIC.png"></td>
 	</tr><tr>
 		<td width=50%><img alt="Apple Macintosh MusicWorks" src="READMEImages/MusicWorks.png"></td>
 		<td width=50%><img alt="RISC OS" src="READMEImages/RISCOS.png"></td>
