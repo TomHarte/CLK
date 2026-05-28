@@ -409,6 +409,31 @@ void MainWindow::launchMachine() {
 	}
 	keyboardInputMode = keyboardMachine ? KeyboardInputMode::Keyboard : KeyboardInputMode::Joystick;
 
+	// Add a 'reset' menu, possibly.
+	auto softResettable = machine->soft_resettable();
+	auto hardResettable = machine->hard_resettable();
+	if(softResettable || hardResettable) {
+		resetMenu = menuBar()->addMenu(tr("&Reset"));
+
+		if(softResettable) {
+			QAction *const softResetAction = new QAction(tr("Soft"), this);
+			resetMenu->addAction(softResetAction);
+			connect(softResetAction, &QAction::triggered, this, [=, this] {
+				auto softResettable = machine->soft_resettable();
+				if(softResettable) softResettable->soft_reset();
+			});
+		}
+
+		if(hardResettable) {
+			QAction *const hardResetAction = new QAction(tr("Hard"), this);
+			resetMenu->addAction(hardResetAction);
+			connect(hardResetAction, &QAction::triggered, this, [=, this] {
+				auto hardResettable = machine->hard_resettable();
+				if(hardResettable) hardResettable->hard_reset();
+			});
+		}
+	}
+
 	// Add machine-specific UI.
 	const std::string settingsPrefix = Machine::ShortNameForTargetMachine(machineType);
 	auto configurableMachine = machine->configurable_device();

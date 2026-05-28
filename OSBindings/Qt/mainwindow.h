@@ -155,6 +155,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void addHelpMenu();
 
 		QMenu *inputMenu = nullptr;
+		QMenu *resetMenu = nullptr;
 
 		KeyboardMapper keyMapper;
 
