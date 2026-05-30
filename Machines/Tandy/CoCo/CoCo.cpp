@@ -837,7 +837,9 @@ private:
 				joystick_ = value;
 				machine_.mux_ = (machine_.mux_ & 2) | (value ? 1 : 0);
 			}
-			machine_.set_audio(std::nullopt);
+
+			// Changes to the MUX might affect audio output, so give it a bump.
+			machine_.set_audio(std::nullopt, std::nullopt);
 		}
 
 		void set_key_pressed(const int column, const int row, bool is_pressed) {
@@ -933,10 +935,13 @@ private:
 		void output(const uint8_t value) {
 			if constexpr (port == Motorola::MC6821::Port::A) {
 				machine_.dac_level_ = value >> 2;
+
+				// The DAC might be the output, so allow it to inspect.
+				machine_.set_audio(std::nullopt, std::nullopt);
 			}
 
 			if constexpr (port == Motorola::MC6821::Port::B) {
-				machine_.audio_toggle_ = value & 0x2;
+				machine_.set_audio(std::nullopt, value & 0x2);
 				machine_.m6847_->set_mode(
 					value & 0x80,		// Alpha/graphics.
 					false,				// Graphics/semigraphics.
@@ -946,8 +951,6 @@ private:
 					value & 0x08		// Colour select.
 				);
 			}
-
-			machine_.set_audio(std::nullopt);
 		}
 
 		template <Motorola::MC6821::IRQ irq>
@@ -968,7 +971,7 @@ private:
 			}
 
 			if constexpr (control == Motorola::MC6821::Control::CB2) {
-				machine_.set_audio(value);
+				machine_.set_audio(value, std::nullopt);
 			}
 		}
 
@@ -1156,14 +1159,17 @@ private:
 	}
 
 	uint8_t dac_level_ = 0;
-	bool audio_toggle_ = false;
 	uint8_t mux_ = 0;
+
 	bool audio_enabled_ = false;
+	bool audio_toggle_ = false;
 
 	uint8_t audio_output_ = 0;
-	void set_audio(const std::optional<bool> enabled) {
+	void set_audio(const std::optional<bool> enabled, std::optional<bool> toggle) {
 		const auto new_audio_enabled = enabled.value_or(audio_enabled_);
 		audio_enabled_ = new_audio_enabled;
+		const auto new_audio_toggle = toggle.value_or(audio_toggle_);
+		audio_toggle_ = new_audio_toggle;
 
 		// When audio is enabled, the MUX determines the audio source. Source 0 is the DAC.
 		const auto new_audio_output = [&]() -> uint8_t {
