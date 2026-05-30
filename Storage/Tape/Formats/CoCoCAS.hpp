@@ -36,6 +36,7 @@ private:
 			LeadIn,
 			Body,
 		} state_ = State::PreLeadInPause;
+		void set_state(const State);
 		int state_length_ = 0;
 		Storage::FileHolder file_;
 	};

@@ -48,8 +48,11 @@ void CoCoCAS::Serialiser::push_next_pulses() {
 
 	switch(state_) {
 		case State::PreLeadInPause:
-			emplace_back(Pulse::Zero, Time(1, 2));
-			state_ = State::LeadIn;
+			serialise(0x55);
+			--state_length_;
+			if(!state_length_) {
+				set_state(State::LeadIn);
+			}
 		break;
 
 		case State::LeadIn: {
@@ -57,8 +60,8 @@ void CoCoCAS::Serialiser::push_next_pulses() {
 			serialise(next);
 
 			if(next == 0x3c) {
-				state_ = State::Body;
-				state_length_ = -1;
+				printf("Sync\n");
+				set_state(State::Body);
 			}
 		}
 		break;
@@ -70,17 +73,28 @@ void CoCoCAS::Serialiser::push_next_pulses() {
 			--state_length_;
 			if(state_length_ == -3) {
 				state_length_ = next + 1;
+				printf("Grabbed length %d\n", state_length_);
 			} else if(!state_length_) {
-				state_ = State::PreLeadInPause;
+				printf("Ended block\n");
+				set_state(State::PreLeadInPause);
 			}
 		}
 		break;
-
 	}
 }
 
 void CoCoCAS::Serialiser::reset() {
 	// Add 1s of blank before the tape begins.
-	state_ = State::PreLeadInPause;
+	set_state(State::PreLeadInPause);
 	file_.seek(0, Whence::SET);
+}
+
+void CoCoCAS::Serialiser::set_state(const State state) {
+	state_ = state;
+	switch(state) {
+		case State::Body:			state_length_ = -1;		break;
+		case State::LeadIn:			state_length_ = 0;		break;
+		case State::PreLeadInPause:	state_length_ = 150;	break;
+		default: __builtin_unreachable();
+	}
 }
