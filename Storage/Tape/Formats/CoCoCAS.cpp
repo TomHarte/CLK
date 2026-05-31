@@ -89,7 +89,7 @@ void CoCoCAS::Serialiser::push_next_pulses() {
 
 		case State::LeadIn:
 			post_shifter();
-			if((input_ & 0xff) == 0x3c55) {
+			if((input_ & 0xffff) == 0x3c55) {
 				state_ = State::FlushLeadIn;
 				state_length_ = 16;
 			}
