@@ -45,7 +45,7 @@ private:
 			Body,
 			FlushBody,
 		} state_ = State::PreLeadInPause;
-		void set_state(const State);
+		void set_pre_lead_in_pause();
 		int state_length_ = 0;
 
 	};

@@ -46,12 +46,12 @@ CoCoCAS::Serialiser::Serialiser(const std::string &name) : file_(name, FileMode:
 //	(1) bytes from the tape go through a shifter;
 //	(2) ROM-style structure, if recognised, invites forced interblock syncs.
 void CoCoCAS::Serialiser::shift() {
+	input_ >>= 1;
+	input_depth_ = std::max(input_depth_ - 1, 0);
 	if(input_depth_ <= 8 && !file_.eof()) {
 		input_ |= file_.get() << input_depth_;
 		input_depth_ += 8;
 	}
-	input_ >>= 1;
-	--input_depth_;
 }
 
 void CoCoCAS::Serialiser::push_next_pulses() {
@@ -72,78 +72,69 @@ void CoCoCAS::Serialiser::push_next_pulses() {
 		}
 	};
 
+	const auto post_shifter = [&] {
+		post_bit(input_ & 1);
+		shift();
+		--state_length_;
+	};
+
 	switch(state_) {
 		case State::PreLeadInPause:
 			serialise(0x55);
 			--state_length_;
 			if(!state_length_) {
-				set_state(State::LeadIn);
+				state_ = State::LeadIn;
 			}
 		break;
 
 		case State::LeadIn:
+			post_shifter();
 			if(input_ == 0x3c55) {
-				set_state(State::FlushLeadIn);
-			} else {
-				post_bit(input_ & 1);
-				shift();
+				state_ = State::FlushLeadIn;
+				state_length_ = 16;
 			}
 		break;
 
 		case State::FlushLeadIn:
-			post_bit(input_ & 1);
-			shift();
-			--state_length_;
+			post_shifter();
 			if(!state_length_) {
-				set_state(State::GetBodyLength);
+				state_ = State::GetBodyLength;
+				state_length_ = 8;
 			}
 		break;
 
 		case State::GetBodyLength:
-			post_bit(input_ & 1);
-			shift();
-			--state_length_;
+			post_shifter();
 			if(!state_length_) {
-				state_length_ = (1 + (input_ & 0xff)) * 8;
 				state_ = State::Body;
+				state_length_ = (1 + (input_ & 0xff)) * 8;
 			}
 		break;
 
 		case State::Body: {
-			post_bit(input_ & 1);
-			shift();
-			--state_length_;
+			post_shifter();
 			if(!state_length_) {
-				set_state(State::FlushBody);
+				state_ = State::FlushBody;
+				state_length_ = 8;
 			}
 		}
 		break;
 
 		case State::FlushBody:
-			post_bit(input_ & 1);
-			input_ >>= 1;
-			--state_length_;
+			post_shifter();
 			if(!state_length_) {
-				set_state(State::GetBodyLength);
+				set_pre_lead_in_pause();
 			}
 		break;
 	}
 }
 
 void CoCoCAS::Serialiser::reset() {
-	// Add 1s of blank before the tape begins.
-	set_state(State::PreLeadInPause);
+	set_pre_lead_in_pause();
 	file_.seek(0, Whence::SET);
 }
 
-void CoCoCAS::Serialiser::set_state(const State state) {
-	state_ = state;
-	switch(state) {
-		case State::Body:			state_length_ = -1;		break;
-		case State::FlushLeadIn:	state_length_ = 15;		break;
-		case State::GetBodyLength:	state_length_ = 9;		break;
-		case State::LeadIn:			state_length_ = 0;		break;
-		case State::PreLeadInPause:	state_length_ = 150;	break;
-		default: __builtin_unreachable();
-	}
+void CoCoCAS::Serialiser::set_pre_lead_in_pause() {
+	state_ = State::PreLeadInPause;
+	state_length_ = 150;
 }
