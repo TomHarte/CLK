@@ -48,8 +48,8 @@ CoCoCAS::Serialiser::Serialiser(const std::string &name) : file_(name, FileMode:
 void CoCoCAS::Serialiser::shift() {
 	input_ >>= 1;
 	input_depth_ = std::max(input_depth_ - 1, 0);
-	if(input_depth_ <= 8 && !file_.eof()) {
-		input_ |= file_.get() << input_depth_;
+	while(input_depth_ <= 24 && !file_.eof()) {
+		input_ |= uint32_t(file_.get() << input_depth_);
 		input_depth_ += 8;
 	}
 }
@@ -89,7 +89,7 @@ void CoCoCAS::Serialiser::push_next_pulses() {
 
 		case State::LeadIn:
 			post_shifter();
-			if(input_ == 0x3c55) {
+			if((input_ & 0xff) == 0x3c55) {
 				state_ = State::FlushLeadIn;
 				state_length_ = 16;
 			}

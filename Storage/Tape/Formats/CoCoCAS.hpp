@@ -32,7 +32,7 @@ private:
 		void reset() override;
 
 		// Raw shifted input from the file.
-		uint16_t input_ = 0;
+		uint32_t input_ = 0;
 		int input_depth_ = 0;
 		void shift();
 		Storage::FileHolder file_;
