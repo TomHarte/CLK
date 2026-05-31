@@ -31,14 +31,23 @@ private:
 		void push_next_pulses() override;
 		void reset() override;
 
+		// Raw shifted input from the file.
+		uint16_t input_ = 0;
+		int input_depth_ = 0;
+		void shift();
+		Storage::FileHolder file_;
+
 		enum class State {
 			PreLeadInPause,
 			LeadIn,
+			FlushLeadIn,
+			GetBodyLength,
 			Body,
+			FlushBody,
 		} state_ = State::PreLeadInPause;
 		void set_state(const State);
 		int state_length_ = 0;
-		Storage::FileHolder file_;
+
 	};
 };
 
