@@ -35,8 +35,13 @@ CoCoCAS::CoCoCAS(const std::string &file_name) {
 		}
 
 		void shift() {
+			if(!depth_ && file_.eof()) {
+				return;
+			}
+
 			shifter_ >>= 1;
 			--depth_;
+			++shifted_;
 			while(depth_ <= 56 && !file_.eof()) {
 				shifter_ |= uint64_t(file_.get()) << depth_;
 				depth_ += 8;
