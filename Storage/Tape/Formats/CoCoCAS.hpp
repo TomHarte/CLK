@@ -20,24 +20,33 @@ class CoCoCAS: public Tape {
 public:
 	CoCoCAS(const std::string &file_name);
 
+	enum {
+		ErrorBadFormat
+	};
+
 private:
-	std::string file_name_;
+	struct Block {
+		std::vector<uint8_t> data;
+	};
+	std::vector<Block> blocks_;
+
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
 	struct Serialiser: public PulseQueuedSerialiser {
-		Serialiser(const std::string &);
+		Serialiser(const std::vector<Block> &);
 
 	private:
 		void push_next_pulses() override;
 		void reset() override;
 
+		const std::vector<Block> &blocks_;
+		std::vector<Block>::const_iterator block_;
+
 		enum class State {
-			PreLeadInPause,
 			LeadIn,
 			Body,
-		} state_ = State::PreLeadInPause;
-		int state_length_ = 0;
-		Storage::FileHolder file_;
+		} state_ = State::LeadIn;
+		size_t state_length_ = 0;
 	};
 };
 

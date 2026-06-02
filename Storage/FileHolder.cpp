@@ -32,10 +32,10 @@ FileHolder::FileHolder(const std::string &file_name, const FileMode ideal_mode)
 		case FileMode::ReadWrite:
 			file_ = std::fopen(file_name.c_str(), "rb+");
 			if(file_) break;
-			is_read_only_ = true;
 			[[fallthrough]];
 
 		case FileMode::Read:
+			is_read_only_ = true;
 			file_ = std::fopen(file_name.c_str(), "rb");
 		break;
 
