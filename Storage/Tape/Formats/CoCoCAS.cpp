@@ -14,44 +14,112 @@ using namespace Storage::Tape;
 	[CoCo-style] CAS files are a raw dump of source bytes as per Microsoft's 6809 BASIC and
 	the Tandy (or Dragon) encoding.
 
-	It is therefore very similar to the Thomson K7 file format.
+	It is therefore very similar to the Thomson K7 file format, but weird:
 
+		Contents are not necessarily byte-aligned with original content; within a file block
+		it's an arbitrarily-aligned bitstream.
+
+		... but, most files abbreviate the sync periods. So you've still to apply
+		ROM-style formatting.
 */
+CoCoCAS::CoCoCAS(const std::string &file_name) {
+	struct Shifter {
+		Shifter(const std::string &file_name) : file_(file_name, FileMode::Read) {}
 
-CoCoCAS::CoCoCAS(const std::string &file_name) : file_name_(file_name) {
-	// TODO: reject unless at least one normative CoCo-esque block is within the image.
-	// CAS is not an unambiguous extension.
+		uint32_t value() const {
+			return uint32_t(shifter_);
+		}
+
+		void advance(size_t length) {
+			while(length--) shift();
+		}
+
+		void shift() {
+			if(!depth_ && file_.eof()) {
+				return;
+			}
+
+			shifter_ >>= 1;
+			--depth_;
+			++shifted_;
+			while(depth_ <= 56 && !file_.eof()) {
+				shifter_ |= uint64_t(file_.get()) << depth_;
+				depth_ += 8;
+			}
+		}
+
+		size_t offset() const {
+			return shifted_;
+		}
+
+		void set_offset(const size_t offset) {
+			file_.seek(0, Whence::SET);
+			shifted_ = 0;
+			advance(offset);
+		}
+
+		bool eof() const {
+			return file_.eof() && !depth_;
+		}
+
+	private:
+		Storage::FileHolder file_;
+
+		uint64_t shifter_ = 0;
+		int depth_ = 0;
+		size_t shifted_ = 0;
+	};
+
+	Shifter shifter(file_name);
+	while(!shifter.eof()) {
+		// Find next sync byte.
+		while(!shifter.eof() && (shifter.value() & 0xff) != 0x3c) {
+			shifter.shift();
+		}
+		const auto offset = shifter.offset();
+		if(shifter.eof()) break;
+
+		auto &block = blocks_.emplace_back();
+		shifter.advance(8);
+		const auto type = uint8_t(shifter.value());
+
+		shifter.advance(8);
+		const auto length = uint8_t(shifter.value());
+
+		block.data.reserve(length + 3);
+		block.data.push_back(0x3c);
+		block.data.push_back(type);
+		block.data.push_back(length);
+
+		for(int c = 0; c <= length; c++) {
+			shifter.advance(8);
+			block.data.push_back(uint8_t(shifter.value()));
+		}
+
+		const auto checksum = uint8_t(std::accumulate(block.data.begin() + 1, block.data.end() - 1, 0));
+		if(checksum != block.data.back()) {
+			blocks_.pop_back();
+			shifter.set_offset(offset + 1);
+		}
+	}
+
+	if(blocks_.empty()) {
+		throw ErrorBadFormat;
+	}
 }
 
 std::unique_ptr<FormatSerialiser> CoCoCAS::format_serialiser() const {
-	return std::make_unique<Serialiser>(file_name_);
+	return std::make_unique<Serialiser>(blocks_);
 }
 
-CoCoCAS::Serialiser::Serialiser(const std::string &name) : file_(name, FileMode::Read) {
+CoCoCAS::Serialiser::Serialiser(const std::vector<Block> &blocks) : blocks_(blocks) {
 	reset();
 }
 
-// CAS files are weird:
-//
-// Many of them are purely byte-aligned captures of the original in-memory data that was written to tape,
-// complete with heavily-abbreviated sync periods. So if you're not doing a ROM-hack load then there needs
-// to be some additional level of interpretation to force longer sync periods so that the machine can keep up.
-//
-// Others appear to be real bit captures from the original tape that are not necessarily byte-aligned and
-// which may or may not have abbreviated sync periods (in at least one case, it looks like the transcriber
-// spotted a period that was byte-aligned while skipping others that weren't).
-//
-// Hence the additional level of detachment here:
-//
-//	(1) bytes from the tape go through a shifter;
-//	(2) ROM-style structure, if recognised, invites forced interblock syncs.
-void CoCoCAS::Serialiser::shift() {
-	input_ >>= 1;
-	input_depth_ = std::max(input_depth_ - 1, 0);
-	while(input_depth_ <= 24 && !file_.eof()) {
-		input_ |= uint32_t(file_.get() << input_depth_);
-		input_depth_ += 8;
-	}
+void CoCoCAS::Serialiser::reset() {
+	block_ = blocks_.begin();
+	state_ = State::LeadIn;
+	state_length_ = 0;
 }
 
 void CoCoCAS::Serialiser::push_next_pulses() {
@@ -59,7 +127,7 @@ void CoCoCAS::Serialiser::push_next_pulses() {
 		// Generate a single wave of either 1200Hz (for a 0) or 2400Hz tone (for a 1).
 		const Time length(
 			1,
-			bit & 0x01 ? 4800 : 2400
+			bit ? 4800 : 2400
 		);
 		emplace_back(Pulse::Low, length);
 		emplace_back(Pulse::High, length);
@@ -72,69 +140,26 @@ void CoCoCAS::Serialiser::push_next_pulses() {
 		}
 	};
 
-	const auto post_shifter = [&] {
-		post_bit(input_ & 1);
-		shift();
-		--state_length_;
-	};
-
 	switch(state_) {
-		case State::PreLeadInPause:
-			serialise(0x55);
-			--state_length_;
-			if(!state_length_) {
-				state_ = State::LeadIn;
-			}
-		break;
-
 		case State::LeadIn:
-			post_shifter();
-			if((input_ & 0xffff) == 0x3c55) {
-				state_ = State::FlushLeadIn;
-				state_length_ = 16;
-			}
-		break;
-
-		case State::FlushLeadIn:
-			post_shifter();
-			if(!state_length_) {
-				state_ = State::GetBodyLength;
-				state_length_ = 8;
-			}
-		break;
-
-		case State::GetBodyLength:
-			post_shifter();
-			if(!state_length_) {
+			serialise(0x55);
+			++state_length_;
+			if(state_length_ == 150 && block_ != blocks_.end()) {
 				state_ = State::Body;
-				state_length_ = (1 + (input_ & 0xff)) * 8;
+				state_length_ = 0;
 			}
 		break;
 
-		case State::Body: {
-			post_shifter();
-			if(!state_length_) {
-				state_ = State::FlushBody;
-				state_length_ = 8;
+		case State::Body:
+			serialise(block_->data[state_length_]);
+			++state_length_;
+			if(state_length_ == block_->data.size()) {
+				state_ = State::LeadIn;
+				state_length_ = 0;
+				++block_;
 			}
-		}
 		break;
 
-		case State::FlushBody:
-			post_shifter();
-			if(!state_length_) {
-				set_pre_lead_in_pause();
-			}
-		break;
+		default: __builtin_unreachable();
 	}
-}
-
-void CoCoCAS::Serialiser::reset() {
-	set_pre_lead_in_pause();
-	file_.seek(0, Whence::SET);
-}
-
-void CoCoCAS::Serialiser::set_pre_lead_in_pause() {
-	state_ = State::PreLeadInPause;
-	state_length_ = 150;
 }
