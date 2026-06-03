@@ -82,10 +82,10 @@ set(CLK_SOURCES
 	Machines/Acorn/BBCMicro/BBCMicro.cpp
 	Machines/Acorn/Electron/Electron.cpp
 	Machines/Acorn/Electron/Keyboard.cpp
-	Machines/Acorn/Electron/Plus3.cpp
 	Machines/Acorn/Electron/SoundGenerator.cpp
 	Machines/Acorn/Electron/Tape.cpp
 	Machines/Acorn/Electron/Video.cpp
+	Machines/Acorn/Floppy/1770.cpp
 	Machines/Amiga/Amiga.cpp
 	Machines/Amiga/Audio.cpp
 	Machines/Amiga/Bitplanes.cpp
