@@ -24,12 +24,12 @@
 
 #include "Machines/Utility/Typer.hpp"
 #include "Analyser/Static/Acorn/Target.hpp"
+#include "Machines/Acorn/Floppy/1770.hpp"
 
 #include "ClockReceiver/JustInTime.hpp"
 
 #include "Interrupts.hpp"
 #include "Keyboard.hpp"
-#include "Plus3.hpp"
 #include "SoundGenerator.hpp"
 #include "Tape.hpp"
 #include "Video.hpp"
@@ -105,7 +105,7 @@ public:
 				* if sideways RAM was asked for, all otherwise unused slots are populated with sideways RAM.
 		*/
 		if(target.has_dfs || target.has_acorn_adfs || target.has_pres_adfs) {
-			plus3_ = std::make_unique<Plus3>();
+			plus3_ = std::make_unique<Acorn::Floppy::Floppy1770>();
 
 			if(target.has_dfs) {
 				set_rom(ROM::Slot0, roms.find(::ROM::Name::Acorn1770DFS)->second, true);
@@ -747,7 +747,7 @@ private:
 	bool fast_load_is_in_data_ = false;
 
 	// Disk
-	std::unique_ptr<Plus3> plus3_;
+	std::unique_ptr<Acorn::Floppy::Floppy1770> plus3_;
 	bool is_holding_shift_ = false;
 	int shift_restart_counter_ = 0;
 

@@ -1,5 +1,5 @@
 //
-//  Plus3.hpp
+//  Floppy1770.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 25/09/2016.
@@ -13,11 +13,14 @@
 
 #include <string>
 
-namespace Electron {
+namespace Acorn::Floppy {
 
-class Plus3 final : public WD::WD1770 {
+/*!
+	Describes both the Electron's Plus 3 and the BBC Micro's 1770/ADFS disk interface.
+*/
+class Floppy1770 final : public WD::WD1770 {
 public:
-	Plus3();
+	Floppy1770();
 
 	void set_disk(std::shared_ptr<Storage::Disk::Disk>, size_t drive);
 	const Storage::Disk::Disk *disk(const std::string &);
