@@ -111,7 +111,7 @@ Or if you're running it from the current directory:
 
 	./clksignal file
 
-Other options are availble. Run `clksignal` or `./clksignal` with no arguments
+Other options are available. Run `clksignal` or `./clksignal` with no arguments
 to learn more.
 
 Setting up `clksignal` as the associated program for supported file types in
