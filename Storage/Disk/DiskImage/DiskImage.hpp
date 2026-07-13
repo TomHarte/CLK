@@ -81,10 +81,10 @@ public:
 };
 
 class DiskImageHolderBase: public Disk {
-	protected:
-		std::set<Track::Address> unwritten_tracks_;
-		mutable std::map<Track::Address, std::shared_ptr<Track>> cached_tracks_;
-		std::unique_ptr<Concurrency::AsyncTaskQueue<true>> update_queue_;
+protected:
+	std::set<Track::Address> unwritten_tracks_;
+	mutable std::map<Track::Address, std::shared_ptr<Track>> cached_tracks_;
+	std::unique_ptr<Concurrency::AsyncTaskQueue<true>> update_queue_;
 };
 
 /*!
@@ -104,7 +104,7 @@ public:
 
 	HeadPosition maximum_head_position() const override;
 	int head_count() const override;
-	Track *track_at_position(Track::Address address) const override;
+	std::shared_ptr<Track> track_at_position(Track::Address address) const override;
 	void set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track) override;
 	void flush_tracks() override;
 	bool tracks_differ(Track::Address lhs, Track::Address rhs) const override;
