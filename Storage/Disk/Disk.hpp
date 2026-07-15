@@ -43,7 +43,7 @@ public:
 		@returns the @c Track at @c position underneath @c head if there are any detectable events there;
 		returns @c nullptr otherwise.
 	*/
-	virtual Track *track_at_position(Track::Address) const = 0;
+	virtual std::shared_ptr<Track> track_at_position(Track::Address) const = 0;
 
 	/*!
 		Replaces the Track at position @c position underneath @c head with @c track. Ignored if this disk is read-only.
