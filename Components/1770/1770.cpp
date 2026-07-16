@@ -471,7 +471,7 @@ void WD1770::posit_event(const int new_event_type) {
 			Logger::info().append("Considering %d/%d", header_[0], header_[2]);
 			if(		header_[0] == track_ && header_[2] == sector_ &&
 					(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1])) {
-				Logger::info().append("Found %d/%d", header_[0], header_[2]);
+				Logger::info().append("Found %d/%d at %0.2f", header_[0], header_[2], get_drive().get_rotation());
 				if(get_crc_generator().get_value()) {
 					Logger::info().append("CRC error; back to searching");
 					update_status([] (Status &status) {
@@ -497,6 +497,7 @@ void WD1770::posit_event(const int new_event_type) {
 		WAIT_FOR_EVENT(Event::Token);
 		// TODO: timeout
 		if(get_latest_token().type == Token::Data || get_latest_token().type == Token::DeletedData) {
+			Logger::info().append("Beginning body at %0.2f", get_drive().get_rotation());
 			update_status([this] (Status &status) {
 				status.record_type = get_latest_token().type == Token::DeletedData;
 			});
