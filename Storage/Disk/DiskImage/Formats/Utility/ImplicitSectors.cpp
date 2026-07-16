@@ -72,10 +72,10 @@ std::unique_ptr<Track> Storage::Disk::track_for_sectors(
 void Storage::Disk::decode_sectors(
 	const Track &track,
 	uint8_t *const destination,
-	uint8_t first_sector,
-	uint8_t last_sector,
-	uint8_t sector_size,
-	Storage::Encodings::MFM::Density density
+	const uint8_t first_sector,
+	const uint8_t last_sector,
+	const uint8_t sector_size,
+	const Storage::Encodings::MFM::Density density
 ) {
 	std::map<std::size_t, Storage::Encodings::MFM::Sector> sectors =
 		Storage::Encodings::MFM::sectors_from_segment(
@@ -85,7 +85,11 @@ void Storage::Disk::decode_sectors(
 			),
 			density);
 
-	std::size_t byte_size = size_t(128 << sector_size);
+	// Prefill with 0xff as a debugging aid; this makes it a lot clearer after output where padding
+	// was deployed because a sector wasn't found.
+	const std::size_t byte_size = size_t(128 << sector_size);
+	std::fill_n(destination, byte_size * (1 + last_sector - first_sector), 0xff);
+
 	for(const auto &pair : sectors) {
 		if(pair.second.address.sector > last_sector) continue;
 		if(pair.second.address.sector < first_sector) continue;
