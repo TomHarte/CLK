@@ -41,8 +41,8 @@ private:
 template <> struct TaskQueueStorage<void> {
 	TaskQueueStorage() {}
 
-	protected:
-		void update() {}
+protected:
+	void update() {}
 };
 
 /*!
