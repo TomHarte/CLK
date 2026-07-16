@@ -12,7 +12,7 @@
 
 using namespace Storage::Disk;
 
-MFMController::MFMController(Cycles clock_rate) :
+MFMController::MFMController(const Cycles clock_rate) :
 	Storage::Disk::Controller(clock_rate),
 	shifter_(&crc_generator_) {
 }
@@ -25,7 +25,7 @@ void MFMController::process_write_completed() {
 	posit_event(int(Event::DataWritten));
 }
 
-void MFMController::set_is_double_density(bool is_double_density) {
+void MFMController::set_is_double_density(const bool is_double_density) {
 	is_double_density_ = is_double_density;
 	Storage::Time bit_length;
 	bit_length.length = 1;
@@ -39,7 +39,7 @@ bool MFMController::get_is_double_density() {
 	return is_double_density_;
 }
 
-void MFMController::set_data_mode(DataMode mode) {
+void MFMController::set_data_mode(const DataMode mode) {
 	data_mode_ = mode;
 	shifter_.set_should_obey_syncs(mode == DataMode::Scanning);
 }
@@ -52,7 +52,7 @@ CRC::CCITT &MFMController::get_crc_generator() {
 	return crc_generator_;
 }
 
-void MFMController::process_input_bit(int value) {
+void MFMController::process_input_bit(const int value) {
 	if(data_mode_ == DataMode::Writing) return;
 
 	shifter_.add_input_bit(value);
@@ -83,25 +83,25 @@ void MFMController::process_input_bit(int value) {
 	posit_event(int(Event::Token));
 }
 
-void MFMController::write_bit(int bit) {
+void MFMController::write_bit(const int bit) {
 	if(is_double_density_) {
 		get_drive().write_bit(!bit && !last_bit_);
-		get_drive().write_bit(!!bit);
+		get_drive().write_bit(bit);
 		last_bit_ = bit;
 	} else {
 		get_drive().write_bit(true);
-		get_drive().write_bit(!!bit);
+		get_drive().write_bit(bit);
 	}
 }
 
-void MFMController::write_byte(uint8_t byte) {
+void MFMController::write_byte(const uint8_t byte) {
 	for(int c = 0; c < 8; c++) write_bit((byte << c)&0x80);
 	crc_generator_.add(byte);
 }
 
-void MFMController::write_raw_short(uint16_t value) {
+void MFMController::write_raw_short(const uint16_t value) {
 	for(int c = 0; c < 16; c++) {
-		get_drive().write_bit(!!((value << c)&0x8000));
+		get_drive().write_bit(bool((value << c)&0x8000));
 	}
 }
 
@@ -111,7 +111,7 @@ void MFMController::write_crc() {
 	write_byte(crc & 0xff);
 }
 
-void MFMController::write_n_bytes(int quantity, uint8_t value) {
+void MFMController::write_n_bytes(int quantity, const uint8_t value) {
 	while(quantity--) write_byte(value);
 }
 
@@ -128,19 +128,21 @@ void MFMController::write_id_joiner() {
 	}
 }
 
-void MFMController::write_id_data_joiner(bool is_deleted, bool skip_first_gap) {
+void MFMController::write_id_data_joiner(const bool is_deleted, const bool skip_first_gap) {
+	using namespace Storage::Encodings;
+
 	if(get_is_double_density()) {
 		if(!skip_first_gap) write_n_bytes(22, 0x4e);
 		write_n_bytes(12, 0x00);
-		for(int c = 0; c < 3; c++) write_raw_short(Storage::Encodings::MFM::MFMSync);
-		get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
-		write_byte(is_deleted ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
+		for(int c = 0; c < 3; c++) write_raw_short(MFM::MFMSync);
+		get_crc_generator().set_value(MFM::MFMPostSyncCRCValue);
+		write_byte(is_deleted ? MFM::DeletedDataAddressByte : MFM::DataAddressByte);
 	} else {
 		if(!skip_first_gap) write_n_bytes(11, 0xff);
 		write_n_bytes(6, 0x00);
 		get_crc_generator().reset();
-		get_crc_generator().add(is_deleted ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
-		write_raw_short(is_deleted ? Storage::Encodings::MFM::FMDeletedDataAddressMark : Storage::Encodings::MFM::FMDataAddressMark);
+		get_crc_generator().add(is_deleted ? MFM::DeletedDataAddressByte : MFM::DataAddressByte);
+		write_raw_short(is_deleted ? MFM::FMDeletedDataAddressMark : MFM::FMDataAddressMark);
 	}
 }
 
