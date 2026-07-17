@@ -9,6 +9,8 @@
 #include "PCMTrack.hpp"
 #include "Outputs/Log.hpp"
 
+#include <cassert>
+
 namespace {
 using Logger = Log::Logger<Log::Source::PCMTrack>;
 }
@@ -178,6 +180,7 @@ void PCMTrack::add_segment(const Time &start_time, const PCMSegment &segment, co
 		for(size_t bit = 0; bit < segment.data.size(); ++bit) {
 			if(segment.data[bit]) {
 				const size_t output_bit = start_bit + half_offset + (bit * target_width) / segment.data.size();
+				assert(output_bit >= start_bit && output_bit < selected_end_bit);
 				if(output_bit >= destination.data.size()) return;
 				destination.data[output_bit] = true;
 			}

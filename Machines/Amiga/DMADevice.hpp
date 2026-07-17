@@ -19,16 +19,16 @@ namespace Amiga {
 class Chipset;
 
 class DMADeviceBase {
-	public:
-		DMADeviceBase(Chipset &chipset, uint16_t *ram, size_t word_size) :
-			chipset_(chipset), ram_(ram), ram_mask_(uint32_t(word_size - 1)) {}
+public:
+	DMADeviceBase(Chipset &chipset, uint16_t *ram, size_t word_size) :
+		chipset_(chipset), ram_(ram), ram_mask_(uint32_t(word_size - 1)) {}
 
-		void posit_interrupt(Amiga::InterruptFlag::FlagT);
+	void posit_interrupt(Amiga::InterruptFlag::FlagT);
 
-	protected:
-		Chipset &chipset_;
-		uint16_t *const ram_ = nullptr;
-		const uint32_t ram_mask_ = 0;
+protected:
+	Chipset &chipset_;
+	uint16_t *const ram_ = nullptr;
+	const uint32_t ram_mask_ = 0;
 };
 
 template <size_t num_addresses, size_t num_modulos = 0> class DMADevice: public DMADeviceBase {

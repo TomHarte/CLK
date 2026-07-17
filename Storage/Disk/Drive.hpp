@@ -194,6 +194,12 @@ public:
 	*/
 	bool get_tachometer() const;
 
+	/*!
+		@returns the current rotation of the disk, a float in the half-open range
+			0.0 (the index hole) to 1.0 (back to the index hole, a whole rotation later).
+	*/
+	float get_rotation() const;
+
 protected:
 	/*!
 		Announces the result of a step.
@@ -206,12 +212,6 @@ protected:
 		@c did_replace is @c true if a previous disk was replaced; @c false if the drive was previously empty.
 	*/
 	virtual void did_set_disk(bool did_replace [[maybe_unused]]) {}
-
-	/*!
-		@returns the current rotation of the disk, a float in the half-open range
-			0.0 (the index hole) to 1.0 (back to the index hole, a whole rotation later).
-	*/
-	float get_rotation() const;
 
 private:
 	// Drives contain an entire disk; from that a certain track

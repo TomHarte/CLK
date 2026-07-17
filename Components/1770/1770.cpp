@@ -139,6 +139,8 @@ void WD1770::run_for(const Cycles cycles) {
 #include <iostream>
 
 void WD1770::posit_event(const int new_event_type) {
+	using namespace Storage::Encodings;
+
 #define WAIT_FOR_EVENT(mask) {							\
 	interesting_event_mask_ = int(mask);				\
 	static constexpr int location = __COUNTER__ + 1;	\
@@ -185,7 +187,7 @@ void WD1770::posit_event(const int new_event_type) {
 		status_.spin_up = true;
 
 	if(new_event_type == int(Event::IndexHole)) {
-		index_hole_count_++;
+		++index_hole_count_;
 		if(index_hole_count_target_ == index_hole_count_) {
 			posit_event(int(Event1770::IndexHoleTarget));
 			index_hole_count_target_ = -1;
@@ -469,7 +471,7 @@ void WD1770::posit_event(const int new_event_type) {
 			Logger::info().append("Considering %d/%d", header_[0], header_[2]);
 			if(		header_[0] == track_ && header_[2] == sector_ &&
 					(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1])) {
-				Logger::info().append("Found %d/%d", header_[0], header_[2]);
+				Logger::info().append("Found %d/%d at %0.2f", header_[0], header_[2], get_drive().get_rotation());
 				if(get_crc_generator().get_value()) {
 					Logger::info().append("CRC error; back to searching");
 					update_status([] (Status &status) {
@@ -495,6 +497,7 @@ void WD1770::posit_event(const int new_event_type) {
 		WAIT_FOR_EVENT(Event::Token);
 		// TODO: timeout
 		if(get_latest_token().type == Token::Data || get_latest_token().type == Token::DeletedData) {
+			Logger::info().append("Beginning body at %0.2f", get_drive().get_rotation());
 			update_status([this] (Status &status) {
 				status.record_type = get_latest_token().type == Token::DeletedData;
 			});
@@ -515,7 +518,7 @@ void WD1770::posit_event(const int new_event_type) {
 			status.lost_data |= status.data_request;
 			status.data_request = true;
 		});
-		distance_into_section_++;
+		++distance_into_section_;
 		if(distance_into_section_ == 128 << (header_[3]&3)) {
 			distance_into_section_ = 0;
 			goto type2_check_crc;
@@ -526,7 +529,7 @@ void WD1770::posit_event(const int new_event_type) {
 		WAIT_FOR_EVENT(Event::Token);
 		if(get_latest_token().type != Token::Byte) goto type2_check_crc;
 		header_[distance_into_section_] = get_latest_token().byte_value;
-		distance_into_section_++;
+		++distance_into_section_;
 		if(distance_into_section_ == 2) {
 			distance_into_section_ = 0;
 			set_data_mode(DataMode::Scanning);
@@ -542,7 +545,7 @@ void WD1770::posit_event(const int new_event_type) {
 			Logger::info().append("Finished reading sector %d", sector_);
 
 			if(command_ & 0x10) {
-				sector_++;
+				++sector_;
 				Logger::info().append("Advancing to search for sector %d", sector_);
 				goto test_type2_write_protection;
 			}
@@ -576,13 +579,13 @@ void WD1770::posit_event(const int new_event_type) {
 		WAIT_FOR_EVENT(Event::DataWritten);
 
 		if(get_is_double_density()) {
-			get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
-			for(int c = 0; c < 3; c++) write_raw_short(Storage::Encodings::MFM::MFMSync);
-			write_byte((command_&0x01) ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
+			get_crc_generator().set_value(MFM::MFMPostSyncCRCValue);
+			for(int c = 0; c < 3; c++) write_raw_short(MFM::MFMSync);
+			write_byte((command_&0x01) ? MFM::DeletedDataAddressByte : MFM::DataAddressByte);
 		} else {
 			get_crc_generator().reset();
-			get_crc_generator().add((command_&0x01) ? Storage::Encodings::MFM::DeletedDataAddressByte : Storage::Encodings::MFM::DataAddressByte);
-			write_raw_short((command_&0x01) ? Storage::Encodings::MFM::FMDeletedDataAddressMark : Storage::Encodings::MFM::FMDataAddressMark);
+			get_crc_generator().add((command_&0x01) ? MFM::DeletedDataAddressByte : MFM::DataAddressByte);
+			write_raw_short((command_&0x01) ? MFM::FMDeletedDataAddressMark : MFM::FMDataAddressMark);
 		}
 
 		WAIT_FOR_EVENT(Event::DataWritten);
@@ -598,7 +601,7 @@ void WD1770::posit_event(const int new_event_type) {
 			documentation error.
 		*/
 		write_byte(data_);
-		distance_into_section_++;
+		++distance_into_section_;
 		if(distance_into_section_ == 128 << (header_[3]&3)) {
 			goto type2_write_crc;
 		}
@@ -624,7 +627,7 @@ void WD1770::posit_event(const int new_event_type) {
 		end_writing();
 
 		if(command_ & 0x10) {
-			sector_++;
+			++sector_;
 			goto test_type2_write_protection;
 		}
 		Logger::info().append("Wrote sector %d", sector_);
@@ -680,7 +683,10 @@ void WD1770::posit_event(const int new_event_type) {
 	read_address_get_header:
 		WAIT_FOR_EVENT(int(Event::IndexHole) | int(Event::Token));
 		if(new_event_type == int(Event::Token)) {
-			if(!distance_into_section_ && get_latest_token().type == Token::ID) {set_data_mode(DataMode::Reading); distance_into_section_++; }
+			if(!distance_into_section_ && get_latest_token().type == Token::ID) {
+				set_data_mode(DataMode::Reading);
+				++distance_into_section_;
+			}
 			else if(distance_into_section_ && distance_into_section_ < 7 && get_latest_token().type == Token::Byte) {
 				if(status_.data_request) {
 					update_status([] (Status &status) {
@@ -769,11 +775,11 @@ void WD1770::posit_event(const int new_event_type) {
 		if(get_is_double_density()) {
 			switch(data_) {
 				case 0xf5:
-					write_raw_short(Storage::Encodings::MFM::MFMSync);
-					get_crc_generator().set_value(Storage::Encodings::MFM::MFMPostSyncCRCValue);
+					write_raw_short(MFM::MFMSync);
+					get_crc_generator().set_value(MFM::MFMPostSyncCRCValue);
 				break;
 				case 0xf6:
-					write_raw_short(Storage::Encodings::MFM::MFMIndexSync);
+					write_raw_short(MFM::MFMIndexSync);
 				break;
 				case 0xff:
 					write_crc();
@@ -804,7 +810,7 @@ void WD1770::posit_event(const int new_event_type) {
 					get_crc_generator().add(data_);
 				break;
 				case 0xfc:
-					write_raw_short(Storage::Encodings::MFM::FMIndexAddressMark);
+					write_raw_short(MFM::FMIndexAddressMark);
 				break;
 				case 0xf7:
 					write_crc();
