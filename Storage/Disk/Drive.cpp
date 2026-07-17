@@ -397,7 +397,7 @@ void Drive::setup_track() {
 
 	// Reseed cycles_since_index_hole_; 99.99% of the time it'll still be correct as is,
 	// but if the track has rounded one way or the other it may now be very slightly adrift.
-	cycles_since_index_hole_ = (int(time_found + offset) * cycles_per_revolution_) % cycles_per_revolution_;
+	cycles_since_index_hole_ = int((time_found + offset) * float(cycles_per_revolution_)) % cycles_per_revolution_;
 
 	get_next_event(offset);
 }
