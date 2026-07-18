@@ -152,6 +152,7 @@ void main(void) {
 constexpr char fragment_shader[] = R"glsl(
 
 uniform mat3 fromRGB;
+uniform usampler2D source;
 
 in vec2 coordinate;
 in float phase;
@@ -170,18 +171,16 @@ vec2 boxed(vec2 val) {
 
 #ifdef INPUT_LUMINANCE1
 
-	uniform sampler2D source;
-
 	vec4 sample_composite() {
 		return vec4(
-			clamp(texture(source, coordinate).r * 255.0, 0.0, 1.0),
+			clamp(texture(source, coordinate).r, 0.0, 1.0),
 			boxed(quadrature()),
 			compositeAmplitude
 		);
 	}
 
 	vec3 sample_rgb() {
-		return clamp(texture(source, coordinate).rrr * 255.0, vec3(0.0), vec3(1.0));
+		return clamp(texture(source, coordinate).rrr, vec3(0.0), vec3(1.0));
 	}
 
 #endif
@@ -190,18 +189,16 @@ vec2 boxed(vec2 val) {
 
 #ifdef INPUT_LUMINANCE8
 
-	uniform sampler2D source;
-
 	vec4 sample_composite() {
 		return vec4(
-			texture(source, coordinate).r,
+			texture(source, coordinate).r / 255.0,
 			boxed(quadrature()),
 			compositeAmplitude
 		);
 	}
 
 	vec3 sample_rgb() {
-		return texture(source, coordinate).rrr;
+		return texture(source, coordinate).rrr / 255.0;
 	}
 
 #endif
@@ -210,10 +207,8 @@ vec2 boxed(vec2 val) {
 
 #ifdef INPUT_PHASE_LINKED_LUMINANCE8
 
-	uniform sampler2D source;
-
 	vec4 sample_composite() {
-		vec4 source = texture(source, coordinate);
+		vec4 source = texture(source, coordinate) / 255.0;
 		int offset = int(floor(unitPhase * 4.0)) & 3;
 		return vec4(
 			source[offset],
@@ -228,12 +223,11 @@ vec2 boxed(vec2 val) {
 
 #ifdef INPUT_LUMINANCE8_PHASE8
 
-	uniform sampler2D source;
 	#define SYNTHESISE_COMPOSITE
 	#define SYNTHESISE_FROM_RAW_SVIDEO
 
 	vec2 sample_svideo_raw() {
-		vec2 source = texture(source, coordinate).rg;
+		vec2 source = texture(source, coordinate).rg / 255.0;
 		float phaseOffset = source.g * 3.141592654 * 4.0;
 		float chroma = step(source.g, 0.75) * cos(phaseOffset + phase);
 
@@ -249,7 +243,6 @@ vec2 boxed(vec2 val) {
 
 #ifdef INPUT_RED1_GREEN1_BLUE1
 
-	uniform usampler2D source;
 	#define SYNTHESISE_SVIDEO
 	#define SYNTHESISE_COMPOSITE
 
@@ -264,7 +257,6 @@ vec2 boxed(vec2 val) {
 
 #ifdef INPUT_RED2_GREEN2_BLUE2
 
-	uniform usampler2D source;
 	#define SYNTHESISE_SVIDEO
 	#define SYNTHESISE_COMPOSITE
 
@@ -283,7 +275,6 @@ vec2 boxed(vec2 val) {
 
 #ifdef INPUT_RED4_GREEN4_BLUE4
 
-	uniform usampler2D source;
 	#define SYNTHESISE_SVIDEO
 	#define SYNTHESISE_COMPOSITE
 
@@ -302,12 +293,11 @@ vec2 boxed(vec2 val) {
 
 #ifdef INPUT_RED8_GREEN8_BLUE8
 
-	uniform sampler2D source;
 	#define SYNTHESISE_SVIDEO
 	#define SYNTHESISE_COMPOSITE
 
 	vec3 sample_rgb() {
-		return texture(source, coordinate).rgb;
+		return texture(source, coordinate).rgb / 255.0;
 	}
 
 #endif
