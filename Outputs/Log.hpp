@@ -75,6 +75,7 @@ enum class Source {
 	MSX,
 	NCR5380,
 	OpenGL,
+	OpenGLUniforms,
 	PCCompatible,
 	PCPOST,
 	PIC,
@@ -120,6 +121,7 @@ constexpr EnabledLevel enabled_level(const Source source) {
 		case Source::SCSI:
 		case Source::I2C:
 //		case Source::PCPOST:
+		case Source::OpenGLUniforms:
 			return EnabledLevel::None;
 
 		case Source::Floppy:
@@ -167,6 +169,7 @@ constexpr const char *prefix(const Source source) {
 		case Source::MSX:						return "MSX";
 		case Source::NCR5380:					return "5380";
 		case Source::OpenGL:					return "OpenGL";
+		case Source::OpenGLUniforms:			return "OpenGL Uniforms";
 		case Source::Plus4:						return "Plus4";
 		case Source::PCCompatible:				return "PC";
 		case Source::PCPOST:					return "POST";
