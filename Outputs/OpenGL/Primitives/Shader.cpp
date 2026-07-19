@@ -17,6 +17,7 @@ using namespace Outputs::Display::OpenGL;
 namespace {
 thread_local const Shader *bound_shader = nullptr;
 using Logger = Log::Logger<Log::Source::OpenGL>;
+using UniformsLogger = Log::Logger<Log::Source::OpenGLUniforms>;
 }
 
 GLuint Shader::compile_shader(const std::string &source, const GLenum type) {
@@ -228,7 +229,7 @@ requires std::invocable<FuncT, GLint>
 void Shader::with_location(const std::string &name, FuncT &&function) {
 	const GLint location = glGetUniformLocation(shader_program_, name.c_str());
 	if(location == -1) {
-		Logger::error().append("Couldn't get location for uniform %s", name.c_str());
+		UniformsLogger::info().append("Couldn't get location for uniform %s", name.c_str());
 	} else {
 		bind();
 		function(location);
