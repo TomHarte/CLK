@@ -229,7 +229,7 @@ requires std::invocable<FuncT, GLint>
 void Shader::with_location(const std::string &name, FuncT &&function) {
 	const GLint location = glGetUniformLocation(shader_program_, name.c_str());
 	if(location == -1) {
-		UniformsLogger::error().append("Couldn't get location for uniform %s", name.c_str());
+		UniformsLogger::info().append("Couldn't get location for uniform %s", name.c_str());
 	} else {
 		bind();
 		function(location);
