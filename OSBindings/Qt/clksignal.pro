@@ -100,6 +100,7 @@ SOURCES += \
 	$$SRC/Machines/Acorn/Archimedes/*.cpp \
 	$$SRC/Machines/Acorn/BBCMicro/*.cpp \
 	$$SRC/Machines/Acorn/Electron/*.cpp \
+	$$SRC/Machines/Acorn/Floppy/*.cpp \
 	$$SRC/Machines/Amiga/*.cpp \
 	$$SRC/Machines/AmstradCPC/*.cpp \
 	$$SRC/Machines/Apple/ADB/*.cpp \

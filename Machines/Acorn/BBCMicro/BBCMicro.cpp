@@ -17,6 +17,7 @@
 
 #include "Processors/6502Mk2/6502Mk2.hpp"
 
+#include "Machines/Acorn/Floppy/1770.hpp"
 #include "Machines/Acorn/Tube/ULA.hpp"
 #include "Machines/Acorn/Tube/Tube6502.hpp"
 #include "Machines/Acorn/Tube/TubeZ80.hpp"
@@ -28,9 +29,6 @@
 #include "Components/SAA5050/SAA5050.hpp"
 #include "Components/SN76489/SN76489.hpp"
 #include "Components/uPD7002/uPD7002.hpp"
-
-// TODO: factor this more appropriately.
-#include "Machines/Acorn/Electron/Plus3.hpp"
 
 #include "Analyser/Static/Acorn/Target.hpp"
 #include "Outputs/Log.hpp"
@@ -1285,7 +1283,7 @@ private:
 	NEC::uPD7002 adc_;
 
 	// MARK: - WD1770.
-	Electron::Plus3 wd1770_;
+	Acorn::Floppy::Floppy1770 wd1770_;
 	void wd1770_did_change_output(WD::WD1770 &) override {
 		m6502_.template set<CPU::MOS6502Mk2::Line::NMI>(
 			wd1770_.get_interrupt_request_line() || wd1770_.get_data_request_line()

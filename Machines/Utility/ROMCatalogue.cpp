@@ -154,6 +154,14 @@ const std::vector<Description> &Description::all_roms() {
 																						// is on the IO page in the real machine so in practice those
 																						// differences are acceptable.
 		},
+		{
+			AcornPlus1,
+			"Electron",
+			"the Acorn Plus 1 ROM",
+			"plus1.rom",
+			8_kb,
+			0xcff09d2bu
+		},
 
 	//
 	// Amiga.

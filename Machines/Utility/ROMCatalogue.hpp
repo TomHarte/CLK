@@ -33,12 +33,14 @@ enum Name {
 
 	// Acorn Electron.
 	AcornElectronMOS100,
-	PRESADFSSlot1,
-	PRESADFSSlot2,
 	AcornADFS,
-	PRESAdvancedPlus6,
 	Acorn1770DFS,
 	AcornIDEADFS103,
+	AcornPlus1,
+
+	PRESADFSSlot1,
+	PRESADFSSlot2,
+	PRESAdvancedPlus6,
 
 	// Amiga.
 	AmigaKickstart10,
