@@ -21,7 +21,7 @@ inline Nanos nanos_now() {
 	).count();
 }
 
-inline Seconds seconds(Nanos nanos) {
+inline Seconds seconds(const Nanos nanos) {
 	return double(nanos) / 1e9;
 }
 

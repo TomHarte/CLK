@@ -1,7 +1,5 @@
 #include "timer.h"
 
-#include "../../ClockReceiver/TimeTypes.hpp"
-
 #include <algorithm>
 #include <QDebug>
 

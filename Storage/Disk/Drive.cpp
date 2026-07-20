@@ -38,6 +38,8 @@ Drive::Drive(
 		random_source_ <<= 1;
 		random_source_ |= ((randomiser() - randomiser.min()) >= half_range) ? 1 : 0;
 	}
+
+	unformatted_track_ = std::make_unique<UnformattedTrack>();
 }
 
 Drive::Drive(
@@ -122,7 +124,7 @@ void Drive::step(const HeadPosition offset) {
 	did_step(head_position_);
 }
 
-Track *Drive::step_to(const HeadPosition offset) {
+std::shared_ptr<Track> Drive::step_to(const HeadPosition offset) {
 	HeadPosition old_head_position = head_position_;
 	head_position_ = std::max(offset, HeadPosition(0));
 
@@ -369,7 +371,7 @@ void Drive::process_next_event() {
 
 // MARK: - Track management
 
-Track *Drive::get_track() {
+std::shared_ptr<Track> Drive::get_track() {
 	if(disk_) return disk_->track_at_position(Track::Address(head_, head_position_));
 	return nullptr;
 }
@@ -381,7 +383,7 @@ void Drive::set_track(const std::shared_ptr<Track> &track) {
 void Drive::setup_track() {
 	track_ = get_track();
 	if(!track_) {
-		track_ = &unformatted_track_;
+		track_ = unformatted_track_;
 	}
 
 	float offset = 0.0f;
@@ -395,7 +397,7 @@ void Drive::setup_track() {
 
 	// Reseed cycles_since_index_hole_; 99.99% of the time it'll still be correct as is,
 	// but if the track has rounded one way or the other it may now be very slightly adrift.
-	cycles_since_index_hole_ = (int(time_found + offset) * cycles_per_revolution_) % cycles_per_revolution_;
+	cycles_since_index_hole_ = int((time_found + offset) * float(cycles_per_revolution_)) % cycles_per_revolution_;
 
 	get_next_event(offset);
 }
@@ -454,18 +456,17 @@ void Drive::end_writing() {
 	//
 	// "High" is defined as: two samples per clock relative to an idiomatic
 	// 8Mhz disk controller and 300RPM disk speed.
-	const size_t high_resolution_track_rate = 3200000;
+	const size_t high_resolution_track_rate = 3'200'000;
 
 	if(!is_reading_) {
 		is_reading_ = true;
 
 		if(!patched_track_) {
-			// Avoid creating a new patched track if this one is already patched
-//			patched_track_ = dynamic_cast<PCMTrack *>(track_);
-//			if(!patched_track_ || !patched_track_->is_resampled_clone()) {
-				Track *const tr = track_;
-				patched_track_.reset(PCMTrack::resampled_clone(tr, high_resolution_track_rate));
-//			}
+			// Avoid creating a new patched track if this one is already patched.
+			patched_track_ = std::dynamic_pointer_cast<PCMTrack>(track_);
+			if(!patched_track_ || !patched_track_->is_resampled_clone()) {
+				patched_track_.reset(PCMTrack::resampled_clone(track_.get(), high_resolution_track_rate));
+			}
 		}
 		patched_track_->add_segment(write_start_time_, write_segment_, clamp_writing_to_index_hole_);
 		cycles_since_index_hole_ %= cycles_per_revolution_;

@@ -6,6 +6,7 @@
 #include <QThread>
 #include <QTimer>
 
+#include "../../ClockReceiver/TimeTypes.hpp"
 #include "../../Machines/Utility/MachineForTarget.hpp"
 #include "functionthread.h"
 
@@ -25,7 +26,7 @@ class Timer : public QObject
 	private:
 		MachineTypes::TimedMachine *machine = nullptr;
 		std::mutex *machineMutex = nullptr;
-		int64_t lastTickNanos = 0;
+		int64_t lastTickNanos = Time::nanos_now();
 		FunctionThread thread;
 		std::unique_ptr<QTimer> timer;
 };
