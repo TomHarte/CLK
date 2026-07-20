@@ -41,6 +41,13 @@ struct AudioBuffer: public QIODevice {
 		if(readPointer == writePointer || buffer.empty()) return 0;
 
 		const size_t dataAvailable = std::min(writePointer - readPointer, size_t(maxlen));
+		// Suggested by Github's @apenney: zero-fill data to hit maxlen if no data was otherwise available;
+		// this makes it easier for Qt not to constantly stop and start its audio stream.
+		if(!dataAvailable) {
+			std::fill(data, data + maxlen, 0);
+			return maxlen;
+		}
+
 		size_t bytesToCopy = dataAvailable;
 		while(bytesToCopy) {
 			const size_t nextLength = std::min(buffer.size() - (readPointer % buffer.size()), bytesToCopy);
@@ -50,7 +57,6 @@ struct AudioBuffer: public QIODevice {
 			data += nextLength;
 			readPointer += nextLength;
 		}
-
 		return qint64(dataAvailable);
 	}
 
@@ -75,7 +81,7 @@ struct AudioBuffer: public QIODevice {
 		size_t bytesToCopy = sourceSize;
 		auto data = reinterpret_cast<const uint8_t *>(source.data());
 		while(bytesToCopy) {
-			size_t nextLength = std::min(buffer.size() - (writePointer % buffer.size()), bytesToCopy);
+			const size_t nextLength = std::min(buffer.size() - (writePointer % buffer.size()), bytesToCopy);
 			memcpy(&buffer[writePointer % buffer.size()], data, nextLength);
 
 			bytesToCopy -= nextLength;
