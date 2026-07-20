@@ -324,7 +324,7 @@ void MainWindow::launchMachine() {
 	// Install audio output if required.
 	const auto audio_producer = machine->audio_producer();
 	if(audio_producer) {
-		static constexpr size_t samplesPerBuffer = 256;	// TODO: select this dynamically.
+		static constexpr size_t samplesPerBuffer = 1024;	// TODO: select this dynamically.
 		const auto speaker = audio_producer->get_speaker();
 		if(speaker) {
 			QAudioDevice device(QMediaDevices::defaultAudioOutput());
@@ -334,11 +334,10 @@ void MainWindow::launchMachine() {
 				// Use the ideal format's sample rate, provide stereo as long as at least two channels
 				// are available, and — at least for now — assume a good buffer size.
 				audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
+				const auto channelCount = 1 + int(audioIsStereo);
 
-				audioIs8bit = idealFormat.sampleFormat() == QAudioFormat::UInt8;
-
-				idealFormat.setChannelCount(1 + int(audioIsStereo));
-				idealFormat.setSampleFormat(audioIs8bit ? QAudioFormat::UInt8 : QAudioFormat::Int16);
+				idealFormat.setChannelCount(channelCount);
+				idealFormat.setSampleFormat(QAudioFormat::Int16);
 
 				speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
 				speaker->set_delegate(this);
@@ -350,7 +349,7 @@ void MainWindow::launchMachine() {
 
 					// Start the output. The additional `audioBuffer` is meant to minimise latency,
 					// believe it or not, given Qt's semantics.
-					audioOutput->setBufferSize(samplesPerBuffer * sizeof(int16_t));
+					audioOutput->setBufferSize(samplesPerBuffer * sizeof(int16_t) * channelCount);
 					audioOutput->start(&audioBuffer);
 					audioBuffer.setDepth(audioOutput->bufferSize());
 				});

@@ -187,7 +187,7 @@ private:
 
 	uint8_t requests_ = 0;
 	uint8_t in_service_ = 0;
-	uint8_t levels_ = 0;
+	// uint8_t levels_ = 0;
 
 	struct ConfgurationState {
 		int word;
