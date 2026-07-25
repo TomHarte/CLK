@@ -79,9 +79,9 @@ public:
 		}
 	}
 
-	/// Enqueus @c post_action to be performed asynchronously at some point
+	/// Enqueues @c post_action to be performed asynchronously at some point
 	/// in the future. If @c perform_automatically is @c true then the action
-	/// will be performed as soon as possible. Otherwise it will sit unsheculed until
+	/// will be performed as soon as possible. Otherwise it will sit unscheduled until
 	/// a call to @c perform().
 	///
 	/// Actions may be elided.
@@ -92,18 +92,17 @@ public:
 	void enqueue(const std::function<void(void)> &post_action) {
 		const std::lock_guard guard(condition_mutex_);
 		actions_.push_back(post_action);
+		maybe_perform();
+	}
 
-		if constexpr (perform_automatically) {
-			condition_.notify_all();
-		} else {
-			if(actions_.size() > 1000) {
-				condition_.notify_all();
-			}
-		}
+	void enqueue(std::function<void(void)> &&post_action) {
+		const std::lock_guard guard(condition_mutex_);
+		actions_.push_back(std::move(post_action));
+		maybe_perform();
 	}
 
 	/// @returns The number of items currently enqueued.
-	size_t size() {
+	size_t size() const {
 		const std::lock_guard guard(condition_mutex_);
 		return actions_.size();
 	}
@@ -124,7 +123,7 @@ public:
 	/// The queue cannot be restarted; this is a destructive action.
 	void stop() {
 		if(thread_.joinable()) {
-			should_quit_.test_and_set(std::memory_order_relaxed);
+			should_quit_.test_and_set();
 			enqueue([] {});
 			if constexpr (!perform_automatically) {
 				perform();
@@ -166,7 +165,7 @@ public:
 	/// until all scheduled work has been performed, placing a memory barrier
 	/// in between.
 	void spin_flush() {
-		std::atomic_flag has_run;
+		std::atomic_flag has_run{};
 
 		enqueue([&has_run] () {
 			has_run.test_and_set(std::memory_order::release);
@@ -184,6 +183,18 @@ public:
 	}
 
 private:
+	static constexpr size_t MaximumEnqueueActions = 1000;
+
+	void maybe_perform() {
+		if constexpr (perform_automatically) {
+			condition_.notify_all();
+		} else {
+			if(actions_.size() >= MaximumEnqueueActions) {
+				condition_.notify_all();
+			}
+		}
+	}
+
 	void start_impl() {
 		thread_ = std::thread{
 			[this] {
@@ -219,7 +230,7 @@ private:
 
 	// Necessary synchronisation parts.
 	std::atomic_flag should_quit_;
-	std::mutex condition_mutex_;
+	mutable std::mutex condition_mutex_;
 	std::condition_variable condition_;
 
 	// Ensure the thread isn't constructed until after the mutex
