@@ -52,6 +52,10 @@ public:
 		return CastT(value_);
 	}
 
+	IntT get() const {
+		return value_;
+	}
+
 	CircularCounter &operator = (const IntT rhs) {
 		value_ = rhs;
 		return *this;
