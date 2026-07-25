@@ -14,6 +14,7 @@
 #include <array>
 #include <concepts>
 #include <cstdint>
+#include <ranges>
 
 namespace CRC {
 
@@ -67,22 +68,13 @@ public:
 	void set_value(const IntT value) { value_ = value; }
 
 	/*!
-		Calculates the CRC of the provided collection, assuming that it contains `uint8_t`s.
+		Calculates the CRC of the provided range, assuming that it contains `uint8_t`s.
 	*/
-	template <typename Collection>
-	static IntT crc_of(const Collection &data) {
-		return crc_of(data.begin(), data.end());
-	}
-
-	/*!
-		Calculates the CRC of all `uint8_t`s in the range defined by @c begin and @c end.
-	*/
-	template <typename Iterator>
-	static IntT crc_of(Iterator begin, const Iterator end) {
+	template <std::ranges::range R>
+	static IntT crc_of(const R &data) {
 		Generator generator;
-		while(begin != end) {
-			generator.add(*begin);
-			++begin;
+		for(const auto &byte : data) {
+			generator.add(byte);
 		}
 		return generator.get_value();
 	}
