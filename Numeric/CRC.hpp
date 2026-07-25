@@ -12,16 +12,17 @@
 #include "Carry.hpp"
 
 #include <array>
+#include <concepts>
 #include <cstdint>
 
 namespace CRC {
 
 /*! Provides a class capable of generating a CRC from source data. */
 template <
-	typename IntType,
-	IntType polynomial,
-	IntType reset_value,
-	IntType output_xor,
+	std::unsigned_integral IntT,
+	IntT polynomial,
+	IntT reset_value,
+	IntT output_xor,
 	bool reflect_input,
 	bool reflect_output
 >
@@ -34,14 +35,14 @@ public:
 
 	/// Updates the CRC to include @c byte.
 	void add(uint8_t byte) {
-		static constexpr std::array<IntType, 256> xor_table = [] {
-			std::array<IntType, 256> table{};
-			constexpr IntType top_bit = Numeric::top_bit<IntType>();
+		static constexpr std::array<IntT, 256> xor_table = [] {
+			std::array<IntT, 256> table{};
+			constexpr IntT top_bit = Numeric::top_bit<IntT>();
 			for(size_t c = 0; c < 256; c++) {
-				IntType shift_value = IntType(c << multibyte_shift);
+				IntT shift_value = IntT(c << multibyte_shift);
 				for(int b = 0; b < 8; b++) {
-					const IntType exclusive_or = (shift_value & top_bit) ? polynomial : 0;
-					shift_value = IntType(shift_value << 1) ^ exclusive_or;
+					const IntT exclusive_or = (shift_value & top_bit) ? polynomial : 0;
+					shift_value = IntT(shift_value << 1) ^ exclusive_or;
 				}
 				table[c] = shift_value;
 			}
@@ -49,12 +50,12 @@ public:
 		} ();
 
 		if constexpr (reflect_input) byte = Numeric::bit_reverse(byte);
-		value_ = IntType((value_ << 8) ^ xor_table[(value_ >> multibyte_shift) ^ byte]);
+		value_ = IntT((value_ << 8) ^ xor_table[(value_ >> multibyte_shift) ^ byte]);
 	}
 
 	/// @returns The current value of the CRC.
-	IntType get_value() const {
-		const IntType result = value_ ^ output_xor;
+	IntT get_value() const {
+		const IntT result = value_ ^ output_xor;
 		if constexpr (reflect_output) {
 			return Numeric::bit_reverse(result);
 		} else {
@@ -63,13 +64,13 @@ public:
 	}
 
 	/// Sets the current value of the CRC.
-	void set_value(const IntType value) { value_ = value; }
+	void set_value(const IntT value) { value_ = value; }
 
 	/*!
 		Calculates the CRC of the provided collection, assuming that it contains `uint8_t`s.
 	*/
 	template <typename Collection>
-	static IntType crc_of(const Collection &data) {
+	static IntT crc_of(const Collection &data) {
 		return crc_of(data.begin(), data.end());
 	}
 
@@ -77,7 +78,7 @@ public:
 		Calculates the CRC of all `uint8_t`s in the range defined by @c begin and @c end.
 	*/
 	template <typename Iterator>
-	static IntType crc_of(Iterator begin, const Iterator end) {
+	static IntT crc_of(Iterator begin, const Iterator end) {
 		Generator generator;
 		while(begin != end) {
 			generator.add(*begin);
@@ -87,8 +88,8 @@ public:
 	}
 
 private:
-	static constexpr int multibyte_shift = (sizeof(IntType) * 8) - 8;
-	IntType value_;
+	static constexpr int multibyte_shift = (sizeof(IntT) * 8) - 8;
+	IntT value_;
 };
 
 /*!

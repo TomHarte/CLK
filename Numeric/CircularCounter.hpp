@@ -52,7 +52,12 @@ public:
 		return CastT(value_);
 	}
 
+	IntT get() const {
+		return value_;
+	}
+
 	CircularCounter &operator = (const IntT rhs) {
+		assert(rhs < limit);
 		value_ = rhs;
 		return *this;
 	}

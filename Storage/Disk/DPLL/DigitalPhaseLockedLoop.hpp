@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "ClockReceiver/ClockReceiver.hpp"
+#include "Numeric/CircularCounter.hpp"
 
 namespace Storage {
 
@@ -78,20 +79,20 @@ private:
 
 	void post_phase_offset(Cycles::IntType new_phase, Cycles::IntType new_offset) {
 		// Erase the effect of whatever is currently in this slot.
-		total_divisor_ -= offset_history_[offset_history_pointer_].divisor;
-		total_spacing_ -= offset_history_[offset_history_pointer_].spacing;
+		total_divisor_ -= offset_history_[offset_history_pointer_.get()].divisor;
+		total_spacing_ -= offset_history_[offset_history_pointer_.get()].spacing;
 
 		// Fill in the new fields.
 		const auto multiple = std::max((new_offset + (clocks_per_bit_ >> 1)) / clocks_per_bit_, Cycles::IntType(1));
-		offset_history_[offset_history_pointer_].divisor = multiple;
-		offset_history_[offset_history_pointer_].spacing = new_offset;
+		offset_history_[offset_history_pointer_.get()].divisor = multiple;
+		offset_history_[offset_history_pointer_.get()].spacing = new_offset;
 
 		// Add in the new values;
-		total_divisor_ += offset_history_[offset_history_pointer_].divisor;
-		total_spacing_ += offset_history_[offset_history_pointer_].spacing;
+		total_divisor_ += offset_history_[offset_history_pointer_.get()].divisor;
+		total_spacing_ += offset_history_[offset_history_pointer_.get()].spacing;
 
 		// Advance the write slot.
-		offset_history_pointer_ = (offset_history_pointer_ + 1) % offset_history_.size();
+		++offset_history_pointer_;
 
 #ifndef NDEBUG
 		Cycles::IntType td = 0, ts = 0;
@@ -104,7 +105,7 @@ private:
 #endif
 
 		// In net: use an unweighted average of the stored offsets to compute current window size,
-		// bucketing them by rounding to the nearest multiple of the base clocks per bit
+		// bucketing them by rounding to the nearest multiple of the base clocks per bit.
 		window_length_ = std::max(total_spacing_ / total_divisor_, Cycles::IntType(1));
 
 		// Also apply a difference to phase, use a simple spring mechanism as a lowpass filter.
@@ -116,7 +117,7 @@ private:
 		Cycles::IntType divisor = 1, spacing = 1;
 	};
 	std::array<LoggedOffset, length_of_history> offset_history_;
-	std::size_t offset_history_pointer_ = 0;
+	Numeric::CircularCounter<size_t, length_of_history> offset_history_pointer_;
 
 	Cycles::IntType total_spacing_ = length_of_history;
 	Cycles::IntType total_divisor_ = length_of_history;
