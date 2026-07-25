@@ -102,7 +102,7 @@ public:
 	}
 
 	/// @returns The number of items currently enqueued.
-	size_t size() {
+	size_t size() const {
 		const std::lock_guard guard(condition_mutex_);
 		return actions_.size();
 	}
@@ -230,7 +230,7 @@ private:
 
 	// Necessary synchronisation parts.
 	std::atomic_flag should_quit_;
-	std::mutex condition_mutex_;
+	mutable std::mutex condition_mutex_;
 	std::condition_variable condition_;
 
 	// Ensure the thread isn't constructed until after the mutex
