@@ -124,7 +124,7 @@ public:
 	/// The queue cannot be restarted; this is a destructive action.
 	void stop() {
 		if(thread_.joinable()) {
-			should_quit_.test_and_set(std::memory_order_relaxed);
+			should_quit_.test_and_set();
 			enqueue([] {});
 			if constexpr (!perform_automatically) {
 				perform();
