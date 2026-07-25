@@ -57,6 +57,7 @@ public:
 	}
 
 	CircularCounter &operator = (const IntT rhs) {
+		assert(rhs < limit);
 		value_ = rhs;
 		return *this;
 	}
