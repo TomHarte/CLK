@@ -166,7 +166,7 @@ public:
 	/// until all scheduled work has been performed, placing a memory barrier
 	/// in between.
 	void spin_flush() {
-		std::atomic_flag has_run;
+		std::atomic_flag has_run{};
 
 		enqueue([&has_run] () {
 			has_run.test_and_set(std::memory_order::release);
