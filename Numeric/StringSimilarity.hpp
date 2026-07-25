@@ -38,7 +38,7 @@ inline double similarity(std::string_view first, std::string_view second) {
 
 	const auto first_pairs = pairs(first);
 	const auto second_pairs = pairs(second);
-	if(!first_pairs.size() && !second_pairs.size()) {
+	if(first_pairs.empty() || second_pairs.empty()) {
 		return 0.0;
 	}
 
