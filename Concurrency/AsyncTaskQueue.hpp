@@ -14,6 +14,7 @@
 #include <thread>
 #include <vector>
 
+#include "SmallCallable.hpp"
 #include "ClockReceiver/TimeTypes.hpp"
 
 namespace Concurrency {
@@ -89,15 +90,10 @@ public:
 	/// If this TaskQueue has a @c Performer then the action will be performed
 	/// on the same thread as the performer, after the performer has been updated
 	/// to 'now'.
-	void enqueue(const std::function<void(void)> &post_action) {
+	template <typename FuncT>
+	void enqueue(FuncT &&post_action) {
 		const std::lock_guard guard(condition_mutex_);
 		actions_.push_back(post_action);
-		maybe_perform();
-	}
-
-	void enqueue(std::function<void(void)> &&post_action) {
-		const std::lock_guard guard(condition_mutex_);
-		actions_.push_back(std::move(post_action));
 		maybe_perform();
 	}
 
