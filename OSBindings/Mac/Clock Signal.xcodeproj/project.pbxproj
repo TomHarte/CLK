@@ -1972,6 +1972,7 @@
 		4B894516201967B4007DE474 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4B894517201967B4007DE474 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4B894540201967D6007DE474 /* Machines.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Machines.hpp; sourceTree = "<group>"; };
+		4B89C46330163085004BDC5D /* SmallCallable.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SmallCallable.hpp; sourceTree = "<group>"; };
 		4B8A7E85212F988200F2BBC6 /* DeferredQueue.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DeferredQueue.hpp; sourceTree = "<group>"; };
 		4B8D287E1F77207100645199 /* TrackSerialiser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TrackSerialiser.hpp; sourceTree = "<group>"; };
 		4B8DD3672633B2D400B3C866 /* SpectrumVideoContentionTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SpectrumVideoContentionTests.mm; sourceTree = "<group>"; };
@@ -3395,6 +3396,7 @@
 			isa = PBXGroup;
 			children = (
 				4B3940E61DA83C8300427841 /* AsyncTaskQueue.hpp */,
+				4B89C46330163085004BDC5D /* SmallCallable.hpp */,
 				4B56172C2F40D446003CB7FE /* SpinLock.hpp */,
 			);
 			name = Concurrency;

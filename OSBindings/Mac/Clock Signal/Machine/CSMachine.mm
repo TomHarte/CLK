@@ -388,14 +388,14 @@ struct ActivityObserver: public Activity::Observer {
 	if(!updater) return;
 
 	__weak CSMachine *weakSelf = self;
-	updater->enqueue([weakSelf, updater, media] {
-
+	auto media_copy = std::make_shared<Analyser::Static::Media>(media);
+	updater->enqueue([weakSelf, updater, media_copy] {
 		auto strongSelf = weakSelf;
 		if(!strongSelf) return;
 
 		@synchronized(strongSelf) {
 			const auto mediaTarget = strongSelf->_machine->media_target();
-			if(mediaTarget) mediaTarget->insert_media(media);
+			if(mediaTarget) mediaTarget->insert_media(*media_copy);
 		}
 	});
 }
