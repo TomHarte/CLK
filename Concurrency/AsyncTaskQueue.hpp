@@ -95,10 +95,10 @@ public:
 		actions_.emplace_back(std::forward<FuncT>(action));
 
 		if constexpr (perform_automatically) {
-			condition_.notify_all();
+			condition_.notify_one();
 		} else {
 			if(actions_.size() >= MaximumEnqueueActions) {
-				condition_.notify_all();
+				condition_.notify_one();
 			}
 		}
 	}
@@ -116,7 +116,7 @@ public:
 		if(actions_.empty()) {
 			return;
 		}
-		condition_.notify_all();
+		condition_.notify_one();
 	}
 
 	/// Permanently stops this task queue, blocking until that has happened.
@@ -153,7 +153,7 @@ public:
 		enqueue([&flush_mutex, &flush_condition, &has_run] () {
 			std::unique_lock inner_lock(flush_mutex);
 			has_run = true;
-			flush_condition.notify_all();
+			flush_condition.notify_one();
 		});
 
 		if constexpr (!perform_automatically) {
