@@ -91,7 +91,7 @@ public:
 				coefficients[2] = -alpha;
 				magnitude = 1.0f + alpha;
 				coefficients[3] = -2.0f * cos_w0;
-				coefficients[0] = 1.0f - alpha;
+				coefficients[4] = 1.0f - alpha;
 			break;
 
 			case Type::Notch:
