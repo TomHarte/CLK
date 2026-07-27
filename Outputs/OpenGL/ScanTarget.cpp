@@ -349,11 +349,6 @@ void ScanTarget::setup_pipeline() {
 	existing_modals_ = modals;
 }
 
-bool ScanTarget::is_soft_display_type() {
-	const auto display_type = modals().display_type;
-	return display_type == DisplayType::CompositeColour || display_type == DisplayType::CompositeMonochrome;
-}
-
 void ScanTarget::update(const int output_width, const int output_height) {
 	// If the GPU is still busy, don't wait; we'll catch it next time.
 	if(fence_ != nullptr) {
