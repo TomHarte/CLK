@@ -79,25 +79,20 @@ public:
 		}
 	}
 
-	/// Enqueues @c post_action to be performed asynchronously at some point
+	/// Enqueues @c action to be performed asynchronously at some point
 	/// in the future. If @c perform_automatically is @c true then the action
-	/// will be performed as soon as possible. Otherwise it will sit unscheduled until
-	/// a call to @c perform().
+	/// will be performed as soon as possible. Otherwise it will sit enqueued but
+	/// unscheduled until a call to @c perform().
 	///
 	/// Actions may be elided.
 	///
 	/// If this TaskQueue has a @c Performer then the action will be performed
 	/// on the same thread as the performer, after the performer has been updated
 	/// to 'now'.
-	void enqueue(const std::function<void(void)> &post_action) {
+	template <typename FuncT>
+	void enqueue(FuncT &&action) {
 		const std::lock_guard guard(condition_mutex_);
-		actions_.push_back(post_action);
-		maybe_perform();
-	}
-
-	void enqueue(std::function<void(void)> &&post_action) {
-		const std::lock_guard guard(condition_mutex_);
-		actions_.push_back(std::move(post_action));
+		actions_.emplace_back(std::forward<FuncT>(action));
 		maybe_perform();
 	}
 
