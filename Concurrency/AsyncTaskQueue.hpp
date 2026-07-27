@@ -93,7 +93,14 @@ public:
 	void enqueue(FuncT &&action) {
 		const std::lock_guard guard(condition_mutex_);
 		actions_.emplace_back(std::forward<FuncT>(action));
-		maybe_perform();
+
+		if constexpr (perform_automatically) {
+			condition_.notify_all();
+		} else {
+			if(actions_.size() >= MaximumEnqueueActions) {
+				condition_.notify_all();
+			}
+		}
 	}
 
 	/// @returns The number of items currently enqueued.
@@ -179,16 +186,6 @@ public:
 
 private:
 	static constexpr size_t MaximumEnqueueActions = 1000;
-
-	void maybe_perform() {
-		if constexpr (perform_automatically) {
-			condition_.notify_all();
-		} else {
-			if(actions_.size() >= MaximumEnqueueActions) {
-				condition_.notify_all();
-			}
-		}
-	}
 
 	void start_impl() {
 		thread_ = std::thread{
