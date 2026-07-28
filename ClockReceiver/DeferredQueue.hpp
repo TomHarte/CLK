@@ -19,7 +19,8 @@ public:
 	/*!
 		Schedules @c action to occur in @c delay units of time.
 	*/
-	void defer(TimeUnit delay, const std::function<void(void)> &action) {
+	template <typename FuncT>
+	void defer(TimeUnit delay, FuncT &&action) {
 		// Apply immediately if there's no delay (or a negative delay).
 		if(delay <= TimeUnit(0)) {
 			action();
@@ -100,7 +101,8 @@ private:
 template <typename TimeUnit> class DeferredQueuePerformer: public DeferredQueue<TimeUnit> {
 public:
 	/// Constructs a DeferredQueue that will call target(period) in between deferred actions.
-	constexpr DeferredQueuePerformer(std::function<void(TimeUnit)> &&target) : target_(std::move(target)) {}
+	template <typename FuncT>
+	constexpr DeferredQueuePerformer(FuncT &&target) : target_(std::forward<FuncT>(target)) {}
 
 	/*!
 		Runs for @c length units of time.
