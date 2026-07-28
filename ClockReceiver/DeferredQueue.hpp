@@ -41,9 +41,9 @@ public:
 				insertion_point->delay -= delay;
 			}
 
-			pending_actions_.emplace(insertion_point, delay, action);
+			pending_actions_.emplace(insertion_point, delay, std::forward<FuncT>(action));
 		} else {
-			pending_actions_.emplace_back(delay, action);
+			pending_actions_.emplace_back(delay, std::forward<FuncT>(action));
 		}
 	}
 
