@@ -116,16 +116,25 @@ public:
 		The constructor-supplied target will be called with one or more periods that add up to @c length;
 		any scheduled actions will be called between periods.
 	*/
-	void run_for(TimeUnit length) {
-		auto time_to_next = DeferredQueue<TimeUnit>::time_until_next_action();
-		while(time_to_next != TimeUnit(-1) && time_to_next <= length) {
-			target_(time_to_next);
-			length -= time_to_next;
-			DeferredQueue<TimeUnit>::advance(time_to_next);
-		}
+	void run_for(const TimeUnit length) {
+		const auto update = [this](const TimeUnit period) {
+			target_(period);
+			DeferredQueue<TimeUnit>::advance(period);
+		};
 
-		DeferredQueue<TimeUnit>::advance(length);
-		target_(length);
+		auto length_remaining = length;
+		while(true) {
+			const auto time_to_next = DeferredQueue<TimeUnit>::time_until_next_action();
+			if(time_to_next == TimeUnit(-1) || time_to_next > length_remaining) {
+				if(length_remaining > TimeUnit(0)) {
+					update(length_remaining);
+				}
+				break;
+			}
+
+			length_remaining -= time_to_next;
+			update(time_to_next);
+		}
 	}
 
 private:
