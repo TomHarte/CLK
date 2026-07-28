@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <concepts>
 #include <functional>
 #include <vector>
 
@@ -20,6 +21,7 @@ public:
 		Schedules @c action to occur in @c delay units of time.
 	*/
 	template <typename FuncT>
+	requires std::invocable<FuncT>
 	void defer(TimeUnit delay, FuncT &&action) {
 		// Apply immediately if there's no delay (or a negative delay).
 		if(delay <= TimeUnit(0)) {
@@ -57,12 +59,13 @@ public:
 	/*!
 		Advances the queue the specified amount of time, performing any actions it reaches.
 	*/
-	void advance(TimeUnit time) {
+	void advance(const TimeUnit time) {
+		auto remaining_time = time;
 		auto erase_iterator = pending_actions_.begin();
 		while(erase_iterator != pending_actions_.end()) {
-			erase_iterator->delay -= time;
+			erase_iterator->delay -= remaining_time;
 			if(erase_iterator->delay <= TimeUnit(0)) {
-				time = -erase_iterator->delay;
+				remaining_time = -erase_iterator->delay;
 				erase_iterator->action();
 				++erase_iterator;
 			} else {
@@ -102,6 +105,7 @@ template <typename TimeUnit> class DeferredQueuePerformer: public DeferredQueue<
 public:
 	/// Constructs a DeferredQueue that will call target(period) in between deferred actions.
 	template <typename FuncT>
+	requires std::invocable<FuncT, TimeUnit>
 	constexpr DeferredQueuePerformer(FuncT &&target) : target_(std::forward<FuncT>(target)) {}
 
 	/*!
