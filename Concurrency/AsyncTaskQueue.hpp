@@ -9,6 +9,7 @@
 #pragma once
 
 #include <atomic>
+#include <concepts>
 #include <condition_variable>
 #include <functional>
 #include <thread>
@@ -90,6 +91,7 @@ public:
 	/// on the same thread as the performer, after the performer has been updated
 	/// to 'now'.
 	template <typename FuncT>
+	requires std::invocable<FuncT>
 	void enqueue(FuncT &&action) {
 		const std::lock_guard guard(condition_mutex_);
 		actions_.emplace_back(std::forward<FuncT>(action));
