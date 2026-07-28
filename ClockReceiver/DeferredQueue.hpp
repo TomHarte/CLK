@@ -91,7 +91,7 @@ private:
 		template <typename FuncT>
 		requires std::invocable<FuncT>
 		DeferredAction(TimeUnit delay, FuncT &&action) :
-			delay(delay), action(std::move(action)) {}
+			delay(delay), action(std::forward<FuncT>(action)) {}
 	};
 	std::vector<DeferredAction> pending_actions_;
 };
