@@ -88,7 +88,9 @@ private:
 		TimeUnit delay;
 		std::function<void(void)> action;
 
-		DeferredAction(TimeUnit delay, const std::function<void(void)> &action) :
+		template <typename FuncT>
+		requires std::invocable<FuncT>
+		DeferredAction(TimeUnit delay, FuncT &&action) :
 			delay(delay), action(std::move(action)) {}
 	};
 	std::vector<DeferredAction> pending_actions_;
