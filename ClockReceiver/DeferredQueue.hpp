@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <concepts>
 #include <functional>
 #include <vector>
 
@@ -19,7 +20,9 @@ public:
 	/*!
 		Schedules @c action to occur in @c delay units of time.
 	*/
-	void defer(TimeUnit delay, const std::function<void(void)> &action) {
+	template <typename FuncT>
+	requires std::invocable<FuncT>
+	void defer(TimeUnit delay, FuncT &&action) {
 		// Apply immediately if there's no delay (or a negative delay).
 		if(delay <= TimeUnit(0)) {
 			action();
@@ -38,9 +41,9 @@ public:
 				insertion_point->delay -= delay;
 			}
 
-			pending_actions_.emplace(insertion_point, delay, action);
+			pending_actions_.emplace(insertion_point, delay, std::forward<FuncT>(action));
 		} else {
-			pending_actions_.emplace_back(delay, action);
+			pending_actions_.emplace_back(delay, std::forward<FuncT>(action));
 		}
 	}
 
@@ -56,12 +59,13 @@ public:
 	/*!
 		Advances the queue the specified amount of time, performing any actions it reaches.
 	*/
-	void advance(TimeUnit time) {
+	void advance(const TimeUnit time) {
+		auto remaining_time = time;
 		auto erase_iterator = pending_actions_.begin();
 		while(erase_iterator != pending_actions_.end()) {
-			erase_iterator->delay -= time;
+			erase_iterator->delay -= remaining_time;
 			if(erase_iterator->delay <= TimeUnit(0)) {
-				time = -erase_iterator->delay;
+				remaining_time = -erase_iterator->delay;
 				erase_iterator->action();
 				++erase_iterator;
 			} else {
@@ -84,8 +88,10 @@ private:
 		TimeUnit delay;
 		std::function<void(void)> action;
 
-		DeferredAction(TimeUnit delay, const std::function<void(void)> &action) :
-			delay(delay), action(std::move(action)) {}
+		template <typename FuncT>
+		requires std::invocable<FuncT>
+		DeferredAction(TimeUnit delay, FuncT &&action) :
+			delay(delay), action(std::forward<FuncT>(action)) {}
 	};
 	std::vector<DeferredAction> pending_actions_;
 };
@@ -100,7 +106,9 @@ private:
 template <typename TimeUnit> class DeferredQueuePerformer: public DeferredQueue<TimeUnit> {
 public:
 	/// Constructs a DeferredQueue that will call target(period) in between deferred actions.
-	constexpr DeferredQueuePerformer(std::function<void(TimeUnit)> &&target) : target_(std::move(target)) {}
+	template <typename FuncT>
+	requires std::invocable<FuncT, TimeUnit>
+	constexpr DeferredQueuePerformer(FuncT &&target) : target_(std::forward<FuncT>(target)) {}
 
 	/*!
 		Runs for @c length units of time.
@@ -108,16 +116,25 @@ public:
 		The constructor-supplied target will be called with one or more periods that add up to @c length;
 		any scheduled actions will be called between periods.
 	*/
-	void run_for(TimeUnit length) {
-		auto time_to_next = DeferredQueue<TimeUnit>::time_until_next_action();
-		while(time_to_next != TimeUnit(-1) && time_to_next <= length) {
-			target_(time_to_next);
-			length -= time_to_next;
-			DeferredQueue<TimeUnit>::advance(time_to_next);
-		}
+	void run_for(const TimeUnit length) {
+		const auto update = [this](const TimeUnit period) {
+			target_(period);
+			DeferredQueue<TimeUnit>::advance(period);
+		};
 
-		DeferredQueue<TimeUnit>::advance(length);
-		target_(length);
+		auto length_remaining = length;
+		while(true) {
+			const auto time_to_next = DeferredQueue<TimeUnit>::time_until_next_action();
+			if(time_to_next == TimeUnit(-1) || time_to_next > length_remaining) {
+				if(length_remaining > TimeUnit(0)) {
+					update(length_remaining);
+				}
+				break;
+			}
+
+			length_remaining -= time_to_next;
+			update(time_to_next);
+		}
 	}
 
 private:
