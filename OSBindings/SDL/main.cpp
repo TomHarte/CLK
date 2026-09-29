@@ -930,16 +930,25 @@ int main(int argc, char *argv[]) {
 
 	// Try to get an OpenGL ES context first; this is preferable since it's slightly more direct in driver terms on
 	// Wayland, and is hardware accelerated on Raspberry Pis and similar whereas regular OpenGL isn't necessarily.
+	//
+	// Not on the Mac: there SDL (via sdl2-compat on SDL3, at least) can hand back an ES
+	// context whose GLSL ES shaders then fail to compile, and the 3.2 fallback below is
+	// never reached. macOS supports 3.2 core directly.
+#if !defined(__APPLE__)
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 	create_window();
+#endif
 
 	if(!window || !gl_context) {
 		// Fallback: OpenGL 3.2. This might be supported even if ES isn't, e.g. on the Mac.
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+#if defined(__APPLE__)
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+#endif
 		create_window();
 	}
 
