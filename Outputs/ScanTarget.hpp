@@ -191,6 +191,9 @@ enum class DisplayType {
 	CompositeMonochrome
 };
 
+constexpr bool is_colour(const DisplayType type) {
+	return type != DisplayType::CompositeMonochrome;
+}
 constexpr bool is_composite(const DisplayType type) {
 	return type == DisplayType::CompositeColour || type == DisplayType::CompositeMonochrome;
 }
@@ -329,18 +332,28 @@ constexpr inline DisplayType natural_display_type_for_data_type(const InputDataT
 	}
 }
 
-/// @returns A 3x3 matrix in row-major order to convert from @c colour_space to RGB.
-inline std::array<float, 9> to_rgb_matrix(const ColourSpace colour_space) {
+/// @returns A 3x3 matrix in row-major order to convert from @c colour_space to RGB;
+/// will produce monochrome output if @c is_colour_display is @c false.
+inline std::array<float, 9> to_rgb_matrix(const ColourSpace colour_space, const bool is_colour_display) {
 	static constexpr std::array<float, 9> yiq_to_rgb = {
 		1.0f, 1.0f, 1.0f,
 		0.956f, -0.272f, -1.106f,
 		0.621f, -0.647f, 1.703f
+	};
+	static constexpr std::array<float, 9> monochrome = {
+		1.0f, 1.0f, 1.0f,
+		0.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.0f,
 	};
 	static constexpr std::array<float, 9> yuv_to_rgb = {
 		1.0f, 1.0f, 1.0f,
 		0.0f, -0.39465f, 2.03211f,
 		1.13983f, -0.58060f, 0.0f
 	};
+
+	if(!is_colour_display) {
+		return monochrome;
+	}
 
 	switch(colour_space) {
 		case ColourSpace::YIQ:	return yiq_to_rgb;
