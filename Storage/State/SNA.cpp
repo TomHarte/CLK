@@ -99,7 +99,7 @@ std::unique_ptr<Analyser::Static::Target> SNA::load(const std::string &file_name
 	std::vector<uint8_t> base_ram = state->ram;
 	state->ram.resize(128 * 1024);
 
-	// 48k pages are 5, n and 8.
+	// 48k pages are 5, 2 and whatever port 7ffd was told, in that order.
 	const auto paged_bank = state->last_7ffd & 7;
 	const auto copy_to = [&](auto start, const size_t page) {
 		std::copy(start, start + 0x4000, &state->ram[page * 0x4000]);
