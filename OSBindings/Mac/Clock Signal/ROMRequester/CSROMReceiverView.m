@@ -7,6 +7,7 @@
 //
 
 #import "CSROMReceiverView.h"
+@import UniformTypeIdentifiers;
 
 @interface CSROMReceiverView () <NSDraggingDestination>
 @end
@@ -18,7 +19,7 @@
 	[super awakeFromNib];
 
 	// Accept file URLs by drag and drop.
-	[self registerForDraggedTypes:@[(__bridge NSString *)kUTTypeFileURL]];
+	[self registerForDraggedTypes:@[UTTypeFileURL.identifier]];
 }
 
 #pragma mark - NSDraggingDestination
@@ -26,7 +27,7 @@
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender {
 	// Just forward the URLs.
 	for(NSPasteboardItem *item in [[sender draggingPasteboard] pasteboardItems]) {
-		NSURL *URL = [NSURL URLWithString:[item stringForType:(__bridge NSString *)kUTTypeFileURL]];
+		NSURL *URL = [NSURL URLWithString:[item stringForType:UTTypeFileURL.identifier]];
 		[self.delegate romReceiverView:self didReceiveFileAtURL:URL];
 	}
 	return YES;

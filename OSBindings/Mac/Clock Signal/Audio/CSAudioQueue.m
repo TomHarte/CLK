@@ -204,7 +204,7 @@ static BOOL IsDry(int x) { return x < 2; }
 	AudioObjectPropertyAddress address;
 	address.mSelector = kAudioHardwarePropertyDefaultOutputDevice;
 	address.mScope = kAudioObjectPropertyScopeGlobal;
-	address.mElement = kAudioObjectPropertyElementMaster;
+	address.mElement = kAudioObjectPropertyElementMain;
 
 	AudioDeviceID deviceID;
 	UInt32 size = sizeof(AudioDeviceID);
@@ -215,7 +215,7 @@ static BOOL IsDry(int x) { return x < 2; }
 	AudioObjectPropertyAddress address;
 	address.mSelector = kAudioDevicePropertyNominalSampleRate;
 	address.mScope = kAudioObjectPropertyScopeGlobal;
-	address.mElement = kAudioObjectPropertyElementMaster;
+	address.mElement = kAudioObjectPropertyElementMain;
 
 	Float64 samplingRate;
 	UInt32 size = sizeof(Float64);
