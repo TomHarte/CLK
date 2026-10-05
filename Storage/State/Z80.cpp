@@ -19,7 +19,7 @@ using namespace Storage::State;
 
 namespace {
 
-std::vector<uint8_t> read_memory(Storage::FileHolder &file, size_t size, bool is_compressed) {
+std::vector<uint8_t> read_memory(Storage::FileHolder &file, const size_t size, const bool is_compressed) {
 	if(!is_compressed) {
 		return file.read(size);
 	}
