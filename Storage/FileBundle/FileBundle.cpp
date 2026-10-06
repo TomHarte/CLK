@@ -21,6 +21,7 @@ LocalFSFileBundle::LocalFSFileBundle(const std::filesystem::path &to_contain) {
 		set_base_path(to_contain);
 	} else {
 		set_base_path(to_contain.parent_path());
+		key_file_ = to_contain.filename();
 	}
 }
 
