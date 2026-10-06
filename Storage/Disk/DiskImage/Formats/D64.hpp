@@ -21,8 +21,6 @@ namespace Storage::Disk {
 class D64: public DiskImage {
 public:
 	/*!
-		Construct a @c D64 containing content from the file with name @c file_name.
-
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain a .D64 format image.
 	*/

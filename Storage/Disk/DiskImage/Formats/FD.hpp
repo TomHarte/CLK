@@ -20,8 +20,6 @@ namespace Storage::Disk {
 class FD: public MFMSectorDump {
 public:
 	/*!
-		Construct an @c FD containing content from the file with name @c file_name.
-
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain a .FD format image.
 	*/

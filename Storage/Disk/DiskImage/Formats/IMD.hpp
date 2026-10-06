@@ -23,8 +23,6 @@ namespace Storage::Disk {
 class IMD: public DiskImage {
 public:
 	/*!
-		Construct an @c IMD containing content from the file with name @c file_name.
-
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain an Acorn .ADF format image.
 	*/

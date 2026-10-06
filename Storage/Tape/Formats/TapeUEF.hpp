@@ -25,8 +25,6 @@ namespace Storage::Tape {
 class UEF : public Tape, public TargetPlatform::Distinguisher {
 public:
 	/*!
-		Constructs a @c UEF containing content from the file with name @c file_name.
-
 		@throws ErrorNotUEF if this file could not be opened and recognised as a valid UEF.
 	*/
 	UEF(const std::filesystem::path &);

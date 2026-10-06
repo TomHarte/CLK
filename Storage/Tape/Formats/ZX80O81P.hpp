@@ -25,8 +25,6 @@ namespace Storage::Tape {
 class ZX80O81P: public Tape, public TargetPlatform::Distinguisher {
 public:
 	/*!
-		Constructs a @c ZX80O containing content from the file with name @c file_name.
-
 		@throws ErrorNotZX80O81P if this file could not be opened and recognised as a valid ZX80-format .O.
 	*/
 	ZX80O81P(const std::filesystem::path &);

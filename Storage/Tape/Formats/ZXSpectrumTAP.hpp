@@ -23,8 +23,6 @@ namespace Storage::Tape {
 class ZXSpectrumTAP: public Tape {
 public:
 	/*!
-		Constructs a @c ZXSpectrumTAP containing content from the file with name @c file_name.
-
 		@throws ErrorNotZXSpectrumTAP if this file could not be opened and recognised as a valid Spectrum-format TAP.
 	*/
 	ZXSpectrumTAP(const std::filesystem::path &);

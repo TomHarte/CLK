@@ -24,8 +24,6 @@ namespace Storage::Disk {
 class CPCDSK: public DiskImage {
 public:
 	/*!
-		Construct a @c CPCDSK containing content from the file with name @c file_name.
-
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain an Acorn .ADF format image.
 	*/

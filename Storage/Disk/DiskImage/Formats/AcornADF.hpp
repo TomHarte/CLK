@@ -21,8 +21,6 @@ namespace Storage::Disk {
 class AcornADF: public MFMSectorDump {
 public:
 	/*!
-		Construct an @c AcornADF containing content from the file with name @c file_name.
-
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain an Acorn .ADF format image.
 	*/

@@ -48,7 +48,7 @@ public:
 	~FileHolder();
 
 	/*!
-		Attempts to open the file indicated by @c file_name. @c ideal_mode nominates how the file would
+		Attempts to open the file indicated. @c ideal_mode nominates how the file would
 		most ideally be opened. It can be one of:
 
 			ReadWrite	attempt to open this file for random access reading and writing. If that fails,

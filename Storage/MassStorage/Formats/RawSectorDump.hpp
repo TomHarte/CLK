@@ -12,13 +12,14 @@
 #include "Storage/FileHolder.hpp"
 
 #include <cassert>
+#include <filesystem>
 
 namespace Storage::MassStorage {
 
 template <long sector_size> class RawSectorDump: public MassStorageDevice {
 public:
-	RawSectorDump(const std::string &file_name, long offset = 0, long length = -1) :
-		file_(file_name),
+	RawSectorDump(const std::filesystem::path &path, long offset = 0, long length = -1) :
+		file_(path),
 		file_size_((length == -1) ? long(file_.stats().st_size) : length),
 		file_start_(offset)
 	{

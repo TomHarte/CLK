@@ -20,8 +20,6 @@ namespace Storage::Disk {
 class SSD: public MFMSectorDump {
 public:
 	/*!
-		Construct an @c SSD containing content from the file with name @c file_name.
-
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain a .SSD format image.
 	*/

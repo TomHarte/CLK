@@ -22,8 +22,6 @@ namespace Storage::Tape {
 class OricTAP: public Tape {
 public:
 	/*!
-		Constructs an @c OricTAP containing content from the file with name @c file_name.
-
 		@throws ErrorNotOricTAP if this file could not be opened and recognised as a valid Oric-format TAP.
 	*/
 	OricTAP(const std::filesystem::path &);
