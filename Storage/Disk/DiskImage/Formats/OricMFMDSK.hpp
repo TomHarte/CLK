@@ -11,6 +11,7 @@
 #include "Storage/Disk/DiskImage/DiskImage.hpp"
 #include "Storage/FileHolder.hpp"
 
+#include <filesystem>
 #include <string>
 
 namespace Storage::Disk {
@@ -21,17 +22,17 @@ namespace Storage::Disk {
 class OricMFMDSK: public DiskImage {
 public:
 	/*!
-		Construct an @c OricMFMDSK containing content from the file with name @c file_name.
+		Construct an @c OricMFMDSK containing content from the file at the supplied path.
 
 		@throws ErrorNotOricMFMDSK if the file doesn't appear to contain an Oric MFM format image.
 	*/
-	OricMFMDSK(const std::string &file_name);
+	OricMFMDSK(const std::filesystem::path &);
 
 	// implemented to satisfy @c DiskImage
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
 	bool is_read_only() const;
-	bool represents(const std::string &) const;
+	bool represents(const std::filesystem::path &) const;
 
 	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
 	std::unique_ptr<Track> track_at_position(Track::Address) const;

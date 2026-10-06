@@ -12,6 +12,7 @@
 #include "Storage/FileHolder.hpp"
 #include "Storage/Disk/Encodings/MFM/Constants.hpp"
 
+#include <filesystem>
 #include <string>
 
 namespace Storage::Disk {
@@ -21,11 +22,11 @@ namespace Storage::Disk {
 */
 class MFMSectorDump: public DiskImage {
 public:
-	MFMSectorDump(const std::string &file_name);
+	MFMSectorDump(const std::filesystem::path &);
 
 	bool is_read_only() const;
-	bool represents(const std::string &) const;
-	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
+	bool represents(const std::filesystem::path &) const;
+	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &);
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 
 protected:

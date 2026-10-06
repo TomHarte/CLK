@@ -11,8 +11,8 @@
 
 using namespace Storage::Cartridge;
 
-BinaryDump::BinaryDump(const std::string &file_name) {
-	auto contents = Storage::contents_of(file_name);
+BinaryDump::BinaryDump(const std::filesystem::path &path) {
+	auto contents = Storage::contents_of(path);
 	segments_.emplace_back(
 		::Storage::Cartridge::Cartridge::Segment::UnknownAddress,
 		::Storage::Cartridge::Cartridge::Segment::UnknownAddress,

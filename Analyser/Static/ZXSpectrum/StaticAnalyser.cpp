@@ -105,7 +105,7 @@ bool IsSpectrumDisk(const Storage::Disk::Disk &disk) {
 
 Analyser::Static::TargetList Analyser::Static::ZXSpectrum::GetTargets(
 	const Media &media,
-	const std::string &,
+	const std::filesystem::path &,
 	TargetPlatform::IntType,
 	bool
 ) {

@@ -23,8 +23,8 @@ using namespace Storage::Disk;
 // So, I guess: go factory, pervasively. And probably stop the strict disk/mass storage/tape
 // distinction, given that clearly some platforms just capture volumes abstractly from media.
 
-Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::string &file_name) {
-	FileHolder file(file_name);
+Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::filesystem::path &path) {
+	FileHolder file(path);
 
 	// Check the signature.
 	if(!file.check_signature<SignatureType::String>("2IMG")) throw Error::InvalidFormat;
@@ -78,13 +78,13 @@ Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::string &file_name) {
 			// or Apple II-style. Try them both.
 			try {
 				return new DiskImageHolder<Storage::Disk::MacintoshIMG>(
-					file_name, MacintoshIMG::FixedType::GCR, data_start, data_size);
+					path, MacintoshIMG::FixedType::GCR, data_start, data_size);
 			} catch(...) {}
 
 			// TODO: Apple II-style.
 
 			// Try a hard-disk image. For now this assumes: for an Apple IIe or GS.
-			return new MassStorage::HDV(file_name, data_start, data_size);
+			return new MassStorage::HDV(path, data_start, data_size);
 		break;
 		case 2:
 			// TODO: NIB data (yuck!).

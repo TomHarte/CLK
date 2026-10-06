@@ -69,7 +69,8 @@ static std::unique_ptr<Analyser::Static::Target> CartridgeTarget(
 	(additional audio hardware is also sometimes included, but it's implied by the banking hardware)
 */
 static Analyser::Static::TargetList CartridgeTargetsFrom(
-	const std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
+	const std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges
+) {
 	// No cartridges implies no targets.
 	if(cartridges.empty()) {
 		return {};
@@ -187,7 +188,7 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 
 Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(
 	const Media &media,
-	const std::string &,
+	const std::filesystem::path &,
 	TargetPlatform::IntType,
 	bool
 ) {

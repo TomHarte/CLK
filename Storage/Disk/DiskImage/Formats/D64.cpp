@@ -20,8 +20,8 @@
 
 using namespace Storage::Disk;
 
-D64::D64(const std::string &file_name) :
-		file_(file_name) {
+D64::D64(const std::filesystem::path &path) :
+		file_(path) {
 	// In D64, this is it for validation without imposing potential false-negative tests:
 	// check that the file size appears to be correct. Stone-age stuff.
 	if(file_.stats().st_size != 174848 && file_.stats().st_size != 196608)
@@ -31,7 +31,8 @@ D64::D64(const std::string &file_name) :
 
 	// Then, ostensibly, this is a valid file. Pick a disk ID as a
 	// function of the file_name, being the most stable thing available.
-	for(const auto &character: file_name) {
+	const auto name = path.filename().string();
+	for(const auto character: name) {
 		disk_id_ ^= character;
 		disk_id_ = uint16_t((disk_id_ << 2) ^ (disk_id_ >> 13));
 	}
@@ -45,8 +46,8 @@ bool D64::is_read_only() const {
 	return file_.is_known_read_only();
 }
 
-bool D64::represents(const std::string &name) const {
-	return name == file_.name();
+bool D64::represents(const std::filesystem::path &path) const {
+	return path == file_.path();
 }
 
 D64::TrackExtent D64::track_extent(const Track::Address address) const {

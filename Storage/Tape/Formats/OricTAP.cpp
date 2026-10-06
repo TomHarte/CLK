@@ -12,8 +12,8 @@
 
 using namespace Storage::Tape;
 
-OricTAP::OricTAP(const std::string &file_name) : file_name_(file_name) {
-	Storage::FileHolder file(file_name, FileMode::Read);
+OricTAP::OricTAP(const std::filesystem::path &path) : path_(path) {
+	Storage::FileHolder file(path, FileMode::Read);
 
 	// Check for a sequence of at least three 0x16s followed by a 0x24.
 	while(true) {
@@ -31,10 +31,10 @@ OricTAP::OricTAP(const std::string &file_name) : file_name_(file_name) {
 }
 
 std::unique_ptr<FormatSerialiser> OricTAP::format_serialiser() const {
-	return std::make_unique<Serialiser>(file_name_);
+	return std::make_unique<Serialiser>(path_);
 }
 
-OricTAP::Serialiser::Serialiser(const std::string &file_name) : file_(file_name, FileMode::Read) {
+OricTAP::Serialiser::Serialiser(const std::filesystem::path &path) : file_(path, FileMode::Read) {
 	reset();
 }
 

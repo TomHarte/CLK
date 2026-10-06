@@ -22,13 +22,13 @@ namespace Storage::Tape {
 */
 class K7: public Tape {
 public:
-	K7(const std::string &file_name);
+	K7(const std::filesystem::path &);
 
 private:
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
 	struct Serialiser: public PulseQueuedSerialiser, public TargetPlatform::Recipient {
-		Serialiser(const std::string &);
+		Serialiser(const std::filesystem::path &);
 
 	private:
 		void push_next_pulses() override;
@@ -50,7 +50,7 @@ private:
 		int state_length_ = 0;
 		uint16_t byte_history_ = 0;
 	};
-	std::string file_name_;
+	std::filesystem::path path_;
 };
 
 }

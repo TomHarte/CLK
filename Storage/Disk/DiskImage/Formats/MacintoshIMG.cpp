@@ -26,12 +26,12 @@
 using namespace Storage::Disk;
 
 MacintoshIMG::MacintoshIMG(
-	const std::string &file_name,
+	const std::filesystem::path &path,
 	const FixedType type,
 	const size_t offset,
 	const size_t length
 ) :
-	file_(file_name) {
+	file_(path) {
 
 	switch(type) {
 		case FixedType::GCR:
@@ -42,8 +42,8 @@ MacintoshIMG::MacintoshIMG(
 	}
 }
 
-MacintoshIMG::MacintoshIMG(const std::string &file_name) :
-	file_(file_name) {
+MacintoshIMG::MacintoshIMG(const std::filesystem::path &path) :
+	file_(path) {
 
 	// Test 1: is this a raw sector dump? If so it'll start with
 	// either the magic word 0x4C4B (big endian) or with 0x0000
@@ -180,8 +180,8 @@ bool MacintoshIMG::is_read_only() const {
 	return file_.is_known_read_only();
 }
 
-bool MacintoshIMG::represents(const std::string &name) const {
-	return name == file_.name();
+bool MacintoshIMG::represents(const std::filesystem::path &path) const {
+	return path == file_.path();
 }
 
 std::unique_ptr<Track> MacintoshIMG::track_at_position(const Track::Address address) const {

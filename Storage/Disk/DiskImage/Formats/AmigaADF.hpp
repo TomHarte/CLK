@@ -10,6 +10,7 @@
 
 #include "MFMSectorDump.hpp"
 
+#include <filesystem>
 #include <string>
 
 namespace Storage::Disk {
@@ -26,13 +27,13 @@ public:
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain an .ADF format image.
 	*/
-	AmigaADF(const std::string &file_name);
+	AmigaADF(const std::filesystem::path &);
 
 	// implemented to satisfy @c Disk
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
-	bool represents(const std::string &) const;
+	bool represents(const std::filesystem::path &) const;
 
 private:
 	mutable Storage::FileHolder file_;

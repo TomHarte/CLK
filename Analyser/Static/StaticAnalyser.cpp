@@ -8,13 +8,6 @@
 
 #include "StaticAnalyser.hpp"
 
-#include <algorithm>
-#include <bit>
-#include <cstddef>
-#include <cstdlib>
-#include <cstring>
-#include <iterator>
-
 // Analysers
 #include "Analyser/Static/Acorn/StaticAnalyser.hpp"
 #include "Analyser/Static/Amiga/StaticAnalyser.hpp"
@@ -101,6 +94,14 @@
 // Target Platform Types
 #include "Storage/TargetPlatforms.hpp"
 
+#include <algorithm>
+#include <bit>
+#include <cstddef>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
+#include <iterator>
+
 template<class> inline constexpr bool always_false_v = false;
 
 using namespace Analyser::Static;
@@ -108,20 +109,10 @@ using namespace Storage;
 
 namespace {
 
-std::string get_extension(const std::string &name) {
-	// Get the extension, if any; it will be assumed that extensions are reliable, so an extension is a broad-phase
-	// test as to file format.
-	std::string::size_type final_dot = name.find_last_of(".");
-	if(final_dot == std::string::npos) return name;
-	std::string extension = name.substr(final_dot + 1);
-	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-	return extension;
-}
-
 class MediaAccumulator {
 public:
-	MediaAccumulator(const std::string &file_name, TargetPlatform::IntType &potential_platforms) :
-		file_name_(file_name), potential_platforms_(potential_platforms), extension_(get_extension(file_name)) {}
+	MediaAccumulator(const std::filesystem::path &path, TargetPlatform::IntType &potential_platforms) :
+		path_(path), potential_platforms_(potential_platforms) {}
 
 	/// Adds @c instance to the media collection and adds @c platforms to the set of potentials.
 	/// If @c instance is an @c TargetPlatform::TypeDistinguisher then it is given an opportunity to restrict the set of potentials.
@@ -170,34 +161,33 @@ public:
 	/// providing the file name as the only construction argument.
 	template <typename InstanceT>
 	void try_standard(const TargetPlatform::IntType platforms, const char *extension) {
-		if(name_matches(extension))	{
-			try_insert<InstanceT>(platforms, file_name_);
+		if(extension_matches(extension)) {
+			try_insert<InstanceT>(platforms, path_);
 		}
 	}
 
-	bool name_matches(const char *const extension) {
-		return extension_ == extension;
+	bool extension_matches(const char *const extension) const {
+		return path_.extension() == extension;
 	}
 
 	Media media;
 	bool was_distinguished = false;
 
 private:
-	const std::string &file_name_;
+	const std::filesystem::path &path_;
 	TargetPlatform::IntType &potential_platforms_;
-	const std::string extension_;
 };
 
 }
 
-static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::IntType &potential_platforms) {
-	MediaAccumulator accumulator(file_name, potential_platforms);
+static Media GetMediaAndPlatforms(const std::filesystem::path &path, TargetPlatform::IntType &potential_platforms) {
+	MediaAccumulator accumulator(path, potential_platforms);
 
 	// 2MG
-	if(accumulator.name_matches("2mg")) {
+	if(accumulator.extension_matches(".2mg")) {
 		// 2MG uses a factory method; defer to it.
 		try {
-			const auto media = Disk::Disk2MG::open(file_name);
+			const auto media = Disk::Disk2MG::open(path);
 			std::visit([&](auto &&arg) {
 				using Type = typename std::decay<decltype(arg)>::type;
 
@@ -215,147 +205,146 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 		} catch(...) {}
 	}
 
-	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, "80");
-	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, "81");
+	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, ".80");
+	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, ".81");
 
-	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Atari2600, "a26");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::AcornADF>>(TargetPlatform::Acorn, "adf");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::AmigaADF>>(TargetPlatform::Amiga, "adf");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::AcornADF>>(TargetPlatform::Acorn, "adl");
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Atari2600, ".a26");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::AcornADF>>(TargetPlatform::Acorn, ".adf");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::AmigaADF>>(TargetPlatform::Amiga, ".adf");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::AcornADF>>(TargetPlatform::Acorn, ".adl");
 
-	accumulator.try_standard<FileBundle::LocalFSFileBundle>(TargetPlatform::Enterprise, "bas");
-	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::AllCartridge, "bin");
+	accumulator.try_standard<FileBundle::LocalFSFileBundle>(TargetPlatform::Enterprise, ".bas");
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::AllCartridge, ".bin");
 
-	accumulator.try_standard<Tape::MSXCAS>(TargetPlatform::MSX, "cas");
-	accumulator.try_standard<Tape::CoCoCAS>(TargetPlatform::TandyCoCo, "cas");
-	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::TandyCoCo, "ccc");
-	accumulator.try_standard<Tape::TZX>(TargetPlatform::AmstradCPC, "cdt");
-	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Coleco, "col");
-	accumulator.try_standard<FileBundle::LocalFSFileBundle>(TargetPlatform::Enterprise, "com");
-	accumulator.try_standard<Tape::CSW>(TargetPlatform::AllTape, "csw");
+	accumulator.try_standard<Tape::MSXCAS>(TargetPlatform::MSX, ".cas");
+	accumulator.try_standard<Tape::CoCoCAS>(TargetPlatform::TandyCoCo, ".cas");
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::TandyCoCo, ".ccc");
+	accumulator.try_standard<Tape::TZX>(TargetPlatform::AmstradCPC, ".cdt");
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Coleco, ".col");
+	accumulator.try_standard<FileBundle::LocalFSFileBundle>(TargetPlatform::Enterprise, ".com");
+	accumulator.try_standard<Tape::CSW>(TargetPlatform::AllTape, ".csw");
 
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::D64>>(TargetPlatform::Commodore8bit, "d64");
-	accumulator.try_standard<MassStorage::DAT>(TargetPlatform::Acorn, "dat");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::DMK>>(TargetPlatform::MSX, "dmk");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::AppleDSK>>(TargetPlatform::DiskII, "do");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::CoCoDSK>>(TargetPlatform::TandyCoCo, "dsk");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::SSD>>(TargetPlatform::Acorn, "dsd");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::D64>>(TargetPlatform::Commodore8bit, ".d64");
+	accumulator.try_standard<MassStorage::DAT>(TargetPlatform::Acorn, ".dat");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::DMK>>(TargetPlatform::MSX, ".dmk");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::AppleDSK>>(TargetPlatform::DiskII, ".do");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::CoCoDSK>>(TargetPlatform::TandyCoCo, ".dsk");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::SSD>>(TargetPlatform::Acorn, ".dsd");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::CPCDSK>>(
-		TargetPlatform::AmstradCPC | TargetPlatform::Oric | TargetPlatform::ZXSpectrum, "dsk");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::AppleDSK>>(TargetPlatform::DiskII, "dsk");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::MacintoshIMG>>(TargetPlatform::Macintosh, "dsk");
-	accumulator.try_standard<MassStorage::HFV>(TargetPlatform::Macintosh, "dsk");
-	accumulator.try_standard<MassStorage::DSK>(TargetPlatform::Macintosh, "dsk");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::MSX, "dsk");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::OricMFMDSK>>(TargetPlatform::Oric, "dsk");
+		TargetPlatform::AmstradCPC | TargetPlatform::Oric | TargetPlatform::ZXSpectrum, ".dsk");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::AppleDSK>>(TargetPlatform::DiskII, ".dsk");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::MacintoshIMG>>(TargetPlatform::Macintosh, ".dsk");
+	accumulator.try_standard<MassStorage::HFV>(TargetPlatform::Macintosh, ".dsk");
+	accumulator.try_standard<MassStorage::DSK>(TargetPlatform::Macintosh, ".dsk");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::MSX, ".dsk");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::OricMFMDSK>>(TargetPlatform::Oric, ".dsk");
 
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::FD>>(TargetPlatform::ThomsonMO, "fd");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::FD>>(TargetPlatform::ThomsonMO, ".fd");
 
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::G64>>(TargetPlatform::Commodore8bit, "g64");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::G64>>(TargetPlatform::Commodore8bit, ".g64");
 
-	accumulator.try_standard<MassStorage::HDV>(TargetPlatform::AppleII, "hdv");
+	accumulator.try_standard<MassStorage::HDV>(TargetPlatform::AppleII, ".hdv");
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::HFE>>(
 		TargetPlatform::Acorn | TargetPlatform::AmstradCPC | TargetPlatform::Commodore |
 		TargetPlatform::Oric | TargetPlatform::ZXSpectrum,
 		"hfe");	// TODO: switch to AllDisk once the MSX stops being so greedy.
 
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::PCCompatible, "ima");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::MacintoshIMG>>(TargetPlatform::Macintosh, "image");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::IMD>>(TargetPlatform::PCCompatible, "imd");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::MacintoshIMG>>(TargetPlatform::Macintosh, "img");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::PCCompatible, ".ima");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::MacintoshIMG>>(TargetPlatform::Macintosh, ".image");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::IMD>>(TargetPlatform::PCCompatible, ".imd");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::MacintoshIMG>>(TargetPlatform::Macintosh, ".img");
 
 	// Treat PC booter as a potential backup only if this doesn't parse as a FAT12.
-	if(accumulator.name_matches("img")) {
+	if(accumulator.extension_matches(".img")) {
 		try {
-			accumulator.insert<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::FAT12, file_name);
+			accumulator.insert<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::FAT12, path);
 		} catch(...) {
-			accumulator.try_standard<Disk::DiskImageHolder<Disk::PCBooter>>(TargetPlatform::PCCompatible, "img");
+			accumulator.try_standard<Disk::DiskImageHolder<Disk::PCBooter>>(TargetPlatform::PCCompatible, ".img");
 		}
 	}
 
 	accumulator.try_standard<Disk::DiskImageHolder<Disk::IPF>>(
 		TargetPlatform::Amiga | TargetPlatform::AtariST | TargetPlatform::AmstradCPC | TargetPlatform::ZXSpectrum,
-		"ipf");
+		".ipf");
 
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::JFD>>(TargetPlatform::Archimedes, "jfd");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::JFD>>(TargetPlatform::Archimedes, ".jfd");
 
-	accumulator.try_standard<Tape::K7>(TargetPlatform::ThomsonMO /* | TargetPlatform::ThomsonTO */, "k5");
-	accumulator.try_standard<Tape::K7>(TargetPlatform::ThomsonMO /* | TargetPlatform::ThomsonTO */, "k7");
+	accumulator.try_standard<Tape::K7>(TargetPlatform::ThomsonMO /* | TargetPlatform::ThomsonTO */, ".k5");
+	accumulator.try_standard<Tape::K7>(TargetPlatform::ThomsonMO /* | TargetPlatform::ThomsonTO */, ".k7");
 
-	accumulator.try_standard<Tape::LEP>(TargetPlatform::ThomsonMO /* | TargetPlatform::ThomsonTO */, "lep");
+	accumulator.try_standard<Tape::LEP>(TargetPlatform::ThomsonMO /* | TargetPlatform::ThomsonTO */, ".lep");
 
-	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::ThomsonMO, "m5");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::MOOF>>(TargetPlatform::Macintosh, "moof");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::MSA>>(TargetPlatform::AtariST, "msa");
-	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::MSX, "mx2");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::NIB>>(TargetPlatform::DiskII, "nib");
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::ThomsonMO, ".m5");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::MOOF>>(TargetPlatform::Macintosh, ".moof");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::MSA>>(TargetPlatform::AtariST, ".msa");
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::MSX, ".mx2");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::NIB>>(TargetPlatform::DiskII, ".nib");
 
-	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, "o");
-	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, "p");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::AppleDSK>>(TargetPlatform::DiskII, "po");
+	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, ".o");
+	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, ".p");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::AppleDSK>>(TargetPlatform::DiskII, ".po");
 
-	if(accumulator.name_matches("po"))	{
+	if(accumulator.extension_matches(".po"))	{
 		accumulator.try_insert<Disk::DiskImageHolder<Disk::MacintoshIMG>>(
 			TargetPlatform::AppleIIgs,
-			file_name, Disk::MacintoshIMG::FixedType::GCR);
+			path, Disk::MacintoshIMG::FixedType::GCR);
 	}
 
-	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, "p81");
+	accumulator.try_standard<Tape::ZX80O81P>(TargetPlatform::ZX8081, ".p81");
 
 	static constexpr auto PRGTargets = TargetPlatform::Vic20; //Commodore8bit;	// Disabled until analysis improves.
-	if(accumulator.name_matches("prg")) {
+	if(accumulator.extension_matches(".prg")) {
 		// Try instantiating as a ROM; failing that accept as a tape.
 		try {
-			accumulator.insert<Cartridge::PRG>(PRGTargets, file_name);
+			accumulator.insert<Cartridge::PRG>(PRGTargets, path);
 		} catch(...) {
 			try {
-				accumulator.insert<Tape::PRG>(PRGTargets, file_name);
+				accumulator.insert<Tape::PRG>(PRGTargets, path);
 			} catch(...) {}
 		}
 	}
 
 	accumulator.try_standard<Cartridge::BinaryDump>(
 		TargetPlatform::AcornElectron | TargetPlatform::Coleco | TargetPlatform::MSX | TargetPlatform::ThomsonMO,
-		"rom");
+		".rom");
 
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::SAP>>(TargetPlatform::ThomsonMO, "sap");
-	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Sega, "sg");
-	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Sega, "sms");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::SSD>>(TargetPlatform::Acorn, "ssd");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::AtariST, "st");
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::STX>>(TargetPlatform::AtariST, "stx");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::SAP>>(TargetPlatform::ThomsonMO, ".sap");
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Sega, ".sg");
+	accumulator.try_standard<Cartridge::BinaryDump>(TargetPlatform::Sega, ".sms");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::SSD>>(TargetPlatform::Acorn, ".ssd");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::FAT12>>(TargetPlatform::AtariST, ".st");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::STX>>(TargetPlatform::AtariST, ".stx");
 
-	accumulator.try_standard<Tape::CommodoreTAP>(TargetPlatform::Commodore8bit, "tap");
-	accumulator.try_standard<Tape::OricTAP>(TargetPlatform::Oric, "tap");
-	accumulator.try_standard<Tape::ZXSpectrumTAP>(TargetPlatform::ZXSpectrum, "tap");
-	accumulator.try_standard<Tape::TZX>(TargetPlatform::MSX, "tsx");
-	accumulator.try_standard<Tape::TZX>(TargetPlatform::ZX8081 | TargetPlatform::ZXSpectrum, "tzx");
+	accumulator.try_standard<Tape::CommodoreTAP>(TargetPlatform::Commodore8bit, ".tap");
+	accumulator.try_standard<Tape::OricTAP>(TargetPlatform::Oric, ".tap");
+	accumulator.try_standard<Tape::ZXSpectrumTAP>(TargetPlatform::ZXSpectrum, ".tap");
+	accumulator.try_standard<Tape::TZX>(TargetPlatform::MSX, ".tsx");
+	accumulator.try_standard<Tape::TZX>(TargetPlatform::ZX8081 | TargetPlatform::ZXSpectrum, ".tzx");
 
-	accumulator.try_standard<Tape::UEF>(TargetPlatform::Acorn, "uef");
+	accumulator.try_standard<Tape::UEF>(TargetPlatform::Acorn, ".uef");
 
-	accumulator.try_standard<MassStorage::VHD>(TargetPlatform::PCCompatible, "vhd");
+	accumulator.try_standard<MassStorage::VHD>(TargetPlatform::PCCompatible, ".vhd");
 
-	accumulator.try_standard<Disk::DiskImageHolder<Disk::WOZ>>(TargetPlatform::DiskII, "woz");
+	accumulator.try_standard<Disk::DiskImageHolder<Disk::WOZ>>(TargetPlatform::DiskII, ".woz");
 
 	return accumulator.media;
 }
 
-Media Analyser::Static::GetMedia(const std::string &file_name) {
+Media Analyser::Static::GetMedia(const std::filesystem::path &path) {
 	TargetPlatform::IntType throwaway;
-	return GetMediaAndPlatforms(file_name, throwaway);
+	return GetMediaAndPlatforms(path, throwaway);
 }
 
-TargetList Analyser::Static::GetTargets(const std::string &file_name) {
-	const std::string extension = get_extension(file_name);
+TargetList Analyser::Static::GetTargets(const std::filesystem::path &path) {
 	TargetList targets;
 
 	// Check whether the file directly identifies a target; if so then just return that.
 	const auto try_snapshot = [&](const char *ext, auto loader) -> bool {
-		if(extension != ext) {
+		if(path.extension() != ext) {
 			return false;
 		}
 		try {
-			auto target = loader(file_name);
+			auto target = loader(path);
 			if(target) {
 				targets.push_back(std::move(target));
 				return true;
@@ -365,16 +354,16 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 		return false;
 	};
 
-	if(try_snapshot("sna", Storage::State::SNA::load)) return targets;
-	if(try_snapshot("szx", Storage::State::SZX::load)) return targets;
-	if(try_snapshot("z80", Storage::State::Z80::load)) return targets;
+	if(try_snapshot(".sna", Storage::State::SNA::load)) return targets;
+	if(try_snapshot(".szx", Storage::State::SZX::load)) return targets;
+	if(try_snapshot(".z80", Storage::State::Z80::load)) return targets;
 
 	// Otherwise:
 	//
 	// Collect all disks, tapes ROMs, etc as can be extrapolated from this file, forming the
 	// union of all platforms this file might be a target for.
 	TargetPlatform::IntType potential_platforms = 0;
-	Media media = GetMediaAndPlatforms(file_name, potential_platforms);
+	Media media = GetMediaAndPlatforms(path, potential_platforms);
 
 	int total_options = std::popcount(potential_platforms);
 	const bool is_confident = total_options == 1;
@@ -388,7 +377,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 		if(!(potential_platforms & platform)) {
 			return;
 		}
-		auto new_targets = evaluator(media, file_name, potential_platforms, is_confident);
+		auto new_targets = evaluator(media, path, potential_platforms, is_confident);
 		targets.insert(
 			targets.end(),
 			std::make_move_iterator(new_targets.begin()),

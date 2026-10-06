@@ -26,7 +26,7 @@ public:
 
 		@throws ErrorNotOricTAP if this file could not be opened and recognised as a valid Oric-format TAP.
 	*/
-	OricTAP(const std::string &file_name);
+	OricTAP(const std::filesystem::path &);
 
 	enum {
 		ErrorNotOricTAP
@@ -36,7 +36,7 @@ private:
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
 	struct Serialiser: public FormatSerialiser {
-		Serialiser(const std::string &file_name);
+		Serialiser(const std::filesystem::path &);
 
 	private:
 		bool is_at_end() const override;
@@ -56,7 +56,7 @@ private:
 		int phase_counter_;
 		uint16_t data_end_address_, data_start_address_;
 	};
-	std::string file_name_;
+	std::filesystem::path path_;
 };
 
 }

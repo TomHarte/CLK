@@ -59,8 +59,8 @@ const auto basic_signature = signature<0xd3>;
 const auto ascii_signature = signature<0xea>;
 }
 
-MSXCAS::MSXCAS(const std::string &file_name) {
-	Storage::FileHolder file(file_name, FileMode::Read);
+MSXCAS::MSXCAS(const std::filesystem::path &path) {
+	Storage::FileHolder file(path, FileMode::Read);
 
 	enum class Mode {
 		Seeking,

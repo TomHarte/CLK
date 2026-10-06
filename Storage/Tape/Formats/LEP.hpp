@@ -16,13 +16,13 @@ namespace Storage::Tape {
 
 class LEP: public Tape {
 public:
-	LEP(const std::string &file_name);
+	LEP(const std::filesystem::path &);
 
 private:
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
 	struct Serialiser: public FormatSerialiser {
-		Serialiser(const std::string &);
+		Serialiser(const std::filesystem::path &);
 
 		bool is_at_end() const override;
 		void reset() override;
@@ -32,7 +32,7 @@ private:
 		Storage::FileHolder file_;
 		Pulse pulse_;
 	};
-	std::string file_name_;
+	std::filesystem::path path_;
 };
 
 }

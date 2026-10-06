@@ -13,8 +13,8 @@
 #include "Storage/TargetPlatforms.hpp"
 
 #include <cstdint>
+#include <filesystem>
 #include <optional>
-#include <string>
 #include <zlib.h>
 
 namespace Storage::Tape {
@@ -29,7 +29,7 @@ public:
 
 		@throws ErrorNotUEF if this file could not be opened and recognised as a valid UEF.
 	*/
-	UEF(const std::string &file_name);
+	UEF(const std::filesystem::path &);
 
 	enum {
 		ErrorNotUEF
@@ -40,7 +40,7 @@ private:
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
 	struct Parser {
-		Parser(const std::string &file_name);
+		Parser(const std::filesystem::path &);
 		~Parser();
 
 		struct Chunk {
@@ -58,7 +58,7 @@ private:
 	};
 
 	struct Serialiser: public PulseQueuedSerialiser {
-		Serialiser(const std::string &file_name);
+		Serialiser(const std::filesystem::path &);
 		~Serialiser();
 
 		TargetPlatform::Type target_platforms();
@@ -87,7 +87,7 @@ private:
 		void queue_bit(int bit);
 		void queue_implicit_byte(uint8_t byte);
 	};
-	std::string file_name_;
+	std::filesystem::path path_;
 	TargetPlatform::Type target_platforms_ = TargetPlatform::Acorn;
 };
 

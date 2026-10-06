@@ -10,13 +10,14 @@
 
 #include "Storage/Cartridge/Cartridge.hpp"
 
+#include <filesystem>
 #include <string>
 
 namespace Storage::Cartridge {
 
 class PRG : public Cartridge {
 public:
-	PRG(const std::string &file_name);
+	PRG(const std::filesystem::path &);
 
 	enum {
 		ErrorNotROM

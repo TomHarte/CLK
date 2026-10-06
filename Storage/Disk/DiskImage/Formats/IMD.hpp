@@ -11,6 +11,8 @@
 #include "Storage/Disk/DiskImage/DiskImage.hpp"
 #include "Storage/FileHolder.hpp"
 
+#include <filesystem>
+
 namespace Storage::Disk {
 
 /*!
@@ -26,12 +28,12 @@ public:
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain an Acorn .ADF format image.
 	*/
-	IMD(const std::string &file_name);
+	IMD(const std::filesystem::path &);
 
 	// DiskImage interface.
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
-	bool represents(const std::string &) const;
+	bool represents(const std::filesystem::path &) const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 
 private:
