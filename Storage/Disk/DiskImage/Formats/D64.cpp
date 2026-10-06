@@ -32,7 +32,7 @@ D64::D64(const std::filesystem::path &path) :
 	// Then, ostensibly, this is a valid file. Pick a disk ID as a
 	// function of the file_name, being the most stable thing available.
 	const auto name = path.filename().string();
-	for(const auto &character: name) {
+	for(const auto character: name) {
 		disk_id_ ^= character;
 		disk_id_ = uint16_t((disk_id_ << 2) ^ (disk_id_ >> 13));
 	}
