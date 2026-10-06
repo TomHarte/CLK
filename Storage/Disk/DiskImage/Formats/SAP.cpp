@@ -15,7 +15,7 @@
 
 using namespace Storage::Disk;
 
-SAP::SAP(const std::string &file_name) : file_(file_name) {
+SAP::SAP(const std::filesystem::path &path) : file_(path) {
 	// Header:
 	//
 	//	1 byte: disk geometry.
@@ -46,8 +46,8 @@ bool SAP::is_read_only() const {
 	return true;
 }
 
-bool SAP::represents(const std::string &name) const {
-	return name == file_.name();
+bool SAP::represents(const std::filesystem::path &path) const {
+	return path == file_.path();
 }
 
 Track::Address SAP::canonical_address(const Track::Address address) const {

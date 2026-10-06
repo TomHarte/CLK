@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -58,7 +59,7 @@ public:
 
 		@throws Error::CantOpen if the file cannot be opened.
 	*/
-	FileHolder(const std::string &file_name, FileMode ideal_mode = FileMode::ReadWrite);
+	FileHolder(const std::filesystem::path &, FileMode ideal_mode = FileMode::ReadWrite);
 	FileHolder(FileHolder &&);
 
 	/*!
@@ -190,15 +191,9 @@ public:
 	}
 
 	/*!
-		Determines and returns the file extension: everything from the final character
-		back to the first dot. The string is converted to lowercase before being returned.
-	*/
-	std::string extension() const;
-
-	/*!
 		Returns the underlying file name.
 	*/
-	const std::string &name() const;
+	const std::filesystem::path &path() const;
 
 	/*!
 		Ensures the file is at least @c length bytes long, appending 0s until it is
@@ -223,7 +218,7 @@ public:
 
 private:
 	FILE *file_ = nullptr;
-	const std::string name_;
+	const std::filesystem::path path_;
 
 	struct stat file_stats_;
 	bool is_read_only_ = false;
@@ -231,8 +226,8 @@ private:
 	std::mutex file_access_mutex_;
 };
 
-inline std::vector<uint8_t> contents_of(const std::string &file_name) {
-	FileHolder file(file_name, FileMode::Read);
+inline std::vector<uint8_t> contents_of(const std::filesystem::path &path) {
+	FileHolder file(path, FileMode::Read);
 	return file.read(size_t(file.stats().st_size));
 }
 

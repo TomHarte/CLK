@@ -14,8 +14,8 @@
 
 using namespace Storage::Tape;
 
-CSW::CSW(const std::string &file_name) {
-	Storage::FileHolder file(file_name, FileMode::Read);
+CSW::CSW(const std::filesystem::path &path) {
+	Storage::FileHolder file(path, FileMode::Read);
 	if(file.stats().st_size < 0x20) throw ErrorNotCSW;
 
 	// Check signature.

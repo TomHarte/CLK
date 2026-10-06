@@ -9,6 +9,7 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <variant>
@@ -88,6 +89,6 @@ enum Errors {
 	InvalidKeyword,
 	InvalidArgument,
 };
-std::vector<Instruction> parse(const std::string &file_name);
+std::vector<Instruction> parse(const std::filesystem::path &);
 
 }

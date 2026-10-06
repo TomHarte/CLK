@@ -54,7 +54,7 @@ ColecoCartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartr
 
 Analyser::Static::TargetList Analyser::Static::Coleco::GetTargets(
 	const Media &media,
-	const std::string &,
+	const std::filesystem::path &,
 	TargetPlatform::IntType,
 	const bool is_confident
 ) {

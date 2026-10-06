@@ -28,7 +28,7 @@ public:
 
 		@throws ErrorNotCommodoreTAP if this file could not be opened and recognised as a valid Commodore-format TAP.
 	*/
-	CommodoreTAP(const std::string &file_name);
+	CommodoreTAP(const std::filesystem::path &);
 
 	enum {
 		ErrorNotCommodoreTAP
@@ -53,7 +53,7 @@ private:
 	};
 
 	struct Serialiser: public FormatSerialiser {
-		Serialiser(const std::string &file_name, Pulse initial, bool half_waves, bool updated_layout);
+		Serialiser(const std::filesystem::path &, Pulse initial, bool half_waves, bool updated_layout);
 
 	private:
 		bool is_at_end() const override;
@@ -66,7 +66,7 @@ private:
 		bool updated_layout_;
 		bool is_at_end_ = false;
 	};
-	std::string file_name_;
+	std::filesystem::path path_;
 	Pulse initial_pulse_;
 	bool half_waves_;
 	bool updated_layout_;

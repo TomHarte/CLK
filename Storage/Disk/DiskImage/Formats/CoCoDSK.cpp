@@ -16,7 +16,7 @@ constexpr int TrackSize = SectorsPerTrack * (128 << SectorSize);
 
 using namespace Storage::Disk;
 
-CoCoDSK::CoCoDSK(const std::string &file_name) : MFMSectorDump(file_name) {
+CoCoDSK::CoCoDSK(const std::filesystem::path &path) : MFMSectorDump(path) {
 	// Complete validation at present: is this a multiple of the track size?
 	if(file_.stats().st_size % TrackSize) throw Error::InvalidFormat;
 	set_geometry(SectorsPerTrack, SectorSize, 1, Encodings::MFM::Density::Double, 5);

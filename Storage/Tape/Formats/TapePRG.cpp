@@ -48,8 +48,8 @@
 
 using namespace Storage::Tape;
 
-PRG::PRG(const std::string &file_name) : file_name_(file_name) {
-	FileHolder file(file_name, FileMode::Read);
+PRG::PRG(const std::filesystem::path &path) : path_(path) {
+	FileHolder file(path, FileMode::Read);
 
 	// There's really no way to validate other than that if this file is larger than 64kb,
 	// of if load address + length > 65536 then it's broken.
@@ -64,11 +64,11 @@ PRG::PRG(const std::string &file_name) : file_name_(file_name) {
 }
 
 std::unique_ptr<FormatSerialiser> PRG::format_serialiser() const {
-	return std::make_unique<Serialiser>(file_name_, load_address_, length_);
+	return std::make_unique<Serialiser>(path_, load_address_, length_);
 }
 
-PRG::Serialiser::Serialiser(const std::string &file_name, uint16_t load_address, uint16_t length) :
-	file_(file_name, FileMode::Read),
+PRG::Serialiser::Serialiser(const std::filesystem::path &path, uint16_t load_address, uint16_t length) :
+	file_(path, FileMode::Read),
 	load_address_(load_address),
 	length_(length),
 	timings_(false)

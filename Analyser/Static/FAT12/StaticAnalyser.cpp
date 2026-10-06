@@ -18,7 +18,7 @@
 
 Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(
 	const Media &media,
-	const std::string &file_name,
+	const std::filesystem::path &path,
 	TargetPlatform::IntType platforms,
 	bool
 ) {
@@ -40,7 +40,7 @@ Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(
 	// If the disk image is very small or large, map it to the PC. That's the only option old enough
 	// to have used 5.25" media.
 	if(disk->maximum_head_position() <= Storage::Disk::HeadPosition(40)) {
-		return Analyser::Static::PCCompatible::GetTargets(media, file_name, platforms, true);
+		return Analyser::Static::PCCompatible::GetTargets(media, path, platforms, true);
 	}
 
 	// Attempt to grab MFM track 0, sector 1: the boot sector.
@@ -54,7 +54,7 @@ Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(
 
 	// If no sectors were found, assume this disk was either single density or high density, which both imply the PC.
 	if(sector_map.empty() || sector_map.size() > 10) {
-		return Analyser::Static::PCCompatible::GetTargets(media, file_name, platforms, true);
+		return Analyser::Static::PCCompatible::GetTargets(media, path, platforms, true);
 	}
 
 	const Storage::Encodings::MFM::Sector *boot_sector = nullptr;
@@ -83,7 +83,7 @@ Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(
 		if(
 			std::search(sample.begin(), sample.end(), string.begin(), string.end()) != sample.end()
 		) {
-			return Analyser::Static::PCCompatible::GetTargets(media, file_name, platforms, true);
+			return Analyser::Static::PCCompatible::GetTargets(media, path, platforms, true);
 		}
 	}
 
@@ -102,5 +102,5 @@ Analyser::Static::TargetList Analyser::Static::FAT12::GetTargets(
 	// could redirect to an MSX2 with MSX-DOS2? Though it'd be nicer if I had a machine that was pure CP/M.
 
 	// Being unable to prove that this is a PC disk, throw it to the Enterprise.
-	return Analyser::Static::Enterprise::GetTargets(media, file_name, platforms, false);
+	return Analyser::Static::Enterprise::GetTargets(media, path, platforms, false);
 }

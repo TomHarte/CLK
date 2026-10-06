@@ -28,7 +28,7 @@ bool insensitive_equal(const std::string &lhs, const std::string &rhs) {
 
 Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(
 	const Media &media,
-	const std::string &,
+	const std::filesystem::path &,
 	TargetPlatform::IntType,
 	bool
 ) {

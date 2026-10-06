@@ -15,13 +15,13 @@ namespace {
 
 using namespace Storage::Disk;
 
-SSD::SSD(const std::string &file_name) : MFMSectorDump(file_name) {
+SSD::SSD(const std::filesystem::path &path) : MFMSectorDump(path) {
 	// Very loose validation: the file needs to be a multiple of 256 bytes
 	// and not ungainly large.
 
 	// Disk has two heads if the suffix is .dsd or if it's too large to be an SSD.
 	const bool is_double_sided =
-		(tolower(file_name[file_name.size() - 3]) == 'd') ||
+		path.extension() == ".dsd" ||
 		file_.stats().st_size > 80*10*256;
 
 	if(file_.stats().st_size & 255) throw Error::InvalidFormat;

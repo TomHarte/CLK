@@ -19,7 +19,7 @@ constexpr int bytes_per_track = sectors_per_track * (128 << sector_size);
 
 using namespace Storage::Disk;
 
-FD::FD(const std::string &file_name) : MFMSectorDump(file_name) {
+FD::FD(const std::filesystem::path &path) : MFMSectorDump(path) {
 	// Guess disk geometry from file size.
 	switch(file_.stats().st_size) {
 		default: throw Error::InvalidFormat;

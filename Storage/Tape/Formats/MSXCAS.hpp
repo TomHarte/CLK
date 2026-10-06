@@ -27,7 +27,7 @@ public:
 
 		@throws ErrorNotCAS if this file could not be opened and recognised as a valid CAS file.
 	*/
-	MSXCAS(const std::string &file_name);
+	MSXCAS(const std::filesystem::path &);
 
 	enum {
 		ErrorNotCAS

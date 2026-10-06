@@ -11,6 +11,8 @@
 #include "Storage/Disk/DiskImage/DiskImage.hpp"
 #include "Storage/FileHolder.hpp"
 
+#include <filesystem>
+
 namespace Storage::Disk {
 
 /*!
@@ -23,11 +25,11 @@ namespace Storage::Disk {
 class MacintoshIMG: public DiskImage {
 public:
 	/*!
-		Construct a @c MacintoshIMG containing content from the file with name @c file_name.
+		Construct a @c MacintoshIMG containing content from the file at @c path.
 
 		@throws Error::InvalidFormat if this file doesn't appear to be in Disk Copy 4.2 format.
 	*/
-	MacintoshIMG(const std::string &file_name);
+	MacintoshIMG(const std::filesystem::path &);
 
 	enum class FixedType {
 		GCR
@@ -40,16 +42,16 @@ public:
 		If @c offset and @c length are specified and non-zero, only that portion of the file
 		will be modified.
 	*/
-	MacintoshIMG(const std::string &file_name, FixedType type, size_t offset = 0, size_t length = 0);
+	MacintoshIMG(const std::filesystem::path &, FixedType, size_t offset = 0, size_t length = 0);
 
 	// implemented to satisfy @c Disk
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
 	bool is_read_only() const;
-	bool represents(const std::string &) const;
+	bool represents(const std::filesystem::path &) const;
 
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
-	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
+	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &);
 
 private:
 	mutable Storage::FileHolder file_;

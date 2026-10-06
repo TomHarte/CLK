@@ -82,7 +82,7 @@ static constexpr bool DumpFiles = false;	// Helpful to me for inspecting tape co
 
 Analyser::Static::TargetList Analyser::Static::Thomson::GetTargets(
 	const Media &media,
-	const std::string &,
+	const std::filesystem::path &,
 	TargetPlatform::IntType,
 	const bool is_confident
 ) {

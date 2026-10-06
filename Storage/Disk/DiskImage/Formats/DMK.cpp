@@ -32,8 +32,8 @@ std::unique_ptr<Storage::Encodings::MFM::Encoder> new_encoder(Storage::Disk::PCM
 
 }
 
-DMK::DMK(const std::string &file_name) :
-	file_(file_name) {
+DMK::DMK(const std::filesystem::path &path) :
+	file_(path) {
 	// Determine whether this DMK represents a read-only disk (whether intentionally,
 	// or by virtue of filesystem placement).
 	uint8_t read_only_byte = file_.get();
@@ -182,6 +182,6 @@ std::unique_ptr<::Storage::Disk::Track> DMK::track_at_position(const ::Storage::
 	return std::make_unique<PCMTrack>(segments);
 }
 
-bool DMK::represents(const std::string &name) const {
-	return name == file_.name();
+bool DMK::represents(const std::filesystem::path &path) const {
+	return path == file_.path();
 }

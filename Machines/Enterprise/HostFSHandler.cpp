@@ -130,9 +130,8 @@ void HostFSHandler::perform(const uint8_t function, uint8_t &a, uint16_t &bc, ui
 
 		// Page 54.
 		case uint8_t(EXOS::Function::DestroyChannel): {
-			const auto name = file.name();
 			channels_.erase(channel);
-			if(bundle_->erase(name)) {
+			if(bundle_->erase(file.path())) {
 				set_error(EXOS::Error::NoError);
 			} else {
 				set_error(EXOS::Error::ProtectionViolation);

@@ -190,7 +190,7 @@ static void DeterminePagingForCartridge(Target &target, const Storage::Cartridge
 
 Analyser::Static::TargetList Analyser::Static::Atari2600::GetTargets(
 	const Media &media,
-	const std::string &,
+	const std::filesystem::path &,
 	TargetPlatform::IntType,
 	bool
 ) {

@@ -248,7 +248,7 @@ bool IsAmstradTape(Storage::Tape::TapeSerialiser &serialiser) {
 
 Analyser::Static::TargetList Analyser::Static::AmstradCPC::GetTargets(
 	const Media &media,
-	const std::string &,
+	const std::filesystem::path &,
 	TargetPlatform::IntType,
 	bool
 ) {

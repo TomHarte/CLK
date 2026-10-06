@@ -17,10 +17,10 @@
 
 using namespace Storage::Disk;
 
-CPCDSK::CPCDSK(const std::string &file_name) :
-	file_name_(file_name),
+CPCDSK::CPCDSK(const std::filesystem::path &path) :
+	path_(path),
 	is_extended_(false) {
-	FileHolder file(file_name);
+	FileHolder file(path);
 	is_read_only_ = file.is_known_read_only();
 
 	if(!file.check_signature<SignatureType::String>("MV - CPC")) {
@@ -221,14 +221,17 @@ std::unique_ptr<Track> CPCDSK::track_at_position(::Storage::Disk::Track::Address
 		track->filler_byte);
 }
 
-void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::unique_ptr<::Storage::Disk::Track>> &tracks) {
+void CPCDSK::set_tracks(const std::map<Storage::Disk::Track::Address, std::unique_ptr<Storage::Disk::Track>> &tracks) {
 	// Patch changed tracks into the disk image.
 	for(auto &pair: tracks) {
 		// Assume MFM for now; with extensions DSK can contain FM tracks.
 		const bool is_double_density = true;
 		std::map<std::size_t, Storage::Encodings::MFM::Sector> sectors =
 			Storage::Encodings::MFM::sectors_from_segment(
-				Storage::Disk::track_serialisation(*pair.second, is_double_density ? Storage::Encodings::MFM::MFMBitLength : Storage::Encodings::MFM::FMBitLength),
+				Storage::Disk::track_serialisation(
+					*pair.second,
+					is_double_density ? Storage::Encodings::MFM::MFMBitLength : Storage::Encodings::MFM::FMBitLength
+				),
 				Storage::Encodings::MFM::Density::Double);
 
 		// Find slot for track, making it if neccessary.
@@ -276,7 +279,7 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::uni
 	}
 
 	// Rewrite the entire disk image, in extended form.
-	Storage::FileHolder output(file_name_, Storage::FileMode::Rewrite);
+	Storage::FileHolder output(path_, Storage::FileMode::Rewrite);
 	output.write("EXTENDED CPC DSK File\r\nDisk-Info\r\n", 34);
 	output.write("Clock Signal  ", 14);
 	output.put(uint8_t(head_position_count_));
@@ -389,6 +392,6 @@ bool CPCDSK::is_read_only() const {
 	return is_read_only_;
 }
 
-bool CPCDSK::represents(const std::string &name) const {
-	return name == file_name_;
+bool CPCDSK::represents(const std::filesystem::path &path) const {
+	return path == path_;
 }

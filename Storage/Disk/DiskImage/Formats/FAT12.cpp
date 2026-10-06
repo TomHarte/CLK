@@ -12,8 +12,8 @@
 
 using namespace Storage::Disk;
 
-FAT12::FAT12(const std::string &file_name) :
-	MFMSectorDump(file_name) {
+FAT12::FAT12(const std::filesystem::path &path) :
+	MFMSectorDump(path) {
 	// The only sanity check here is whether a sensible
 	// geometry is encoded in the first sector, or can be guessed.
 	const auto file_size = file_.stats().st_size;
@@ -57,6 +57,6 @@ int FAT12::head_count() const {
 	return head_count_;
 }
 
-long FAT12::get_file_offset_for_position(Track::Address address) const {
+long FAT12::get_file_offset_for_position(const Track::Address address) const {
 	return (address.position.as_int() * head_count_ + address.head) * sector_size_ * sector_count_;
 }

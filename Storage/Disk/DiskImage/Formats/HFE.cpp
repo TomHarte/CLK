@@ -13,8 +13,8 @@
 
 using namespace Storage::Disk;
 
-HFE::HFE(const std::string &file_name) :
-		file_(file_name) {
+HFE::HFE(const std::filesystem::path &path) :
+		file_(path) {
 	if(!file_.check_signature<SignatureType::String>("HXCPICFE")) throw Error::InvalidFormat;
 
 	if(file_.get()) throw Error::UnknownVersion;
@@ -129,6 +129,6 @@ bool HFE::is_read_only() const {
 	return file_.is_known_read_only();
 }
 
-bool HFE::represents(const std::string &name) const {
-	return name == file_.name();
+bool HFE::represents(const std::filesystem::path &path) const {
+	return path == file_.path();
 }

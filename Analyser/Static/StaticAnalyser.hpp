@@ -18,6 +18,7 @@
 #include "Storage/TargetPlatforms.hpp"
 #include "Reflection/Struct.hpp"
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
@@ -82,11 +83,11 @@ using TargetList = std::vector<std::unique_ptr<Target>>;
 
 	@returns The list of potential targets, sorted from most to least probable.
 */
-TargetList GetTargets(const std::string &file_name);
+TargetList GetTargets(const std::filesystem::path &);
 
 /*!
 	Inspects the supplied file and determines the media included.
 */
-Media GetMedia(const std::string &file_name);
+Media GetMedia(const std::filesystem::path &);
 
 }

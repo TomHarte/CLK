@@ -11,6 +11,8 @@
 #include "Storage/Disk/DiskImage/DiskImage.hpp"
 #include "Storage/FileHolder.hpp"
 
+#include <filesystem>
+
 namespace Storage::Disk {
 
 /*!
@@ -24,13 +26,13 @@ public:
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain a .D64 format image.
 	*/
-	D64(const std::string &file_name);
+	D64(const std::filesystem::path &);
 
 	HeadPosition maximum_head_position() const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 	bool is_read_only() const;
 	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &);
-	bool represents(const std::string &) const;
+	bool represents(const std::filesystem::path &) const;
 
 private:
 	mutable Storage::FileHolder file_;

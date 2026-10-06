@@ -22,9 +22,9 @@ using namespace Storage::Tape;
 		... but, most files abbreviate the sync periods. So you've still to apply
 		ROM-style formatting.
 */
-CoCoCAS::CoCoCAS(const std::string &file_name) {
+CoCoCAS::CoCoCAS(const std::filesystem::path &path) {
 	struct Shifter {
-		Shifter(const std::string &file_name) : file_(file_name, FileMode::Read) {}
+		Shifter(const std::filesystem::path &path) : file_(path, FileMode::Read) {}
 
 		uint32_t value() const {
 			return uint32_t(shifter_);
@@ -70,7 +70,7 @@ CoCoCAS::CoCoCAS(const std::string &file_name) {
 		size_t shifted_ = 0;
 	};
 
-	Shifter shifter(file_name);
+	Shifter shifter(path);
 	while(!shifter.eof()) {
 		// Find next sync byte.
 		while(!shifter.eof() && (shifter.value() & 0xff) != 0x3c) {

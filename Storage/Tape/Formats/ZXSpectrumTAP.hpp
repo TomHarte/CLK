@@ -27,7 +27,7 @@ public:
 
 		@throws ErrorNotZXSpectrumTAP if this file could not be opened and recognised as a valid Spectrum-format TAP.
 	*/
-	ZXSpectrumTAP(const std::string &file_name);
+	ZXSpectrumTAP(const std::filesystem::path &);
 
 	enum {
 		ErrorNotZXSpectrumTAP
@@ -37,7 +37,7 @@ private:
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
 	struct Serialiser: public FormatSerialiser {
-		Serialiser(const std::string &file_name);
+		Serialiser(const std::filesystem::path &);
 	private:
 		Storage::FileHolder file_;
 
@@ -57,7 +57,7 @@ private:
 		void reset() override;
 		Pulse next_pulse() override;
 	};
-	std::string file_name_;
+	std::filesystem::path path_;
 };
 
 }

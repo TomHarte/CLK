@@ -94,8 +94,8 @@ private:
 };
 }
 
-MOOF::MOOF(const std::string &file_name) :
-	file_(file_name) {
+MOOF::MOOF(const std::filesystem::path &path) :
+	file_(path) {
 
 	static constexpr char signature[] = {
 		'M', 'O', 'O', 'F',
@@ -219,8 +219,8 @@ std::unique_ptr<Track> MOOF::track(const TrackLocation location) const {
 	return std::make_unique<PCMTrack>(PCMSegment(location.bit_count, track_contents));
 }
 
-bool MOOF::represents(const std::string &name) const {
-	return name == file_.name();
+bool MOOF::represents(const std::filesystem::path &path) const {
+	return path == file_.path();
 }
 
 void MOOF::set_tracks([[maybe_unused]] const std::map<Track::Address, std::unique_ptr<Track>> &tracks) {

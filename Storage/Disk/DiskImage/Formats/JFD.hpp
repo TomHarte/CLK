@@ -10,6 +10,7 @@
 
 #include "Storage/Disk/DiskImage/DiskImage.hpp"
 
+#include <filesystem>
 #include <string>
 #include <zlib.h>
 
@@ -17,15 +18,15 @@ namespace Storage::Disk {
 
 class JFD: public DiskImage {
 public:
-	JFD(const std::string &file_name);
+	JFD(const std::filesystem::path &);
 
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
-	bool represents(const std::string &) const;
+	bool represents(const std::filesystem::path &) const;
 
 private:
-	std::string file_name_;
+	std::filesystem::path path_;
 	gzFile file_;
 	uint8_t read8() const;
 	uint32_t read32() const;

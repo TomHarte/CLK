@@ -18,7 +18,7 @@ namespace Storage::Tape {
 
 class CoCoCAS: public Tape {
 public:
-	CoCoCAS(const std::string &file_name);
+	CoCoCAS(const std::filesystem::path &);
 
 	enum {
 		ErrorBadFormat

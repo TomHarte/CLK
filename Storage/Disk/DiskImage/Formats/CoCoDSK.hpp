@@ -10,11 +10,13 @@
 
 #include "MFMSectorDump.hpp"
 
+#include <filesystem>
+
 namespace Storage::Disk {
 
 class CoCoDSK: public MFMSectorDump {
 public:
-	CoCoDSK(const std::string &file_name);
+	CoCoDSK(const std::filesystem::path &);
 
 	HeadPosition maximum_head_position() const final;
 	int head_count() const final;

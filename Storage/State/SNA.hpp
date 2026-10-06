@@ -13,7 +13,7 @@
 namespace Storage::State {
 
 struct SNA {
-	static std::unique_ptr<Analyser::Static::Target> load(const std::string &file_name);
+	static std::unique_ptr<Analyser::Static::Target> load(const std::filesystem::path &);
 };
 
 }

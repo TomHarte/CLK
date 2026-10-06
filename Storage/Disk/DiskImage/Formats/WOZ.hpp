@@ -11,7 +11,7 @@
 #include "Storage/Disk/DiskImage/DiskImage.hpp"
 #include "Storage/FileHolder.hpp"
 
-#include <string>
+#include <filesystem>
 
 namespace Storage::Disk {
 
@@ -20,16 +20,16 @@ namespace Storage::Disk {
 */
 class WOZ: public DiskImage {
 public:
-	WOZ(const std::string &file_name);
+	WOZ(const std::filesystem::path &);
 
 	// Implemented to satisfy @c DiskImage.
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
-	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
+	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &);
 	bool is_read_only() const;
 	bool tracks_differ(Track::Address, Track::Address) const;
-	bool represents(const std::string &) const;
+	bool represents(const std::filesystem::path &) const;
 
 private:
 	mutable Storage::FileHolder file_;
@@ -49,7 +49,7 @@ private:
 		@returns The offset within the file of the track at @c address or @c NoSuchTrack if
 			the track does not exit.
 	*/
-	long file_offset(Track::Address address) const;
+	long file_offset(Track::Address) const;
 	static constexpr long NoSuchTrack = 0;	// This is an offset a track definitely can't lie at.
 };
 

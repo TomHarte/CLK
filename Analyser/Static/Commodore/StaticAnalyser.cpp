@@ -273,14 +273,14 @@ analyse_starting_address(uint16_t starting_address) {
 template <TargetPlatform::IntType platform>
 std::unique_ptr<Analyser::Static::Target> get_target(
 	const Analyser::Static::Media &media,
-	const std::string &file_name,
+	const std::filesystem::path &path,
 	bool is_confident
 );
 
 template<>
 std::unique_ptr<Analyser::Static::Target> get_target<TargetPlatform::Plus4>(
 	const Analyser::Static::Media &media,
-	const std::string &,
+	const std::filesystem::path &,
 	bool is_confident
 ) {
 	auto target = std::make_unique<Plus4Target>();
@@ -304,7 +304,7 @@ std::unique_ptr<Analyser::Static::Target> get_target<TargetPlatform::Plus4>(
 template<>
 std::unique_ptr<Analyser::Static::Target> get_target<TargetPlatform::Vic20>(
 	const Analyser::Static::Media &media,
-	const std::string &file_name,
+	const std::filesystem::path &path,
 	bool is_confident
 ) {
 	auto target = std::make_unique<Vic20Target>();
@@ -343,7 +343,7 @@ std::unique_ptr<Analyser::Static::Target> get_target<TargetPlatform::Vic20>(
 	if(!target->media.empty()) {
 		using Region = Analyser::Static::Commodore::Vic20Target::Region;
 
-		std::string lowercase_name = file_name;
+		std::string lowercase_name = path.filename().string();
 		std::transform(lowercase_name.begin(), lowercase_name.end(), lowercase_name.begin(), ::tolower);
 
 		// Hint 1: 'ntsc' anywhere in the name implies America.
@@ -399,21 +399,21 @@ std::unique_ptr<Analyser::Static::Target> get_target<TargetPlatform::Vic20>(
 
 Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(
 	const Media &media,
-	const std::string &file_name,
-	TargetPlatform::IntType platforms,
+	const std::filesystem::path &path,
+	const TargetPlatform::IntType platforms,
 	bool is_confident
 ) {
 	TargetList destination;
 
 	if(platforms & TargetPlatform::Vic20) {
-		auto vic20 = get_target<TargetPlatform::Vic20>(media, file_name, is_confident);
+		auto vic20 = get_target<TargetPlatform::Vic20>(media, path, is_confident);
 		if(vic20) {
 			destination.push_back(std::move(vic20));
 		}
 	}
 
 	if(platforms & TargetPlatform::Plus4) {
-		auto plus4 = get_target<TargetPlatform::Plus4>(media, file_name, is_confident);
+		auto plus4 = get_target<TargetPlatform::Plus4>(media, path, is_confident);
 		if(plus4) {
 			destination.push_back(std::move(plus4));
 		}

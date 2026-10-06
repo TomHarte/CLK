@@ -24,7 +24,7 @@ namespace {
 /// least-significant ones, and the second half of the buffer contains the even bits.
 ///
 /// Nibbles are written to @c first; it is assumed that an even number of source bytes have been supplied.
-template <typename IteratorT, class OutputIt> void encode_block(IteratorT begin, IteratorT end, OutputIt first) {
+template <typename IteratorT, class OutputIt> void encode_block(IteratorT begin, const IteratorT end, OutputIt first) {
 	// Parse 1: combine odd bits.
 	auto cursor = begin;
 	while(cursor != end) {
@@ -110,8 +110,8 @@ template <typename IteratorT> void write_checksum(IteratorT begin, IteratorT end
 
 }
 
-AmigaADF::AmigaADF(const std::string &file_name) :
-		file_(file_name) {
+AmigaADF::AmigaADF(const std::filesystem::path &path) :
+		file_(path) {
 	// Dumb validation only for now: a size check.
 	if(file_.stats().st_size != 901120) throw Error::InvalidFormat;
 }
@@ -186,6 +186,6 @@ long AmigaADF::get_file_offset_for_position(Track::Address address) const {
 	return (address.position.as_int() * 2 + address.head) * 512 * 11;
 }
 
-bool AmigaADF::represents(const std::string &name) const {
-	return name == file_.name();
+bool AmigaADF::represents(const std::filesystem::path &path) const {
+	return path == file_.path();
 }

@@ -15,7 +15,7 @@
 
 Analyser::Static::TargetList Analyser::Static::Sega::GetTargets(
 	const Media &media,
-	const std::string &file_name,
+	const std::filesystem::path &path,
 	TargetPlatform::IntType,
 	bool
 ) {
@@ -26,7 +26,7 @@ Analyser::Static::TargetList Analyser::Static::Sega::GetTargets(
 	auto target = std::make_unique<Target>();
 
 	// Files named .sg are treated as for the SG1000; otherwise assume a Master System.
-	if(file_name.size() >= 2 && *(file_name.end() - 2) == 's' && *(file_name.end() - 1) == 'g') {
+	if(path.extension() == ".sg") {
 		target->model = Target::Model::SG1000;
 	} else {
 		target->model = Target::Model::MasterSystem;
@@ -54,7 +54,7 @@ Analyser::Static::TargetList Analyser::Static::Sega::GetTargets(
 			switch(region) {
 				default: break;
 				case 4: {
-					std::string lowercase_name = file_name;
+					std::string lowercase_name = path.filename().string();
 					std::transform(lowercase_name.begin(), lowercase_name.end(), lowercase_name.begin(), ::tolower);
 					if(lowercase_name.find("(jp)") == std::string::npos) {
 						target->region =

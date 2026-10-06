@@ -12,8 +12,8 @@
 
 using namespace Storage::Disk;
 
-PCBooter::PCBooter(const std::string &file_name) :
-	MFMSectorDump(file_name) {
+PCBooter::PCBooter(const std::filesystem::path &path) :
+	MFMSectorDump(path) {
 	// The only sanity check here is whether a sensible
 	// geometry is encoded in the first sector, or can be guessed.
 	const auto file_size = file_.stats().st_size;
