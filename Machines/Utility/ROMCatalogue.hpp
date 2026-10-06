@@ -335,14 +335,17 @@ struct Request {
 	void visit(
 		const std::function<void(ListType, size_t size)> &enter_list,
 		const std::function<void(void)> &exit_list,
-		const std::function<void(ROM::Request::ListType type, const ROM::Description &, bool is_optional, size_t remaining)> &add_item
+		const std::function<void(ROM::Request::ListType, const ROM::Description &, bool is_optional, size_t remaining)>
+			&add_item
 	) const;
 
 	enum class LineItem {
 		NewList, Description
 	};
 	void visit(
-		const std::function<void(LineItem, ListType, int level, const ROM::Description *, bool is_optional, size_t remaining)> &add_item
+		const std::function
+			<void(LineItem, ListType, int level, const ROM::Description *, bool is_optional, size_t remaining)>
+				&add_item
 	) const;
 
 	/// @returns a full bullet-pointed list of the requirements of this request, including
@@ -372,7 +375,9 @@ private:
 		void visit(
 			const std::function<void(ListType, size_t)> &enter_list,
 			const std::function<void(void)> &exit_list,
-			const std::function<void(ROM::Request::ListType type, const ROM::Description &, bool is_optional, size_t remaining)> &add_item
+			const std::function
+				<void(ROM::Request::ListType, const ROM::Description &, bool is_optional, size_t remaining)>
+					&add_item
 		) const;
 		bool subtract(const Map &map);
 		void sort() {
