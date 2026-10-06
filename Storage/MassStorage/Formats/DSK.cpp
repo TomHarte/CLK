@@ -10,7 +10,7 @@
 
 using namespace Storage::MassStorage;
 
-DSK::DSK(const std::string &file_name) : RawSectorDump(file_name) {
+DSK::DSK(const std::filesystem::path &path) : RawSectorDump(path) {
 	// Minimum validation: check the first sector for a device signature,
 	// with 512-byte blocks.
 	const auto sector = get_block(0);

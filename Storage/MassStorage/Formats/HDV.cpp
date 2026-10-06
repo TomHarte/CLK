@@ -12,8 +12,8 @@
 
 using namespace Storage::MassStorage;
 
-HDV::HDV(const std::string &file_name, const long start, const long size):
-	file_(file_name),
+HDV::HDV(const std::filesystem::path &path, const long start, const long size):
+	file_(path),
 	file_start_(start),
 	image_size_(std::min(size, long(file_.stats().st_size)))
 {

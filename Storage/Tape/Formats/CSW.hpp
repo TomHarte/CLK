@@ -27,8 +27,6 @@ public:
 	};
 
 	/*!
-		Constructs a @c CSW containing content from the file with name @c file_name.
-
 		@throws ErrorNotCSW if this file could not be opened and recognised as a valid CSW file.
 	*/
 	CSW(const std::filesystem::path &);

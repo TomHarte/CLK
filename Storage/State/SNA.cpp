@@ -15,9 +15,9 @@
 
 using namespace Storage::State;
 
-std::unique_ptr<Analyser::Static::Target> SNA::load(const std::filesystem::path &file_name) {
+std::unique_ptr<Analyser::Static::Target> SNA::load(const std::filesystem::path &path) {
 	// Make sure the file is accessible and appropriately sized.
-	FileHolder file(file_name);
+	FileHolder file(path);
 
 	static constexpr size_t InfoBlock48k = 0x1b;
 	static constexpr size_t ExtraInfo128k = 4;

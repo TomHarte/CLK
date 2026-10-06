@@ -24,8 +24,6 @@ namespace Storage::Tape {
 class CommodoreTAP: public Tape, public TargetPlatform::Distinguisher {
 public:
 	/*!
-		Constructs a @c CommodoreTAP containing content from the file with name @c file_name.
-
 		@throws ErrorNotCommodoreTAP if this file could not be opened and recognised as a valid Commodore-format TAP.
 	*/
 	CommodoreTAP(const std::filesystem::path &);

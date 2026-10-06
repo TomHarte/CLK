@@ -10,6 +10,8 @@
 
 #include "RawSectorDump.hpp"
 
+#include <filesystem>
+
 namespace Storage::MassStorage {
 
 /*!
@@ -19,7 +21,7 @@ namespace Storage::MassStorage {
 */
 class DSK: public RawSectorDump<512> {
 public:
-	DSK(const std::string &file_name);
+	DSK(const std::filesystem::path &);
 };
 
 }

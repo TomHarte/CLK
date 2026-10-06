@@ -23,8 +23,6 @@ namespace Storage::Disk {
 class DMK: public DiskImage {
 public:
 	/*!
-		Construct a @c DMK containing content from the file with name @c file_name.
-
 		@throws Error::InvalidFormat if this file doesn't appear to be a DMK.
 	*/
 	DMK(const std::filesystem::path &);

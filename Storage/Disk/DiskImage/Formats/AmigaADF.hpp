@@ -22,8 +22,6 @@ namespace Storage::Disk {
 class AmigaADF: public DiskImage {
 public:
 	/*!
-		Construct an @c AmigaADF containing content from the file with name @c file_name.
-
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain an .ADF format image.
 	*/

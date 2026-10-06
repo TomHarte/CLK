@@ -30,7 +30,7 @@ D64::D64(const std::filesystem::path &path) :
 	number_of_tracks_ = (file_.stats().st_size == 174848) ? 35 : 40;
 
 	// Then, ostensibly, this is a valid file. Pick a disk ID as a
-	// function of the file_name, being the most stable thing available.
+	// function of the file's name, being the most stable thing available.
 	const auto name = path.filename().string();
 	for(const auto character: name) {
 		disk_id_ ^= character;

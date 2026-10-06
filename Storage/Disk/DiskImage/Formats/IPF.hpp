@@ -28,8 +28,6 @@ namespace Storage::Disk {
 class IPF: public DiskImage, public TargetPlatform::Distinguisher {
 public:
 	/*!
-		Construct an @c IPF containing content from the file with name @c file_name.
-
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain an .HFE format image.
 		@throws Error::UnknownVersion if the file looks correct but is an unsupported version.
