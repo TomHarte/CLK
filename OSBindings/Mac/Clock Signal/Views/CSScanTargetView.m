@@ -9,8 +9,10 @@
 #import "CSScanTargetView.h"
 #import "CSApplication.h"
 #import "CSScanTarget.h"
+
 @import CoreVideo;
 @import GLKit;
+@import UniformTypeIdentifiers;
 
 #include <stdatomic.h>
 
@@ -55,7 +57,14 @@ static const NSTimeInterval quickMouseHideInterval = 0.1;
 	CVDisplayLinkStart(_displayLink);
 }
 
-static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, __unused CVOptionFlags flagsIn, __unused CVOptionFlags *flagsOut, void *displayLinkContext) {
+static CVReturn DisplayLinkCallback(
+	__unused CVDisplayLinkRef displayLink,
+	const CVTimeStamp *now,
+	const CVTimeStamp *outputTime,
+	__unused CVOptionFlags flagsIn,
+	__unused CVOptionFlags *flagsOut,
+	void *displayLinkContext
+) {
 	CSScanTargetView *const view = (__bridge CSScanTargetView *)displayLinkContext;
 
 	// Schedule an opportunity to check that the display link is still linked to the correct display.
@@ -158,7 +167,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	self.delegate = _scanTarget;
 
 	// Register to receive dragged and dropped file URLs.
-	[self registerForDraggedTypes:@[(__bridge NSString *)kUTTypeFileURL]];
+	[self registerForDraggedTypes:@[UTTypeFileURL.identifier]];
 
 	// Setup the [initial] display link.
 	[self setupDisplayLink];
@@ -210,7 +219,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender {
 	for(NSPasteboardItem *item in [[sender draggingPasteboard] pasteboardItems]) {
-		NSURL *URL = [NSURL URLWithString:[item stringForType:(__bridge NSString *)kUTTypeFileURL]];
+		NSURL *URL = [NSURL URLWithString:[item stringForType:UTTypeFileURL.identifier]];
 		[self.responderDelegate scanTargetView:self didReceiveFileAtURL:URL];
 	}
 	return YES;
@@ -301,14 +310,17 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 - (void)scheduleMouseHideAfter:(NSTimeInterval)interval {
 	[self cancelMouseHide];
 
-	_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:interval repeats:NO block:^(__unused NSTimer * _Nonnull timer) {
-		// Don't actually hide the mouse if this is a mouse-capture machine; that makes
-		// it fairly confusing as to current application state.
-		if(!self.shouldCaptureMouse) {
-			[NSCursor setHiddenUntilMouseMoves:YES];
-		}
-		[self.responderDelegate scanTargetViewWouldHideOSMouseCursor:self];
-	}];
+	_mouseHideTimer = [NSTimer
+		scheduledTimerWithTimeInterval:interval
+		repeats:NO
+		block:^(__unused NSTimer * _Nonnull timer) {
+			// Don't actually hide the mouse if this is a mouse-capture machine; that makes
+			// it fairly confusing as to current application state.
+			if(!self.shouldCaptureMouse) {
+				[NSCursor setHiddenUntilMouseMoves:YES];
+			}
+			[self.responderDelegate scanTargetViewWouldHideOSMouseCursor:self];
+		}];
 }
 
 - (void)mouseEntered:(NSEvent *)event {
@@ -364,7 +376,8 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 - (void)recentreCursor {
 	// TODO: should I really need to invert the y coordinate myself? It suggests I
 	// might have an error in mapping here.
-	const NSPoint windowCentre = [self convertPoint:CGPointMake(self.bounds.size.width * 0.5, self.bounds.size.height * 0.5) toView:nil];
+	const NSPoint windowCentre =
+		[self convertPoint:CGPointMake(self.bounds.size.width * 0.5, self.bounds.size.height * 0.5) toView:nil];
 	const NSPoint screenCentre = [self.window convertPointToScreen:windowCentre];
 	const CGRect screenFrame = self.window.screen.frame;
 	CGWarpMouseCursorPosition(NSMakePoint(
