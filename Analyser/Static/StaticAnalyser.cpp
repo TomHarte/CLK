@@ -167,7 +167,16 @@ public:
 	}
 
 	bool extension_matches(const char *const extension) const {
-		return path_.extension() == extension;
+		if(lowercase_extension_.empty()) {
+			lowercase_extension_ = path_.extension().string();
+			std::transform(
+				lowercase_extension_.begin(),
+				lowercase_extension_.end(),
+				lowercase_extension_.begin(),
+				::tolower
+			);
+		}
+		return lowercase_extension_ == extension;
 	}
 
 	Media media;
@@ -175,6 +184,7 @@ public:
 
 private:
 	const std::filesystem::path &path_;
+	mutable std::string lowercase_extension_;
 	TargetPlatform::IntType &potential_platforms_;
 };
 
