@@ -9,8 +9,10 @@
 #import "CSScanTargetView.h"
 #import "CSApplication.h"
 #import "CSScanTarget.h"
+
 @import CoreVideo;
 @import GLKit;
+@import UniformTypeIdentifiers;
 
 #include <stdatomic.h>
 
@@ -158,7 +160,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 	self.delegate = _scanTarget;
 
 	// Register to receive dragged and dropped file URLs.
-	[self registerForDraggedTypes:@[(__bridge NSString *)kUTTypeFileURL]];
+	[self registerForDraggedTypes:@[UTTypeFileURL.identifier]];
 
 	// Setup the [initial] display link.
 	[self setupDisplayLink];
@@ -210,7 +212,7 @@ static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const
 
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender {
 	for(NSPasteboardItem *item in [[sender draggingPasteboard] pasteboardItems]) {
-		NSURL *URL = [NSURL URLWithString:[item stringForType:(__bridge NSString *)kUTTypeFileURL]];
+		NSURL *URL = [NSURL URLWithString:[item stringForType:UTTypeFileURL.identifier]];
 		[self.responderDelegate scanTargetView:self didReceiveFileAtURL:URL];
 	}
 	return YES;
