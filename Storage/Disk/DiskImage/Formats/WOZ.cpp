@@ -22,8 +22,8 @@ constexpr uint32_t chunk(const char *str) {
 }
 }
 
-WOZ::WOZ(const std::string &file_name) :
-	file_(file_name) {
+WOZ::WOZ(const std::filesystem::path &path) :
+	file_(path) {
 
 	static constexpr char signature1[8] = {
 		'W', 'O', 'Z', '1',
@@ -229,6 +229,6 @@ bool WOZ::is_read_only() const {
 //	return file_.get_is_known_read_only() || is_read_only_ || type_ == Type::WOZ2;	// WOZ 2 disks are currently read only.
 }
 
-bool WOZ::represents(const std::string &name) const {
-	return name == file_.name();
+bool WOZ::represents(const std::filesystem::path &path) const {
+	return path == file_.path();
 }

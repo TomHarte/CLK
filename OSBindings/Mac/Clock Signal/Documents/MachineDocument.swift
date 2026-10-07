@@ -76,7 +76,7 @@ class MachineDocument:
 
 			self.fileObserver = CSFileContentChangeObserver.init(url: url, handler: {
 				if let machine = self.machine {
-					DispatchQueue.main.async { [weak self] in
+					DispatchQueue.main.async { [weak self = self] in
 						guard let self = self else {
 							return
 						}

@@ -11,7 +11,7 @@
 
 Analyser::Static::TargetList Analyser::Static::AppleIIgs::GetTargets(
 	const Media &media,
-	const std::string &,
+	const std::filesystem::path &,
 	TargetPlatform::IntType,
 	bool
 ) {

@@ -11,11 +11,13 @@
 #include "Storage/MassStorage/MassStorageDevice.hpp"
 #include "Storage/FileHolder.hpp"
 
+#include <filesystem>
+
 namespace Storage::MassStorage {
 
 class VHD: public MassStorageDevice {
 public:
-	VHD(const std::string &file_name);
+	VHD(const std::filesystem::path &);
 
 private:
 	FileHolder file_;

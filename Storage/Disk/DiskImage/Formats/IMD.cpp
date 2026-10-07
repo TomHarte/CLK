@@ -19,7 +19,7 @@ using namespace Storage::Disk;
 
 // Documentation source: https://oldcomputers-ddns.org/public/pub/manuals/imd.pdf
 
-IMD::IMD(const std::string &file_name) : file_(file_name) {
+IMD::IMD(const std::filesystem::path &path) : file_(path) {
 	// Check for signature.
 	if(!file_.check_signature<SignatureType::String>("IMD")) {
 		throw Error::InvalidFormat;
@@ -98,8 +98,8 @@ int IMD::head_count() const {
 	return heads_ + 1;
 }
 
-bool IMD::represents(const std::string &name) const {
-	return name == file_.name();
+bool IMD::represents(const std::filesystem::path &path) const {
+	return path == file_.path();
 }
 
 std::unique_ptr<Track> IMD::track_at_position(const Track::Address address) const {

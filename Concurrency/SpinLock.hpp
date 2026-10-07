@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <atomic>
+
 namespace Concurrency {
 
 enum class Barrier {

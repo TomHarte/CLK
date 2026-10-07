@@ -21,7 +21,11 @@ using namespace Storage::Automation;
 
 namespace {
 
-bool append_typed(std::vector<Storage::Automation::CSL::KeyEvent> &down, std::vector<Storage::Automation::CSL::KeyEvent> &up, std::istringstream &stream) {
+bool append_typed(
+	std::vector<Storage::Automation::CSL::KeyEvent> &down,
+	std::vector<Storage::Automation::CSL::KeyEvent> &up,
+	std::istringstream &stream
+) {
 	const auto press = [&](uint16_t key) {
 		CSL::KeyEvent event;
 		event.key = key;
@@ -148,10 +152,10 @@ bool append_typed(std::vector<Storage::Automation::CSL::KeyEvent> &down, std::ve
 
 }
 
-std::vector<CSL::Instruction> CSL::parse(const std::string &file_name) {
+std::vector<CSL::Instruction> CSL::parse(const std::filesystem::path &path) {
 	std::vector<Instruction> instructions;
 	std::ifstream file;
-	file.open(file_name);
+	file.open(path);
 
 	using Type = Instruction::Type;
 	static const std::unordered_map<std::string, Type> keywords = {

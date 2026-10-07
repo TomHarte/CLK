@@ -19,7 +19,7 @@ using namespace Storage::State;
 
 namespace {
 
-std::vector<uint8_t> read_memory(Storage::FileHolder &file, size_t size, bool is_compressed) {
+std::vector<uint8_t> read_memory(Storage::FileHolder &file, const size_t size, const bool is_compressed) {
 	if(!is_compressed) {
 		return file.read(size);
 	}
@@ -61,8 +61,8 @@ std::vector<uint8_t> read_memory(Storage::FileHolder &file, size_t size, bool is
 
 }
 
-std::unique_ptr<Analyser::Static::Target> Z80::load(const std::string &file_name) {
-	FileHolder file(file_name);
+std::unique_ptr<Analyser::Static::Target> Z80::load(const std::filesystem::path &path) {
+	FileHolder file(path);
 
 	// Construct a target with a Spectrum state.
 	using Target = Analyser::Static::ZXSpectrum::Target;

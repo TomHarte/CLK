@@ -24,8 +24,8 @@ const std::size_t number_of_tracks = 35;
 
 }
 
-NIB::NIB(const std::string &file_name) :
-	file_(file_name) {
+NIB::NIB(const std::filesystem::path &path) :
+	file_(path) {
 	// A NIB should be 35 tracks, each 6656 bytes long.
 	if(file_.stats().st_size != track_length*number_of_tracks) {
 		throw Error::InvalidFormat;
@@ -48,8 +48,8 @@ bool NIB::is_read_only() const {
 	return file_.is_known_read_only();
 }
 
-bool NIB::represents(const std::string &name) const {
-	return name == file_.name();
+bool NIB::represents(const std::filesystem::path &path) const {
+	return path == file_.path();
 }
 
 long NIB::file_offset(const Track::Address address) const {

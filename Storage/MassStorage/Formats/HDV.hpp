@@ -12,6 +12,7 @@
 #include "Storage/FileHolder.hpp"
 #include "Storage/MassStorage/Encodings/AppleIIVolume.hpp"
 
+#include <filesystem>
 #include <limits>
 #include <vector>
 
@@ -24,13 +25,12 @@ namespace Storage::MassStorage {
 class HDV: public MassStorageDevice {
 public:
 	/*!
-		Constructs an HDV with the contents of the file named @c file_name within
+		Constructs an HDV with the contents of the file at the supplied path within
 		the range given.
 
-		Raises an exception if the file name doesn't appear to identify a valid
-		Apple II mass storage image.
+		Raises an exception if the file doesn't appear to be a valid Apple II mass storage image.
 	*/
-	HDV(const std::string &file_name, long start = 0, long size = std::numeric_limits<long>::max());
+	HDV(const std::filesystem::path &, long start = 0, long size = std::numeric_limits<long>::max());
 
 private:
 	mutable FileHolder file_;

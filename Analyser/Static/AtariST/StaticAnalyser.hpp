@@ -10,10 +10,11 @@
 
 #include "Analyser/Static/StaticAnalyser.hpp"
 #include "Storage/TargetPlatforms.hpp"
-#include <string>
+
+#include <filesystem>
 
 namespace Analyser::Static::AtariST {
 
-TargetList GetTargets(const Media &, const std::string &, TargetPlatform::IntType, bool);
+TargetList GetTargets(const Media &, const std::filesystem::path &, TargetPlatform::IntType, bool);
 
 }

@@ -22,24 +22,21 @@ namespace {
 	constexpr int bytes_per_sector = 256;
 }
 
-AppleDSK::AppleDSK(const std::string &file_name) :
-	file_(file_name) {
+AppleDSK::AppleDSK(const std::filesystem::path &path) :
+	file_(path) {
 	if(file_.stats().st_size % (number_of_tracks*bytes_per_sector)) throw Error::InvalidFormat;
 
 	sectors_per_track_ = int(file_.stats().st_size / (number_of_tracks*bytes_per_sector));
 	if(sectors_per_track_ != 13 && sectors_per_track_ != 16) throw Error::InvalidFormat;
 
 	// Check whether this is a Pro DOS disk by inspecting the filename.
-	if(sectors_per_track_ == 16) {
-		size_t string_index = file_name.size()-1;
-		while(file_name[string_index] != '.') {
-			if(file_name[string_index] == 'p') {
-				is_prodos_ = true;
-				break;
-			}
-			--string_index;
-		}
-	}
+	const auto extension = path.extension().string();
+	is_prodos_ =
+		sectors_per_track_ == 16 &&
+		(
+			extension.find("p") != std::string::npos ||
+			extension.find("P") != std::string::npos
+		);
 }
 
 HeadPosition AppleDSK::maximum_head_position() const {
@@ -50,18 +47,18 @@ bool AppleDSK::is_read_only() const {
 	return file_.is_known_read_only();
 }
 
-long AppleDSK::file_offset(Track::Address address) const {
+long AppleDSK::file_offset(const Track::Address address) const {
 	return address.position.as_int() * bytes_per_sector * sectors_per_track_;
 }
 
-size_t AppleDSK::logical_sector_for_physical_sector(size_t physical) const {
+size_t AppleDSK::logical_sector_for_physical_sector(const size_t physical) const {
 	// DOS and Pro DOS interleave sectors on disk, and they're represented in a disk
 	// image in physical order rather than logical.
 	if(physical == 15) return 15;
 	return (physical * (is_prodos_ ? 8 : 7)) % 15;
 }
 
-std::unique_ptr<Track> AppleDSK::track_at_position(Track::Address address) const {
+std::unique_ptr<Track> AppleDSK::track_at_position(const Track::Address address) const {
 	std::vector<uint8_t> track_data;
 	{
 		std::lock_guard lock_guard(file_.file_access_mutex());
@@ -79,9 +76,13 @@ std::unique_ptr<Track> AppleDSK::track_at_position(Track::Address address) const
 
 		// Write the sectors.
 		for(uint8_t c = 0; c < 16; ++c) {
-			segment += Encodings::AppleGCR::AppleII::header(is_prodos_ ? 0x01 : 0xfe, track, c);	// Volume number is 0xfe for DOS 3.3, 0x01 for Pro-DOS.
+			segment += Encodings::AppleGCR::AppleII::header(is_prodos_ ? 0x01 : 0xfe, track, c);
+			// Volume number is 0xfe for DOS 3.3, 0x01 for Pro-DOS.
+
 			segment += Encodings::AppleGCR::six_and_two_sync(7);	// Gap 2: 7 sync words.
-			segment += Encodings::AppleGCR::AppleII::six_and_two_data(&track_data[logical_sector_for_physical_sector(c) * 256]);
+			segment += Encodings::AppleGCR::AppleII::six_and_two_data(
+				&track_data[logical_sector_for_physical_sector(c) * 256]
+			);
 			segment += Encodings::AppleGCR::six_and_two_sync(20);	// Gap 3: 20 sync words.
 		}
 	} else {
@@ -126,6 +127,6 @@ void AppleDSK::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>>
 	}
 }
 
-bool AppleDSK::represents(const std::string &name) const {
-	return name == file_.name();
+bool AppleDSK::represents(const std::filesystem::path &name) const {
+	return name == file_.path();
 }

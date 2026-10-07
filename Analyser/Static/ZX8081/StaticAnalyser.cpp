@@ -30,7 +30,7 @@ static std::vector<Storage::Data::ZX8081::File> GetFiles(Storage::Tape::TapeSeri
 
 Analyser::Static::TargetList Analyser::Static::ZX8081::GetTargets(
 	const Media &media,
-	const std::string &,
+	const std::filesystem::path &,
 	TargetPlatform::IntType potential_platforms,
 	bool
 ) {

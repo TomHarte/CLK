@@ -12,8 +12,9 @@
 #include "Storage/FileHolder.hpp"
 #include "Storage/MassStorage/Encodings/MacintoshVolume.hpp"
 
-#include <vector>
+#include <filesystem>
 #include <map>
+#include <vector>
 
 namespace Storage::MassStorage {
 
@@ -24,11 +25,9 @@ namespace Storage::MassStorage {
 class HFV: public MassStorageDevice, public Encodings::Macintosh::Volume {
 public:
 	/*!
-		Constructs an HFV with the contents of the file named @c file_name.
-		Raises an exception if the file name doesn't appear to identify a valid
-		Macintosh mass storage image.
+		@throws if the file name doesn't appear to identify a valid Macintosh mass storage image.
 	*/
-	HFV(const std::string &file_name);
+	HFV(const std::filesystem::path &);
 
 private:
 	mutable FileHolder file_;

@@ -81,7 +81,7 @@ AcornCartridgesFrom(const std::vector<std::shared_ptr<Storage::Cartridge::Cartri
 
 Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 	const Media &media,
-	const std::string &file_name,
+	const std::filesystem::path &path,
 	TargetPlatform::IntType,
 	bool
 ) {
@@ -303,7 +303,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(
 
 				const auto probability =
 					Numeric::similarity(file.name, adfs_catalogue->name) +
-					Numeric::similarity(file.name, file_name) -
+					Numeric::similarity(file.name, path.filename().string()) -
 					((has_read || has_boot) ? 0.2 : 0.0);
 				options.emplace(probability, file.name);
 			}

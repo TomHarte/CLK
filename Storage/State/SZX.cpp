@@ -26,8 +26,8 @@ constexpr uint32_t block(const char *str) {
 using Logger = Log::Logger<Log::Source::SZX>;
 }
 
-std::unique_ptr<Analyser::Static::Target> SZX::load(const std::string &file_name) {
-	FileHolder file(file_name);
+std::unique_ptr<Analyser::Static::Target> SZX::load(const std::filesystem::path &path) {
+	FileHolder file(path);
 
 	// Construct a target with a Spectrum state.
 	using Target = Analyser::Static::ZXSpectrum::Target;

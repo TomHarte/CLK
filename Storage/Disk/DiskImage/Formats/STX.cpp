@@ -390,7 +390,7 @@ private:
 
 }
 
-STX::STX(const std::string &file_name) : file_(file_name) {
+STX::STX(const std::filesystem::path &path) : file_(path) {
 	// Require that this be a version 3 Pasti.
 	if(!file_.check_signature<SignatureType::Binary>("RSY")) throw Error::InvalidFormat;
 	if(file_.get_le<uint16_t>() != 3) throw Error::InvalidFormat;
@@ -595,6 +595,6 @@ std::unique_ptr<Track> STX::track_at_position(const Track::Address address) cons
 	return constructor.get_track();
 }
 
-bool STX::represents(const std::string &name) const {
-	return name == file_.name();
+bool STX::represents(const std::filesystem::path &path) const {
+	return path == file_.path();
 }

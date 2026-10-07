@@ -10,7 +10,7 @@
 
 #include "Storage/Tape/Tape.hpp"
 
-#include <string>
+#include <filesystem>
 #include <vector>
 #include <zlib.h>
 
@@ -27,11 +27,9 @@ public:
 	};
 
 	/*!
-		Constructs a @c CSW containing content from the file with name @c file_name.
-
 		@throws ErrorNotCSW if this file could not be opened and recognised as a valid CSW file.
 	*/
-	CSW(const std::string &file_name);
+	CSW(const std::filesystem::path &);
 
 	/*!
 		Constructs a @c CSW containing content as specified. Does not throw.

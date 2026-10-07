@@ -183,7 +183,7 @@ bool is_bd500(Storage::Encodings::MFM::Parser &parser) {
 
 Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(
 	const Media &media,
-	const std::string &,
+	const std::filesystem::path &,
 	TargetPlatform::IntType,
 	bool
 ) {

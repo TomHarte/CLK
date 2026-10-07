@@ -10,6 +10,8 @@
 
 #include "MFMSectorDump.hpp"
 
+#include <filesystem>
+
 namespace Storage::Disk {
 
 /*!
@@ -18,18 +20,16 @@ namespace Storage::Disk {
 class SSD: public MFMSectorDump {
 public:
 	/*!
-		Construct an @c SSD containing content from the file with name @c file_name.
-
 		@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
 		@throws Error::InvalidFormat if the file doesn't appear to contain a .SSD format image.
 	*/
-	SSD(const std::string &file_name);
+	SSD(const std::filesystem::path &);
 
 	HeadPosition maximum_head_position() const final;
 	int head_count() const final;
 
 private:
-	long get_file_offset_for_position(Track::Address address) const final;
+	long get_file_offset_for_position(Track::Address) const final;
 
 	int head_count_;
 	int track_count_;

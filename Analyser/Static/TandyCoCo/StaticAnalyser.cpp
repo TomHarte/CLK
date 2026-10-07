@@ -15,7 +15,7 @@
 
 Analyser::Static::TargetList Analyser::Static::TandyCoCo::GetTargets(
 	const Media &media,
-	const std::string &,
+	const std::filesystem::path &,
 	TargetPlatform::IntType,
 	bool
 ) {

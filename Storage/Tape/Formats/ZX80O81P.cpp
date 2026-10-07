@@ -11,16 +11,16 @@
 
 using namespace Storage::Tape;
 
-ZX80O81P::ZX80O81P(const std::string &file_name) {
-	Storage::FileHolder file(file_name, FileMode::Read);
+ZX80O81P::ZX80O81P(const std::filesystem::path &path) {
+	Storage::FileHolder file(path, FileMode::Read);
 
 	// Grab file contents.
 	data_ = file.read(size_t(file.stats().st_size));
 
 	// If it's a ZX81 file, prepend a file name.
-	const auto type = file.extension();
+	const auto type = file.path().extension();
 	target_platforms_ = TargetPlatform::ZX80;
-	if(type == "p" || type == "81") {
+	if(type == ".p" || type == ".81") {
 		// TODO, maybe: prefix a proper file name; this is leaving the file nameless.
 		data_.insert(data_.begin(), 0x80);
 		target_platforms_ = TargetPlatform::ZX81;

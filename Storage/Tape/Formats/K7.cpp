@@ -48,13 +48,13 @@ using namespace Storage::Tape;
 
 */
 
-K7::K7(const std::string &file_name) : file_name_(file_name) {}
+K7::K7(const std::filesystem::path &path) : path_(path) {}
 
 std::unique_ptr<FormatSerialiser> K7::format_serialiser() const {
-	return std::make_unique<Serialiser>(file_name_);
+	return std::make_unique<Serialiser>(path_);
 }
 
-K7::Serialiser::Serialiser(const std::string &name) : file_(name, FileMode::Read) {}
+K7::Serialiser::Serialiser(const std::filesystem::path &path) : file_(path, FileMode::Read) {}
 
 void K7::Serialiser::set_target_platforms(const TargetPlatform::Type type) {
 	target_ = type;

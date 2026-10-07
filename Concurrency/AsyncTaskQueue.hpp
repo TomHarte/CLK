@@ -9,6 +9,7 @@
 #pragma once
 
 #include <atomic>
+#include <concepts>
 #include <condition_variable>
 #include <functional>
 #include <thread>
@@ -79,31 +80,33 @@ public:
 		}
 	}
 
-	/// Enqueus @c post_action to be performed asynchronously at some point
+	/// Enqueues @c action to be performed asynchronously at some point
 	/// in the future. If @c perform_automatically is @c true then the action
-	/// will be performed as soon as possible. Otherwise it will sit unsheculed until
-	/// a call to @c perform().
+	/// will be performed as soon as possible. Otherwise it will sit enqueued but
+	/// unscheduled until a call to @c perform().
 	///
 	/// Actions may be elided.
 	///
 	/// If this TaskQueue has a @c Performer then the action will be performed
 	/// on the same thread as the performer, after the performer has been updated
 	/// to 'now'.
-	void enqueue(const std::function<void(void)> &post_action) {
+	template <typename FuncT>
+	requires std::invocable<FuncT>
+	void enqueue(FuncT &&action) {
 		const std::lock_guard guard(condition_mutex_);
-		actions_.push_back(post_action);
+		actions_.emplace_back(std::forward<FuncT>(action));
 
 		if constexpr (perform_automatically) {
-			condition_.notify_all();
+			condition_.notify_one();
 		} else {
-			if(actions_.size() > 1000) {
-				condition_.notify_all();
+			if(actions_.size() >= MaximumEnqueueActions) {
+				condition_.notify_one();
 			}
 		}
 	}
 
 	/// @returns The number of items currently enqueued.
-	size_t size() {
+	size_t size() const {
 		const std::lock_guard guard(condition_mutex_);
 		return actions_.size();
 	}
@@ -115,7 +118,7 @@ public:
 		if(actions_.empty()) {
 			return;
 		}
-		condition_.notify_all();
+		condition_.notify_one();
 	}
 
 	/// Permanently stops this task queue, blocking until that has happened.
@@ -124,7 +127,7 @@ public:
 	/// The queue cannot be restarted; this is a destructive action.
 	void stop() {
 		if(thread_.joinable()) {
-			should_quit_.test_and_set(std::memory_order_relaxed);
+			should_quit_.test_and_set();
 			enqueue([] {});
 			if constexpr (!perform_automatically) {
 				perform();
@@ -161,7 +164,7 @@ public:
 	/// until all scheduled work has been performed, placing a memory barrier
 	/// in between.
 	void spin_flush() {
-		std::atomic_flag has_run;
+		std::atomic_flag has_run{};
 
 		enqueue([&has_run] () {
 			has_run.test_and_set(std::memory_order::release);
@@ -179,6 +182,8 @@ public:
 	}
 
 private:
+	static constexpr size_t MaximumEnqueueActions = 1000;
+
 	void start_impl() {
 		thread_ = std::thread{
 			[this] {
@@ -214,7 +219,7 @@ private:
 
 	// Necessary synchronisation parts.
 	std::atomic_flag should_quit_;
-	std::mutex condition_mutex_;
+	mutable std::mutex condition_mutex_;
 	std::condition_variable condition_;
 
 	// Ensure the thread isn't constructed until after the mutex

@@ -11,17 +11,19 @@
 #include "Storage/Disk/DiskImage/DiskImage.hpp"
 #include "Storage/FileHolder.hpp"
 
+#include <filesystem>
+
 namespace Storage::Disk {
 
 class MOOF: public DiskImage {
 public:
-	MOOF(const std::string &file_name);
+	MOOF(const std::filesystem::path &);
 
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
 	void set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tracks);
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
-	bool represents(const std::string &) const;
+	bool represents(const std::filesystem::path &) const;
 	bool is_read_only() const;
 
 private:

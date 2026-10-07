@@ -13,6 +13,7 @@
 #import "NSData+StdVector.h"
 #import "NSData+CRC32.h"
 
+#include <filesystem>
 #include <optional>
 #include <string>
 
@@ -22,14 +23,14 @@ NSString *directoryFor(const ROM::Description &description) {
 	return [@"ROMImages/" stringByAppendingString:[NSString stringWithUTF8String:description.machine_name.c_str()]];
 }
 
-NSArray<NSURL *> *urlsFor(const ROM::Description &description, const std::string &file_name) {
+NSArray<NSURL *> *urlsFor(const ROM::Description &description, const std::filesystem::path &path) {
 	NSMutableArray<NSURL *> *const urls = [[NSMutableArray alloc] init];
 	NSArray<NSURL *> *const supportURLs = [[NSFileManager defaultManager] URLsForDirectory:NSApplicationSupportDirectory inDomains:NSUserDomainMask];
 	NSString *const subdirectory = directoryFor(description);
 
 	for(NSURL *supportURL in supportURLs) {
 		[urls addObject:[[supportURL URLByAppendingPathComponent:subdirectory]
-								URLByAppendingPathComponent:[NSString stringWithUTF8String:file_name.c_str()]]];
+								URLByAppendingPathComponent:[NSString stringWithUTF8String:path.c_str()]]];
 	}
 
 	return urls;

@@ -11,6 +11,7 @@
 #include "Storage/Disk/DiskImage/DiskImage.hpp"
 #include "Storage/FileHolder.hpp"
 
+#include <filesystem>
 #include <string>
 
 namespace Storage::Disk {
@@ -22,16 +23,14 @@ namespace Storage::Disk {
 class DMK: public DiskImage {
 public:
 	/*!
-		Construct a @c DMK containing content from the file with name @c file_name.
-
 		@throws Error::InvalidFormat if this file doesn't appear to be a DMK.
 	*/
-	DMK(const std::string &file_name);
+	DMK(const std::filesystem::path &);
 
 	HeadPosition maximum_head_position() const;
 	int head_count() const;
 	bool is_read_only() const;
-	bool represents(const std::string &) const;
+	bool represents(const std::filesystem::path &) const;
 
 	std::unique_ptr<Track> track_at_position(Track::Address) const;
 

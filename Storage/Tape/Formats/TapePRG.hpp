@@ -23,12 +23,11 @@ namespace Storage::Tape {
 class PRG: public Tape {
 public:
 	/*!
-		Constructs a @c T64 containing content from the file with name @c file_name, of type @c type.
+		Constructs a @c T64 containing content from the file at the provided path.
 
-		@param file_name The name of the file to load.
 		@throws ErrorBadFormat if this file could not be opened and recognised as the specified type.
 	*/
-	PRG(const std::string &file_name);
+	PRG(const std::filesystem::path &);
 
 	enum {
 		ErrorBadFormat
@@ -38,7 +37,7 @@ private:
 	std::unique_ptr<FormatSerialiser> format_serialiser() const override;
 
 	struct Serialiser: public FormatSerialiser, public TargetPlatform::Recipient {
-		Serialiser(const std::string &file_name, uint16_t load_address, uint16_t length);
+		Serialiser(const std::filesystem::path &, uint16_t load_address, uint16_t length);
 		void set_target_platforms(TargetPlatform::Type) override;
 
 	private:
@@ -87,7 +86,7 @@ private:
 			unsigned int marker_length;
 		} timings_;
 	};
-	std::string file_name_;
+	std::filesystem::path path_;
 	uint16_t load_address_;
 	uint16_t length_;
 };

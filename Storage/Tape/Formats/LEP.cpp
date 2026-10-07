@@ -35,13 +35,13 @@
 
 using namespace Storage::Tape;
 
-LEP::LEP(const std::string &file_name) : file_name_(file_name) {}
+LEP::LEP(const std::filesystem::path &path) : path_(path) {}
 
 std::unique_ptr<FormatSerialiser> LEP::format_serialiser() const {
-	return std::make_unique<Serialiser>(file_name_);
+	return std::make_unique<Serialiser>(path_);
 }
 
-LEP::Serialiser::Serialiser(const std::string &name) : file_(name, FileMode::Read) {
+LEP::Serialiser::Serialiser(const std::filesystem::path &path) : file_(path, FileMode::Read) {
 	// Empirically: a length of about 16 in a LEP means "a full pulse", i.e. 833µs or thereabouts.
 	//
 	// That seems to gel with the 50µs clock precision guess.
