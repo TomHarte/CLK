@@ -30,7 +30,13 @@ AppleDSK::AppleDSK(const std::filesystem::path &path) :
 	if(sectors_per_track_ != 13 && sectors_per_track_ != 16) throw Error::InvalidFormat;
 
 	// Check whether this is a Pro DOS disk by inspecting the filename.
-	is_prodos_ = sectors_per_track_ == 16 && path.extension().string().find("p") != std::string::npos;
+	const auto extension = path.extension().string();
+	is_prodos_ =
+		sectors_per_track_ == 16 &&
+		(
+			extension.find("p") != std::string::npos ||
+			extension.find("P") != std::string::npos
+		);
 }
 
 HeadPosition AppleDSK::maximum_head_position() const {
