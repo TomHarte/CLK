@@ -9,6 +9,8 @@
 #pragma once
 
 #include "Storage/FileHolder.hpp"
+
+#include <filesystem>
 #include <optional>
 #include <string>
 
@@ -26,16 +28,16 @@ struct FileBundle {
 	virtual ~FileBundle() {}
 
 	struct PermissionDelegate {
-		virtual void validate_open(FileBundle &, const std::string &, FileMode) = 0;
-		virtual void validate_erase(FileBundle &, const std::string &) = 0;
+		virtual void validate_open(FileBundle &, const std::filesystem::path &, FileMode) = 0;
+		virtual void validate_erase(FileBundle &, const std::filesystem::path &) = 0;
 	};
 
-	virtual std::optional<std::string> key_file() const = 0;
-	virtual FileHolder open(const std::string &, FileMode) = 0;
-	virtual bool erase(const std::string &) = 0;
+	virtual std::optional<std::filesystem::path> key_file() const = 0;
+	virtual FileHolder open(const std::filesystem::path &, FileMode) = 0;
+	virtual bool erase(const std::filesystem::path &) = 0;
 
-	virtual std::optional<std::string> base_path() const { return std::nullopt; }
-	virtual void set_base_path(const std::string &) {}
+	virtual std::optional<std::filesystem::path> base_path() const { return std::nullopt; }
+	virtual void set_base_path(const std::filesystem::path &) {}
 	virtual void set_permission_delegate(PermissionDelegate *) {}
 
 	virtual void set_case_insensitive(bool) {}
@@ -43,21 +45,21 @@ struct FileBundle {
 
 
 struct LocalFSFileBundle: public FileBundle {
-	LocalFSFileBundle(const std::string &to_contain);
+	LocalFSFileBundle(const std::filesystem::path &to_contain);
 
-	std::optional<std::string> key_file() const override;
-	FileHolder open(const std::string &, FileMode) override;
-	bool erase(const std::string &) override;
+	std::optional<std::filesystem::path> key_file() const override;
+	FileHolder open(const std::filesystem::path &, FileMode) override;
+	bool erase(const std::filesystem::path &) override;
 
-	std::optional<std::string> base_path() const override;
-	void set_base_path(const std::string &) override;
+	std::optional<std::filesystem::path> base_path() const override;
+	void set_base_path(const std::filesystem::path &) override;
 	void set_permission_delegate(PermissionDelegate *) override;
 
 	// TODO: implement case insensitive matching.
 
 private:
-	std::string key_file_;
-	std::string base_path_;
+	std::filesystem::path key_file_;
+	std::filesystem::path base_path_;
 	PermissionDelegate *permission_delegate_ = nullptr;
 };
 

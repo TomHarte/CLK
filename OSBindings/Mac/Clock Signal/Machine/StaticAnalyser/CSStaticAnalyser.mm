@@ -41,7 +41,11 @@
 namespace {
 
 struct PermissionDelegate: public Storage::FileBundle::FileBundle::PermissionDelegate {
-	void validate_open(Storage::FileBundle::FileBundle &bundle, const std::string &path, const Storage::FileMode mode) {
+	void validate_open(
+		Storage::FileBundle::FileBundle &bundle,
+		const std::filesystem::path &path,
+		const Storage::FileMode mode
+	) {
 		NSData *bookmarkData;
 		NSString *stringPath = [NSString stringWithUTF8String:path.c_str()];
 		NSURL *url = [NSURL fileURLWithPath:stringPath isDirectory:NO];
@@ -147,7 +151,7 @@ struct PermissionDelegate: public Storage::FileBundle::FileBundle::PermissionDel
 			forKey:bookmarkKey];
 	}
 
-	void validate_erase(Storage::FileBundle::FileBundle &, const std::string &) {
+	void validate_erase(Storage::FileBundle::FileBundle &, const std::filesystem::path &) {
 		// Currently a no-op, as it so happens that the only machine that currently
 		// uses a file bundle is the Enterprise, and its semantics involve opening
 		// a file before it can be erased.
