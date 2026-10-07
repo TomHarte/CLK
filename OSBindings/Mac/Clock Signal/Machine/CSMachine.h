@@ -62,7 +62,10 @@ typedef NS_ENUM(NSInteger, CSMachineChangeEffect) {
 	@param missingROMs An array that is filled with a list of ROMs that the machine requested but which
 		were not found; populated only if this `init` has failed.
 */
-- (nullable instancetype)initWithAnalyser:(nonnull CSStaticAnalyser *)result missingROMs:(nullable inout NSMutableString *)missingROMs NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)
+	initWithAnalyser:(nonnull CSStaticAnalyser *)result
+	missingROMs:(nullable inout NSMutableString *)missingROMs
+	NS_DESIGNATED_INITIALIZER;
 
 - (float)idealSamplingRateFromRange:(NSRange)range;
 @property (readonly, getter=isStereo) BOOL stereo;
@@ -73,7 +76,11 @@ typedef NS_ENUM(NSInteger, CSMachineChangeEffect) {
 - (void)start;
 - (void)stop;
 
-- (void)setKey:(uint16_t)key characters:(nullable NSString *)characters isPressed:(BOOL)isPressed isRepeat:(BOOL)isRepeat;
+- (void)
+	setKey:(uint16_t)key
+	characters:(nullable NSString *)characters
+	isPressed:(BOOL)isPressed
+	isRepeat:(BOOL)isRepeat;
 - (void)clearAllKeys;
 
 - (void)setMouseButton:(int)button isPressed:(BOOL)isPressed;
