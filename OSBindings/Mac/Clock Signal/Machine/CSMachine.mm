@@ -197,12 +197,12 @@ struct ActivityObserver: public Activity::Observer {
 	_machine->scan_producer()->set_scan_target(_view.scanTarget.scanTarget);
 
 	_ownedUpdater = std::make_unique<Updater>();
-	std::atomic_thread_fence(std::memory_order_release);
+	std::atomic_thread_fence(std::memory_order::release);
 	_ownedUpdater->performer.machine = _machine.get();
 	if(_ownedUpdater->performer.machine) {
 		_ownedUpdater->start();
 	}
-	_updater.store(_ownedUpdater.get(), std::memory_order_relaxed);
+	_updater.store(_ownedUpdater.get(), std::memory_order::relaxed);
 
 	_leds = [[NSMutableArray alloc] init];
 	Activity::Source *const activity_source = _machine->activity_source();
@@ -384,7 +384,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)applyMedia:(const Analyser::Static::Media &)media {
-	const auto updater = _updater.load(std::memory_order_relaxed);
+	const auto updater = _updater.load(std::memory_order::relaxed);
 	if(!updater) return;
 
 	__weak CSMachine *weakSelf = self;
@@ -565,7 +565,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)applyInputEvent:(dispatch_block_t)event {
-	const auto updater = _updater.load(std::memory_order_relaxed);
+	const auto updater = _updater.load(std::memory_order::relaxed);
 	if(!updater) return;
 
 	updater->enqueue([event] {
@@ -799,7 +799,7 @@ struct ActivityObserver: public Activity::Observer {
 - (void)audioQueueIsRunningDry:(nonnull CSAudioQueue *)audioQueue {
 	__weak CSMachine *weakSelf = self;
 
-	const auto updater = _updater.load(std::memory_order_relaxed);
+	const auto updater = _updater.load(std::memory_order::relaxed);
 	if(!updater) return;
 
 	updater->enqueue([weakSelf, updater] {
@@ -817,7 +817,7 @@ struct ActivityObserver: public Activity::Observer {
 	__weak CSMachine *weakSelf = self;
 	const auto refreshPeriod = view.refreshPeriod;
 
-	const auto updater = _updater.load(std::memory_order_relaxed);
+	const auto updater = _updater.load(std::memory_order::relaxed);
 	if(!updater) return;
 
 	updater->enqueue([weakSelf, refreshPeriod, updater] {
@@ -870,7 +870,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)stop {
-	const auto updater = _updater.load(std::memory_order_relaxed);
+	const auto updater = _updater.load(std::memory_order::relaxed);
 	if(!updater) return;
 	updater->stop();
 }
@@ -880,7 +880,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)hardReset {
-	const auto updater = _updater.load(std::memory_order_relaxed);
+	const auto updater = _updater.load(std::memory_order::relaxed);
 	if(!updater) return;
 
 	__weak CSMachine *weakSelf = self;
@@ -894,13 +894,13 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (BOOL)canHardReset {
-	const auto updater = _updater.load(std::memory_order_relaxed);
+	const auto updater = _updater.load(std::memory_order::relaxed);
 	if(!updater) return NO;
 	return updater->performer.machine->hard_resettable() != nullptr;
 }
 
 - (void)softReset {
-	const auto updater = _updater.load(std::memory_order_relaxed);
+	const auto updater = _updater.load(std::memory_order::relaxed);
 	if(!updater) return;
 
 	__weak CSMachine *weakSelf = self;
@@ -914,7 +914,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (BOOL)canSoftReset {
-	const auto updater = _updater.load(std::memory_order_relaxed);
+	const auto updater = _updater.load(std::memory_order::relaxed);
 	if(!updater) return NO;
 	return updater->performer.machine->soft_resettable() != nullptr;
 }

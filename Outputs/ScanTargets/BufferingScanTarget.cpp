@@ -30,8 +30,8 @@ using namespace Outputs::Display;
 
 BufferingScanTarget::BufferingScanTarget() {
 	// Ensure proper initialisation of the two atomic pointer sets.
-	read_pointers_.store(write_pointers_, std::memory_order_relaxed);
-	submit_pointers_.store(write_pointers_, std::memory_order_relaxed);
+	read_pointers_.store(write_pointers_, std::memory_order::relaxed);
+	submit_pointers_.store(write_pointers_, std::memory_order::relaxed);
 }
 
 // MARK: - Producer; pixel data.
@@ -68,7 +68,7 @@ uint8_t *BufferingScanTarget::begin_data(const size_t required_length, const siz
 	// Check whether that steps over the read pointer; if so then the final address will be closer
 	// to the write pointer than the old.
 	const auto end_address = texture_address(end_x, output_y);
-	const auto read_pointers = read_pointers_.load(std::memory_order_relaxed);
+	const auto read_pointers = read_pointers_.load(std::memory_order::relaxed);
 
 	const auto end_distance = texture_address_sub(end_address, read_pointers.write_area);
 	const auto previous_distance = texture_address_sub(write_pointers_.write_area, read_pointers.write_area);
@@ -154,7 +154,7 @@ Outputs::Display::ScanTarget::Scan *BufferingScanTarget::begin_scan() {
 	}
 
 	const auto result = &scan_buffer_[write_pointers_.scan];
-	const auto read_pointers = read_pointers_.load(std::memory_order_relaxed);
+	const auto read_pointers = read_pointers_.load(std::memory_order::relaxed);
 
 	// Advance the pointer.
 	const auto next_write_pointer = decltype(write_pointers_.scan)((write_pointers_.scan + 1) % scan_buffer_size_);
@@ -221,8 +221,8 @@ void BufferingScanTarget::announce(
 		previous_frame_was_complete_ = frame_is_complete_;
 		frame_is_complete_ = true;
 
-		auto write = frame_write_.load(std::memory_order_relaxed);
-		const auto submit_pointers = submit_pointers_.load(std::memory_order_relaxed);
+		auto write = frame_write_.load(std::memory_order::relaxed);
+		const auto submit_pointers = submit_pointers_.load(std::memory_order::relaxed);
 		auto &frame = frames_[size_t(write)];
 
 		frame.first_line = submit_pointers.line;
@@ -233,12 +233,12 @@ void BufferingScanTarget::announce(
 
 		field_index_ ^= 1;
 		++write;
-		frame_write_.store(write, std::memory_order_release);
+		frame_write_.store(write, std::memory_order::release);
 
-		auto read = frame_read_.load(std::memory_order_relaxed);
+		auto read = frame_read_.load(std::memory_order::relaxed);
 		if(read == write) {
 			++read;
-			frame_read_.store(read, std::memory_order_relaxed);
+			frame_read_.store(read, std::memory_order::relaxed);
 		}
 
 		// Look for an even-odd pattern in start-of-frame line placement as an indication that
@@ -275,7 +275,7 @@ void BufferingScanTarget::announce(
 #endif
 
 	if(is_visible) {
-		const auto read_pointers = read_pointers_.load(std::memory_order_relaxed);
+		const auto read_pointers = read_pointers_.load(std::memory_order::relaxed);
 
 		// Attempt to allocate a new line, noting allocation success or failure.
 		const auto next_line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
@@ -305,11 +305,11 @@ void BufferingScanTarget::announce(
 			write_pointers_.line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
 
 			// Update the submit pointers with all lines, scans and data written during this line.
-			submit_pointers_.store(write_pointers_, std::memory_order_release);
+			submit_pointers_.store(write_pointers_, std::memory_order::release);
 		} else {
 			// Something failed, or there was nothing on the line anyway, so reset all pointers to where they
 			// were before this line. Mark frame as incomplete if this was an allocation failure.
-			write_pointers_ = submit_pointers_.load(std::memory_order_relaxed);
+			write_pointers_ = submit_pointers_.load(std::memory_order::relaxed);
 			frame_is_complete_ &= !allocation_has_failed_;
 		}
 	}
@@ -347,7 +347,7 @@ size_t BufferingScanTarget::write_area_data_size() const {
 void BufferingScanTarget::set_modals(const Modals modals) {
 	perform([&] {
 		modals_ = modals;
-		modals_are_dirty_.store(true, std::memory_order_relaxed);
+		modals_are_dirty_.store(true, std::memory_order::relaxed);
 	});
 }
 
@@ -361,10 +361,10 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 	// The area to draw is that between the read pointers, representing wherever reading
 	// last stopped, and the submit pointers, representing all the new data that has been
 	// cleared for submission.
-	const auto submit_pointers = submit_pointers_.load(std::memory_order_acquire);
-	const auto read_ahead_pointers = read_ahead_pointers_.load(std::memory_order_relaxed);
-	const auto frame_read = frame_read_.load(std::memory_order_relaxed);
-	const auto frame_write = frame_write_.load(std::memory_order_relaxed);
+	const auto submit_pointers = submit_pointers_.load(std::memory_order::acquire);
+	const auto read_ahead_pointers = read_ahead_pointers_.load(std::memory_order::relaxed);
+	const auto frame_read = frame_read_.load(std::memory_order::relaxed);
+	const auto frame_write = frame_write_.load(std::memory_order::relaxed);
 
 	OutputArea area;
 
@@ -383,8 +383,8 @@ BufferingScanTarget::OutputArea BufferingScanTarget::get_output_area() {
 	area.end.write_area_y = texture_address_get_y(submit_pointers.write_area);
 
 	// Update the read-ahead pointers.
-	read_ahead_pointers_.store(submit_pointers, std::memory_order_relaxed);
-	frame_read_.store(frame_write, std::memory_order_relaxed);
+	read_ahead_pointers_.store(submit_pointers, std::memory_order::relaxed);
+	frame_read_.store(frame_write, std::memory_order::relaxed);
 
 #ifndef NDEBUG
 	area.counter = output_area_counter_;
@@ -399,7 +399,7 @@ void BufferingScanTarget::complete_output_area(const OutputArea &area) {
 	new_read_pointers.line = uint16_t(area.end.line);
 	new_read_pointers.scan = uint16_t(area.end.scan);
 	new_read_pointers.write_area = texture_address(uint16_t(area.end.write_area_x), uint16_t(area.end.write_area_y));
-	read_pointers_.store(new_read_pointers, std::memory_order_relaxed);
+	read_pointers_.store(new_read_pointers, std::memory_order::relaxed);
 
 #ifndef NDEBUG
 	// This will fire if the caller is announcing completed output areas out of order.
@@ -422,17 +422,17 @@ void BufferingScanTarget::set_line_buffer(
 }
 
 const Outputs::Display::ScanTarget::Modals *BufferingScanTarget::new_modals() {
-	const auto modals_are_dirty = modals_are_dirty_.load(std::memory_order_relaxed);
+	const auto modals_are_dirty = modals_are_dirty_.load(std::memory_order::relaxed);
 	if(!modals_are_dirty) {
 		return nullptr;
 	}
 
-	modals_are_dirty_.store(false, std::memory_order_relaxed);
+	modals_are_dirty_.store(false, std::memory_order::relaxed);
 
 	// MAJOR SHARP EDGE HERE: assume that because the new_modals have been fetched then the caller will
 	// now ensure their texture buffer is appropriate and set the data size implied by the data type.
 	std::lock_guard lock_guard(producer_lock_);
-	std::atomic_thread_fence(std::memory_order_acquire);
+	std::atomic_thread_fence(std::memory_order::acquire);
 	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
 	assert((data_type_size_ == 1) || (data_type_size_ == 2) || (data_type_size_ == 4));
 
@@ -444,5 +444,5 @@ const Outputs::Display::ScanTarget::Modals &BufferingScanTarget::modals() const 
 }
 
 bool BufferingScanTarget::has_new_modals() const {
-	return modals_are_dirty_.load(std::memory_order_relaxed);
+	return modals_are_dirty_.load(std::memory_order::relaxed);
 }

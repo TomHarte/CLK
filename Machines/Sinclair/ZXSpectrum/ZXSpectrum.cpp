@@ -62,11 +62,11 @@ public:
 	void did_set_input(const Input &digital_input, bool is_active) final {
 		const auto apply_kempston = [&](uint8_t mask) {
 			if(is_active) write_kempston_ |= mask; else write_kempston_ &= ~mask;
-			kempston_.store(write_kempston_, std::memory_order_relaxed);
+			kempston_.store(write_kempston_, std::memory_order::relaxed);
 		};
 		const auto apply_sinclair = [&](uint16_t mask) {
 			if(is_active) write_sinclair_ &= ~mask; else write_sinclair_ |= mask;
-			sinclair_.store(write_sinclair_, std::memory_order_relaxed);
+			sinclair_.store(write_sinclair_, std::memory_order::relaxed);
 		};
 
 		switch(digital_input.type) {
@@ -98,13 +98,13 @@ public:
 	/// @returns The value that a Kempston joystick interface would report if this joystick
 	/// were plugged into it.
 	uint8_t get_kempston() {
-		return kempston_.load(std::memory_order_relaxed);
+		return kempston_.load(std::memory_order::relaxed);
 	}
 
 	/// @returns The value that a Sinclair interface would report if this joystick
 	/// were plugged into it via @c port (which should be either 0 or 1, for ports 1 or 2).
 	uint8_t get_sinclair(const int port) {
-		return uint8_t(sinclair_.load(std::memory_order_relaxed) >> (port * 8));
+		return uint8_t(sinclair_.load(std::memory_order::relaxed) >> (port * 8));
 	}
 
 private:

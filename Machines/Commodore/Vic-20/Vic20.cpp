@@ -524,7 +524,7 @@ public:
 			value = result;
 
 			// Consider applying the fast tape hack.
-			if(use_fast_tape_hack_.load(std::memory_order_relaxed) && operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode) {
+			if(use_fast_tape_hack_.load(std::memory_order::relaxed) && operation == CPU::MOS6502Mk2::BusOperation::ReadOpcode) {
 				if(address == 0xf7b2) {
 					// Address 0xf7b2 contains a JSR to 0xf8c0 ('RDTPBLKS') that will fill the tape buffer with the
 					// next header. Skip that via a three-byte NOP and fill in the next header programmatically.
@@ -796,7 +796,7 @@ private:
 	void set_use_fast_tape() {
 		use_fast_tape_hack_.store(
 			!tape_is_sleeping_ && allow_fast_tape_hack_ && tape_->has_tape(),
-			std::memory_order_relaxed
+			std::memory_order::relaxed
 		);
 	}
 

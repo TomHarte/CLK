@@ -147,22 +147,18 @@ public:
 	/// Schedules any remaining unscheduled work, then blocks synchronously
 	/// until all scheduled work has been performed.
 	void lock_flush() {
-		std::mutex flush_mutex;
-		std::condition_variable flush_condition;
-		bool has_run = false;
-		std::unique_lock lock(flush_mutex);
+		std::atomic_flag flushed = false;
 
-		enqueue([&flush_mutex, &flush_condition, &has_run] () {
-			std::unique_lock inner_lock(flush_mutex);
-			has_run = true;
-			flush_condition.notify_one();
+		enqueue([&flushed] () {
+			flushed.test_and_set(std::memory_order::release);
+			flushed.notify_one();
 		});
 
 		if constexpr (!perform_automatically) {
 			perform();
 		}
 
-		flush_condition.wait(lock, [&has_run] { return has_run; });
+		flushed.wait(false, std::memory_order::acquire);
 	}
 
 	/// Schedules any remaining unscheduled work, then spins
@@ -195,11 +191,11 @@ private:
 				ActionVector actions;
 
 				// Continue until told to quit.
-				while(!should_quit_.test(std::memory_order_relaxed)) {
+				while(!should_quit_.test(std::memory_order::relaxed)) {
 					// Wait for new actions to be signalled, and grab them.
 					std::unique_lock lock(condition_mutex_);
 					condition_.wait(lock, [&] {
-						return !actions_.empty() || should_quit_.test(std::memory_order_relaxed);
+						return !actions_.empty() || should_quit_.test(std::memory_order::relaxed);
 					});
 					std::swap(actions, actions_);
 					lock.unlock();

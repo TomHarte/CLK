@@ -91,7 +91,7 @@ public:
 	void copy_output_rate(const Speaker &rhs) {
 		output_cycles_per_second_ = rhs.output_cycles_per_second_;
 		output_buffer_size_ = rhs.output_buffer_size_;
-		stereo_output_.store(rhs.stereo_output_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+		stereo_output_.store(rhs.stereo_output_.load(std::memory_order::relaxed), std::memory_order::relaxed);
 		compute_output_rate();
 	}
 
@@ -129,7 +129,7 @@ public:
 		virtual void speaker_did_change_input_clock(Speaker &) {}
 	};
 	virtual void set_delegate(Delegate *delegate) {
-		delegate_.store(delegate, std::memory_order_relaxed);
+		delegate_.store(delegate, std::memory_order::relaxed);
 	}
 
 
@@ -139,7 +139,7 @@ public:
 protected:
 	void did_complete_samples(Speaker *, const std::vector<int16_t> &buffer, bool is_stereo) {
 		// Test the delegate for existence again, as it may have changed.
-		const auto delegate = delegate_.load(std::memory_order_relaxed);
+		const auto delegate = delegate_.load(std::memory_order::relaxed);
 		if(!delegate) return;
 
 		++completed_sample_sets_;
