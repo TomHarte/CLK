@@ -127,8 +127,8 @@ void NCR5380::write(const int address, const uint8_t value, bool) {
 		break;
 	}
 
-	// Data is output only if the data bus is asserted.
-	if(assert_data_bus_) {
+	// Data is output only if the data bus is asserted, or during a DMA send.
+	if(drives_data_bus()) {
 		bus_output_ = (bus_output_ & ~SCSI::Line::Data) | data_bus_;
 	} else {
 		bus_output_ &= ~SCSI::Line::Data;
@@ -315,12 +315,11 @@ void NCR5380::scsi_bus_did_change(SCSI::Bus &, const SCSI::BusState new_state, c
 				break;
 				case SCSI::Line::Request:
 					// Don't issue a new DMA request if a phase mismatch has
-					// been detected and this is an intiator receiving.
-					// This is a bit of reading between the lines.
-					// (i.e. guesswork, partly)
-					dma_request_ =
-						!phase_mismatch_ ||
-						(dma_operation_ != DMAOperation::InitiatorReceive);
+					// been detected, whether the initiator is receiving or
+					// sending: the Apple II SCSI card writes for as long as
+					// DRQ is set, so a request during the status phase would
+					// have it acknowledge the status and message bytes.
+					dma_request_ = !phase_mismatch_;
 				break;
 				case SCSI::Line::Request | SCSI::Line::Acknowledge:
 					dma_request_ = false;
@@ -362,11 +361,20 @@ uint8_t NCR5380::dma_acknowledge() {
 
 void NCR5380::dma_acknowledge(const uint8_t value) {
 	data_bus_ = value;
+	if(drives_data_bus()) {
+		bus_output_ = (bus_output_ & ~SCSI::Line::Data) | data_bus_;
+	}
 
 	dma_acknowledge_ = true;
 	dma_request_ = false;
 	update_control_output();
 	bus_.set_device_output(device_id_, bus_output_);
+}
+
+bool NCR5380::drives_data_bus() const {
+	// In DMA send mode the 5380 drives the data bus itself; the Apple II SCSI
+	// card's pseudo-DMA writes never set Assert Data Bus.
+	return assert_data_bus_ || dma_operation_ == DMAOperation::Send;
 }
 
 bool NCR5380::phase_matches() const {
