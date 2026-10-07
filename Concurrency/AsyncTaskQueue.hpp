@@ -150,14 +150,15 @@ public:
 		std::atomic_flag flushed = false;
 
 		enqueue([&flushed] () {
-			flushed.test_and_set();
+			flushed.test_and_set(std::memory_order::release);
+			flushed.notify_one();
 		});
 
 		if constexpr (!perform_automatically) {
 			perform();
 		}
 
-		flushed.wait(false, std::memory_order::relaxed);
+		flushed.wait(false, std::memory_order::acquire);
 	}
 
 	/// Schedules any remaining unscheduled work, then spins

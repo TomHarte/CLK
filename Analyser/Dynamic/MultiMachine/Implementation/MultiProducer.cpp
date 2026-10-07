@@ -18,24 +18,23 @@ template <typename MachineType>
 void MultiInterface<MachineType>::perform_parallel(const std::function<void(MachineType *)> &function) {
 	// Apply a blunt force parallelisation of the machines; each run_for is dispatched
 	// to a separate queue and this queue will block until all are done.
-	std::atomic_flag finished = false;
+	std::atomic<int> outstanding_machines = int(machines_.size());
+	std::atomic_flag finished{};
 	{
-		std::size_t outstanding_machines = machines_.size();
-
 		for(std::size_t index = 0; index < machines_.size(); ++index) {
 			const auto machine = ::Machine::get<MachineType>(*machines_[index].get());
 			queues_[index].enqueue([&finished, machine, function, &outstanding_machines]() {
 				if(machine) function(machine);
 
-				--outstanding_machines;
-				if(!outstanding_machines) {
-//					finished.test_and_set();
+				if(outstanding_machines.fetch_sub(1, std::memory_order::relaxed) == 1) {
+					finished.test_and_set(std::memory_order::release);
+					finished.notify_one();
 				}
 			});
 		}
 	}
 
-	finished.wait(false, std::memory_order_relaxed);
+	finished.wait(false, std::memory_order::acquire);
 }
 
 template <typename MachineType>
