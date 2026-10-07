@@ -611,7 +611,7 @@ void ScanTarget::output_scans(const OutputArea &area) {
 }
 
 void ScanTarget::draw(const int output_width, const int output_height) {
-	while(is_drawing_to_output_.test_and_set(std::memory_order_acquire));
+	while(is_drawing_to_output_.test_and_set(std::memory_order::acquire));
 
 	test_gl([&]{ glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_); });
 	test_gl([&]{ glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height); });
@@ -637,5 +637,5 @@ void ScanTarget::draw(const int output_width, const int output_height) {
 		was_interlacing_ = is_interlacing_;
 	}
 
-	is_drawing_to_output_.clear(std::memory_order_release);
+	is_drawing_to_output_.clear(std::memory_order::release);
 }

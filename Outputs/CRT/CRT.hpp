@@ -468,7 +468,7 @@ private:
 		void set(const Preferences &preferences) override {
 			force_horizontal_scans.store(
 				preferences.force_horizontal_scans.value_or(DefaultForceHorizontalScans),
-				std::memory_order_relaxed
+				std::memory_order::relaxed
 			);
 		}
 	} preferences_;

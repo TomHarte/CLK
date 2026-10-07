@@ -191,11 +191,11 @@ private:
 				ActionVector actions;
 
 				// Continue until told to quit.
-				while(!should_quit_.test(std::memory_order_relaxed)) {
+				while(!should_quit_.test(std::memory_order::relaxed)) {
 					// Wait for new actions to be signalled, and grab them.
 					std::unique_lock lock(condition_mutex_);
 					condition_.wait(lock, [&] {
-						return !actions_.empty() || should_quit_.test(std::memory_order_relaxed);
+						return !actions_.empty() || should_quit_.test(std::memory_order::relaxed);
 					});
 					std::swap(actions, actions_);
 					lock.unlock();

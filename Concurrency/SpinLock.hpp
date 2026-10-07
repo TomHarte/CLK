@@ -36,9 +36,9 @@ public:
 
 private:
 	static constexpr auto LockMemoryOrder =
-		type == Barrier::Relaxed ? std::memory_order_relaxed : std::memory_order_acquire;
+		type == Barrier::Relaxed ? std::memory_order::relaxed : std::memory_order::acquire;
 	static constexpr auto UnlockMemoryOrder =
-		type == Barrier::Relaxed ? std::memory_order_relaxed : std::memory_order_release;
+		type == Barrier::Relaxed ? std::memory_order::relaxed : std::memory_order::release;
 
 	// Note to self: this is guaranteed to construct in a clear state since C++20.
 	std::atomic_flag flag_;

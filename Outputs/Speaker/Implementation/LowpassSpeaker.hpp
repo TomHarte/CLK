@@ -239,7 +239,7 @@ private:
 
 protected:
 	bool process(size_t length) {
-		const auto delegate = delegate_.load(std::memory_order_relaxed);
+		const auto delegate = delegate_.load(std::memory_order::relaxed);
 		if(!delegate) return false;
 
 		const int scale = static_cast<ConcreteT *>(this)->get_scale();
@@ -301,7 +301,7 @@ private:
 
 	std::atomic<int> scale_ = 65536;
 	int get_scale() const {
-		return scale_.load(std::memory_order_relaxed);
+		return scale_.load(std::memory_order::relaxed);
 	}
 
 	const int16_t *buffer_ = nullptr;
