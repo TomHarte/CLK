@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24128" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="25098" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24128"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="25098"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -20,18 +20,18 @@
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowCollectionBehavior key="collectionBehavior" fullScreenPrimary="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="80" y="250" width="600" height="450"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1710" height="1074"/>
-            <value key="minSize" type="size" width="228" height="171"/>
+            <rect key="contentRect" x="80" y="250" width="652" height="489"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2048" height="1286"/>
+            <value key="minSize" type="size" width="360" height="270"/>
             <view key="contentView" id="gIp-Ho-8D9" customClass="CSScanTargetView">
-                <rect key="frame" x="0.0" y="0.0" width="600" height="450"/>
+                <rect key="frame" x="0.0" y="0.0" width="652" height="489"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <visualEffectView hidden="YES" wantsLayer="YES" appearanceType="vibrantDark" blendingMode="withinWindow" material="HUDWindow" state="followsWindowActiveState" translatesAutoresizingMaskIntoConstraints="NO" id="l9e-qt-jMo" userLabel="Volume View">
-                        <rect key="frame" x="130" y="20" width="340" height="36"/>
+                        <rect key="frame" x="156" y="20" width="340" height="32"/>
                         <subviews>
                             <imageView wantsLayer="YES" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="3hK-SA-aKj">
-                                <rect key="frame" x="8" y="10" width="32.5" height="18"/>
+                                <rect key="frame" x="8" y="8" width="32" height="17"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="32" id="tY0-07-0UK"/>
                                 </constraints>
@@ -39,14 +39,14 @@
                                 <color key="contentTintColor" name="textColor" catalog="System" colorSpace="catalog"/>
                             </imageView>
                             <slider verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bmN-Nb-BBh">
-                                <rect key="frame" x="46" y="2" width="248" height="28"/>
+                                <rect key="frame" x="48" y="8" width="244" height="16"/>
                                 <sliderCell key="cell" continuous="YES" state="on" alignment="left" minValue="1" maxValue="2" doubleValue="2" tickMarkPosition="above" sliderType="linear" id="wtR-Vo-Q9e"/>
                                 <connections>
                                     <action selector="setVolume:" target="-2" id="Ptv-pk-zbl"/>
                                 </connections>
                             </slider>
                             <imageView wantsLayer="YES" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="pG5-Iv-llF">
-                                <rect key="frame" x="300" y="9" width="32" height="19"/>
+                                <rect key="frame" x="300" y="8" width="32" height="18"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="32" id="Nq1-7v-zbT"/>
                                 </constraints>
@@ -85,7 +85,7 @@
         </window>
     </objects>
     <resources>
-        <image name="NSTouchBarAudioOutputVolumeHighTemplate" width="27" height="19"/>
-        <image name="NSTouchBarAudioOutputVolumeOffTemplate" width="17" height="18"/>
+        <image name="NSTouchBarAudioOutputVolumeHighTemplate" width="26" height="18"/>
+        <image name="NSTouchBarAudioOutputVolumeOffTemplate" width="16" height="17"/>
     </resources>
 </document>
