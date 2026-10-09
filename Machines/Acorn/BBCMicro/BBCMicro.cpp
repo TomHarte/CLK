@@ -409,8 +409,8 @@ private:
 		via_.template set_control_line_input<MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two>(state);
 	}
 
-	static inline const std::string caps_led = "CAPS";
-	static inline const std::string shift_led = "SHIFT";
+	static inline constexpr std::string_view caps_led = "CAPS";
+	static inline constexpr std::string_view shift_led = "SHIFT";
 	bool caps_led_state_ = false;
 	bool shift_led_state_ = false;
 	Activity::Observer *activity_observer_ = nullptr;

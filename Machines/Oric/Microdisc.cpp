@@ -11,11 +11,12 @@
 using namespace Oric;
 
 namespace {
-	// The number below, in cycles against an 8Mhz clock, was arrived at fairly unscientifically,
-	// by comparing the amount of time this emulator took to show a directory versus a video of
-	// a real Oric. It therefore assumes all other timing measurements were correct on the day
-	// of the test. More work to do, I think.
-	const Cycles::IntType head_load_request_counter_target = 7653333;
+// The number below, in cycles against an 8Mhz clock, was arrived at fairly unscientifically,
+// by comparing the amount of time this emulator took to show a directory versus a video of
+// a real Oric. It therefore assumes all other timing measurements were correct on the day
+// of the test. More work to do, I think.
+const Cycles::IntType head_load_request_counter_target = 7653333;
+static constexpr std::string_view LED = "Microdisc";
 }
 
 Microdisc::Microdisc() : DiskController(P1793, 8000000, Storage::Disk::Drive::ReadyType::ShugartRDY) {
@@ -104,7 +105,7 @@ void Microdisc::set_head_load_request(bool head_load) {
 	}
 
 	if(observer_) {
-		observer_->set_led_status("Microdisc", head_load);
+		observer_->set_led_status(LED, head_load);
 	}
 }
 
@@ -119,7 +120,7 @@ void Microdisc::run_for(const Cycles cycles) {
 void Microdisc::set_activity_observer(Activity::Observer *observer) {
 	observer_ = observer;
 	if(observer) {
-		observer->register_led("Microdisc");
-		observer_->set_led_status("Microdisc", head_load_request_);
+		observer->register_led(LED);
+		observer_->set_led_status(LED, head_load_request_);
 	}
 }

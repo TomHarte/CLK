@@ -27,6 +27,9 @@ ROM::Name rom_name(const Personality personality) {
 		case Personality::C1541:	return ROM::Name::Commodore1541;
 	}
 }
+
+static constexpr std::string_view DriveLED = "Drive";
+
 }
 
 ROM::Request Machine::rom_request(const Personality personality) {
@@ -127,7 +130,7 @@ void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {
 
 void MachineBase::set_activity_observer(Activity::Observer *const observer) {
 	drive_VIA_.bus_handler().set_activity_observer(observer);
-	get_drive().set_activity_observer(observer, "Drive", false);
+	get_drive().set_activity_observer(observer, DriveLED, false);
 }
 
 // MARK: - 6522 delegate.
@@ -344,7 +347,7 @@ void DriveVIA::set_port_output<MOS::MOS6522::Port::B>(const uint8_t value, uint8
 
 		// Post the LED status.
 		if(observer_) {
-			observer_->set_led_status("Drive", value&8);
+			observer_->set_led_status(DriveLED, value&8);
 		}
 
 		previous_port_b_output_ = value;
@@ -361,8 +364,8 @@ void DriveVIA::set_port_output<MOS::MOS6522::Port::A>(const uint8_t value, uint8
 void DriveVIA::set_activity_observer(Activity::Observer *const observer) {
 	observer_ = observer;
 	if(observer) {
-		observer->register_led("Drive");
-		observer->set_led_status("Drive", previous_port_b_output_&8);
+		observer->register_led(DriveLED);
+		observer->set_led_status(DriveLED, previous_port_b_output_&8);
 	}
 }
 

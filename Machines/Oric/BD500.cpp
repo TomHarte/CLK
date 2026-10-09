@@ -10,6 +10,10 @@
 
 using namespace Oric;
 
+namespace {
+static constexpr std::string_view LED = "BD-500";
+}
+
 /*
 	Notes on the code below: the Byte Drive 500 isn't well documented; this implementation is based on
 	experimentation without access to real hardware as documented in http://forum.defence-force.org/viewtopic.php?f=25&t=2055
@@ -97,14 +101,14 @@ void BD500::run_for(const Cycles cycles) {
 void BD500::set_activity_observer(Activity::Observer *observer) {
 	observer_ = observer;
 	if(observer) {
-		observer->register_led("BD-500");
-		observer_->set_led_status("BD-500", get_head_loaded());
+		observer->register_led(LED);
+		observer_->set_led_status(LED, get_head_loaded());
 	}
 }
 
 void BD500::set_head_loaded(bool loaded) {
 	WD::WD1770::set_head_loaded(loaded);
 	if(observer_) {
-		observer_->set_led_status("BD-500", loaded);
+		observer_->set_led_status(LED, loaded);
 	}
 }

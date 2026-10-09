@@ -51,6 +51,7 @@
 
 namespace {
 using Logger = Log::Logger<Log::Source::MSX>;
+static constexpr std::string_view TapeMotorLED = "Tape motor";
 }
 
 namespace MSX {
@@ -874,7 +875,7 @@ private:
 
 					//	b4: cassette motor relay
 					tape_player_.set_motor_control(!(value & 0x10));
-					if(activity_observer_) activity_observer_->set_led_status("Tape motor", !(value & 0x10));
+					if(activity_observer_) activity_observer_->set_led_status(TapeMotorLED, !(value & 0x10));
 
 					//	b7: keyboard click
 					bool new_audio_level = !!(value & 0x80);
@@ -900,8 +901,8 @@ private:
 		void set_activity_observer(Activity::Observer *observer) {
 			activity_observer_ = observer;
 			if(activity_observer_) {
-				activity_observer_->register_led("Tape motor");
-				activity_observer_->set_led_status("Tape motor", tape_player_.motor_control());
+				activity_observer_->register_led(TapeMotorLED);
+				activity_observer_->set_led_status(TapeMotorLED, tape_player_.motor_control());
 			}
 		}
 

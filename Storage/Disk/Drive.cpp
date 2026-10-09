@@ -500,12 +500,13 @@ void Drive::set_disk_is_rotating(const bool is_rotating) {
 
 void Drive::set_activity_observer(
 	Activity::Observer *const observer,
-	const std::string &name,
+	const std::string_view name,
 	const bool add_motor_led
 ) {
 	observer_ = observer;
 	announce_motor_led_ = add_motor_led;
 	if(observer) {
+		// Take a copy of name.
 		drive_name_ = name;
 
 		observer->register_drive(drive_name_);
