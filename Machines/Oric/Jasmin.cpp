@@ -10,6 +10,10 @@
 
 using namespace Oric;
 
+namespace {
+static constexpr std::string_view LED = "Jasmin";
+}
+
 // NB: there's some controversy here on WD1770 versus WD1772, but between those two I think
 // the only difference is stepping rates, and it says 1770 on the schematic I'm looking at.
 Jasmin::Jasmin() : DiskController(P1770, 8000000, Storage::Disk::Drive::ReadyType::ShugartRDY) {
@@ -68,14 +72,14 @@ void Jasmin::set_motor_on(bool on) {
 	motor_on_ = on;
 	get_drive().set_motor_on(motor_on_);
 	if(observer_) {
-		observer_->set_led_status("Jasmin", on);
+		observer_->set_led_status(LED, on);
 	}
 }
 
 void Jasmin::set_activity_observer(Activity::Observer *observer) {
 	observer_ = observer;
 	if(observer) {
-		observer->register_led("Jasmin");
-		observer_->set_led_status("Jasmin", motor_on_);
+		observer->register_led(LED);
+		observer_->set_led_status(LED, motor_on_);
 	}
 }

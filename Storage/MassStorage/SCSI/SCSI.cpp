@@ -10,6 +10,10 @@
 
 using namespace SCSI;
 
+namespace {
+static constexpr std::string_view LED = "SCSI";
+}
+
 Bus::Bus(const HalfCycles clock_rate) {
 	cycles_to_time_ = 1.0 / clock_rate.as<double>();
 
@@ -46,7 +50,7 @@ void Bus::set_device_output(const size_t device, const BusState output) {
 	if(state_ == previous_state) return;
 
 	if(activity_observer_ && (state_^previous_state)&SCSI::Line::Busy) {
-		activity_observer_->set_led_status("SCSI", state_&SCSI::Line::Busy);
+		activity_observer_->set_led_status(LED, state_&SCSI::Line::Busy);
 	}
 
 //	printf("SCSI bus: %02x %c%c%c%c%c%c%c%c%c%c\n",
@@ -71,7 +75,7 @@ void Bus::set_device_output(const size_t device, const BusState output) {
 
 void Bus::set_activity_observer(Activity::Observer *const observer) {
 	activity_observer_ = observer;
-	activity_observer_->register_led("SCSI");
+	activity_observer_->register_led(LED);
 }
 
 BusState Bus::state() const {

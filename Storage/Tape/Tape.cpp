@@ -150,7 +150,7 @@ void TapePlayer::process_next_event() {
 // MARK: - Binary Player
 
 namespace {
-constexpr char LEDName[] = "Tape motor";
+constexpr std::string_view LEDName = "Tape motor";
 }
 
 BinaryTapePlayer::BinaryTapePlayer(const int input_clock_rate) :
