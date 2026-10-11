@@ -89,12 +89,6 @@ private:
 	GLsync fence_ = nullptr;
 	std::atomic_flag is_drawing_to_output_;
 
-	/*!
-		@returns true if the current display type is a 'soft' one, i.e. one in which
-		contrast tends to be low, such as a composite colour display.
-	*/
-	bool is_soft_display_type();
-
 	// Storage for the various buffers.
 	std::vector<uint8_t> write_area_texture_;
 	std::array<Scan, LineBufferHeight*5> scan_buffer_{};
