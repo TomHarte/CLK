@@ -18,18 +18,18 @@ class Microdisc: public DiskController {
 public:
 	Microdisc();
 
-	void set_control_register(uint8_t control);
-	uint8_t get_interrupt_request_register();
-	uint8_t get_data_request_register();
+	void set_control_register(uint8_t);
 
-	bool get_interrupt_request_line();
+	uint8_t interrupt_request_register() const;
+	uint8_t data_request_register() const;
+	bool interrupt_request_line() const;
 
-	void run_for(const Cycles cycles);
+	void run_for(const Cycles);
 
-	void set_activity_observer(Activity::Observer *observer);
+	void set_activity_observer(Activity::Observer *);
 
 private:
-	void set_head_load_request(bool head_load) final;
+	void set_head_load_request(bool) final;
 
 	void set_control_register(uint8_t control, uint8_t changes);
 	uint8_t last_control_ = 0;
