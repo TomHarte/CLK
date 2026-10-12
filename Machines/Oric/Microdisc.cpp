@@ -23,70 +23,102 @@ Microdisc::Microdisc() : DiskController(P1793, 8000000, Storage::Disk::Drive::Re
 	set_control_register(last_control_, 0xff);
 }
 
-void Microdisc::set_control_register(uint8_t control) {
+void Microdisc::set_control_register(const uint8_t control) {
 	const uint8_t changes = last_control_ ^ control;
 	last_control_ = control;
 	set_control_register(control, changes);
 }
 
-void Microdisc::set_control_register(uint8_t control, uint8_t changes) {
-	// b2: data separator clock rate select (1 = double)	[TODO]
+void Microdisc::set_control_register(const uint8_t control, const uint8_t changes) {
+	//
+	// Definition of disc controls.
+	//
 
-	// b65: drive select
-	if((changes >> 5)&3) {
-		set_drive(1 << (control >> 5)&3);
+	// TODO: b2: data separator clock rate select (1 = double)
+
+	// b65: drive select.
+	const auto drive = [](const uint8_t value) {
+		return (value >> 5) & 3;
+	};
+
+	// b4: side select.
+	const auto side = [](const uint8_t value) {
+		return value & 0x10;
+	};
+
+	// b3: double density select (0 = double).
+	const auto single_density = [](const uint8_t value) {
+		return value & 0x08;
+	};
+
+	// b0: IRQ enable.
+	const auto irq_enable = [](const uint8_t value) {
+		return value & 0x01;
+	};
+
+	// b7: EPROM select (0 = select).
+	// b1: ROM disable (0 = disable).
+	const auto paged_item_selection = [](const uint8_t value) {
+		return value & 0x82;
+	};
+	const auto paged_item = [](const uint8_t value) {
+		if(value & 0x02) {
+			return PagedItem::BASIC;
+		}
+
+		if(value & 0x80) {
+			return PagedItem::RAM;
+		}
+
+		return PagedItem::DiskROM;
+	};
+
+	//
+	// Inspect and propagate changes.
+	//
+
+	if(drive(changes)) {
+		set_drive(1 << drive(control));
 	}
 
-	// b4: side select
-	if(changes & 0x10) {
-		const int head = (control & 0x10) >> 4;
+	if(side(changes)) {
+		const auto head = bool(side(control));
 		for_all_drives([head] (Storage::Disk::Drive &drive, size_t) {
 			drive.set_head(head);
 		});
 	}
 
-	// b3: double density select (0 = double)
-	if(changes & 0x08) {
-		set_is_double_density(!(control & 0x08));
+	if(single_density(changes)) {
+		set_is_double_density(!single_density(control));
 	}
 
-	// b0: IRQ enable
-	if(changes & 0x01) {
-		const bool had_irq = get_interrupt_request_line();
-		irq_enable_ = bool(control & 0x01);
-		const bool has_irq = get_interrupt_request_line();
+	if(irq_enable(changes)) {
+		const bool had_irq = interrupt_request_line();
+		irq_enable_ = irq_enable(control);
+		const bool has_irq = interrupt_request_line();
 		if(has_irq != had_irq && delegate_) {
 			delegate_->wd1770_did_change_output(*this);
 		}
 	}
 
-	// b7: EPROM select (0 = select)
-	// b1: ROM disable (0 = disable)
-	if(changes & 0x82) {
-		PagedItem item;
-		if(control & 0x02) item = PagedItem::BASIC;
-		else if(control & 0x80) {
-			item = PagedItem::RAM;
-		} else {
-			item = PagedItem::DiskROM;
-		}
-		set_paged_item(item);
+	if(paged_item_selection(changes)) {
+		set_paged_item(paged_item(control));
 	}
 }
 
-bool Microdisc::get_interrupt_request_line() {
+bool Microdisc::interrupt_request_line() const {
 	return irq_enable_ && WD1770::get_interrupt_request_line();
 }
 
-uint8_t Microdisc::get_interrupt_request_register() {
+uint8_t Microdisc::interrupt_request_register() const {
 	return 0x7f | (WD1770::get_interrupt_request_line() ? 0x00 : 0x80);
 }
 
-uint8_t Microdisc::get_data_request_register() {
+uint8_t Microdisc::data_request_register() const {
 	return 0x7f | (get_data_request_line() ? 0x00 : 0x80);
 }
 
-void Microdisc::set_head_load_request(bool head_load) {
+void Microdisc::set_head_load_request(const bool head_load) {
 	head_load_request_ = head_load;
 
 	// The drive motors (at present: I believe **all drive motors** regardless of the selected drive) receive
@@ -117,7 +149,7 @@ void Microdisc::run_for(const Cycles cycles) {
 	WD::WD1770::run_for(cycles);
 }
 
-void Microdisc::set_activity_observer(Activity::Observer *observer) {
+void Microdisc::set_activity_observer(Activity::Observer *const observer) {
 	observer_ = observer;
 	if(observer) {
 		observer->register_led(LED);

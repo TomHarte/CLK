@@ -512,11 +512,11 @@ public:
 									else microdisc_.write(address, *value);
 								break;
 								case 0x314: case 0x315: case 0x316: case 0x317:
-									if(!is_write(operation)) *value = microdisc_.get_interrupt_request_register();
+									if(!is_write(operation)) *value = microdisc_.interrupt_request_register();
 									else microdisc_.set_control_register(*value);
 								break;
 								case 0x318: case 0x319: case 0x31a: case 0x31b:
-									if(!is_write(operation)) *value = microdisc_.get_data_request_register();
+									if(!is_write(operation)) *value = microdisc_.data_request_register();
 								break;
 							}
 						break;
