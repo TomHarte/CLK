@@ -181,7 +181,7 @@ private:
 	const auto machine = [&]() -> Machine::DynamicMachine& {
 		if(!lazy_machine) {
 			Machine::Error error;
-			lazy_machine = Machine::MachineForTarget(&target, CSROMFetcher(), error);
+			lazy_machine = Machine::MachineForTarget(target, CSROMFetcher(), error);
 			static_cast<AmstradCPC::Machine *>(lazy_machine->raw_pointer())
 				->set_ssm_delegate(&ssm_delegate);
 			lazy_machine->scan_producer()->set_scan_target(&scan_target);
