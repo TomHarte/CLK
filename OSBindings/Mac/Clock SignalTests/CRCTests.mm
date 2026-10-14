@@ -15,16 +15,12 @@
 
 @implementation CRCTests
 
-- (uint16_t)crcOfData:(const uint8_t *)data length:(size_t)length generator:(CRC::CCITT &)generator {
-	return generator.crc_of(data, data+length);
-}
-
 - (void)testIDMark {
 	static constexpr uint8_t IDMark[] = {
 		0xa1, 0xa1, 0xa1, 0xfe, 0x00, 0x00, 0x01, 0x01
 	};
 	static constexpr uint16_t crc = 0xfa0c;
-	const uint16_t computedCRC = CRC::CCITT::crc_of(std::begin(IDMark), std::end(IDMark));
+	const uint16_t computedCRC = CRC::CCITT::crc_of(IDMark);
 
 	XCTAssert(computedCRC == crc, @"Calculated CRC should have been %04x, was %04x", crc, computedCRC);
 }
@@ -50,19 +46,19 @@
 		0x20, 0x20, 0x20, 0x20
 	};
 	static constexpr uint16_t crc = 0x4de7;
-	uint16_t computedCRC = CRC::CCITT::crc_of(std::begin(sectorData), std::end(sectorData));
+	uint16_t computedCRC = CRC::CCITT::crc_of(sectorData);
 
 	XCTAssert(computedCRC == crc, @"Calculated CRC should have been %04x, was %04x", crc, computedCRC);
 }
 
 - (void)testCCITTCheck {
-	static constexpr char testString[] = "123456789";
-	XCTAssertEqual(CRC::CCITT::crc_of(std::begin(testString), std::end(testString) - 1), 0x29b1);
+	static constexpr std::string_view testString = "123456789";
+	XCTAssertEqual(CRC::CCITT::crc_of(testString), 0x29b1);
 }
 
 - (void)testCRC32Check {
-	static constexpr char testString[] = "123456789";
-	XCTAssertEqual(CRC::CRC32::crc_of(std::begin(testString), std::end(testString) - 1), 0xcbf43926);
+	static constexpr std::string_view testString = "123456789";
+	XCTAssertEqual(CRC::CRC32::crc_of(testString), 0xcbf43926);
 }
 
 @end
