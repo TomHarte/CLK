@@ -27,9 +27,9 @@ template <CPU::MOS6502Esque::Type type>
 struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 	using AddressType = typename CPU::MOS6502Esque::BusHandlerT<type>::AddressType;
 
-	// Use a map to store RAM contents, in order to preserve initialised state.
-	std::unordered_map<AddressType, uint8_t> ram;
-	std::unordered_map<AddressType, uint8_t> inventions;
+	std::unordered_map<AddressType, uint8_t> ram;			// Current RAM contents.
+	std::unordered_map<AddressType, uint8_t> inventions;	// All values invented by the handler, i.e. places where a read took place but no value was yet stored.
+	std::unordered_map<AddressType, uint8_t> reservoir;		// A wholly optional reservoir of seed values from which the inventions can pull.
 
 	Cycles perform_bus_operation(const CPU::MOS6502Esque::BusOperation operation, const AddressType address, uint8_t *const value) {
 		// Check for a JAM; if one is found then record just five more bus cycles, arbitrarily.
@@ -69,7 +69,12 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 				if(ram_value != ram.end()) {
 					cycle.value = *value = ram_value->second;
 				} else {
-					cycle.value = *value = uint8_t(rand() >> 8);
+					const auto suggested = reservoir.find(address);
+					if(suggested != reservoir.end()) {
+						cycle.value = *value = suggested->second;
+					} else {
+						cycle.value = *value = uint8_t(rand() >> 8);
+					}
 					inventions[address] = ram[address] = *cycle.value;
 				}
 			break;
@@ -126,8 +131,8 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 		inventions[pc] = ram[pc] = opcode;
 	}
 
-	void invent(const uint32_t address, const uint8_t value) {
-		inventions[address] = ram[address] = value;
+	void posit(const uint32_t address, const uint8_t value) {
+		reservoir[address] = value;
 	}
 
 	int pc_overshoot = 0;
@@ -391,7 +396,7 @@ template <CPU::MOS6502Esque::Type type> void test(const char *source) {
 			// Populate 'inventions'. Bit backwards, but here we are.
 			NSArray *initialRAM = initial[@"ram"];
 			for(NSArray *value in initialRAM) {
-				writer.handler.invent([value[0] intValue], [value[1] intValue]);
+				writer.handler.posit([value[0] intValue], [value[1] intValue]);
 			}
 
 			// Run to the second opcode fetch.
@@ -476,10 +481,14 @@ template <CPU::MOS6502Esque::Type type> void generate() {
 
 @implementation WDC65816ComparativeTests
 
-// A generator for tests; not intended to be a permanent fixture.
-- (void)testGenerate {
-//	generate<CPU::MOS6502Esque::Type::TWDC65816>();
+// Compares current implementation to existing tests.
+- (void)testRegression {
 	test<CPU::MOS6502Esque::Type::TWDC65816>(SourceTests65816);
 }
+
+// Generates an entirely new set of tests.
+//- (void)testGenerate {
+//	generate<CPU::MOS6502Esque::Type::TWDC65816>();
+//}
 
 @end
