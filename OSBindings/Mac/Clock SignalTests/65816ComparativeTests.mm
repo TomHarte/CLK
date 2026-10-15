@@ -104,6 +104,19 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 		return Cycles(1);
 	}
 
+	AddressType current_pc() const {
+		using Register = CPU::MOS6502Esque::Register;
+		return
+			AddressType(
+				processor.value_of(Register::ProgramCounter) |
+				(processor.value_of(Register::ProgramBank) << 16)
+			);
+	}
+
+	static constexpr bool is_mvn_or_mvp(const uint8_t opcode) {
+		return opcode == 0x54 || opcode == 0x44;
+	}
+
 	void setup() {
 		ram.clear();
 		inventions.clear();
@@ -112,6 +125,12 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 		initial_pc = std::nullopt;
 
 		allow_pc_repetition = false;
+
+		// Test for whether MVP or MVN is known to be coming.
+		const auto suggestion = reservoir.find(current_pc());
+		if(suggestion != reservoir.end()) {
+			allow_pc_repetition = is_mvn_or_mvp(suggestion->second);
+		}
 	}
 
 	void setup(const uint8_t opcode) {
@@ -120,14 +139,9 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 		// For MVP or MVN, keep tracking fetches via the same location.
 		// For other instructions, don't. That's to avoid endless loops
 		// for flow control that happens to jump back to where it began.
-		allow_pc_repetition = opcode == 0x54 || opcode == 0x44;
+		allow_pc_repetition = is_mvn_or_mvp(opcode);
 
-		using Register = CPU::MOS6502Esque::Register;
-		const auto pc =
-			AddressType(
-				processor.value_of(Register::ProgramCounter) |
-				(processor.value_of(Register::ProgramBank) << 16)
-			);
+		const auto pc = current_pc();
 		inventions[pc] = ram[pc] = opcode;
 	}
 
@@ -370,6 +384,7 @@ template <CPU::MOS6502Esque::Type type> void test(const char *source) {
 
 		NSArray *tests =
 			[NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:[sourcePath stringByAppendingPathComponent:file]] options:0 error:nil];
+		bool report_errors = true;
 		for(NSDictionary *test in tests) {
 			writer.begin_test();
 
@@ -390,15 +405,15 @@ template <CPU::MOS6502Esque::Type type> void test(const char *source) {
 			writer.handler.processor.set_value_of(Register::ProgramCounter, [initial[@"pc"] intValue]);
 			writer.handler.processor.set_value_of(Register::StackPointer, [initial[@"s"] intValue]);
 
-			writer.handler.setup();		// TODO: I think I need to set this up slightly more. Otherwise allow_pc_repetition is unknown.
-			NSString *const name = test[@"name"];
-			writer.write_initial_state(name, [initial[@"s"] intValue]);
-
-			// Populate 'inventions'. Bit backwards, but here we are.
+			// Posit RAM values that were in the previous version of this test.
 			NSArray *initialRAM = initial[@"ram"];
 			for(NSArray *value in initialRAM) {
 				writer.handler.posit([value[0] intValue], [value[1] intValue]);
 			}
+
+			writer.handler.setup();
+			NSString *const name = test[@"name"];
+			writer.write_initial_state(name, [initial[@"s"] intValue]);
 
 			// Run to the second opcode fetch.
 			try {
@@ -413,25 +428,28 @@ template <CPU::MOS6502Esque::Type type> void test(const char *source) {
 			writer.end_test(final_state[@"ram"]);
 
 			// Actually do the regression test.
-			bool equal = true;
-			if(writer.has_emulation) {
-				equal &= writer.handler.processor.value_of(Register::DataBank) == [final_state[@"dbr"] intValue];
-				equal &= writer.handler.processor.value_of(Register::ProgramBank) == [final_state[@"pbr"] intValue];
-				equal &= writer.handler.processor.value_of(Register::Direct) == [final_state[@"d"] intValue];
-				equal &= writer.handler.processor.value_of(Register::EmulationFlag) == [final_state[@"e"] intValue];
+			if(report_errors) {
+				bool equal = true;
+				if(writer.has_emulation) {
+					equal &= writer.handler.processor.value_of(Register::DataBank) == [final_state[@"dbr"] intValue];
+					equal &= writer.handler.processor.value_of(Register::ProgramBank) == [final_state[@"pbr"] intValue];
+					equal &= writer.handler.processor.value_of(Register::Direct) == [final_state[@"d"] intValue];
+					equal &= writer.handler.processor.value_of(Register::EmulationFlag) == [final_state[@"e"] intValue];
+				}
+				equal &= writer.handler.processor.value_of(Register::A) == [final_state[@"a"] intValue];
+				equal &= writer.handler.processor.value_of(Register::Flags) == [final_state[@"p"] intValue];
+				equal &= writer.handler.processor.value_of(Register::X) == [final_state[@"x"] intValue];
+				equal &= writer.handler.processor.value_of(Register::Y) == [final_state[@"y"] intValue];
+				equal &= writer.handler.processor.value_of(Register::StackPointer) == [final_state[@"s"] intValue];
+
+				const auto final_pc = (writer.handler.processor.value_of(Register::ProgramCounter) + writer.handler.pc_overshoot) & 65535;
+				equal &= final_pc == [final_state[@"pc"] intValue];
+
+				XCTAssertEqual(equal, true, @"End registers diverged in test %@; skipping reporting for rest of file", name);
+				report_errors &= equal;
+
+				// TODO: RAM.
 			}
-			equal &= writer.handler.processor.value_of(Register::A) == [final_state[@"a"] intValue];
-			equal &= writer.handler.processor.value_of(Register::Flags) == [final_state[@"p"] intValue];
-			equal &= writer.handler.processor.value_of(Register::X) == [final_state[@"x"] intValue];
-			equal &= writer.handler.processor.value_of(Register::Y) == [final_state[@"y"] intValue];
-			equal &= writer.handler.processor.value_of(Register::StackPointer) == [final_state[@"s"] intValue];
-
-			const auto final_pc = (writer.handler.processor.value_of(Register::ProgramCounter) + writer.handler.pc_overshoot) & 65535;
-			equal &= final_pc == [final_state[@"pc"] intValue];
-
-			XCTAssertEqual(equal, true, @"End registers diverged in test %@", name);
-
-			// TODO: RAM.
 		}
 
 		writer.end_operation();
