@@ -151,10 +151,10 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 	}
 };
 
-template <bool has_emulation, typename Processor> void print_registers(FILE *file, const Processor &processor, int pc_offset) {
+template <bool has_emulation, typename Processor> void print_registers(FILE *file, const Processor &processor, int pc_offset, std::optional<int> s_override) {
 	using Register = CPU::MOS6502Esque::Register;
 	fprintf(file, "\"pc\": %d, ", (processor.value_of(Register::ProgramCounter) + pc_offset) & 65535);
-	fprintf(file, "\"s\": %d, ", processor.value_of(Register::StackPointer));
+	fprintf(file, "\"s\": %d, ", s_override.value_or(processor.value_of(Register::StackPointer)));
 	fprintf(file, "\"p\": %d, ", processor.value_of(Register::Flags));
 	fprintf(file, "\"a\": %d, ", processor.value_of(Register::A));
 	fprintf(file, "\"x\": %d, ", processor.value_of(Register::X));
@@ -250,10 +250,10 @@ struct TestWriter {
 		print_registers<has_emulation>(target, handler.processor, 0);
 	}
 
-	void write_initial_state(NSString *name) {
+	void write_initial_state(NSString *name, std::optional<int> s_override) {
 		fprintf(target, "{ \"name\": \"%s\", ", name.UTF8String);
 		fprintf(target, "\"initial\": {");
-		print_registers<has_emulation>(target, handler.processor, 0);
+		print_registers<has_emulation>(target, handler.processor, 0, s_override);
 	}
 
 	void write_initial_ram(NSArray *prior = nil) {
@@ -262,7 +262,7 @@ struct TestWriter {
 
 	void end_test(NSArray *prior_ram = nil) {
 		fprintf(target, "}, \"final\": {");
-		print_registers<has_emulation>(target, handler.processor, handler.pc_overshoot);
+		print_registers<has_emulation>(target, handler.processor, handler.pc_overshoot, std::nullopt);
 		print_ram(target, handler.ram, prior_ram);
 		fprintf(target, "}, ");
 
@@ -361,10 +361,6 @@ template <CPU::MOS6502Esque::Type type> void test(const char *source) {
 	NSString *sourcePath = [NSString stringWithUTF8String:source];
 	NSArray<NSString *> *const files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:sourcePath error:nil];
 	for(NSString *file in files) {
-		if(![file isEqualToString:@"e1.e.json"]) {
-			continue;
-		}
-
 		writer.set_target_name(file);
 
 		NSArray *tests =
@@ -390,7 +386,7 @@ template <CPU::MOS6502Esque::Type type> void test(const char *source) {
 			writer.handler.processor.set_value_of(Register::StackPointer, [initial[@"s"] intValue]);
 
 			writer.handler.setup();		// TODO: I think I need to set this up slightly more. Otherwise allow_pc_repetition is unknown.
-			writer.write_initial_state(test[@"name"]);
+			writer.write_initial_state(test[@"name"], [initial[@"s"] intValue]);
 
 			// Populate 'inventions'. Bit backwards, but here we are.
 			NSArray *initialRAM = initial[@"ram"];
