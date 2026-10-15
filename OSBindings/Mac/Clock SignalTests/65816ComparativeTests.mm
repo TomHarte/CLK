@@ -425,11 +425,16 @@ template <CPU::MOS6502Esque::Type type> void test(const char *source) {
 
 			// Dump final state.
 			NSDictionary *const final_state = test[@"final"];
-			writer.end_test(final_state[@"ram"]);
+			NSArray<NSArray<NSNumber *> *> *const final_ram = final_state[@"ram"];
+			writer.end_test(final_ram);
 
 			// Actually do the regression test.
 			if(report_errors) {
 				bool equal = true;
+
+				//
+				// Test registers.
+				//
 				if(writer.has_emulation) {
 					equal &= writer.handler.processor.value_of(Register::DataBank) == [final_state[@"dbr"] intValue];
 					equal &= writer.handler.processor.value_of(Register::ProgramBank) == [final_state[@"pbr"] intValue];
@@ -445,10 +450,25 @@ template <CPU::MOS6502Esque::Type type> void test(const char *source) {
 				const auto final_pc = (writer.handler.processor.value_of(Register::ProgramCounter) + writer.handler.pc_overshoot) & 65535;
 				equal &= final_pc == [final_state[@"pc"] intValue];
 
-				XCTAssertEqual(equal, true, @"End registers diverged in test %@; skipping reporting for rest of file", name);
-				report_errors &= equal;
+				XCTAssertEqual(equal, true, @"End registers diverged in test %@", name);
 
-				// TODO: RAM.
+				//
+				// Test RAM.
+				//
+				for(NSArray<NSNumber *> *value in final_ram) {
+					const auto address = [value[0] intValue];
+					const auto data = [value[1] intValue];
+
+					const auto comparison = writer.handler.ram.find(address);
+					equal &= comparison != writer.handler.ram.end() && comparison->second == data;
+				}
+
+				XCTAssertEqual(equal, true, @"Final RAM state diverged in test %@", name);
+
+				if(!equal) {
+					NSLog(@"Not reporting any further failures for file %@", file);
+				}
+				report_errors &= equal;
 			}
 		}
 
