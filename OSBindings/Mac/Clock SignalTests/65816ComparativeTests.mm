@@ -13,10 +13,19 @@
 #include <optional>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "6502Selector.hpp"
 
 namespace {
+
+[[maybe_unused]] const char *SourceTests65816 = "/Users/thomasharte/Projects/65816/v1";
+constexpr auto MaxTestLength = Cycles(65537 * 7);	// MVN and MVP can copy up to 65536 bytes; each byte takes 7 cycles.
+
+template <CPU::MOS6502Esque::Type type>
+constexpr bool is_block_copy(const uint8_t opcode) {
+	return type == CPU::MOS6502Esque::Type::TWDC65816 && (opcode == 0x54 || opcode == 0x44);
+}
 
 struct StopException {};
 
@@ -24,11 +33,11 @@ template <CPU::MOS6502Esque::Type type>
 struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 	using AddressType = typename CPU::MOS6502Esque::BusHandlerT<type>::AddressType;
 
-	// Use a map to store RAM contents, in order to preserve initialised state.
-	std::unordered_map<AddressType, uint8_t> ram;
-	std::unordered_map<AddressType, uint8_t> inventions;
+	std::unordered_map<AddressType, uint8_t> ram;			// Current RAM contents.
+	std::unordered_map<AddressType, uint8_t> inventions;	// All values invented by the handler, i.e. places where a read took place but no value was yet stored.
+	std::unordered_map<AddressType, uint8_t> reservoir;		// A wholly optional reservoir of seed values from which the inventions can pull.
 
-	Cycles perform_bus_operation(CPU::MOS6502Esque::BusOperation operation, AddressType address, uint8_t *value) {
+	Cycles perform_bus_operation(const CPU::MOS6502Esque::BusOperation operation, const AddressType address, uint8_t *const value) {
 		// Check for a JAM; if one is found then record just five more bus cycles, arbitrarily.
 		if(jam_count) {
 			--jam_count;
@@ -66,7 +75,12 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 				if(ram_value != ram.end()) {
 					cycle.value = *value = ram_value->second;
 				} else {
-					cycle.value = *value = uint8_t(rand() >> 8);
+					const auto suggested = reservoir.find(address);
+					if(suggested != reservoir.end()) {
+						cycle.value = *value = suggested->second;
+					} else {
+						cycle.value = *value = uint8_t(rand() >> 8);
+					}
 					inventions[address] = ram[address] = *cycle.value;
 				}
 			break;
@@ -96,25 +110,47 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 		return Cycles(1);
 	}
 
-	void setup(uint8_t opcode) {
-		ram.clear();
-		inventions.clear();
-		cycles.clear();
-		pc_overshoot = 0;
-		initial_pc = std::nullopt;
-
-		// For MVP or MVN, keep tracking fetches via the same location.
-		// For other instructions, don't. That's to avoid endless loops
-		// for flow control that happens to jump back to where it began.
-		allow_pc_repetition = opcode == 0x54 || opcode == 0x44;
-
+	AddressType current_pc() const {
 		using Register = CPU::MOS6502Esque::Register;
-		const auto pc =
+		return
 			AddressType(
 				processor.value_of(Register::ProgramCounter) |
 				(processor.value_of(Register::ProgramBank) << 16)
 			);
-		inventions[pc] = ram[pc] = opcode;
+	}
+
+	void reset() {
+		ram.clear();
+		inventions.clear();
+		cycles.clear();
+		pc_overshoot = 0;
+		processor.restart_operation_fetch();
+		initial_pc = std::nullopt;
+	}
+
+	void setup() {
+		// Test for whether MVP or MVN is known to be coming.
+		allow_pc_repetition = false;
+		const auto suggestion = reservoir.find(current_pc());
+		if(suggestion != reservoir.end()) {
+			if(is_block_copy<type>(suggestion->second)) {
+				allow_pc_repetition = true;
+
+				// Limit A to up to 1000, as otherwise the MVN and MVP tests are just interminable.
+				using Register = CPU::MOS6502Esque::Register;
+				processor.set_value_of(Register::A, processor.value_of(Register::A) % 1000);
+			}
+		}
+	}
+
+	void setup(const uint8_t opcode) {
+		const auto pc = current_pc();
+		reservoir[pc] = inventions[pc] = ram[pc] = opcode;
+		setup();
+	}
+
+	void posit(const uint32_t address, const uint8_t value) {
+		reservoir[address] = value;
 	}
 
 	int pc_overshoot = 0;
@@ -138,14 +174,14 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 	}
 };
 
-template <bool has_emulation, typename Processor> void print_registers(FILE *file, const Processor &processor, int pc_offset) {
+template <bool has_emulation, typename Processor> void print_registers(FILE *file, const Processor &processor, int pc_offset, std::optional<int> s_override) {
 	using Register = CPU::MOS6502Esque::Register;
 	fprintf(file, "\"pc\": %d, ", (processor.value_of(Register::ProgramCounter) + pc_offset) & 65535);
-	fprintf(file, "\"s\": %d, ", processor.value_of(Register::StackPointer));
+	fprintf(file, "\"s\": %d, ", s_override.value_or(processor.value_of(Register::StackPointer)));
+	fprintf(file, "\"p\": %d, ", processor.value_of(Register::Flags));
 	fprintf(file, "\"a\": %d, ", processor.value_of(Register::A));
 	fprintf(file, "\"x\": %d, ", processor.value_of(Register::X));
 	fprintf(file, "\"y\": %d, ", processor.value_of(Register::Y));
-	fprintf(file, "\"p\": %d, ", processor.value_of(Register::Flags));
 	if constexpr (has_emulation) {
 		fprintf(file, "\"dbr\": %d, ", processor.value_of(Register::DataBank));
 		fprintf(file, "\"d\": %d, ", processor.value_of(Register::Direct));
@@ -155,29 +191,300 @@ template <bool has_emulation, typename Processor> void print_registers(FILE *fil
 }
 
 template <typename IntT>
-void print_ram(FILE *file, const std::unordered_map<IntT, uint8_t> &data) {
+void print_ram(FILE *file, const std::unordered_map<IntT, uint8_t> &data, NSArray *prior) {
 	fprintf(file, "\"ram\": [");
+
 	bool is_first = true;
-	for(const auto &pair: data) {
+	const auto append = [&](const IntT address, const uint8_t value) {
 		if(!is_first) fprintf(file, ", ");
 		is_first = false;
-		fprintf(file, "[%d, %d]", pair.first, pair.second);
+		fprintf(file, "[%d, %d]", address, value);
+	};
+
+	// Output anything that is also in prior, in the order it's in prior.
+	std::unordered_set<IntT> already_output;
+	for(NSArray *value in prior) {
+		const IntT address = [value[0] intValue];
+
+		const auto new_value = data.find(address);
+		if(new_value == data.end()) {
+			continue;
+		}
+
+		append(address, new_value->second);
+		already_output.insert(address);
+	}
+
+	// Output all values not in prior.
+	for(const auto &pair: data) {
+		if(already_output.find(pair.first) != already_output.end()) {
+			continue;
+		}
+
+		append(pair.first, pair.second);
 	}
 	fprintf(file, "]");
 }
 
+template <CPU::MOS6502Esque::Type type>
+struct TestWriter {
+	TestWriter() : tempDir(NSTemporaryDirectory()) {
+		NSLog(@"Outputting to %@", tempDir);
+	}
 
-// MARK: - New test generator.
+	void set_operation(const uint8_t opcode, const bool is_emulated) {
+		opcode_ = opcode;
+		is_emulated_ = is_emulated;
+		set_target_name(
+			has_emulation ?
+				[NSString stringWithFormat:@"%02x.%c.json", opcode, is_emulated ? 'e' : 'n'] :
+				[NSString stringWithFormat:@"%02x.json", opcode]
+		);
+	}
 
+	void set_target_name(NSString *const targetName) {
+		target = fopen([tempDir stringByAppendingPathComponent:targetName].UTF8String, "wt");
 
-template <CPU::MOS6502Esque::Type type> void generate() {
+		is_first_test = true;
+		fprintf(target, "[");
+	}
+
+	void end_operation() {
+		fprintf(target, "]");
+		fclose(target);
+	}
+
+	void begin_test() {
+		if(!is_first_test) fprintf(target, ",\n");
+		is_first_test = false;
+
+		// Ensure processor's next action is an opcode fetch.
+		handler.reset();
+	}
+
+	void write_initial_state(const int test) {
+		// Dump initial state.
+		if(has_emulation) {
+			fprintf(target, "{ \"name\": \"%02x %c %d\", ", opcode_, is_emulated_ ? 'e' : 'n', test + 1);
+		} else {
+			fprintf(target, "{ \"name\": \"%02x %d\", ", opcode_, test + 1);
+		}
+		fprintf(target, "\"initial\": {");
+		print_registers<has_emulation>(target, handler.processor, 0, std::nullopt);
+	}
+
+	void write_initial_state(NSString *const name, const std::optional<int> s_override) {
+		fprintf(target, "{ \"name\": \"%s\", ", name.UTF8String);
+		fprintf(target, "\"initial\": {");
+		print_registers<has_emulation>(target, handler.processor, 0, s_override);
+	}
+
+	void write_initial_ram(NSArray *const prior = nil) {
+		print_ram(target, handler.inventions, prior);
+	}
+
+	void end_test(NSArray *const prior_ram = nil) {
+		fprintf(target, "}, \"final\": {");
+		print_registers<has_emulation>(target, handler.processor, handler.pc_overshoot, std::nullopt);
+		print_ram(target, handler.ram, prior_ram);
+		fprintf(target, "}, ");
+
+		// Append cycles.
+		fprintf(target, "\"cycles\": [");
+
+		bool is_first_cycle = true;
+		for(const auto &cycle: handler.cycles) {
+			if(!is_first_cycle) fprintf(target, ",");
+			is_first_cycle = false;
+
+			bool vda = false;
+			bool vpa = false;
+			bool vpb = false;
+			bool read = false;
+			bool wait = false;
+			using BusOperation = CPU::MOS6502Esque::BusOperation;
+			switch(cycle.operation) {
+				case BusOperation::Read:					read = vda = true;			break;
+				case BusOperation::ReadOpcode:				read = vda = vpa = true;	break;
+				case BusOperation::ReadProgram:				read = vpa = true;			break;
+				case BusOperation::ReadVector:				read = vpb = vda = true;	break;
+				case BusOperation::InternalOperationRead:	read = true;				break;
+
+				case BusOperation::Write:					vda = true;					break;
+				case BusOperation::InternalOperationWrite:								break;
+
+				case BusOperation::None:
+				case BusOperation::Ready:					wait = true;				break;
+
+				default:
+					assert(false);
+			}
+
+			fprintf(target, "[");
+			if(cycle.address) {
+				fprintf(target, "%d, ", *cycle.address);
+			} else {
+				fprintf(target, "null, ");
+			}
+			if(cycle.value) {
+				fprintf(target, "%d, ", *cycle.value);
+			} else {
+				fprintf(target, "null, ");
+			}
+
+			if(has_emulation) {
+				using ExtendedBusOutput = CPU::WDC65816::ExtendedBusOutput;
+				const bool emulation = cycle.extended_bus & ExtendedBusOutput::Emulation;
+				const bool memory_size = cycle.extended_bus & ExtendedBusOutput::MemorySize;
+				const bool index_size = cycle.extended_bus & ExtendedBusOutput::IndexSize;
+				const bool memory_lock = cycle.extended_bus & ExtendedBusOutput::MemoryLock;
+
+				fprintf(target, "\"%c%c%c%c%c%c%c%c\"]",
+					vda ? 'd' : '-',
+					vpa ? 'p' : '-',
+					vpb ? 'v' : '-',
+					wait ? '-' : (read ? 'r' : 'w'),
+					wait ? '-' : (emulation ? 'e' : '-'),
+					wait ? '-' : (memory_size ? 'm' : '-'),
+					wait ? '-' : (index_size ? 'x' : '-'),
+					wait ? '-' : (memory_lock ? 'l' : '-')
+				);
+			} else {
+				if(read) {
+					fprintf(target, "\"read\"]");
+				} else {
+					fprintf(target, "\"write\"]");
+				}
+			}
+		}
+
+		// Terminate object.
+		fprintf(target, "]}");
+	}
+
 	BusHandler<type> handler;
 	static constexpr bool has_emulation = has(type, CPU::MOS6502Esque::Register::EmulationFlag);
 
-	NSString *const tempDir = NSTemporaryDirectory();
-	NSLog(@"Outputting to %@", tempDir);
+private:
+	NSString *const tempDir;
+	FILE *target = NULL;
+	bool is_first_test;
+	uint8_t opcode_;
+	bool is_emulated_;
+};
 
-	for(int operation = 0; operation < (has_emulation ? 512 : 256); operation++) {
+
+// MARK: - New test generator.
+
+/// Regression tests against @c source outputting a new set of JSON files that differ anywhere
+/// the current 65816 differs in result from the regression test.
+template <CPU::MOS6502Esque::Type type> void test(const char *source) {
+	TestWriter<type> writer;
+
+	NSString *sourcePath = [NSString stringWithUTF8String:source];
+	NSArray<NSString *> *const files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:sourcePath error:nil];
+	for(NSString *file in files) {
+		writer.set_target_name(file);
+
+		NSArray *tests =
+			[NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:[sourcePath stringByAppendingPathComponent:file]] options:0 error:nil];
+		bool report_errors = true;
+		for(NSDictionary *test in tests) {
+			writer.begin_test();
+
+			NSDictionary *const initial = test[@"initial"];
+
+			using Register = CPU::MOS6502Esque::Register;
+			if(writer.has_emulation) {
+				writer.handler.processor.set_value_of(Register::DataBank, [initial[@"dbr"] intValue]);
+				writer.handler.processor.set_value_of(Register::ProgramBank, [initial[@"pbr"] intValue]);
+				writer.handler.processor.set_value_of(Register::Direct, [initial[@"d"] intValue]);
+				writer.handler.processor.set_value_of(Register::EmulationFlag, [initial[@"e"] intValue]);
+			}
+
+			writer.handler.processor.set_value_of(Register::A, [initial[@"a"] intValue]);
+			writer.handler.processor.set_value_of(Register::Flags, [initial[@"p"] intValue]);
+			writer.handler.processor.set_value_of(Register::X, [initial[@"x"] intValue]);
+			writer.handler.processor.set_value_of(Register::Y, [initial[@"y"] intValue]);
+			writer.handler.processor.set_value_of(Register::ProgramCounter, [initial[@"pc"] intValue]);
+			writer.handler.processor.set_value_of(Register::StackPointer, [initial[@"s"] intValue]);
+
+			// Posit RAM values that were in the previous version of this test.
+			NSArray *initialRAM = initial[@"ram"];
+			for(NSArray *value in initialRAM) {
+				writer.handler.posit([value[0] intValue], [value[1] intValue]);
+			}
+
+			writer.handler.setup();
+			NSString *const name = test[@"name"];
+			writer.write_initial_state(name, [initial[@"s"] intValue]);
+
+			// Run to the second opcode fetch.
+			try {
+				writer.handler.processor.run_for(MaxTestLength);
+			} catch (const StopException &) {}
+
+			// Dump all inventions as initial memory state. Provide old RAM array to match ordering.
+			writer.write_initial_ram(initialRAM);
+
+			// Dump final state.
+			NSDictionary *const final_state = test[@"final"];
+			NSArray<NSArray<NSNumber *> *> *const final_ram = final_state[@"ram"];
+			writer.end_test(final_ram);
+
+			// Actually do the regression test.
+			if(report_errors) {
+				bool equal = true;
+
+				//
+				// Test registers.
+				//
+				if(writer.has_emulation) {
+					equal &= writer.handler.processor.value_of(Register::DataBank) == [final_state[@"dbr"] intValue];
+					equal &= writer.handler.processor.value_of(Register::ProgramBank) == [final_state[@"pbr"] intValue];
+					equal &= writer.handler.processor.value_of(Register::Direct) == [final_state[@"d"] intValue];
+					equal &= writer.handler.processor.value_of(Register::EmulationFlag) == [final_state[@"e"] intValue];
+				}
+				equal &= writer.handler.processor.value_of(Register::A) == [final_state[@"a"] intValue];
+				equal &= writer.handler.processor.value_of(Register::Flags) == [final_state[@"p"] intValue];
+				equal &= writer.handler.processor.value_of(Register::X) == [final_state[@"x"] intValue];
+				equal &= writer.handler.processor.value_of(Register::Y) == [final_state[@"y"] intValue];
+				equal &= writer.handler.processor.value_of(Register::StackPointer) == [final_state[@"s"] intValue];
+
+				const auto final_pc = (writer.handler.processor.value_of(Register::ProgramCounter) + writer.handler.pc_overshoot) & 65535;
+				equal &= final_pc == [final_state[@"pc"] intValue];
+
+				XCTAssertEqual(equal, true, @"End registers diverged in test %@", name);
+
+				//
+				// Test RAM.
+				//
+				for(NSArray<NSNumber *> *value in final_ram) {
+					const auto address = [value[0] intValue];
+					const auto data = [value[1] intValue];
+
+					const auto comparison = writer.handler.ram.find(address);
+					equal &= comparison != writer.handler.ram.end() && comparison->second == data;
+				}
+
+				XCTAssertEqual(equal, true, @"Final RAM state diverged in test %@", name);
+
+				if(!equal) {
+					NSLog(@"Not reporting any further failures for file %@", file);
+				}
+				report_errors &= equal;
+			}
+		}
+
+		writer.end_operation();
+	}
+}
+
+/// Generates an entirely new set of 65816 tests.
+template <CPU::MOS6502Esque::Type type> void generate() {
+	TestWriter<type> writer;
+
+	for(int operation = 0; operation < (writer.has_emulation ? 512 : 256); operation++) {
 		// Make tests repeatable, at least for any given instance of
 		// the runtime.
 		static constexpr auto type_offset = int(CPU::MOS6502Esque::Type::TWDC65816) - int(type);
@@ -185,142 +492,49 @@ template <CPU::MOS6502Esque::Type type> void generate() {
 
 		const bool is_emulated = operation & 256;
 		const uint8_t opcode = operation & 255;
+		writer.set_operation(opcode, is_emulated);
 
-		NSString *const targetName =
-			has_emulation ?
-				[NSString stringWithFormat:@"%@%02x.%c.json", tempDir, opcode, is_emulated ? 'e' : 'n'] :
-				[NSString stringWithFormat:@"%@%02x.json", tempDir, opcode];
-		FILE *const target = fopen(targetName.UTF8String, "wt");
-
-		bool is_first_test = true;
-		fprintf(target, "[");
-		for(int test = 0; test < 10'000; test++) {
-			if(!is_first_test) fprintf(target, ",\n");
-			is_first_test = false;
-
-			// Ensure processor's next action is an opcode fetch.
-			handler.processor.restart_operation_fetch();
+		// Provide substantially fewer tests for MVP and MVN; they're not actually that interesting and
+		// they're lengthy.
+		for(int test = 0; test < (is_block_copy<type>(opcode) ? 100 : 10'000); test++) {
+			writer.begin_test();
 
 			// Randomise most of the processor state...
 			using Register = CPU::MOS6502Esque::Register;
-			handler.processor.set_value_of(Register::A, rand() >> 8);
-			handler.processor.set_value_of(Register::Flags, rand() >> 8);
-			handler.processor.set_value_of(Register::X, rand() >> 8);
-			handler.processor.set_value_of(Register::Y, rand() >> 8);
-			handler.processor.set_value_of(Register::ProgramCounter, rand() >> 8);
-			handler.processor.set_value_of(Register::StackPointer, rand() >> 8);
-
-			if(has_emulation) {
-				handler.processor.set_value_of(Register::DataBank, rand() >> 8);
-				handler.processor.set_value_of(Register::ProgramBank, rand() >> 8);
-				handler.processor.set_value_of(Register::Direct, rand() >> 8);
+			if(writer.has_emulation) {
+				writer.handler.processor.set_value_of(Register::DataBank, rand() >> 8);
+				writer.handler.processor.set_value_of(Register::ProgramBank, rand() >> 8);
+				writer.handler.processor.set_value_of(Register::Direct, rand() >> 8);
 
 				// ... except for emulation mode, which is a given.
 				// And is set last to ensure proper internal state is applied.
-				handler.processor.set_value_of(Register::EmulationFlag, is_emulated);
+				writer.handler.processor.set_value_of(Register::EmulationFlag, is_emulated);
 			}
+
+			writer.handler.processor.set_value_of(Register::A, rand() >> 8);
+			writer.handler.processor.set_value_of(Register::Flags, rand() >> 8);
+			writer.handler.processor.set_value_of(Register::X, rand() >> 8);
+			writer.handler.processor.set_value_of(Register::Y, rand() >> 8);
+			writer.handler.processor.set_value_of(Register::ProgramCounter, rand() >> 8);
+			writer.handler.processor.set_value_of(Register::StackPointer, rand() >> 8);
 
 			// Establish the opcode.
-			handler.setup(opcode);
-
-			// Dump initial state.
-			if(has_emulation) {
-				fprintf(target, "{ \"name\": \"%02x %c %d\", ", opcode, is_emulated ? 'e' : 'n', test + 1);
-			} else {
-				fprintf(target, "{ \"name\": \"%02x %d\", ", opcode, test + 1);
-			}
-			fprintf(target, "\"initial\": {");
-			print_registers<has_emulation>(target, handler.processor, 0);
+			writer.handler.setup(opcode);
+			writer.write_initial_state(test);
 
 			// Run to the second opcode fetch.
 			try {
-				handler.processor.run_for(Cycles(100));
+				writer.handler.processor.run_for(MaxTestLength);
 			} catch (const StopException &) {}
 
 			// Dump all inventions as initial memory state.
-			print_ram(target, handler.inventions);
+			writer.write_initial_ram();
 
 			// Dump final state.
-			fprintf(target, "}, \"final\": {");
-			print_registers<has_emulation>(target, handler.processor, handler.pc_overshoot);
-			print_ram(target, handler.ram);
-			fprintf(target, "}, ");
-
-			// Append cycles.
-			fprintf(target, "\"cycles\": [");
-
-			bool is_first_cycle = true;
-			for(const auto &cycle: handler.cycles) {
-				if(!is_first_cycle) fprintf(target, ",");
-				is_first_cycle = false;
-
-				bool vda = false;
-				bool vpa = false;
-				bool vpb = false;
-				bool read = false;
-				bool wait = false;
-				using BusOperation = CPU::MOS6502Esque::BusOperation;
-				switch(cycle.operation) {
-					case BusOperation::Read:					read = vda = true;			break;
-					case BusOperation::ReadOpcode:				read = vda = vpa = true;	break;
-					case BusOperation::ReadProgram:				read = vpa = true;			break;
-					case BusOperation::ReadVector:				read = vpb = vda = true;	break;
-					case BusOperation::InternalOperationRead:	read = true;				break;
-
-					case BusOperation::Write:					vda = true;					break;
-					case BusOperation::InternalOperationWrite:								break;
-
-					case BusOperation::None:
-					case BusOperation::Ready:					wait = true;				break;
-
-					default:
-						assert(false);
-				}
-
-				fprintf(target, "[");
-				if(cycle.address) {
-					fprintf(target, "%d, ", *cycle.address);
-				} else {
-					fprintf(target, "null, ");
-				}
-				if(cycle.value) {
-					fprintf(target, "%d, ", *cycle.value);
-				} else {
-					fprintf(target, "null, ");
-				}
-
-				if(has_emulation) {
-					using ExtendedBusOutput = CPU::WDC65816::ExtendedBusOutput;
-					const bool emulation = cycle.extended_bus & ExtendedBusOutput::Emulation;
-					const bool memory_size = cycle.extended_bus & ExtendedBusOutput::MemorySize;
-					const bool index_size = cycle.extended_bus & ExtendedBusOutput::IndexSize;
-					const bool memory_lock = cycle.extended_bus & ExtendedBusOutput::MemoryLock;
-
-					fprintf(target, "\"%c%c%c%c%c%c%c%c\"]",
-						vda ? 'd' : '-',
-						vpa ? 'p' : '-',
-						vpb ? 'v' : '-',
-						wait ? '-' : (read ? 'r' : 'w'),
-						wait ? '-' : (emulation ? 'e' : '-'),
-						wait ? '-' : (memory_size ? 'm' : '-'),
-						wait ? '-' : (index_size ? 'x' : '-'),
-						wait ? '-' : (memory_lock ? 'l' : '-')
-					);
-				} else {
-					if(read) {
-						fprintf(target, "\"read\"]");
-					} else {
-						fprintf(target, "\"write\"]");
-					}
-				}
-			}
-
-			// Terminate object.
-			fprintf(target, "]}");
+			writer.end_test();
 		}
 
-		fprintf(target, "]");
-		fclose(target);
+		writer.end_operation();
 	}
 }
 
@@ -333,7 +547,12 @@ template <CPU::MOS6502Esque::Type type> void generate() {
 
 @implementation WDC65816ComparativeTests
 
-// A generator for tests; not intended to be a permanent fixture.
+// Compares current implementation to existing tests.
+//- (void)testRegression {
+//	test<CPU::MOS6502Esque::Type::TWDC65816>(SourceTests65816);
+//}
+
+// Generates an entirely new set of tests.
 //- (void)testGenerate {
 //	generate<CPU::MOS6502Esque::Type::TWDC65816>();
 //}
