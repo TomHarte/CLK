@@ -391,7 +391,8 @@ template <CPU::MOS6502Esque::Type type> void test(const char *source) {
 			writer.handler.processor.set_value_of(Register::StackPointer, [initial[@"s"] intValue]);
 
 			writer.handler.setup();		// TODO: I think I need to set this up slightly more. Otherwise allow_pc_repetition is unknown.
-			writer.write_initial_state(test[@"name"], [initial[@"s"] intValue]);
+			NSString *const name = test[@"name"];
+			writer.write_initial_state(name, [initial[@"s"] intValue]);
 
 			// Populate 'inventions'. Bit backwards, but here we are.
 			NSArray *initialRAM = initial[@"ram"];
@@ -408,11 +409,32 @@ template <CPU::MOS6502Esque::Type type> void test(const char *source) {
 			writer.write_initial_ram(initialRAM);
 
 			// Dump final state.
-			writer.end_test(test[@"final"][@"ram"]);
+			NSDictionary *const final_state = test[@"final"];
+			writer.end_test(final_state[@"ram"]);
+
+			// Actually do the regression test.
+			bool equal = true;
+			if(writer.has_emulation) {
+				equal &= writer.handler.processor.value_of(Register::DataBank) == [final_state[@"dbr"] intValue];
+				equal &= writer.handler.processor.value_of(Register::ProgramBank) == [final_state[@"pbr"] intValue];
+				equal &= writer.handler.processor.value_of(Register::Direct) == [final_state[@"d"] intValue];
+				equal &= writer.handler.processor.value_of(Register::EmulationFlag) == [final_state[@"e"] intValue];
+			}
+			equal &= writer.handler.processor.value_of(Register::A) == [final_state[@"a"] intValue];
+			equal &= writer.handler.processor.value_of(Register::Flags) == [final_state[@"p"] intValue];
+			equal &= writer.handler.processor.value_of(Register::X) == [final_state[@"x"] intValue];
+			equal &= writer.handler.processor.value_of(Register::Y) == [final_state[@"y"] intValue];
+			equal &= writer.handler.processor.value_of(Register::StackPointer) == [final_state[@"s"] intValue];
+
+			const auto final_pc = (writer.handler.processor.value_of(Register::ProgramCounter) + writer.handler.pc_overshoot) & 65535;
+			equal &= final_pc == [final_state[@"pc"] intValue];
+
+			XCTAssertEqual(equal, true, @"End registers diverged in test %@", name);
+
+			// TODO: RAM.
 		}
 
 		writer.end_operation();
-//		NSLog(@"%@", @([tests count]));
 	}
 }
 
