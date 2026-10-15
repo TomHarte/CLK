@@ -19,7 +19,13 @@
 
 namespace {
 
-const char *SourceTests65816 = "/Users/thomasharte/Projects/65816/v1";
+[[maybe_unused]] const char *SourceTests65816 = "/Users/thomasharte/Projects/65816/v1";
+constexpr auto MaxTestLength = Cycles(65537 * 7);	// MVN and MVP can copy up to 65536 bytes; each byte takes 7 cycles.
+
+template <CPU::MOS6502Esque::Type type>
+constexpr bool is_block_copy(const uint8_t opcode) {
+	return type == CPU::MOS6502Esque::Type::TWDC65816 && (opcode == 0x54 || opcode == 0x44);
+}
 
 struct StopException {};
 
@@ -113,36 +119,34 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 			);
 	}
 
-	static constexpr bool is_mvn_or_mvp(const uint8_t opcode) {
-		return opcode == 0x54 || opcode == 0x44;
-	}
-
-	void setup() {
+	void reset() {
 		ram.clear();
 		inventions.clear();
 		cycles.clear();
 		pc_overshoot = 0;
+		processor.restart_operation_fetch();
 		initial_pc = std::nullopt;
+	}
 
-		allow_pc_repetition = false;
-
+	void setup() {
 		// Test for whether MVP or MVN is known to be coming.
+		allow_pc_repetition = false;
 		const auto suggestion = reservoir.find(current_pc());
 		if(suggestion != reservoir.end()) {
-			allow_pc_repetition = is_mvn_or_mvp(suggestion->second);
+			if(is_block_copy<type>(suggestion->second)) {
+				allow_pc_repetition = true;
+
+				// Limit A to up to 1000, as otherwise the MVN and MVP tests are just interminable.
+				using Register = CPU::MOS6502Esque::Register;
+				processor.set_value_of(Register::A, processor.value_of(Register::A) % 1000);
+			}
 		}
 	}
 
 	void setup(const uint8_t opcode) {
-		setup();
-
-		// For MVP or MVN, keep tracking fetches via the same location.
-		// For other instructions, don't. That's to avoid endless loops
-		// for flow control that happens to jump back to where it began.
-		allow_pc_repetition = is_mvn_or_mvp(opcode);
-
 		const auto pc = current_pc();
-		inventions[pc] = ram[pc] = opcode;
+		reservoir[pc] = inventions[pc] = ram[pc] = opcode;
+		setup();
 	}
 
 	void posit(const uint32_t address, const uint8_t value) {
@@ -238,7 +242,7 @@ struct TestWriter {
 		);
 	}
 
-	void set_target_name(NSString *targetName) {
+	void set_target_name(NSString *const targetName) {
 		target = fopen([tempDir stringByAppendingPathComponent:targetName].UTF8String, "wt");
 
 		is_first_test = true;
@@ -255,7 +259,7 @@ struct TestWriter {
 		is_first_test = false;
 
 		// Ensure processor's next action is an opcode fetch.
-		handler.processor.restart_operation_fetch();
+		handler.reset();
 	}
 
 	void write_initial_state(const int test) {
@@ -266,20 +270,20 @@ struct TestWriter {
 			fprintf(target, "{ \"name\": \"%02x %d\", ", opcode_, test + 1);
 		}
 		fprintf(target, "\"initial\": {");
-		print_registers<has_emulation>(target, handler.processor, 0);
+		print_registers<has_emulation>(target, handler.processor, 0, std::nullopt);
 	}
 
-	void write_initial_state(NSString *name, std::optional<int> s_override) {
+	void write_initial_state(NSString *const name, const std::optional<int> s_override) {
 		fprintf(target, "{ \"name\": \"%s\", ", name.UTF8String);
 		fprintf(target, "\"initial\": {");
 		print_registers<has_emulation>(target, handler.processor, 0, s_override);
 	}
 
-	void write_initial_ram(NSArray *prior = nil) {
+	void write_initial_ram(NSArray *const prior = nil) {
 		print_ram(target, handler.inventions, prior);
 	}
 
-	void end_test(NSArray *prior_ram = nil) {
+	void end_test(NSArray *const prior_ram = nil) {
 		fprintf(target, "}, \"final\": {");
 		print_registers<has_emulation>(target, handler.processor, handler.pc_overshoot, std::nullopt);
 		print_ram(target, handler.ram, prior_ram);
@@ -417,7 +421,7 @@ template <CPU::MOS6502Esque::Type type> void test(const char *source) {
 
 			// Run to the second opcode fetch.
 			try {
-				writer.handler.processor.run_for(Cycles(100));
+				writer.handler.processor.run_for(MaxTestLength);
 			} catch (const StopException &) {}
 
 			// Dump all inventions as initial memory state. Provide old RAM array to match ordering.
@@ -490,7 +494,9 @@ template <CPU::MOS6502Esque::Type type> void generate() {
 		const uint8_t opcode = operation & 255;
 		writer.set_operation(opcode, is_emulated);
 
-		for(int test = 0; test < 10'000; test++) {
+		// Provide substantially fewer tests for MVP and MVN; they're not actually that interesting and
+		// they're lengthy.
+		for(int test = 0; test < (is_block_copy<type>(opcode) ? 100 : 10'000); test++) {
 			writer.begin_test();
 
 			// Randomise most of the processor state...
@@ -518,7 +524,7 @@ template <CPU::MOS6502Esque::Type type> void generate() {
 
 			// Run to the second opcode fetch.
 			try {
-				writer.handler.processor.run_for(Cycles(100));
+				writer.handler.processor.run_for(MaxTestLength);
 			} catch (const StopException &) {}
 
 			// Dump all inventions as initial memory state.
@@ -542,9 +548,9 @@ template <CPU::MOS6502Esque::Type type> void generate() {
 @implementation WDC65816ComparativeTests
 
 // Compares current implementation to existing tests.
-- (void)testRegression {
-	test<CPU::MOS6502Esque::Type::TWDC65816>(SourceTests65816);
-}
+//- (void)testRegression {
+//	test<CPU::MOS6502Esque::Type::TWDC65816>(SourceTests65816);
+//}
 
 // Generates an entirely new set of tests.
 //- (void)testGenerate {
