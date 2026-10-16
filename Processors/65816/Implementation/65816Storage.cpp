@@ -255,8 +255,8 @@ public:
 		target(CycleFetchIncrementPC);						// AAL.
 
 		target(OperationCopyPCToData);						// Prepare to push.
-		target(CyclePush);									// PCH.
-		target(CyclePush);									// PCL.
+		target(CyclePushNotEmulation);						// PCH.
+		target(CyclePushNotEmulation);						// PCL.
 
 		target(CycleFetchPC);								// AAH.
 		target(CycleFetchPCThrowaway);						// IO.
