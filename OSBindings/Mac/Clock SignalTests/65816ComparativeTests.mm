@@ -427,6 +427,10 @@ template <CPU::MOS6502Esque::Type type> void test(const char *source) {
 	NSString *sourcePath = [NSString stringWithUTF8String:source];
 	NSArray<NSString *> *const files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:sourcePath error:nil];
 	for(NSString *file in files) @autoreleasepool {
+//		if(![file isEqualToString:@"cb.n.json"]) {
+//			continue;
+//		}
+
 		writer.set_target_name(file);
 
 		NSArray *tests =
@@ -539,7 +543,10 @@ template <CPU::MOS6502Esque::Type type> void test(const char *source) {
 						Lines<type> lines;
 						NSString *linesText = comparator[2];
 						if(writer.has_emulation) {
-							if(linesText.length == 8) {
+
+							if([linesText isEqual:@"--------"]) {
+								lines.wait = true;
+							} else if(linesText.length == 8) {
 								const char *const linesCharacters = linesText.UTF8String;
 								lines.vda = linesCharacters[0] != '-';
 								lines.vpa = linesCharacters[1] != '-';
