@@ -30,6 +30,38 @@ constexpr bool is_block_copy(const uint8_t opcode) {
 struct StopException {};
 
 template <CPU::MOS6502Esque::Type type>
+struct Lines {
+	bool vda = false;
+	bool vpa = false;
+	bool vpb = false;
+	bool read = false;
+	bool wait = false;
+
+	bool emulation = false;
+	bool memory_size = false;
+	bool index_size = false;
+	bool memory_lock = false;
+
+	bool operator == (const Lines &rhs) const {
+		if constexpr(has(type, CPU::MOS6502Esque::Register::EmulationFlag)) {
+			return
+				vda == rhs.vda &&
+				vpa == rhs.vpa &&
+				vpb == rhs.vpb &&
+				(!wait && read) == (!rhs.wait && rhs.read) &&
+				wait == rhs.wait &&
+
+				emulation == rhs.emulation &&
+				memory_size == rhs.memory_size &&
+				index_size == rhs.index_size &&
+				memory_lock == rhs.memory_lock;
+		} else {
+			return read == rhs.read;
+		}
+	}
+};
+
+template <CPU::MOS6502Esque::Type type>
 struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 	using AddressType = typename CPU::MOS6502Esque::BusHandlerT<type>::AddressType;
 
@@ -122,6 +154,7 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 	void reset() {
 		ram.clear();
 		inventions.clear();
+		reservoir.clear();
 		cycles.clear();
 		pc_overshoot = 0;
 		processor.restart_operation_fetch();
@@ -163,6 +196,40 @@ struct BusHandler: public CPU::MOS6502Esque::BusHandlerT<type> {
 		std::optional<AddressType> address;
 		std::optional<uint8_t> value;
 		int extended_bus = 0;
+
+		Lines<type> lines() const {
+			Lines<type> result;
+
+			using BusOperation = CPU::MOS6502Esque::BusOperation;
+			switch(operation) {
+				using enum BusOperation;
+
+				case Read:					result.read = result.vda = true;				break;
+				case ReadOpcode:			result.read = result.vda = result.vpa = true;	break;
+				case ReadProgram:			result.read = result.vpa = true;				break;
+				case ReadVector:			result.read = result.vpb = result.vda = true;	break;
+				case InternalOperationRead:	result.read = true;								break;
+
+				case Write:					result.vda = true;				break;
+				case InternalOperationWrite:								break;
+
+				case None:
+				case Ready:					result.wait = true;				break;
+
+				default:
+					assert(false);
+			}
+
+			if(!result.wait) {
+				using ExtendedBusOutput = CPU::WDC65816::ExtendedBusOutput;
+				result.emulation = extended_bus & ExtendedBusOutput::Emulation;
+				result.memory_size = extended_bus & ExtendedBusOutput::MemorySize;
+				result.index_size = extended_bus & ExtendedBusOutput::IndexSize;
+				result.memory_lock = extended_bus & ExtendedBusOutput::MemoryLock;
+			}
+
+			return result;
+		}
 	};
 	std::vector<Cycle> cycles;
 
@@ -226,43 +293,76 @@ void print_ram(FILE *file, const std::unordered_map<IntT, uint8_t> &data, NSArra
 	fprintf(file, "]");
 }
 
-template <CPU::MOS6502Esque::Type type>
+/*!
+	Contains logic to formulate a JSON entry from the various parts of a test result.
+
+	Is strongly coupled with the test code below; be warned!
+*/
+template <CPU::MOS6502Esque::Type type, bool disable_write = false>
 struct TestWriter {
 	TestWriter() : tempDir(NSTemporaryDirectory()) {
-		NSLog(@"Outputting to %@", tempDir);
+		if(!disable_write) {
+			NSLog(@"Outputting to %@", tempDir);
+		}
 	}
 
-	void set_operation(const uint8_t opcode, const bool is_emulated) {
-		opcode_ = opcode;
-		is_emulated_ = is_emulated;
-		set_target_name(
-			has_emulation ?
-				[NSString stringWithFormat:@"%02x.%c.json", opcode, is_emulated ? 'e' : 'n'] :
-				[NSString stringWithFormat:@"%02x.json", opcode]
-		);
-	}
+	/*
 
-	void set_target_name(NSString *const targetName) {
-		target = fopen([tempDir stringByAppendingPathComponent:targetName].UTF8String, "wt");
+		Step 1: set the writer's target. This can be done by any of:
 
-		is_first_test = true;
-		fprintf(target, "[");
-	}
+			* set_operation, in which case the operation is established and an idiomatic filename picked;
+			* set_target_name in which case the operation remains unknown and the file name is directly specified.
 
-	void end_operation() {
-		fprintf(target, "]");
-		fclose(target);
-	}
+	*/
+
+		void set_operation(const uint8_t opcode, const bool is_emulated) {
+			opcode_ = opcode;
+			is_emulated_ = is_emulated;
+			set_target_name(
+				has_emulation ?
+					[NSString stringWithFormat:@"%02x.%c.json", opcode, is_emulated ? 'e' : 'n'] :
+					[NSString stringWithFormat:@"%02x.json", opcode]
+			);
+		}
+
+		void set_target_name(NSString *const targetName) {
+			if constexpr (!disable_write) {
+				target = fopen([tempDir stringByAppendingPathComponent:targetName].UTF8String, "wt");
+
+				is_first_test = true;
+				fprintf(target, "[");
+			}
+		}
+
+	/*
+		Final step: use end_operation to flush any state that has not yet been written to the file.
+	*/
+
+		void end_operation() {
+			if constexpr (!disable_write) {
+				fprintf(target, "]");
+				fclose(target);
+				target = NULL;
+			}
+		}
+
+	// TODO: commentary on the below rat's nest...
 
 	void begin_test() {
-		if(!is_first_test) fprintf(target, ",\n");
-		is_first_test = false;
+		if constexpr (!disable_write) {
+			if(!is_first_test) fprintf(target, ",\n");
+			is_first_test = false;
+		}
 
 		// Ensure processor's next action is an opcode fetch.
 		handler.reset();
 	}
 
 	void write_initial_state(const int test) {
+		if constexpr (disable_write) {
+			return;
+		}
+
 		// Dump initial state.
 		if(has_emulation) {
 			fprintf(target, "{ \"name\": \"%02x %c %d\", ", opcode_, is_emulated_ ? 'e' : 'n', test + 1);
@@ -274,16 +374,28 @@ struct TestWriter {
 	}
 
 	void write_initial_state(NSString *const name, const std::optional<int> s_override) {
+		if constexpr (disable_write) {
+			return;
+		}
+
 		fprintf(target, "{ \"name\": \"%s\", ", name.UTF8String);
 		fprintf(target, "\"initial\": {");
 		print_registers<has_emulation>(target, handler.processor, 0, s_override);
 	}
 
 	void write_initial_ram(NSArray *const prior = nil) {
+		if constexpr (disable_write) {
+			return;
+		}
+
 		print_ram(target, handler.inventions, prior);
 	}
 
 	void end_test(NSArray *const prior_ram = nil) {
+		if constexpr (disable_write) {
+			return;
+		}
+
 		fprintf(target, "}, \"final\": {");
 		print_registers<has_emulation>(target, handler.processor, handler.pc_overshoot, std::nullopt);
 		print_ram(target, handler.ram, prior_ram);
@@ -297,28 +409,6 @@ struct TestWriter {
 			if(!is_first_cycle) fprintf(target, ",");
 			is_first_cycle = false;
 
-			bool vda = false;
-			bool vpa = false;
-			bool vpb = false;
-			bool read = false;
-			bool wait = false;
-			using BusOperation = CPU::MOS6502Esque::BusOperation;
-			switch(cycle.operation) {
-				case BusOperation::Read:					read = vda = true;			break;
-				case BusOperation::ReadOpcode:				read = vda = vpa = true;	break;
-				case BusOperation::ReadProgram:				read = vpa = true;			break;
-				case BusOperation::ReadVector:				read = vpb = vda = true;	break;
-				case BusOperation::InternalOperationRead:	read = true;				break;
-
-				case BusOperation::Write:					vda = true;					break;
-				case BusOperation::InternalOperationWrite:								break;
-
-				case BusOperation::None:
-				case BusOperation::Ready:					wait = true;				break;
-
-				default:
-					assert(false);
-			}
 
 			fprintf(target, "[");
 			if(cycle.address) {
@@ -332,25 +422,20 @@ struct TestWriter {
 				fprintf(target, "null, ");
 			}
 
+			const auto lines = cycle.lines();
 			if(has_emulation) {
-				using ExtendedBusOutput = CPU::WDC65816::ExtendedBusOutput;
-				const bool emulation = cycle.extended_bus & ExtendedBusOutput::Emulation;
-				const bool memory_size = cycle.extended_bus & ExtendedBusOutput::MemorySize;
-				const bool index_size = cycle.extended_bus & ExtendedBusOutput::IndexSize;
-				const bool memory_lock = cycle.extended_bus & ExtendedBusOutput::MemoryLock;
-
 				fprintf(target, "\"%c%c%c%c%c%c%c%c\"]",
-					vda ? 'd' : '-',
-					vpa ? 'p' : '-',
-					vpb ? 'v' : '-',
-					wait ? '-' : (read ? 'r' : 'w'),
-					wait ? '-' : (emulation ? 'e' : '-'),
-					wait ? '-' : (memory_size ? 'm' : '-'),
-					wait ? '-' : (index_size ? 'x' : '-'),
-					wait ? '-' : (memory_lock ? 'l' : '-')
+					lines.vda ? 'd' : '-',
+					lines.vpa ? 'p' : '-',
+					lines.vpb ? 'v' : '-',
+					lines.wait ? '-' : (lines.read ? 'r' : 'w'),
+					lines.emulation ? 'e' : '-',
+					lines.memory_size ? 'm' : '-',
+					lines.index_size ? 'x' : '-',
+					lines.memory_lock ? 'l' : '-'
 				);
 			} else {
-				if(read) {
+				if(lines.read) {
 					fprintf(target, "\"read\"]");
 				} else {
 					fprintf(target, "\"write\"]");
@@ -374,16 +459,21 @@ private:
 };
 
 
-// MARK: - New test generator.
+// MARK: - Regression runner.
 
 /// Regression tests against @c source outputting a new set of JSON files that differ anywhere
 /// the current 65816 differs in result from the regression test.
-template <CPU::MOS6502Esque::Type type> void test(const char *source) {
-	TestWriter<type> writer;
+template <CPU::MOS6502Esque::Type type, bool also_write>
+void test(const char *source) {
+	TestWriter<type, !also_write> writer;
 
 	NSString *sourcePath = [NSString stringWithUTF8String:source];
 	NSArray<NSString *> *const files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:sourcePath error:nil];
-	for(NSString *file in files) {
+	for(NSString *file in files) @autoreleasepool {
+//		if(![file isEqualToString:@"cb.n.json"]) {
+//			continue;
+//		}
+
 		writer.set_target_name(file);
 
 		NSArray *tests =
@@ -434,51 +524,106 @@ template <CPU::MOS6502Esque::Type type> void test(const char *source) {
 
 			// Actually do the regression test.
 			if(report_errors) {
-				bool equal = true;
-
 				//
 				// Test registers.
 				//
+				bool registers_equal = true;
 				if(writer.has_emulation) {
-					equal &= writer.handler.processor.value_of(Register::DataBank) == [final_state[@"dbr"] intValue];
-					equal &= writer.handler.processor.value_of(Register::ProgramBank) == [final_state[@"pbr"] intValue];
-					equal &= writer.handler.processor.value_of(Register::Direct) == [final_state[@"d"] intValue];
-					equal &= writer.handler.processor.value_of(Register::EmulationFlag) == [final_state[@"e"] intValue];
+					registers_equal &= writer.handler.processor.value_of(Register::DataBank) == [final_state[@"dbr"] intValue];
+					registers_equal &= writer.handler.processor.value_of(Register::ProgramBank) == [final_state[@"pbr"] intValue];
+					registers_equal &= writer.handler.processor.value_of(Register::Direct) == [final_state[@"d"] intValue];
+					registers_equal &= writer.handler.processor.value_of(Register::EmulationFlag) == [final_state[@"e"] intValue];
 				}
-				equal &= writer.handler.processor.value_of(Register::A) == [final_state[@"a"] intValue];
-				equal &= writer.handler.processor.value_of(Register::Flags) == [final_state[@"p"] intValue];
-				equal &= writer.handler.processor.value_of(Register::X) == [final_state[@"x"] intValue];
-				equal &= writer.handler.processor.value_of(Register::Y) == [final_state[@"y"] intValue];
-				equal &= writer.handler.processor.value_of(Register::StackPointer) == [final_state[@"s"] intValue];
+				registers_equal &= writer.handler.processor.value_of(Register::A) == [final_state[@"a"] intValue];
+				registers_equal &= writer.handler.processor.value_of(Register::Flags) == [final_state[@"p"] intValue];
+				registers_equal &= writer.handler.processor.value_of(Register::X) == [final_state[@"x"] intValue];
+				registers_equal &= writer.handler.processor.value_of(Register::Y) == [final_state[@"y"] intValue];
+				registers_equal &= writer.handler.processor.value_of(Register::StackPointer) == [final_state[@"s"] intValue];
 
 				const auto final_pc = (writer.handler.processor.value_of(Register::ProgramCounter) + writer.handler.pc_overshoot) & 65535;
-				equal &= final_pc == [final_state[@"pc"] intValue];
+				registers_equal &= final_pc == [final_state[@"pc"] intValue];
 
-				XCTAssertEqual(equal, true, @"End registers diverged in test %@", name);
+				XCTAssertEqual(registers_equal, true, @"End registers diverged in test %@", name);
 
 				//
 				// Test RAM.
 				//
+				bool ram_equal = true;
 				for(NSArray<NSNumber *> *value in final_ram) {
 					const auto address = [value[0] intValue];
 					const auto data = [value[1] intValue];
 
 					const auto comparison = writer.handler.ram.find(address);
-					equal &= comparison != writer.handler.ram.end() && comparison->second == data;
+					ram_equal &= comparison != writer.handler.ram.end() && comparison->second == data;
 				}
 
-				XCTAssertEqual(equal, true, @"Final RAM state diverged in test %@", name);
+				XCTAssertEqual(ram_equal, true, @"Final RAM state diverged in test %@", name);
 
-				if(!equal) {
+				//
+				// Test bus activity.
+				//
+				NSArray *const cycles = test[@"cycles"];
+				NSEnumerator *enumerator = [cycles objectEnumerator];
+				bool cycles_equal = cycles.count == writer.handler.cycles.size();
+				if(cycles_equal) {
+					for(const auto &cycle: writer.handler.cycles) {
+						NSArray *const comparator = [enumerator nextObject];
+
+						// Compare the two numeric fields.
+						const auto compare_number = [&](const size_t index, auto &&expected) {
+							// NSNull is a singleton; it's valid to compare by value.
+							if(comparator[index] == [NSNull null]) {
+								cycles_equal &= expected == std::nullopt;
+							} else {
+								const auto found = [comparator[index] intValue];
+								cycles_equal &= expected.value_or(found ^ 1) == found;
+							}
+						};
+						compare_number(0, cycle.address);
+						compare_number(1, cycle.value);
+
+						// Compare bus state.
+						Lines<type> lines;
+						NSString *linesText = comparator[2];
+						if(writer.has_emulation) {
+
+							if([linesText isEqual:@"--------"]) {
+								lines.wait = true;
+							} else if(linesText.length == 8) {
+								const char *const linesCharacters = linesText.UTF8String;
+								lines.vda = linesCharacters[0] != '-';
+								lines.vpa = linesCharacters[1] != '-';
+								lines.vpb = linesCharacters[2] != '-';
+								lines.read = linesCharacters[3] == 'r';
+								lines.emulation = linesCharacters[4] != '-';
+								lines.memory_size = linesCharacters[5] != '-';
+								lines.index_size = linesCharacters[6] != '-';
+								lines.memory_lock = linesCharacters[7] != '-';
+							} else {
+								cycles_equal = false;
+							}
+						} else {
+							lines.read = [linesText isEqual:@"read"];
+						}
+
+						cycles_equal &= lines == cycle.lines();
+					}
+				}
+
+				XCTAssertEqual(cycles_equal, true, @"Bus cycles diverged in test %@", name);
+
+				if(!registers_equal || !ram_equal || !cycles_equal) {
 					NSLog(@"Not reporting any further failures for file %@", file);
+					report_errors = false;
 				}
-				report_errors &= equal;
 			}
 		}
 
 		writer.end_operation();
 	}
 }
+
+// MARK: - Clean-slate test generator.
 
 /// Generates an entirely new set of 65816 tests.
 template <CPU::MOS6502Esque::Type type> void generate() {
@@ -548,9 +693,9 @@ template <CPU::MOS6502Esque::Type type> void generate() {
 @implementation WDC65816ComparativeTests
 
 // Compares current implementation to existing tests.
-//- (void)testRegression {
-//	test<CPU::MOS6502Esque::Type::TWDC65816>(SourceTests65816);
-//}
+- (void)testRegression {
+	test<CPU::MOS6502Esque::Type::TWDC65816, false>(SourceTests65816);
+}
 
 // Generates an entirely new set of tests.
 //- (void)testGenerate {
