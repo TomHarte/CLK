@@ -295,44 +295,74 @@ void print_ram(FILE *file, const std::unordered_map<IntT, uint8_t> &data, NSArra
 
 /*!
 	Contains logic to formulate a JSON entry from the various parts of a test result.
+
+	Is strongly coupled with the test code below; be warned!
 */
-template <CPU::MOS6502Esque::Type type>
+template <CPU::MOS6502Esque::Type type, bool disable_write = false>
 struct TestWriter {
 	TestWriter() : tempDir(NSTemporaryDirectory()) {
-		NSLog(@"Outputting to %@", tempDir);
+		if(!disable_write) {
+			NSLog(@"Outputting to %@", tempDir);
+		}
 	}
 
-	void set_operation(const uint8_t opcode, const bool is_emulated) {
-		opcode_ = opcode;
-		is_emulated_ = is_emulated;
-		set_target_name(
-			has_emulation ?
-				[NSString stringWithFormat:@"%02x.%c.json", opcode, is_emulated ? 'e' : 'n'] :
-				[NSString stringWithFormat:@"%02x.json", opcode]
-		);
-	}
+	/*
 
-	void set_target_name(NSString *const targetName) {
-		target = fopen([tempDir stringByAppendingPathComponent:targetName].UTF8String, "wt");
+		Step 1: set the writer's target. This can be done by any of:
 
-		is_first_test = true;
-		fprintf(target, "[");
-	}
+			* set_operation, in which case the operation is established and an idiomatic filename picked;
+			* set_target_name in which case the operation remains unknown and the file name is directly specified.
 
-	void end_operation() {
-		fprintf(target, "]");
-		fclose(target);
-	}
+	*/
+
+		void set_operation(const uint8_t opcode, const bool is_emulated) {
+			opcode_ = opcode;
+			is_emulated_ = is_emulated;
+			set_target_name(
+				has_emulation ?
+					[NSString stringWithFormat:@"%02x.%c.json", opcode, is_emulated ? 'e' : 'n'] :
+					[NSString stringWithFormat:@"%02x.json", opcode]
+			);
+		}
+
+		void set_target_name(NSString *const targetName) {
+			if constexpr (!disable_write) {
+				target = fopen([tempDir stringByAppendingPathComponent:targetName].UTF8String, "wt");
+
+				is_first_test = true;
+				fprintf(target, "[");
+			}
+		}
+
+	/*
+		Final step: use end_operation to flush any state that has not yet been written to the file.
+	*/
+
+		void end_operation() {
+			if constexpr (!disable_write) {
+				fprintf(target, "]");
+				fclose(target);
+				target = NULL;
+			}
+		}
+
+	// TODO: commentary on the below rat's nest...
 
 	void begin_test() {
-		if(!is_first_test) fprintf(target, ",\n");
-		is_first_test = false;
+		if constexpr (!disable_write) {
+			if(!is_first_test) fprintf(target, ",\n");
+			is_first_test = false;
+		}
 
 		// Ensure processor's next action is an opcode fetch.
 		handler.reset();
 	}
 
 	void write_initial_state(const int test) {
+		if constexpr (disable_write) {
+			return;
+		}
+
 		// Dump initial state.
 		if(has_emulation) {
 			fprintf(target, "{ \"name\": \"%02x %c %d\", ", opcode_, is_emulated_ ? 'e' : 'n', test + 1);
@@ -344,16 +374,28 @@ struct TestWriter {
 	}
 
 	void write_initial_state(NSString *const name, const std::optional<int> s_override) {
+		if constexpr (disable_write) {
+			return;
+		}
+
 		fprintf(target, "{ \"name\": \"%s\", ", name.UTF8String);
 		fprintf(target, "\"initial\": {");
 		print_registers<has_emulation>(target, handler.processor, 0, s_override);
 	}
 
 	void write_initial_ram(NSArray *const prior = nil) {
+		if constexpr (disable_write) {
+			return;
+		}
+
 		print_ram(target, handler.inventions, prior);
 	}
 
 	void end_test(NSArray *const prior_ram = nil) {
+		if constexpr (disable_write) {
+			return;
+		}
+
 		fprintf(target, "}, \"final\": {");
 		print_registers<has_emulation>(target, handler.processor, handler.pc_overshoot, std::nullopt);
 		print_ram(target, handler.ram, prior_ram);
@@ -421,8 +463,9 @@ private:
 
 /// Regression tests against @c source outputting a new set of JSON files that differ anywhere
 /// the current 65816 differs in result from the regression test.
-template <CPU::MOS6502Esque::Type type> void test(const char *source) {
-	TestWriter<type> writer;
+template <CPU::MOS6502Esque::Type type, bool also_write>
+void test(const char *source) {
+	TestWriter<type, !also_write> writer;
 
 	NSString *sourcePath = [NSString stringWithUTF8String:source];
 	NSArray<NSString *> *const files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:sourcePath error:nil];
@@ -651,7 +694,7 @@ template <CPU::MOS6502Esque::Type type> void generate() {
 
 // Compares current implementation to existing tests.
 - (void)testRegression {
-	test<CPU::MOS6502Esque::Type::TWDC65816>(SourceTests65816);
+	test<CPU::MOS6502Esque::Type::TWDC65816, false>(SourceTests65816);
 }
 
 // Generates an entirely new set of tests.
