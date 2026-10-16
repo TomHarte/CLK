@@ -324,7 +324,7 @@ OpenGL::Shader OpenGL::demodulation_shader(
 				FilterGenerator::DecodingPath::SVideo
 		).demouldation_filter()
 	);
-	shader.set_uniform_matrix("toRGB", 3, false, to_rgb_matrix(colour_space).data());
+	shader.set_uniform_matrix("toRGB", 3, false, to_rgb_matrix(colour_space, is_colour(display_type)).data());
 
 	return shader;
 }

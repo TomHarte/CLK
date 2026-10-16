@@ -581,7 +581,7 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	self.uniforms->phaseLinkedLuminanceOffset = __fp16(modals.input_data_tweaks.phase_linked_luminance_offset);
 	[self setAspectRatio];
 
-	const auto toRGB = to_rgb_matrix(modals.composite_colour_space);
+	const auto toRGB = to_rgb_matrix(modals.composite_colour_space, is_colour(modals.display_type));
 	self.uniforms->toRGB = simd::float3x3(
 		simd::float3{toRGB[0], toRGB[1], toRGB[2]},
 		simd::float3{toRGB[3], toRGB[4], toRGB[5]},
