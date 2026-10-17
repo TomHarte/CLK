@@ -809,8 +809,10 @@ void interrupt(
 				context.linear_memory, table_pointer, uint16_t(exception.vector << 3), false);
 
 			if(!call_gate.present()) {
-				printf("TODO: should throw for non-present IDT entry\n");
-				assert(false);
+				// A non-present IDT entry: the interrupt handler's memory isn't available.
+				throw Exception::exception<Vector::SegmentNotPresent>(
+					ExceptionCode(uint16_t(exception.vector << 3), false, true, false)
+				);
 			}
 
 			if(

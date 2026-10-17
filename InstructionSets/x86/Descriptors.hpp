@@ -111,6 +111,17 @@ struct SegmentDescriptor {
 		);
 	}
 
+	void throw_np() const {
+		throw Exception::exception<Vector::SegmentNotPresent>(
+			ExceptionCode(
+				segment_,
+				local_,
+				false,
+				false
+			)
+		);
+	}
+
 	template <AccessType type, typename AddressT>
 	requires std::same_as<AddressT, uint16_t> || std::same_as<AddressT, uint32_t>
 	void authorise(const AddressT begin, const AddressT end) const {
@@ -131,21 +142,26 @@ struct SegmentDescriptor {
 		}
 	}
 
+	// The following is a load-time check, I think, but doesn't fit the validate_as
+	// semantics. Left here for now, while I think about appropriate placement:
+		// A missing segment descriptor raises not-present.
+//		if(!present()) {
+//			throw_np();
+//		}
+
 	void validate_as(const Source segment) const {
 		const auto desc = description();
 		switch(segment) {
 			case Source::DS:
 			case Source::ES:
 				if(!desc.readable) {
-					printf("TODO: throw for unreadable DS or ES source.\n");
-					assert(false);
+					throw_gpf();
 				}
 			break;
 
 			case Source::SS:
 				if(!desc.writeable) {
-					printf("TODO: throw for unwriteable SS target.\n");
-					assert(false);
+					throw_gpf();
 				}
 			break;
 
@@ -319,9 +335,12 @@ DescriptorT descriptor_at(
 	const uint16_t offset,
 	const bool local
 ) {
-	if(offset > table.limit - 8) {
-		printf("TODO: descriptor table overrun exception.\n");
-		assert(false);
+	if(offset + 8 > table.limit) {
+		// Descriptor table overrun.
+		const uint16_t selector = uint16_t(offset) | (local ? 4 : 0);
+		throw Exception::exception<Vector::GeneralProtectionFault>(
+			ExceptionCode(selector, local, false, false)
+		);
 	}
 	const auto address = table.base + offset;
 
