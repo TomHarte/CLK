@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
@@ -43,11 +44,11 @@ template <Personality personality> struct Base: public Storage<personality> {
 											// after corresponding data read.
 
 	static constexpr uint32_t palette_pack(const uint8_t r, const uint8_t g, const uint8_t b) {
-		#if TARGET_RT_BIG_ENDIAN
+		if constexpr (std::endian::native == std::endian::big) {
 			return uint32_t((r << 24) | (g << 16) | (b << 8));
-		#else
+		} else {
 			return uint32_t((b << 16) | (g << 8) | r);
-		#endif
+		}
 	}
 
 	// The default TMS palette.

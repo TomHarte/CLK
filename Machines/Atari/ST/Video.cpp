@@ -11,6 +11,7 @@
 #include "Outputs/Log.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <cstring>
 
 #define CYCLE(x)	((x) * 2)
@@ -642,11 +643,7 @@ void Video::VideoStream::flush_border() {
 }
 
 namespace {
-#if TARGET_RT_BIG_ENDIAN
-	constexpr int upper = 0;
-#else
-	constexpr int upper = 1;
-#endif
+constexpr int upper = std::endian::native == std::endian::little;
 }
 
 void Video::VideoStream::shift(int duration) {

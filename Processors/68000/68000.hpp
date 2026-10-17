@@ -12,6 +12,7 @@
 #include "Numeric/RegisterSizes.hpp"
 #include "InstructionSets/M68k/RegisterSet.hpp"
 
+#include <bit>
 #include <cassert>
 
 namespace CPU::MC68000 {
@@ -270,11 +271,11 @@ struct Microcycle: public MicrocycleOperationStorage<op> {
 		If the host machine is little endian then it will evaluate to @c n^1.
 	*/
 	forceinline uint32_t host_endian_byte_address() const {
-		#if TARGET_RT_BIG_ENDIAN
-		return *address & 0xff'ffff;
-		#else
-		return (*address ^ (this->operation & Operation::SelectByte)) & 0xff'ffff;
-		#endif
+		if constexpr (std::endian::native == std::endian::big) {
+			return *address & 0xff'ffff;
+		} else {
+			return (*address ^ (this->operation & Operation::SelectByte)) & 0xff'ffff;
+		}
 	}
 
 	/*!

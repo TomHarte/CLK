@@ -8,6 +8,8 @@
 
 #include "Video.hpp"
 
+#include <bit>
+
 using namespace Apple::IIgs::Video;
 
 namespace {
@@ -21,32 +23,34 @@ constexpr int FinalPixelLine = 192;
 constexpr auto FinalColumn = CyclesPerLine / CyclesPerTick;
 
 // Converts from Apple's RGB ordering to this emulator's.
-#if TARGET_RT_BIG_ENDIAN
-constexpr uint16_t convulve(uint16_t x) { return x; }
-#else
-constexpr uint16_t convulve(uint16_t x) { return uint16_t(((x&0xf00) >> 8) | ((x&0x0ff) << 8)); }
-#endif
+constexpr uint16_t convolve(uint16_t x) {
+	if constexpr (std::endian::native == std::endian::big) {
+		return x;
+	} else {
+		return std::rotl(x, 8);
+	}
+}
 
 // The 12-bit values used by the Apple IIgs to approximate Apple II colours,
 // as implied by tech note #63's use of them as border colours.
 // http://www.1000bit.it/support/manuali/apple/technotes/iigs/tn.iigs.063.html
 constexpr uint16_t appleii_palette[16] = {
-	convulve(0x0000),	// Black.
-	convulve(0x0d03),	// Deep Red.
-	convulve(0x0009),	// Dark Blue.
-	convulve(0x0d2d),	// Purple.
-	convulve(0x0072),	// Dark Green.
-	convulve(0x0555),	// Dark Gray.
-	convulve(0x022f),	// Medium Blue.
-	convulve(0x06af),	// Light Blue.
-	convulve(0x0850),	// Brown.
-	convulve(0x0f60),	// Orange.
-	convulve(0x0aaa),	// Light Grey.
-	convulve(0x0f98),	// Pink.
-	convulve(0x01d0),	// Light Green.
-	convulve(0x0ff0),	// Yellow.
-	convulve(0x04f9),	// Aquamarine.
-	convulve(0x0fff),	// White.
+	convolve(0x0000),	// Black.
+	convolve(0x0d03),	// Deep Red.
+	convolve(0x0009),	// Dark Blue.
+	convolve(0x0d2d),	// Purple.
+	convolve(0x0072),	// Dark Green.
+	convolve(0x0555),	// Dark Gray.
+	convolve(0x022f),	// Medium Blue.
+	convolve(0x06af),	// Light Blue.
+	convolve(0x0850),	// Brown.
+	convolve(0x0f60),	// Orange.
+	convolve(0x0aaa),	// Light Grey.
+	convolve(0x0f98),	// Pink.
+	convolve(0x01d0),	// Light Green.
+	convolve(0x0ff0),	// Yellow.
+	convolve(0x04f9),	// Aquamarine.
+	convolve(0x0fff),	// White.
 };
 
 // Reasoned guesswork ahoy!
@@ -281,7 +285,7 @@ void Video::output_row(int row, int start, int end) {
 						ram_[palette_base + (c << 1)] |
 						(ram_[palette_base + (c << 1) + 1] << 8)
 					);
-					palette_[c] = convulve(entry);
+					palette_[c] = convolve(entry);
 				}
 
 				// Post an interrupt if requested.
@@ -643,7 +647,7 @@ uint16_t *Video::output_low_resolution(uint16_t *target, int start, int end, int
 	for(int c = start; c < end; c++) {
 		const uint8_t source = (ram_[row_address + c] >> row_shift) & 0xf;
 
-		// Convulve input as a function of odd/even row.
+		// Convolve input as a function of odd/even row.
 		uint32_t long_source;
 		if(c&1) {
 			long_source = uint32_t((source >> 2) | (source << 2) | (source << 6) | (source << 10));
@@ -682,7 +686,7 @@ uint16_t *Video::output_double_low_resolution(uint16_t *target, int start, int e
 			uint8_t((ram_[0x10000 + row_address + c] >> row_shift) & 0xf)
 		};
 
-		// Convulve input as a function of odd/even row; this is very much like low
+		// Convolve input as a function of odd/even row; this is very much like low
 		// resolution mode except that the first 7 bits to be output will come from
 		// source[1] and the next 7 from source[0]. Also shifting is offset by
 		// half a window compared to regular low resolution, so the conditional

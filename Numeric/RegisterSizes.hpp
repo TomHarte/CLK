@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <bit>
 #include <cstdint>
 
 #pragma pack(push, 1)
@@ -16,6 +17,14 @@
 // and that this compiler offers C-style anonymous structs.
 
 namespace CPU {
+
+template <typename ValueT, std::endian = std::endian::native> struct Halves;
+template <typename ValueT> struct Halves<ValueT, std::endian::little> {
+	ValueT low, high;
+};
+template <typename ValueT> struct Halves<ValueT, std::endian::big> {
+	ValueT high, low;
+};
 
 /// Provides access to all intermediate parts of a larger int.
 template <typename Full, typename Half> union alignas(Full) alignas(Half) RegisterPair {
@@ -29,61 +38,51 @@ template <typename Full, typename Half> union alignas(Full) alignas(Half) Regist
 	auto operator ==(const RegisterPair &rhs) const {
 		return full == rhs.full;
 	}
-#if TARGET_RT_BIG_ENDIAN
-	struct {
-		Half high, low;
-	} halves;
-#else
-	struct {
-		Half low, high;
-	} halves;
-#endif
+
+	Halves<Half> halves;
 };
 
 using RegisterPair16 = RegisterPair<uint16_t, uint8_t>;
 using RegisterPair32 = RegisterPair<uint32_t, RegisterPair16>;
 
 /// Provides access to lower portions of a larger int.
-template <typename IntT> union SlicedInt {};
+template <typename IntT, std::endian = std::endian::native> union SlicedInt {};
 
-template <> union SlicedInt<uint16_t> {
-	struct {
-		uint16_t w;
-	};
+template <> union SlicedInt<uint16_t, std::endian::little> {
+	uint16_t w;
+	uint8_t b;
+};
 
+template <> union SlicedInt<uint16_t, std::endian::big> {
+	uint16_t w;
 	struct {
-#if TARGET_RT_BIG_ENDIAN
 		uint8_t __padding[1];
-#endif
 		uint8_t b;
 	};
 };
 
-template <> union SlicedInt<uint32_t> {
-	struct {
-		uint32_t l;
-	};
+template <> union SlicedInt<uint32_t, std::endian::little> {
+	uint32_t l;
+	uint16_t w;
+	uint8_t b;
 
 	struct {
-#if TARGET_RT_BIG_ENDIAN
-		uint16_t __padding[1];
-#endif
+		SlicedInt<uint16_t> low, high;
+	};
+};
+
+template <> union SlicedInt<uint32_t, std::endian::big> {
+	uint32_t l;
+	struct {
+		uint16_t __padding_w[1];
 		uint16_t w;
 	};
-
 	struct {
-#if TARGET_RT_BIG_ENDIAN
-		uint8_t __padding[3];
-#endif
+		uint8_t __padding_b[3];
 		uint8_t b;
 	};
-
 	struct {
-#if TARGET_RT_BIG_ENDIAN
 		SlicedInt<uint16_t> high, low;
-#else
-		SlicedInt<uint16_t> low, high;
-#endif
 	};
 };
 

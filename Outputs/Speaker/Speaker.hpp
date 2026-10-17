@@ -9,28 +9,34 @@
 #pragma once
 
 #include <atomic>
+#include <bit>
 #include <cstdint>
 #include <vector>
 
 namespace Outputs::Speaker {
 
-using MonoSample = int16_t;
-struct StereoSample {
-#if TARGET_RT_BIG_ENDIAN
-	int16_t right = 0, left = 0;
-#else
+template <std::endian> struct StereoOrdering;
+template<> struct StereoOrdering<std::endian::little> {
 	int16_t left = 0, right = 0;
-#endif
+};
+template<> struct StereoOrdering<std::endian::big> {
+	int16_t right = 0, left = 0;
+};
 
+using MonoSample = int16_t;
+struct StereoSample: public StereoOrdering<std::endian::native> {
 	StereoSample() = default;
 	StereoSample(const StereoSample &rhs) {
 		left = rhs.left;
 		right = rhs.right;
 	}
-	StereoSample(MonoSample value) {
+	StereoSample(const MonoSample value) {
 		left = right = value;
 	}
-	StereoSample(int16_t left, int16_t right) : left(left), right(right) {}
+	StereoSample(const int16_t l, const int16_t r) {
+		left = l;
+		right = r;
+	}
 
 	StereoSample &operator =(const StereoSample &rhs) {
 		left = rhs.left;
