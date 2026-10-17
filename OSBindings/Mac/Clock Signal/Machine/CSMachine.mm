@@ -31,10 +31,11 @@
 #import "NSBundle+DataResource.h"
 #import "NSData+StdVector.h"
 
+#include <atomic>
+#include <bit>
+#include <bitset>
 #include <cassert>
 #include <codecvt>
-#include <atomic>
-#include <bitset>
 #include <locale>
 #include <memory>
 
@@ -380,7 +381,7 @@ struct ActivityObserver: public Activity::Observer {
 	if(keyboardMachine) {
 		// Baked-in macOS assumptions.
 		static_assert(sizeof(wchar_t) == 4);
-		static_assert(TARGET_RT_LITTLE_ENDIAN);
+		static_assert(std::endian::native == std::endian::little);
 
 		NSData *const data = [paste dataUsingEncoding:NSUTF32LittleEndianStringEncoding];
 		if(data) {

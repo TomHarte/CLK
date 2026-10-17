@@ -16,11 +16,11 @@ using namespace Thomson;
 namespace {
 
 constexpr uint16_t rgb(const uint16_t code) {
-#ifdef TARGET_RT_BIG_ENDIAN
-	return code;
-#else
-	return std::rotl(code, 8);
-#endif
+	if constexpr (std::endian::native == std::endian::big) {
+		return code;
+	} else {
+		return std::rotl(code, 8);
+	}
 }
 
 // Per https://pulkomandy.tk/wiki/doku.php?id=documentations:devices:gate.arrays#video_generation

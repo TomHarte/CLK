@@ -8,6 +8,8 @@
 
 #include "Video.hpp"
 
+#include <bit>
+
 using namespace Apple::IIgs::Video;
 
 namespace {
@@ -21,11 +23,13 @@ constexpr int FinalPixelLine = 192;
 constexpr auto FinalColumn = CyclesPerLine / CyclesPerTick;
 
 // Converts from Apple's RGB ordering to this emulator's.
-#if TARGET_RT_BIG_ENDIAN
-constexpr uint16_t convulve(uint16_t x) { return x; }
-#else
-constexpr uint16_t convulve(uint16_t x) { return uint16_t(((x&0xf00) >> 8) | ((x&0x0ff) << 8)); }
-#endif
+constexpr uint16_t convulve(uint16_t x) {
+	if constexpr (std::endian::native == std::endian::big) {
+		return x;
+	} else {
+		return std::rotl(x, 8);
+	}
+}
 
 // The 12-bit values used by the Apple IIgs to approximate Apple II colours,
 // as implied by tech note #63's use of them as border colours.

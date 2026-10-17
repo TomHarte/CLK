@@ -12,6 +12,7 @@
 #include "Outputs/CRT/CRT.hpp"
 
 #include <array>
+#include <bit>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
@@ -46,11 +47,11 @@ struct Video {
 		packed[0] = value & 0xf;
 		packed[1] = (value & 0xf0) | ((value & 0xf00) >> 8);
 
-#if TARGET_RT_BIG_ENDIAN
-		return static_cast<uint16_t>(packed[1] | (packed[0] << 8));
-#else
-		return static_cast<uint16_t>(packed[0] | (packed[1] << 8));
-#endif
+		if constexpr (std::endian::native == std::endian::big) {
+			return static_cast<uint16_t>(packed[1] | (packed[0] << 8));
+		} else {
+			return static_cast<uint16_t>(packed[0] | (packed[1] << 8));
+		}
 	};
 	static constexpr uint16_t high_spread[] = {
 		colour(0b0000'0000'0000),	colour(0b0000'0000'1000),	colour(0b0000'0100'0000),	colour(0b0000'0100'1000),

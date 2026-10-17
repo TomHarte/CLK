@@ -9,17 +9,12 @@
 #include "Video.hpp"
 
 #include <algorithm>
+#include <bit>
 
 using namespace Apple::Macintosh;
 
 namespace {
-
-#if TARGET_RT_BIG_ENDIAN
-constexpr uint64_t PixelMask = 0x8040201008040201;
-#else
-constexpr uint64_t PixelMask = 0x0102040810204080;
-#endif
-
+constexpr uint64_t PixelMask = std::endian::native == std::endian::little ? 0x0102040810204080 : 0x8040201008040201;
 }
 
 // Re: CRT timings, see the Apple Guide to the Macintosh Hardware Family,

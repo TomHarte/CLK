@@ -1198,7 +1198,7 @@ int main(int argc, char *argv[]) {
 							}
 
 							// Create a suitable SDL surface and save the thing.
-							const bool is_big_endian = SDL_BYTEORDER == SDL_BIG_ENDIAN;
+							static constexpr bool is_big_endian = SDL_BYTEORDER == SDL_BIG_ENDIAN;
 							SDL_Surface *const surface = SDL_CreateRGBSurfaceFrom(
 								screenshot.pixel_data.data(),
 								screenshot.width, screenshot.height,
