@@ -164,11 +164,8 @@ void lldt(
 	}
 
 	DescriptorTablePointer location;
-	location.limit = AddressT(ldt.base());
-	location.base = ldt.offset();
-	if constexpr (std::is_same_v<AddressT, uint16_t>) {
-		location.base &= 0xff'ff'ff;
-	}
+	location.base = ldt.base();
+	location.limit = ldt.offset();
 
 	context.registers.template set<DescriptorTable::Local>(location);
 	context.registers.set_ldtr(source_segment);
