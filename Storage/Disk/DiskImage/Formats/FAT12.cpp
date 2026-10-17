@@ -21,13 +21,14 @@ FAT12::FAT12(const std::filesystem::path &path) :
 	if(file_size < 512) throw Error::InvalidFormat;
 
 	// Inspect the FAT.
+	using Storage::FileUtils::LittleEndian::get;
 	file_.seek(11, Whence::SET);
-	sector_size_ = file_.get_le<uint16_t>();
+	sector_size_ = get<uint16_t>(file_);
 	file_.seek(19, Whence::SET);
-	const auto total_sectors = file_.get_le<uint16_t>();
+	const auto total_sectors = get<uint16_t>(file_);
 	file_.seek(24, Whence::SET);
-	sector_count_ = file_.get_le<uint16_t>();
-	head_count_ = file_.get_le<uint16_t>();
+	sector_count_ = get<uint16_t>(file_);
+	head_count_ = get<uint16_t>(file_);
 
 	// Throw if there would seemingly be an incomplete track.
 	if(file_size != total_sectors*sector_size_) throw Error::InvalidFormat;

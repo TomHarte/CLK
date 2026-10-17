@@ -12,6 +12,7 @@
 
 #include <sys/stat.h>
 #include <array>
+#include <bit>
 #include <cstdio>
 #include <cstdint>
 #include <cstring>
@@ -62,59 +63,6 @@ public:
 	FileHolder(const std::filesystem::path &, FileMode ideal_mode = FileMode::ReadWrite);
 	FileHolder(FileHolder &&);
 
-	/*!
-		Writes @c value using successive @c puts, in little endian order.
-		Optionally limits itself to only @c size bytes.
-	*/
-	template <typename IntT, size_t size = sizeof(IntT)>
-	void put_le(IntT value) {
-		for(size_t c = 0; c < size; c++) {
-			put(uint8_t(value));
-			value >>= 8;
-		}
-	}
-
-	/*!
-		Writes @c value using successive @c puts, in big endian order.
-		Optionally limits itself to only @c size bytes.
-	*/
-	template <typename IntT, size_t size = sizeof(IntT)>
-	void put_be(const IntT value) {
-		auto shift = size * 8;
-		while(shift) {
-			shift -= 8;
-			put((value >> shift)&0xff);
-		}
-	}
-
-	/*!
-		Reads a value of type @c IntT using successive @c gets, in little endian order.
-		Optionally limits itself to only @c size bytes.
-	*/
-	template <typename IntT, size_t size = sizeof(IntT)>
-	IntT get_le() {
-		IntT result{};
-		for(size_t c = 0; c < size; c++) {
-			result >>= 8;
-			result |= IntT(get() << ((size - 1) * 8));
-		}
-		return result;
-	}
-
-	/*!
-		Reads a value of type @c IntT using successive @c gets, in big endian order.
-		Optionally limits itself to only @c size bytes.
-	*/
-	template <typename IntT, size_t size = sizeof(IntT)>
-	IntT get_be() {
-		IntT result{};
-		for(size_t c = 0; c < size; c++) {
-			result <<= 8;
-			result |= get();
-		}
-		return result;
-	}
-
 	/*! Reads a single byte from @c file. */
 	uint8_t get();
 
@@ -156,15 +104,6 @@ public:
 	/*! @returns @c true if the end-of-file indicator is set, @c false otherwise. */
 	bool eof() const;
 
-	/*!
-		Obtains a BitStream for reading from the file from the current reading cursor.
-	*/
-	template <int max_bits, bool lsb_first>
-	Numeric::BitStream<max_bits, lsb_first> bitstream() {
-		return Numeric::BitStream<max_bits, lsb_first>([&] {
-			return get();
-		});
-	}
 
 	/*!
 		For SignatureType::Binary:
@@ -231,4 +170,121 @@ inline std::vector<uint8_t> contents_of(const std::filesystem::path &path) {
 	return file.read(size_t(file.stats().st_size));
 }
 
+/*!
+	Various free functions that work with an open file.
+*/
+namespace FileUtils {
+
+/*!
+	Obtains a BitStream for reading from the file from the current reading cursor.
+*/
+template <int max_bits, bool lsb_first>
+Numeric::BitStream<max_bits, lsb_first> bitstream(FileHolder &file) {
+	return Numeric::BitStream<max_bits, lsb_first>([&] {
+		return file.get();
+	});
+}
+
+/*!
+	A local implementation of std::byteswap, which I cannot currently use because it's C++23.
+*/
+template <typename IntT>
+requires (sizeof(IntT) == 1 || sizeof(IntT) == 2 || sizeof(IntT) == 4 || sizeof(IntT) == 8)
+IntT byteswap(IntT value) {
+	if constexpr (sizeof(IntT) == 1) {
+		return value;
+	}
+	if constexpr (sizeof(IntT) == 2) {
+		return __builtin_bswap16(value);
+	}
+	if constexpr (sizeof(IntT) == 4) {
+		return __builtin_bswap32(value);
+	}
+	if constexpr (sizeof(IntT) == 8) {
+		return __builtin_bswap64(value);
+	}
+}
+
+/*!
+	Writes @c value to @c file according to @c endian.
+	Optionally limits itself to only @c size bytes.
+*/
+template <std::endian endian, typename IntT, size_t size = sizeof(IntT)>
+void put(FileHolder &file, IntT value) {
+	if constexpr (size != sizeof(IntT) && endian == std::endian::big) {
+		// Little on little: relevant bytes are the first ones.
+		// Little on big: low bytes were swapped into high. Still the first ones. Do nothing.
+
+		// Big on little: pull bytes up to top ready to be swapped into bottom.
+		// Big on bug: pull meaningful bytes up to the front.
+		value <<= ((sizeof(IntT) - size) / 8);
+	}
+
+	if constexpr (endian != std::endian::native && sizeof(IntT) > 1) {
+		value = byteswap<IntT>(value);
+	}
+
+	file.write(&value, size);
+}
+
+/*!
+	Reads a value of type @c IntT from @c file using @c endian byte order.
+	Optionally limits itself to only @c size bytes.
+*/
+template <std::endian endian, typename IntT, size_t size = sizeof(IntT)>
+IntT get(FileHolder &file) {
+	IntT result;
+	if constexpr (size != sizeof(IntT)) {
+		result = 0;
+	}
+
+	file.read(reinterpret_cast<uint8_t *>(&result), size);
+	if constexpr (endian != std::endian::native) {
+		result = byteswap<IntT>(result);
+	}
+
+	if constexpr (size != sizeof(IntT) && endian == std::endian::big) {
+		// Little on little: read into low bytes. Do nothing.
+		// Little on big: read into high bytes, swapped into low. Do nothing.
+		// Big on little: read into low bytes, swapped into high. Shift downward.
+		// Big on big: read into high bytes. Shift downward.
+		result >>= ((sizeof(IntT) - size) / 8);
+	}
+
+	return result;
+}
+
+/*
+	Helpers below are designed to allow more-compact syntax elsewhere; e.g.
+	`using FileUtils::LittleEndian::get`.
+*/
+namespace LittleEndian {
+
+template <std::unsigned_integral IntT, size_t size = sizeof(IntT)>
+IntT get(Storage::FileHolder &file) {
+	return Storage::FileUtils::get<std::endian::little, IntT, size>(file);
+}
+
+template <typename IntT, size_t size = sizeof(IntT)>
+void put(FileHolder &file, IntT value) {
+	return Storage::FileUtils::put<std::endian::little, IntT, size>(file, value);
+}
+
+}
+
+namespace BigEndian {
+
+template <std::unsigned_integral IntT, size_t size = sizeof(IntT)>
+IntT get(Storage::FileHolder &file) {
+	return Storage::FileUtils::get<std::endian::big, IntT, size>(file);
+}
+
+template <typename IntT, size_t size = sizeof(IntT)>
+void put(FileHolder &file, IntT value) {
+	return Storage::FileUtils::put<std::endian::big, IntT, size>(file, value);
+}
+
+}
+
+}
 }

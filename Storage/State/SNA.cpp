@@ -45,18 +45,20 @@ std::unique_ptr<Analyser::Static::Target> SNA::load(const std::filesystem::path 
 	//	00	I
 	const uint8_t i = file.get();
 
+	using FileUtils::LittleEndian::get;
+
 	//	01	HL';	03	DE';	05	BC';	07	AF'
-	state->z80.registers.hl_dash = file.get_le<uint16_t>();
-	state->z80.registers.de_dash = file.get_le<uint16_t>();
-	state->z80.registers.bc_dash = file.get_le<uint16_t>();
-	state->z80.registers.af_dash = file.get_le<uint16_t>();
+	state->z80.registers.hl_dash = get<uint16_t>(file);
+	state->z80.registers.de_dash = get<uint16_t>(file);
+	state->z80.registers.bc_dash = get<uint16_t>(file);
+	state->z80.registers.af_dash = get<uint16_t>(file);
 
 	//	09	HL;		0B	DE;		0D	BC;		0F	IY;		11	IX
-	state->z80.registers.hl = file.get_le<uint16_t>();
-	state->z80.registers.de = file.get_le<uint16_t>();
-	state->z80.registers.bc = file.get_le<uint16_t>();
-	state->z80.registers.iy = file.get_le<uint16_t>();
-	state->z80.registers.ix = file.get_le<uint16_t>();
+	state->z80.registers.hl = get<uint16_t>(file);
+	state->z80.registers.de = get<uint16_t>(file);
+	state->z80.registers.bc = get<uint16_t>(file);
+	state->z80.registers.iy = get<uint16_t>(file);
+	state->z80.registers.ix = get<uint16_t>(file);
 
 	//	13	IFF2 (in bit 2)
 	const uint8_t iff = file.get();
@@ -69,7 +71,7 @@ std::unique_ptr<Analyser::Static::Target> SNA::load(const std::filesystem::path 
 	//	15	AF;		17	SP;		19	interrupt mode
 	state->z80.registers.flags = file.get();
 	state->z80.registers.a = file.get();
-	state->z80.registers.stack_pointer = file.get_le<uint16_t>();
+	state->z80.registers.stack_pointer = get<uint16_t>(file);
 	state->z80.registers.interrupt_mode = file.get();
 
 	//	1A	border colour
@@ -87,7 +89,7 @@ std::unique_ptr<Analyser::Static::Target> SNA::load(const std::filesystem::path 
 		return result;
 	}
 
-	state->z80.registers.program_counter = file.get_le<uint16_t>();
+	state->z80.registers.program_counter = get<uint16_t>(file);
 	state->last_7ffd = file.get();
 
 	const bool trdos_paged = file.get();

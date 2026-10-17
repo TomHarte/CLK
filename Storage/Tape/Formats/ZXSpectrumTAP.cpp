@@ -27,7 +27,7 @@ ZXSpectrumTAP::ZXSpectrumTAP(const std::filesystem::path &path) : path_(path) {
 	// To consider: could also check those blocks of type 0
 	// and type ff for valid checksums?
 	while(file.tell() != file.stats().st_size) {
-		const uint16_t block_length = file.get_le<uint16_t>();
+		const uint16_t block_length = FileUtils::get<std::endian::little, uint16_t>(file);
 		if(file.eof() || file.tell() + block_length > file.stats().st_size) {
 			throw ErrorNotZXSpectrumTAP;
 		}
@@ -121,7 +121,7 @@ void ZXSpectrumTAP::Serialiser::read_next_block() {
 	if(file_.tell() == file_.stats().st_size) {
 		phase_ = Phase::Gap;
 	} else {
-		block_length_ = file_.get_le<uint16_t>();
+		block_length_ = FileUtils::get<std::endian::little, uint16_t>(file_);
 		data_byte_ = block_type_ = file_.get();
 		phase_ = Phase::PilotTone;
 	}

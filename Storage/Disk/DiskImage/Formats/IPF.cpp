@@ -37,15 +37,16 @@ size_t block_size(Storage::FileHolder &file, const uint8_t header) {
 }
 
 IPF::IPF(const std::filesystem::path &path) : file_(path) {
+	using Storage::FileUtils::BigEndian::get;
 	std::map<uint32_t, Track::Address> tracks_by_data_key;
 
 	// For now, just build up a list of tracks that exist, noting the file position at which their data begins
 	// plus the other fields that'll be necessary to convert them into flux on demand later.
 	while(true) {
 		const auto start_of_block = file_.tell();
-		const auto type = file_.get_be<uint32_t>();
-		auto length = file_.get_be<uint32_t>();						// Can't be const because of the dumb encoding of DATA blocks.
-		[[maybe_unused]] const auto crc = file_.get_be<uint32_t>();
+		const auto type = get<uint32_t>(file_);
+		auto length = get<uint32_t>(file_);						// Can't be const because of the dumb encoding of DATA blocks.
+		[[maybe_unused]] const auto crc = get<uint32_t>(file_);
 		if(file_.eof()) break;
 
 		// Sanity check: the first thing in a file should be the CAPS record.
@@ -71,21 +72,21 @@ IPF::IPF(const std::filesystem::path &path) : file_(path) {
 				// aren't that interesting.
 
 				// Make sure this is a floppy disk.
-				const auto media_type = file_.get_be<uint32_t>();
+				const auto media_type = get<uint32_t>(file_);
 				if(media_type != 1) {
 					throw Error::InvalidFormat;
 				}
 
 				// Determine whether this is a newer SPS-style file.
-				is_sps_format_ = file_.get_be<uint32_t>() > 1;
+				is_sps_format_ = get<uint32_t>(file_) > 1;
 
 				// Skip: revision, file key and revision, CRC of the original .ctr, and minimum track.
 				file_.seek(20, Whence::CUR);
-				track_count_ = int(1 + file_.get_be<uint32_t>());
+				track_count_ = int(1 + get<uint32_t>(file_));
 
 				// Skip: min side.
 				file_.seek(4, Whence::CUR);
-				head_count_ = int(1 + file_.get_be<uint32_t>());
+				head_count_ = int(1 + get<uint32_t>(file_));
 
 				// Skip: creation date, time.
 				file_.seek(8, Whence::CUR);
@@ -117,8 +118,8 @@ IPF::IPF(const std::filesystem::path &path) : file_(path) {
 
 			case block("IMGE"): {
 				// Get track location.
-				const auto track = file_.get_be<uint32_t>();
-				const auto side = file_.get_be<uint32_t>();
+				const auto track = get<uint32_t>(file_);
+				const auto side = get<uint32_t>(file_);
 				const Track::Address address{int(side), HeadPosition(int(track))};
 
 				// Hence generate a TrackDescription.
@@ -128,31 +129,31 @@ IPF::IPF(const std::filesystem::path &path) : file_(path) {
 				// Read those fields of interest...
 
 				// Bit density. I've no idea why the density can't just be given as a measurement.
-				description.density = TrackDescription::Density(file_.get_be<uint32_t>());
+				description.density = TrackDescription::Density(get<uint32_t>(file_));
 				if(description.density > TrackDescription::Density::Max) {
 					description.density = TrackDescription::Density::Unknown;
 				}
 
 				file_.seek(12, Whence::CUR);	// Skipped: signal type, track bytes, start byte position.
-				description.start_bit_pos = file_.get_be<uint32_t>();
-				description.data_bits = file_.get_be<uint32_t>();
-				description.gap_bits = file_.get_be<uint32_t>();
+				description.start_bit_pos = get<uint32_t>(file_);
+				description.data_bits = get<uint32_t>(file_);
+				description.gap_bits = get<uint32_t>(file_);
 
 				file_.seek(4, Whence::CUR);	// Skipped: track bits, which is entirely redundant.
-				description.block_count = file_.get_be<uint32_t>();
+				description.block_count = get<uint32_t>(file_);
 
 				file_.seek(4, Whence::CUR);	// Skipped: encoder process.
-				description.has_fuzzy_bits = file_.get_be<uint32_t>() & 1;
+				description.has_fuzzy_bits = get<uint32_t>(file_) & 1;
 
 				// For some reason the authors decided to introduce another primary key,
 				// in addition to that which naturally exists of (track, side). So set up
 				// a mapping from the one to the other.
-				const auto data_key = file_.get_be<uint32_t>();
+				const auto data_key = get<uint32_t>(file_);
 				tracks_by_data_key.emplace(data_key, address);
 			} break;
 
 			case block("DATA"): {
-				length += file_.get_be<uint32_t>();
+				length += get<uint32_t>(file_);
 
 				file_.seek(8, Whence::CUR);	// Skipped: bit size, CRC.
 
@@ -160,7 +161,7 @@ IPF::IPF(const std::filesystem::path &path) : file_(path) {
 				// position for this track.
 				//
 				// Assumed here: DATA records will come after corresponding IMGE records.
-				const auto data_key = file_.get_be<uint32_t>();
+				const auto data_key = get<uint32_t>(file_);
 				const auto pair = tracks_by_data_key.find(data_key);
 				if(pair == tracks_by_data_key.end()) {
 					break;
@@ -187,6 +188,8 @@ int IPF::head_count() const {
 }
 
 std::unique_ptr<Track> IPF::track_at_position(const Track::Address address) const {
+	using Storage::FileUtils::BigEndian::get;
+
 	// Get the track description, if it exists, and check either that the file has contents for the track.
 	auto pair = tracks_.find(address);
 	if(pair == tracks_.end()) {
@@ -220,24 +223,24 @@ std::unique_ptr<Track> IPF::track_at_position(const Track::Address address) cons
 	blocks.reserve(description.block_count);
 	for(uint32_t c = 0; c < description.block_count; c++) {
 		auto &block = blocks.emplace_back();
-		block.data_bits = file_.get_be<uint32_t>();
-		block.gap_bits = file_.get_be<uint32_t>();
+		block.data_bits = get<uint32_t>(file_);
+		block.gap_bits = get<uint32_t>(file_);
 		if(is_sps_format_) {
-			block.gap_offset = file_.get_be<uint32_t>();
+			block.gap_offset = get<uint32_t>(file_);
 			file_.seek(4, Whence::CUR);	// Skip 'cell type' which appears to provide no content.
 		} else {
 			// Skip potlower-resolution copies of data_bits and gap_bits.
 			file_.seek(8, Whence::CUR);
 		}
-		block.is_mfm = file_.get_be<uint32_t>() == 1;
+		block.is_mfm = get<uint32_t>(file_) == 1;
 
-		const auto flags = file_.get_be<uint32_t>();
+		const auto flags = get<uint32_t>(file_);
 		block.has_forward_gap = flags & 1;
 		block.has_backwards_gap = flags & 2;
 		block.data_unit_is_bits = flags & 4;
 
-		block.default_gap_value = file_.get_be<uint32_t>();
-		block.data_offset = file_.get_be<uint32_t>();
+		block.default_gap_value = get<uint32_t>(file_);
+		block.data_offset = get<uint32_t>(file_);
 	}
 
 	std::vector<Storage::Disk::PCMSegment> segments;

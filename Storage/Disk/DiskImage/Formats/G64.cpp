@@ -27,7 +27,8 @@ G64::G64(const std::filesystem::path &path) :
 
 	// get the number of tracks and track size
 	number_of_tracks_ = file_.get();
-	maximum_track_size_ = file_.get_le<uint16_t>();
+	using Storage::FileUtils::LittleEndian::get;
+	maximum_track_size_ = get<uint16_t>(file_);
 }
 
 HeadPosition G64::maximum_head_position() const {
@@ -37,40 +38,42 @@ HeadPosition G64::maximum_head_position() const {
 }
 
 std::unique_ptr<Track> G64::track_at_position(const Track::Address address) const {
-	// seek to this track's entry in the track table
+	using Storage::FileUtils::LittleEndian::get;
+
+	// Seek to this track's entry in the track table.
 	file_.seek(long((address.position.as_half() * 4) + 0xc), Whence::SET);
 
-	// read the track offset
-	const auto track_offset = file_.get_le<uint32_t>();
+	// Read the track offset.
+	const auto track_offset = get<uint32_t>(file_);
 
-	// if the track offset is zero, this track doesn't exist, so...
+	// If the track offset is zero, this track doesn't exist, so...
 	if(!track_offset) return nullptr;
 
-	// seek to the track start
+	// Seek to track start.
 	file_.seek(long(track_offset), Whence::SET);
 
-	// get the real track length
-	const auto track_length = file_.get_le<uint16_t>();
+	// Get the real track length.
+	const auto track_length = get<uint16_t>(file_);
 
-	// grab the byte contents of this track
+	// Grab the byte contents of this track.
 	const std::vector<uint8_t> track_contents = file_.read(track_length);
 
-	// seek to this track's entry in the speed zone table
+	// Seek to this track's entry in the speed zone table.
 	file_.seek(long((address.position.as_half() * 4) + 0x15c), Whence::SET);
 
-	// read the speed zone offsrt
-	const auto speed_zone_offset = file_.get_le<uint32_t>();
+	// Read the speed zone offset.
+	const auto speed_zone_offset = get<uint32_t>(file_);
 
-	// if the speed zone is not constant, create a track based on the whole table; otherwise create one that's constant
+	// If the speed zone is not constant, create a track based on the whole table; otherwise create one that's constant.
 	if(speed_zone_offset > 3) {
-		// seek to start of speed zone
+		// Seek to start of speed zone.
 		file_.seek(long(speed_zone_offset), Whence::SET);
 
-		// read the speed zone bytes
+		// Read the speed zone bytes.
 		const uint16_t speed_zone_length = (track_length + 3) >> 2;
 		const auto speed_zone_contents = file_.read(speed_zone_length);
 
-		// divide track into appropriately timed PCMSegments
+		// Divide track into appropriately timed PCMSegments.
 		std::vector<PCMSegment> segments;
 		unsigned int current_speed = speed_zone_contents[0] >> 6;
 		unsigned int start_byte_in_current_speed = 0;

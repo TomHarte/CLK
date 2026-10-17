@@ -102,8 +102,9 @@ Analyser::Static::TargetList Analyser::Static::Enterprise::GetTargets(
 			};
 
 			// Check for a .COM by inspecting the header.
-			const auto type = FileType(file.get_le<uint16_t>());
-			const uint16_t size = file.get_le<uint16_t>();
+			using Storage::FileUtils::LittleEndian::get;
+			const auto type = FileType(get<uint16_t>(file));
+			const uint16_t size = get<uint16_t>(file);
 			// There are then 12 bytes of 0 padding that could be tested for.
 
 			if((type != FileType::COM && type != FileType::BAS) || size > file.stats().st_size - 16) {
