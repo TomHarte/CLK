@@ -18,7 +18,7 @@
 
 namespace CPU {
 
-template <typename ValueT, std::endian> struct Halves;
+template <typename ValueT, std::endian = std::endian::native> struct Halves;
 template <typename ValueT> struct Halves<ValueT, std::endian::little> {
 	ValueT low, high;
 };
@@ -39,7 +39,7 @@ template <typename Full, typename Half> union alignas(Full) alignas(Half) Regist
 		return full == rhs.full;
 	}
 
-	Halves<Half, std::endian::native> halves;
+	Halves<Half> halves;
 };
 
 using RegisterPair16 = RegisterPair<uint16_t, uint8_t>;
