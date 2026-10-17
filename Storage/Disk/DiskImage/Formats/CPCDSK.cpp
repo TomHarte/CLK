@@ -20,6 +20,8 @@ using namespace Storage::Disk;
 CPCDSK::CPCDSK(const std::filesystem::path &path) :
 	path_(path),
 	is_extended_(false) {
+	using Storage::FileUtils::LittleEndian::get;
+
 	FileHolder file(path);
 	is_read_only_ = file.is_known_read_only();
 
@@ -48,7 +50,7 @@ CPCDSK::CPCDSK(const std::filesystem::path &path) :
 			track_sizes.push_back(size_t(file.get()) << 8);
 		}
 	} else {
-		size_of_a_track = file.get_le<uint16_t>();
+		size_of_a_track = get<uint16_t>(file);
 	}
 
 	long file_offset = 0x100;
@@ -140,7 +142,7 @@ CPCDSK::CPCDSK(const std::filesystem::path &path) :
 					// sector was weak or fuzzy and that multiple samplings are provided. If the greater size
 					// is not an exact multiple then my reading of the documentation is that this is an invalid
 					// disk image.
-					std::size_t declared_data_size = file.get_le<uint16_t>();
+					std::size_t declared_data_size = get<uint16_t>(file);
 					if(declared_data_size != stored_data_size) {
 						if(declared_data_size > data_size) {
 							number_of_samplings = declared_data_size / data_size;
@@ -222,6 +224,8 @@ std::unique_ptr<Track> CPCDSK::track_at_position(::Storage::Disk::Track::Address
 }
 
 void CPCDSK::set_tracks(const std::map<Storage::Disk::Track::Address, std::unique_ptr<Storage::Disk::Track>> &tracks) {
+	using Storage::FileUtils::LittleEndian::put;
+
 	// Patch changed tracks into the disk image.
 	for(auto &pair: tracks) {
 		// Assume MFM for now; with extensions DSK can contain FM tracks.
@@ -368,7 +372,7 @@ void CPCDSK::set_tracks(const std::map<Storage::Disk::Track::Address, std::uniqu
 			for(auto &sample: sector.samples) {
 				data_size += sample.size();
 			}
-			output.put_le<uint16_t>(uint16_t(data_size));
+			put<uint16_t>(output, uint16_t(data_size));
 		}
 
 		// Move to next 256-byte boundary.

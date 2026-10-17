@@ -22,7 +22,8 @@ HFE::HFE(const std::filesystem::path &path) :
 	head_count_ = file_.get();
 
 	file_.seek(7, Whence::CUR);
-	track_list_offset_ = long(file_.get_le<uint16_t>()) << 9;
+	using Storage::FileUtils::LittleEndian::get;
+	track_list_offset_ = long(get<uint16_t>(file_)) << 9;
 }
 
 HeadPosition HFE::maximum_head_position() const {
@@ -45,8 +46,9 @@ uint16_t HFE::seek_track(const Track::Address address) const {
 	// based on an assumption of two heads.
 	file_.seek(track_list_offset_ + address.position.as_int() * 4, Whence::SET);
 
-	long track_offset = long(file_.get_le<uint16_t>()) << 9;	// Track offset, in units of 512 bytes.
-	const auto track_length = file_.get_le<uint16_t>();			// Track length, in bytes, containing both the front and back track.
+	using Storage::FileUtils::LittleEndian::get;
+	long track_offset = long(get<uint16_t>(file_)) << 9;	// Track offset, in units of 512 bytes.
+	const auto track_length = get<uint16_t>(file_);			// Track length, in bytes, containing both the front and back track.
 
 	file_.seek(track_offset, Whence::SET);
 	if(address.head) file_.seek(256, Whence::CUR);

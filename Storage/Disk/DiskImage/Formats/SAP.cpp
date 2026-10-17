@@ -91,7 +91,7 @@ std::unique_ptr<Track> SAP::track_at_position(const Track::Address address) cons
 		// Also it includes the four SAP-specific fields in its CRC so this definitely isn't supposed to be the one that
 		// appears on the imaged disk itself even if bit order were conventional.
 		const auto calculated = CRC::Generator<uint16_t, 0x1021, 0xffff, 0x0000, true, true>::crc_of(contents);
-		const auto crc = file_.get_be<uint16_t>();
+		const auto crc = FileUtils::get<std::endian::big, uint16_t>(file_);
 
 		contents.erase(contents.begin(), contents.begin() + 4);
 		sector.samples.push_back(contents);

@@ -16,7 +16,10 @@ using namespace Storage::Disk;
 
 namespace {
 
-std::unique_ptr<Storage::Encodings::MFM::Encoder> new_encoder(Storage::Disk::PCMSegment &segment, bool is_double_density) {
+std::unique_ptr<Storage::Encodings::MFM::Encoder> new_encoder(
+	Storage::Disk::PCMSegment &segment,
+	const bool is_double_density
+) {
 	std::unique_ptr<Storage::Encodings::MFM::Encoder> encoder;
 
 	if(is_double_density) {
@@ -34,6 +37,8 @@ std::unique_ptr<Storage::Encodings::MFM::Encoder> new_encoder(Storage::Disk::PCM
 
 DMK::DMK(const std::filesystem::path &path) :
 	file_(path) {
+	using Storage::FileUtils::LittleEndian::get;
+
 	// Determine whether this DMK represents a read-only disk (whether intentionally,
 	// or by virtue of filesystem placement).
 	uint8_t read_only_byte = file_.get();
@@ -42,7 +47,7 @@ DMK::DMK(const std::filesystem::path &path) :
 
 	// Read track count and size.
 	head_position_count_ = int(file_.get());
-	track_length_ = long(file_.get_le<uint16_t>());
+	track_length_ = long(get<uint16_t>(file_));
 
 	// Track length must be at least 0x80, as that's the size of the IDAM
 	// table before track contents.
@@ -57,7 +62,7 @@ DMK::DMK(const std::filesystem::path &path) :
 	// Skip to the end of the header and check that this is
 	// "in the emulator's native format".
 	file_.seek(0xc, Whence::SET);
-	const auto format = file_.get_le<uint32_t>();
+	const auto format = get<uint32_t>(file_);
 	if(format) throw Error::InvalidFormat;
 }
 
@@ -80,13 +85,15 @@ long DMK::get_file_offset_for_position(const Track::Address address) const {
 }
 
 std::unique_ptr<::Storage::Disk::Track> DMK::track_at_position(const ::Storage::Disk::Track::Address address) const {
+	using Storage::FileUtils::LittleEndian::get;
+
 	file_.seek(get_file_offset_for_position(address), Whence::SET);
 
 	// Read the IDAM table.
 	uint16_t idam_locations[64];
 	std::size_t idam_count = 0;
 	for(std::size_t c = 0; c < sizeof(idam_locations) / sizeof(*idam_locations); ++c) {
-		idam_locations[idam_count] = file_.get_le<uint16_t>();
+		idam_locations[idam_count] = get<uint16_t>(file_);
 		if((idam_locations[idam_count] & 0x7fff) >= 128) {
 			idam_count++;
 		}

@@ -15,7 +15,8 @@ using namespace Storage::Cartridge;
 PRG::PRG(const std::filesystem::path &path) {
 	Storage::FileHolder file(path, FileMode::Read);
 
-	const auto loading_address = file.get_le<uint16_t>();
+	using Storage::FileUtils::LittleEndian::get;
+	const auto loading_address = get<uint16_t>(file);
 	if(loading_address != 0xa000) {
 		throw ErrorNotROM;
 	}

@@ -114,7 +114,7 @@ MSXCAS::MSXCAS(const std::filesystem::path &path) {
 				} else {
 					// Raw data appears now. Grab its length and keep going.
 					file.seek(header_position + 8, Whence::SET);
-					const auto length = file.get_le<uint16_t>();
+					const auto length = FileUtils::get<std::endian::little, uint16_t>(file);
 
 					file.seek(header_position + 8, Whence::SET);
 					chunks_.emplace_back(false, false, file.read(size_t(length) + 2));
@@ -136,8 +136,8 @@ MSXCAS::MSXCAS(const std::filesystem::path &path) {
 				// Get the start and end addresses in order to figure out how much data
 				// is here.
 				file.seek(header_position + 8, Whence::SET);
-				const auto start_address = file.get_le<uint16_t>();
-				const auto end_address = file.get_le<uint16_t>();
+				const auto start_address = FileUtils::get<std::endian::little, uint16_t>(file);
+				const auto end_address = FileUtils::get<std::endian::little, uint16_t>(file);
 
 				file.seek(header_position + 8, Whence::SET);
 				const auto length = end_address - start_address + 1;
@@ -152,7 +152,7 @@ MSXCAS::MSXCAS(const std::filesystem::path &path) {
 				file.seek(header_position + 8, Whence::SET);
 				uint16_t address = 0x8001;	// the BASIC start address.
 				while(true) {
-					const auto next_line_address = file.get_le<uint16_t>();
+					const auto next_line_address = FileUtils::get<std::endian::little, uint16_t>(file);
 					if(!next_line_address || file.eof()) break;
 					file.seek(next_line_address - address - 2, Whence::CUR);
 					address = next_line_address;

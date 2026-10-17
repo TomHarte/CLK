@@ -106,7 +106,8 @@ MOOF::MOOF(const std::filesystem::path &path) :
 	}
 
 	// Test the file's CRC32.
-	const auto crc = file_.get_le<uint32_t>();
+	using Storage::FileUtils::LittleEndian::get;
+	const auto crc = get<uint32_t>(file_);
 	post_crc_contents_ = file_.read(size_t(file_.stats().st_size - 12));
 	const uint32_t computed_crc = CRC::CRC32::crc_of(post_crc_contents_);
 	if(crc != computed_crc) {
@@ -119,8 +120,8 @@ MOOF::MOOF(const std::filesystem::path &path) :
 	std::fill(std::begin(track_map_), std::end(track_map_), 0xff);
 	std::fill(std::begin(flux_map_), std::end(flux_map_), 0xff);
 	while(true) {
-		const auto chunk_id = file_.get_le<uint32_t>();
-		const auto chunk_size = file_.get_le<uint32_t>();
+		const auto chunk_id = get<uint32_t>(file_);
+		const auto chunk_size = get<uint32_t>(file_);
 		const auto end_of_chunk = file_.tell() + long(chunk_size);
 		if(file_.eof()) break;
 
@@ -184,6 +185,7 @@ int MOOF::head_count() const {
 }
 
 std::unique_ptr<Track> MOOF::track_at_position(const Track::Address address) const {
+	using Storage::FileUtils::LittleEndian::get;
 	const int table_position = address.position.as_int() * 2 + address.head;
 	if(table_position > 255) {
 		return nullptr;
@@ -192,9 +194,9 @@ std::unique_ptr<Track> MOOF::track_at_position(const Track::Address address) con
 	const auto location = [&](const uint8_t offset) -> TrackLocation {
 		file_.seek(tracks_offset_ + 8 * long(offset), Whence::SET);
 		TrackLocation location;
-		location.starting_block = file_.get_le<uint16_t>();
-		location.block_count = file_.get_le<uint16_t>();
-		location.bit_count = file_.get_le<uint32_t>();
+		location.starting_block = get<uint16_t>(file_);
+		location.block_count = get<uint16_t>(file_);
+		location.bit_count = get<uint32_t>(file_);
 		return location;
 	};
 

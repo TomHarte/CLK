@@ -17,6 +17,8 @@ constexpr size_t SectorSize = 512;
 }
 
 VHD::VHD(const std::filesystem::path &path) : file_(path) {
+	using FileUtils::BigEndian::get;
+
 	// Find footer; this may be the final 511 or final 512 bytes of the file.
 	// Find what might be the start of the 'conectix' [sic] signature.
 	file_.seek(-511, Whence::END);
@@ -32,22 +34,22 @@ VHD::VHD(const std::filesystem::path &path) : file_(path) {
 	}
 
 	file_.seek(4, Whence::CUR);	// Skip 'Features', which would at best classify this disk as temporary or not.
-	const auto major_version = file_.get_be<uint16_t>();
+	const auto major_version = get<uint16_t>(file_);
 	if(major_version > 1) {
 		throw std::exception();
 	}
 	file_.seek(2, Whence::CUR);	// Skip minor version number.
 
-	data_offset_ = file_.get_be<uint64_t>();
+	data_offset_ = get<uint64_t>(file_);
 
 	file_.seek(32, Whence::CUR);	// Skip creator and timestamp fields, original size and current size.
-//	const auto current_size = file_.get_be<uint64_t>();
+//	const auto current_size = get<uint64_t>();
 
-	cylinders_ = file_.get_be<uint16_t>();
+	cylinders_ = get<uint16_t>(file_);
 	heads_ = file_.get();
 	sides_ = file_.get();
 
-	switch(file_.get_be<uint32_t>()) {
+	switch(get<uint32_t>(file_)) {
 		case 2:	type_ = Type::Fixed;		break;
 		case 3:	type_ = Type::Dynamic;		break;
 		case 4:	type_ = Type::Differencing;	break;
@@ -67,11 +69,11 @@ VHD::VHD(const std::filesystem::path &path) : file_(path) {
 	}
 
 	file_.seek(8, Whence::CUR);	// Skip data offset.
-	table_offset_ = file_.get_be<uint64_t>();
+	table_offset_ = get<uint64_t>(file_);
 
 	file_.seek(4, Whence::CUR);	// Skip table version. TODO: validate.
-	max_table_entries_ = file_.get_be<uint32_t>();
-	block_size_ = file_.get_be<uint32_t>();
+	max_table_entries_ = get<uint32_t>(file_);
+	block_size_ = get<uint32_t>(file_);
 
 	total_blocks_ = block_size_ * max_table_entries_;
 }

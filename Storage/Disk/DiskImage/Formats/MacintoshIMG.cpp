@@ -75,10 +75,11 @@ MacintoshIMG::MacintoshIMG(const std::filesystem::path &path) :
 
 		// Get the length of the data and tag blocks.
 		file_.seek(64, Whence::SET);
-		const auto data_block_length = file_.get_be<uint32_t>();
-		const auto tag_block_length = file_.get_be<uint32_t>();
-		const auto data_checksum = file_.get_be<uint32_t>();
-		const auto tag_checksum = file_.get_be<uint32_t>();
+		using Storage::FileUtils::BigEndian::get;
+		const auto data_block_length = get<uint32_t>(file_);
+		const auto tag_block_length = get<uint32_t>(file_);
+		const auto data_checksum = get<uint32_t>(file_);
+		const auto tag_checksum = get<uint32_t>(file_);
 
 		// Don't continue with no data.
 		if(!data_block_length) {
@@ -98,7 +99,7 @@ MacintoshIMG::MacintoshIMG(const std::filesystem::path &path) :
 		format_ = file_.get();
 
 		// Check the magic number.
-		const auto magic_number = file_.get_be<uint16_t>();
+		const auto magic_number = get<uint16_t>(file_);
 		if(magic_number != 0x0100)
 			throw Error::InvalidFormat;
 
@@ -332,8 +333,9 @@ void MacintoshIMG::set_tracks(const std::map<Track::Address, std::unique_ptr<Tra
 			const auto tag_checksum = checksum(tags_, 12);
 
 			file_.seek(0x48, Whence::SET);
-			file_.put_be(data_checksum);
-			file_.put_be(tag_checksum);
+			using Storage::FileUtils::BigEndian::put;
+			put(file_, data_checksum);
+			put(file_, tag_checksum);
 		}
 	}
 }

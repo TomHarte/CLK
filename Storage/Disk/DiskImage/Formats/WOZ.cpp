@@ -24,6 +24,7 @@ constexpr uint32_t chunk(const char *str) {
 
 WOZ::WOZ(const std::filesystem::path &path) :
 	file_(path) {
+	using FileUtils::LittleEndian::get;
 
 	static constexpr char signature1[8] = {
 		'W', 'O', 'Z', '1',
@@ -42,7 +43,7 @@ WOZ::WOZ(const std::filesystem::path &path) :
 	type_ = isWoz2 ? Type::WOZ2 : Type::WOZ1;
 
 	// Get the file's CRC32.
-	const auto crc = file_.get_le<uint32_t>();
+	const auto crc = get<uint32_t>(file_);
 
 	// Get the collection of all data that contributes to the CRC.
 	post_crc_contents_ = file_.read(size_t(file_.stats().st_size - 12));
@@ -59,8 +60,8 @@ WOZ::WOZ(const std::filesystem::path &path) :
 	// Parse all chunks up front.
 	bool has_tmap = false;
 	while(true) {
-		const auto chunk_id = file_.get_le<uint32_t>();
-		const auto chunk_size = file_.get_le<uint32_t>();
+		const auto chunk_id = get<uint32_t>(file_);
+		const auto chunk_size = get<uint32_t>(file_);
 		const auto end_of_chunk = file_.tell() + long(chunk_size);
 		if(file_.eof()) break;
 
@@ -148,6 +149,8 @@ bool WOZ::tracks_differ(const Track::Address lhs, const Track::Address rhs) cons
 }
 
 std::unique_ptr<Track> WOZ::track_at_position(const Track::Address address) const {
+	using FileUtils::LittleEndian::get;
+
 	const long offset = file_offset(address);
 	if(offset == NoSuchTrack) {
 		return nullptr;
@@ -167,15 +170,16 @@ std::unique_ptr<Track> WOZ::track_at_position(const Track::Address address) cons
 				// of bits that were used. Other information follows but is not intended for emulation.
 				track_contents = file_.read(6646);
 				file_.seek(2, Whence::CUR);
-				number_of_bits = std::min(file_.get_le<uint16_t>(), uint16_t(6646*8));
+				number_of_bits = std::min(get<uint16_t>(file_), uint16_t(6646*8));
 			break;
 
 			default:
 			case Type::WOZ2: {
 				// In WOZ 2 an extra level of indirection allows for variable track sizes.
-				const auto starting_block = file_.get_le<uint16_t>();
-				file_.seek(2, Whence::CUR);	// Skip the block count; the amount of data to read is implied by the number of bits.
-				number_of_bits = file_.get_le<uint32_t>();
+				const auto starting_block = get<uint16_t>(file_);
+				file_.seek(2, Whence::CUR);	// Skip the block count; the amount of data to read is implied
+											// by the number of bits.
+				number_of_bits = get<uint32_t>(file_);
 
 				file_.seek(starting_block * 512, Whence::SET);
 				track_contents = file_.read((number_of_bits + 7) >> 3);
@@ -214,7 +218,7 @@ void WOZ::set_tracks(const std::map<Track::Address, std::unique_ptr<Track>> &tra
 	// Grab the file lock, then write the CRC, then just dump the entire file buffer.
 	std::lock_guard lock_guard(file_.file_access_mutex());
 	file_.seek(8, Whence::SET);
-	file_.put_le(crc);
+	FileUtils::put<std::endian::little>(file_, crc);
 	file_.write(post_crc_contents_);
 }
 

@@ -56,7 +56,7 @@ PRG::PRG(const std::filesystem::path &path) : path_(path) {
 	if(file.stats().st_size >= 65538 || file.stats().st_size < 3)
 		throw ErrorBadFormat;
 
-	load_address_ = file.get_le<uint16_t>();
+	load_address_ = FileUtils::get<std::endian::little, uint16_t>(file);
 	length_ = uint16_t(file.stats().st_size - 2);
 
 	if(load_address_ + length_ >= 65536)
