@@ -18,7 +18,7 @@
 
 namespace {
 
-bool IsSpectrumTape(Storage::Tape::TapeSerialiser &tape) {
+bool is_tape(Storage::Tape::TapeSerialiser &tape) {
 	using Parser = Storage::Tape::ZXSpectrum::Parser;
 	Parser parser(Parser::MachineType::ZXSpectrum);
 
@@ -35,7 +35,7 @@ bool IsSpectrumTape(Storage::Tape::TapeSerialiser &tape) {
 	return false;
 }
 
-bool IsSpectrumDisk(const Storage::Disk::Disk &disk) {
+bool is_disk(const Storage::Disk::Disk &disk) {
 	Storage::Encodings::MFM::Parser parser(Storage::Encodings::MFM::Density::Double, disk);
 
 	// Grab absolutely any sector from the first track to determine general encoding.
@@ -117,19 +117,27 @@ Analyser::Static::TargetList Analyser::Static::ZXSpectrum::GetTargets(
 		bool has_spectrum_tape = false;
 		for(auto &tape: media.tapes) {
 			auto serialiser = tape->serialiser();
-			has_spectrum_tape |= IsSpectrumTape(*serialiser);
+			has_spectrum_tape |= is_tape(*serialiser);
 		}
 
 		if(has_spectrum_tape) {
 			target->media.tapes = media.tapes;
 		}
+
+		// TODO: Detect at least:
+		//
+		//	* Aquaplane, Dark Star, BC's Quest for Tires: switch to 48kb for timing and compatibility;
+		//	* Fantasy World Dizzy, bump up to a +2a for better intro speech;
+		//	* others, I've yet to discover.
+		//
+		target->model = Target::Model::FortyEightK;
 	}
 
 	if(!media.disks.empty()) {
 		bool has_spectrum_disk = false;
 
 		for(auto &disk: media.disks) {
-			has_spectrum_disk |= IsSpectrumDisk(*disk);
+			has_spectrum_disk |= is_disk(*disk);
 		}
 
 		if(has_spectrum_disk) {
@@ -140,7 +148,11 @@ Analyser::Static::TargetList Analyser::Static::ZXSpectrum::GetTargets(
 
 	// If any media survived, add the target.
 	if(!target->media.empty()) {
-		target->should_hold_enter = true;	// To force entry into the 'loader' and thereby load the media.
+		if(Target::has_loader_menu(target->model)) {
+			target->should_hold_enter = true;	// To force entry into the 'loader' and thereby load the media.
+		} else {
+			// TODO: type LOAD "".
+		}
 		destination.push_back(std::move(target));
 	}
 
