@@ -10,6 +10,7 @@
 
 #include <bit>
 #include <compare>
+#include <cstddef>
 #include <cstdint>
 
 #pragma pack(push, 1)
