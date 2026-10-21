@@ -222,7 +222,10 @@ public:
 		return result;
 	}
 
-	bool operator ==(const Flags &rhs) const {
+	auto operator <=> (const Flags &rhs) const {
+		return get() <=> rhs.get();
+	}
+	auto operator == (const Flags &rhs) const {
 		return get() == rhs.get();
 	}
 
