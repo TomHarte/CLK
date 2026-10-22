@@ -204,6 +204,10 @@ void Parser::seed_checksum(const uint8_t value) {
 }
 
 std::optional<uint8_t> Parser::get_byte(Storage::Tape::TapeSerialiser &serialiser) {
+	if(is_at_end(serialiser)) {
+		return std::nullopt;
+	}
+
 	uint8_t result = 0;
 	for(int c = 0; c < 8; c++) {
 		const SymbolType symbol = get_next_symbol(serialiser);

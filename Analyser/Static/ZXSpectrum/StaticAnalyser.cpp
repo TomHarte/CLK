@@ -18,16 +18,114 @@
 
 namespace {
 
-bool is_tape(Storage::Tape::TapeSerialiser &tape) {
+enum class KnownGame {
+	Aquaplane,
+	FantasyWorldDizzy,
+	BCsQuestForTyres,		// The real game is spelt the American way, but I can't bring myself to type it.
+	SabreWulf,
+	MatchDayII,
+};
+
+std::optional<KnownGame> known_game(const std::vector<uint8_t> &code) {
+	const auto is_aquaplane = [&] {
+		// Text used on Aquaplane's title screen.
+		static constexpr std::string_view signature = "A Q U A P L A N E";
+		return std::search(code.begin(), code.end(), signature.begin(), signature.end()) != code.end();
+	};
+	const auto is_fantasy_world_dizzy = [&] {
+		// Dialogue revealing that Daisy has been eggnapped.
+		static constexpr uint8_t signature[] = {
+			0x44, 0x41, 0x49, 0x53, 0x59, 0x3b, 0x53, 0x3a, 0x42, 0x45, 0x45, 0x4e,
+			0x3a, 0x45, 0x47, 0x47, 0x4e, 0x41, 0x50, 0x50, 0x45, 0x44, 0x88, 0x50,
+			0x41, 0x4e, 0x44, 0x3a, 0x49, 0x53, 0x3a, 0x42, 0x45, 0x49, 0x4e, 0x47,
+			0x3a, 0x48, 0x45, 0x4c, 0x44, 0x3a, 0x49, 0x4e, 0x3a, 0x54, 0x48, 0x45,
+			0x8a, 0x58, 0x57, 0x49, 0x5a, 0x41, 0x52, 0x44, 0x3b, 0x53, 0x3a, 0x43,
+			0x4c, 0x4f, 0x55, 0x44, 0x3a, 0x43, 0x41, 0x53, 0x54, 0x4c, 0x45, 0x3c,
+		};
+		return std::search(code.begin(), code.end(), std::begin(signature), std::end(signature)) != code.end();
+	};
+	const auto is_bcs_quest_for_tyres = [&] {
+		// The status line.
+		static constexpr std::string_view signature = "WHEELS SPEED  SCORE  HIGH SCOREP1  00P2  00GAMEOVER";
+		return std::search(code.begin(), code.end(), signature.begin(), signature.end()) != code.end();
+	};
+	const auto is_sabre_wulf = [&] {
+		// Likely to be part of the graphics.
+		static constexpr uint8_t signature[] = {
+			0x5c, 0x3a, 0x5c, 0x3a, 0x5c, 0x3a, 0x5c, 0x3a, 0x5c, 0x1f, 0x5c, 0x42,
+			0x52, 0xd5, 0x5b, 0xd5, 0x5b, 0xd5, 0x5b, 0xd5, 0x5b, 0xd5, 0x5b, 0xc4,
+			0x5b, 0x42, 0x52, 0x42, 0x52, 0x30, 0x51, 0x30, 0x51, 0x30, 0x51, 0x30,
+			0x51, 0x30, 0x51, 0x30, 0x51, 0x30, 0x51, 0x30, 0x51, 0x30, 0x51, 0x30,
+			0x51, 0x30, 0x51, 0x30, 0x51, 0x30, 0x51, 0x30, 0x51, 0x30, 0x51, 0x30,
+			0x51, 0x2f, 0x52, 0x2f, 0x52, 0x2f, 0x52, 0x2f, 0x52, 0x2f, 0x52, 0x2f,
+			0x52, 0x2f, 0x52, 0x2f, 0x52, 0x2f, 0x52, 0x2f, 0x52, 0x2f, 0x52, 0x2f,
+			0x52, 0x2f, 0x52, 0x2f, 0x52, 0x2f, 0x52, 0x2f,
+		};
+		return std::search(code.begin(), code.end(), std::begin(signature), std::end(signature)) != code.end();
+	};
+	const auto is_match_day_ii = [&] {
+		// Text (with specialised control characters) including the author's names and some football-related words.
+		static constexpr uint8_t signature[] = {
+			0x82, 0x86, 0x1a, 0x00, 0x42, 0x45, 0x52, 0x4e, 0x49, 0x45, 0x06, 0x18,
+			0x02, 0x44, 0x52, 0x55, 0x4d, 0x4d, 0x4f, 0x4e, 0x44, 0x06, 0x00, 0x00,
+			0x4a, 0x4f, 0x4e, 0x06, 0x00, 0x02, 0x52, 0x49, 0x54, 0x4d, 0x41, 0x4e,
+			0xff, 0x20, 0x48, 0x41, 0x4c, 0x46, 0xff, 0x54, 0x49, 0x4d, 0x45, 0xff,
+			0x20, 0x45, 0x58, 0x54, 0x52, 0x41, 0x20, 0xff, 0x46, 0x49, 0x52, 0x53,
+			0x54, 0xa3, 0xff, 0x53, 0x45, 0x43, 0x4f, 0x4e, 0x44,
+		};
+		return std::search(code.begin(), code.end(), std::begin(signature), std::end(signature)) != code.end();
+	};
+
+
+	if(is_aquaplane()) {
+		return KnownGame::Aquaplane;
+	}
+	if(is_fantasy_world_dizzy()) {
+		return KnownGame::FantasyWorldDizzy;
+	}
+	if(is_bcs_quest_for_tyres()) {
+		return KnownGame::BCsQuestForTyres;
+	}
+	if(is_sabre_wulf()) {
+		return KnownGame::SabreWulf;
+	}
+	if(is_match_day_ii()) {
+		return KnownGame::MatchDayII;
+	}
+
+	return std::nullopt;
+}
+
+std::optional<KnownGame> known_game(Storage::Tape::TapeSerialiser &tape) {
 	using Parser = Storage::Tape::ZXSpectrum::Parser;
+	using BlockType = Storage::Tape::ZXSpectrum::BlockType;
+
 	Parser parser(Parser::MachineType::ZXSpectrum);
 
 	while(true) {
 		const auto block = parser.find_block(tape);
 		if(!block) break;
 
-		// Check for a Spectrum header block.
-		if(block->type == 0x00) {
+		// Check for a Spectrum contents block.
+		if(block->type == BlockType::Body) {
+			const auto game = known_game(parser.get_block_body(tape));
+			if(game.has_value()) return game;
+		}
+	}
+
+	return std::nullopt;
+}
+
+bool is_tape(Storage::Tape::TapeSerialiser &tape) {
+	using Parser = Storage::Tape::ZXSpectrum::Parser;
+	using BlockType = Storage::Tape::ZXSpectrum::BlockType;
+
+	Parser parser(Parser::MachineType::ZXSpectrum);
+
+	while(true) {
+		const auto block = parser.find_block(tape);
+		if(!block) break;
+		if(block->type == BlockType::Program) {
 			return true;
 		}
 	}
@@ -113,24 +211,45 @@ Analyser::Static::TargetList Analyser::Static::ZXSpectrum::GetTargets(
 	auto target = std::make_unique<Target>();
 	target->confidence = 0.5;
 
+	std::optional<KnownGame> game;
+
 	if(!media.tapes.empty()) {
 		bool has_spectrum_tape = false;
 		for(auto &tape: media.tapes) {
 			auto serialiser = tape->serialiser();
-			has_spectrum_tape |= is_tape(*serialiser);
+
+			const bool is_spectrum = is_tape(*serialiser);
+			has_spectrum_tape |= is_spectrum;
+			if(is_spectrum) {
+				serialiser->reset();
+				const auto tape_game = known_game(*serialiser);
+				if(tape_game.has_value()) {
+					game = tape_game;
+				}
+			}
 		}
 
 		if(has_spectrum_tape) {
 			target->media.tapes = media.tapes;
-		}
 
-		// TODO: Detect at least:
-		//
-		//	* Aquaplane, Dark Star, BC's Quest for Tires: switch to 48kb for timing and compatibility;
-		//	* Fantasy World Dizzy, bump up to a +2a for better intro speech;
-		//	* others, I've yet to discover.
-		//
-		target->model = Target::Model::FortyEightK;
+			if(game) {
+				switch(*game) {
+					using enum KnownGame;
+					case Aquaplane:
+					case BCsQuestForTyres:
+					case SabreWulf:
+					case MatchDayII:
+						target->model = Target::Model::FortyEightK;
+					break;
+
+					case FantasyWorldDizzy:
+						target->model = Target::Model::Plus2a;
+					break;
+				}
+			} else {
+				target->model = Target::Model::OneTwoEightK;
+			}
+		}
 	}
 
 	if(!media.disks.empty()) {
@@ -148,11 +267,8 @@ Analyser::Static::TargetList Analyser::Static::ZXSpectrum::GetTargets(
 
 	// If any media survived, add the target.
 	if(!target->media.empty()) {
-		if(Target::has_loader_menu(target->model)) {
-			target->should_hold_enter = true;	// To force entry into the 'loader' and thereby load the media.
-		} else {
-			// TODO: type LOAD "".
-		}
+		target->should_hold_enter = true;		// To force entry into the 'loader' and thereby load the media.
+		target->loading_command = L"J\"\"\n";;	// On a 16kb or 48kb, to load the [implicitly a] tape.
 		destination.push_back(std::move(target));
 	}
 

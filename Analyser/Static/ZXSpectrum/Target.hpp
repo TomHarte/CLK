@@ -29,7 +29,9 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	}
 
 	Model model = Model::Plus2;
-	bool should_hold_enter = false;
+
+	bool should_hold_enter = false;		// Used when @c has_loader_menu is @c true.
+	std::wstring loading_command;		// Used when @c has_loader_menu is @c false.
 
 	Target(): Analyser::Static::Target(Machine::ZXSpectrum) {}
 

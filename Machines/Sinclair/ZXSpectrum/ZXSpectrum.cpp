@@ -191,10 +191,16 @@ public:
 		insert_media(target.media);
 
 		// Possibly depress the enter key.
-		if(target.should_hold_enter) {
-			// Hold it for five seconds, more or less.
-			duration_to_press_enter_ = Cycles(5 * clock_rate());
-			keyboard_.set_key_state(ZX::Keyboard::KeyEnter, true);
+		if(Analyser::Static::ZXSpectrum::Target::has_loader_menu(model)) {
+			if(target.should_hold_enter) {
+				// Hold it for five seconds, more or less.
+				duration_to_press_enter_ = Cycles(5 * clock_rate());
+				keyboard_.set_key_state(ZX::Keyboard::KeyEnter, true);
+			}
+		} else {
+			if(!target.loading_command.empty()) {
+				type_string(target.loading_command);
+			}
 		}
 
 		// Install state if supplied.
@@ -677,7 +683,8 @@ public:
 	}
 
 	HalfCycles typer_frequency() const override{
-		return Cycles(70'908);
+		return Cycles(234'375);	// Arrived at by binary search; quite long to allow for internal work that seems
+								// to go into handling modifiers.
 	}
 
 	KeyboardMapper *keyboard_mapper() override {
