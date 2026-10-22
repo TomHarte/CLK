@@ -50,6 +50,16 @@ struct Block {
 	uint8_t type = 0;
 };
 
+/// These are the header types used by the ZX Spectrum. I have yet to figure out the other similar platforms.
+enum BlockType: uint8_t {
+	Program = 0,
+	NumberArray = 1,
+	CharacterArray = 2,
+	Code = 3,
+
+	Body = 0xff,
+};
+
 class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolType> {
 public:
 	enum class MachineType {
