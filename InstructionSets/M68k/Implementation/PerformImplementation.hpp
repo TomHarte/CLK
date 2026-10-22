@@ -378,7 +378,9 @@ void shift(const uint32_t source, IntT &destination, Status &status, FlowControl
 			case Type::ASR:
 			case Type::LSR: {
 				if(shift > size) {
-					status.carry_flag = status.extend_flag = 0;
+					// ASR continues shifting out the sign bit; LSR shifts out zeroes.
+					status.carry_flag = status.extend_flag =
+						type == Type::ASR && (destination & Numeric::top_bit<IntT>());
 				} else {
 					status.carry_flag = status.extend_flag = (destination >> (shift - 1)) & 1;
 				}
