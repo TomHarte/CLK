@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.19)
+project(CLKM68kRightShift LANGUAGES CXX)
+add_executable(clk-m68k-right-shift main.cpp)
+target_compile_features(clk-m68k-right-shift PRIVATE cxx_std_20)
+target_include_directories(clk-m68k-right-shift PRIVATE ../..)
+enable_testing()
+add_test(NAME m68k-right-shift COMMAND clk-m68k-right-shift)
