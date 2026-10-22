@@ -21,8 +21,10 @@ namespace {
 
 enum class KnownGame {
 	Aquaplane,
+	AticAtac,
 	BCsQuestForTyres,		// The real game is spelt the American way, but I can't bring myself to type it.
 	DarkStar,
+	Deathchase,
 	FantasyWorldDizzy,
 	MatchDayII,
 	SabreWulf,
@@ -30,18 +32,31 @@ enum class KnownGame {
 
 namespace Signatures {
 
+// Spritework.
+constexpr std::array atic_atac{
+	0x68, 0xe2, 0x68, 0xe2, 0x68, 0xe2, 0x68, 0xe2, 0x68, 0xe2, 0x68, 0xe2,
+	0x68, 0xe2, 0x68, 0xe2, 0x68, 0xe2, 0x68, 0xe2, 0x68, 0xe2, 0x68, 0xe2,
+	0x68, 0xe2, 0x68, 0xe2, 0x68, 0xe2, 0x68, 0xed, 0x28, 0x0d, 0x28, 0x0d,
+	0x28, 0x0d, 0x28, 0x0d, 0x28, 0x0d, 0x28, 0x0d, 0x28, 0x0d, 0x28, 0x0d,
+	0x28, 0x0d, 0x28, 0x0d, 0x28, 0x0d, 0x28, 0x0d, 0x28, 0x0d, 0x28, 0x0d,
+	0x28, 0x0d, 0x28,
+};
+
 // Text used on Aquaplane's title screen.
-static constexpr std::string_view aquaplane = "A Q U A P L A N E";
+constexpr std::string_view aquaplane = "A Q U A P L A N E";
 
 // The status line.
-static constexpr std::string_view bcs_quest_for_tyres = "WHEELS SPEED  SCORE  HIGH SCOREP1  00P2  00GAMEOVER";
+constexpr std::string_view bcs_quest_for_tyres = "WHEELS SPEED  SCORE  HIGH SCOREP1  00P2  00GAMEOVER";
 
 // Part of the instructions.
-static constexpr std::string_view dark_star =
+constexpr std::string_view dark_star =
 	"If it moves shoot it\r\rIf it doesn't shoot it anyway\r\rIf it's square fly through it !";
 
+// Round names.
+constexpr std::string_view deathchase = "DAY   PATROLNIGHT PATROL";
+
 // Dialogue revealing that Daisy has been eggnapped.
-static constexpr std::array fantasy_world_dizzy{
+constexpr std::array fantasy_world_dizzy{
 	0x44, 0x41, 0x49, 0x53, 0x59, 0x3b, 0x53, 0x3a, 0x42, 0x45, 0x45, 0x4e,
 	0x3a, 0x45, 0x47, 0x47, 0x4e, 0x41, 0x50, 0x50, 0x45, 0x44, 0x88, 0x50,
 	0x41, 0x4e, 0x44, 0x3a, 0x49, 0x53, 0x3a, 0x42, 0x45, 0x49, 0x4e, 0x47,
@@ -51,7 +66,7 @@ static constexpr std::array fantasy_world_dizzy{
 };
 
 // Text (with specialised control characters) including the author's names and some football-related words.
-static constexpr std::array match_day_ii{
+constexpr std::array match_day_ii{
 	0x82, 0x86, 0x1a, 0x00, 0x42, 0x45, 0x52, 0x4e, 0x49, 0x45, 0x06, 0x18,
 	0x02, 0x44, 0x52, 0x55, 0x4d, 0x4d, 0x4f, 0x4e, 0x44, 0x06, 0x00, 0x00,
 	0x4a, 0x4f, 0x4e, 0x06, 0x00, 0x02, 0x52, 0x49, 0x54, 0x4d, 0x41, 0x4e,
@@ -61,7 +76,7 @@ static constexpr std::array match_day_ii{
 };
 
 // Likely to be part of the graphics.
-static constexpr std::array sabre_wulf{
+constexpr std::array sabre_wulf{
 	0x5c, 0x3a, 0x5c, 0x3a, 0x5c, 0x3a, 0x5c, 0x3a, 0x5c, 0x1f, 0x5c, 0x42,
 	0x52, 0xd5, 0x5b, 0xd5, 0x5b, 0xd5, 0x5b, 0xd5, 0x5b, 0xd5, 0x5b, 0xc4,
 	0x5b, 0x42, 0x52, 0x42, 0x52, 0x30, 0x51, 0x30, 0x51, 0x30, 0x51, 0x30,
@@ -79,24 +94,14 @@ std::optional<KnownGame> known_game(const std::vector<uint8_t> &code) {
 		return std::search(code.begin(), code.end(), signature.begin(), signature.end()) != code.end();
 	};
 
-	if(contains(Signatures::aquaplane)) {
-		return KnownGame::Aquaplane;
-	}
-	if(contains(Signatures::fantasy_world_dizzy)) {
-		return KnownGame::FantasyWorldDizzy;
-	}
-	if(contains(Signatures::bcs_quest_for_tyres)) {
-		return KnownGame::BCsQuestForTyres;
-	}
-	if(contains(Signatures::sabre_wulf)) {
-		return KnownGame::SabreWulf;
-	}
-	if(contains(Signatures::match_day_ii)) {
-		return KnownGame::MatchDayII;
-	}
-	if(contains(Signatures::dark_star)) {
-		return KnownGame::DarkStar;
-	}
+	if(contains(Signatures::atic_atac))				return KnownGame::AticAtac;
+	if(contains(Signatures::aquaplane))				return KnownGame::Aquaplane;
+	if(contains(Signatures::bcs_quest_for_tyres))	return KnownGame::BCsQuestForTyres;
+	if(contains(Signatures::dark_star))				return KnownGame::DarkStar;
+	if(contains(Signatures::deathchase))			return KnownGame::Deathchase;
+	if(contains(Signatures::fantasy_world_dizzy))	return KnownGame::FantasyWorldDizzy;
+	if(contains(Signatures::match_day_ii))			return KnownGame::MatchDayII;
+	if(contains(Signatures::sabre_wulf))			return KnownGame::SabreWulf;
 
 	return std::nullopt;
 }
@@ -241,8 +246,10 @@ Analyser::Static::TargetList Analyser::Static::ZXSpectrum::GetTargets(
 				switch(*game) {
 					using enum KnownGame;
 					case Aquaplane:
+					case AticAtac:
 					case BCsQuestForTyres:
 					case DarkStar:
+					case Deathchase:
 					case MatchDayII:
 					case SabreWulf:
 						target->model = Target::Model::FortyEightK;
