@@ -15,10 +15,10 @@
  * Adding an extra buffer increases worst-case latency but resolves two
  * issues uncovered with use of a QAudioOutput by push:
  *
- * 1. knowing how much data is currently buffered, to avoid being at a
- *    permanent disadvantage after startup; and
- * 2. that such QAudioOutputs empirically seem to introduce a minimum
- *    16384-byte latency.
+ * 	1.	knowing how much data is currently buffered, to avoid being at a
+ *		permanent disadvantage after startup; and
+ *	2.	that such QAudioOutputs empirically seem to introduce a minimum
+ *		16384-byte latency.
  */
 struct AudioBuffer: public QIODevice {
 	AudioBuffer() {
