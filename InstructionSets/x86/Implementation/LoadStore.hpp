@@ -165,7 +165,7 @@ void lldt(
 
 	DescriptorTablePointer location;
 	location.base = ldt.base();
-	location.limit = ldt.offset();
+	location.limit = uint16_t(ldt.offset());
 
 	context.registers.template set<DescriptorTable::Local>(location);
 	context.registers.set_ldtr(source_segment);
