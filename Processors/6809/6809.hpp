@@ -1020,11 +1020,13 @@ struct Processor {
 				if(!(operand_.halves.low & 0b000'0001)) {
 					goto fetch_decode;
 				}
-				(*stack_)--;    write(BusState::Normal, LIC::Active, Literal(*stack_), registers_.reg<R8::CC>());
+				(*stack_)--;
+				write(BusState::Normal, LIC::Active, Literal(*stack_), registers_.reg<R8::CC>());
 				goto fetch_decode;
 
 			terminate_push_address_high:
-				(*stack_)--;    write(BusState::Normal, LIC::Active, Literal(*stack_), address_.halves.high);
+				(*stack_)--;
+				write(BusState::Normal, LIC::Active, Literal(*stack_), address_.halves.high);
 				goto fetch_decode;
 
 			terminate_push_no_activity:

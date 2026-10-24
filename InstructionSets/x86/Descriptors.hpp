@@ -228,44 +228,44 @@ struct SegmentDescriptor {
 		using Type = DescriptorType;
 		switch(type_ & 0b11111) {
 			default:
-			case 0b00000:    return { .type = Type::Invalid };
-			case 0b00001:    return { .type = Type::AvailableTaskStateSegment, .is32bit = false };
-			case 0b00010:    return { .type = Type::LDT };
-			case 0b00011:    return { .type = Type::BusyTaskStateSegment, .is32bit = false };
+			case 0b00000:	return { .type = Type::Invalid };
+			case 0b00001:	return { .type = Type::AvailableTaskStateSegment, .is32bit = false };
+			case 0b00010:	return { .type = Type::LDT };
+			case 0b00011:	return { .type = Type::BusyTaskStateSegment, .is32bit = false };
 
-			case 0b00100:    return { .type = Type::CallGate, .is32bit = false };
-			case 0b00101:    return { .type = Type::TaskGate };
-			case 0b00110:    return { .type = Type::InterruptGate, .is32bit = false };
-			case 0b00111:    return { .type = Type::TrapGate, .is32bit = false };
+			case 0b00100:	return { .type = Type::CallGate, .is32bit = false };
+			case 0b00101:	return { .type = Type::TaskGate };
+			case 0b00110:	return { .type = Type::InterruptGate, .is32bit = false };
+			case 0b00111:	return { .type = Type::TrapGate, .is32bit = false };
 
-			case 0b01000:    return { .type = Type::Invalid };
-			case 0b01001:    return { .type = Type::AvailableTaskStateSegment, .is32bit = true };
-			case 0b01010:    return { .type = Type::Invalid };
-			case 0b01011:    return { .type = Type::BusyTaskStateSegment, .is32bit = true };
+			case 0b01000:	return { .type = Type::Invalid };
+			case 0b01001:	return { .type = Type::AvailableTaskStateSegment, .is32bit = true };
+			case 0b01010:	return { .type = Type::Invalid };
+			case 0b01011:	return { .type = Type::BusyTaskStateSegment, .is32bit = true };
 
-			case 0b01100:    return { .type = Type::CallGate, .is32bit = true };
-			case 0b01101:    return { .type = Type::Invalid };
-			case 0b01110:    return { .type = Type::InterruptGate, .is32bit = true };
-			case 0b01111:    return { .type = Type::TrapGate, .is32bit = true };
+			case 0b01100:	return { .type = Type::CallGate, .is32bit = true };
+			case 0b01101:	return { .type = Type::Invalid };
+			case 0b01110:	return { .type = Type::InterruptGate, .is32bit = true };
+			case 0b01111:	return { .type = Type::TrapGate, .is32bit = true };
 
 			// b0 is the accessed flag for non-system descriptors; it doesn't affect the type.
 			case 0b10000:
-			case 0b10001:    return { .type = Type::Data, .readable = true, .writeable = false };
+			case 0b10001:	return { .type = Type::Data, .readable = true, .writeable = false };
 			case 0b10010:
-			case 0b10011:    return { .type = Type::Data, .readable = true, .writeable = true };
+			case 0b10011:	return { .type = Type::Data, .readable = true, .writeable = true };
 			case 0b10100:
-			case 0b10101:    return { .type = Type::Stack, .readable = true, .writeable = false };
+			case 0b10101:	return { .type = Type::Stack, .readable = true, .writeable = false };
 			case 0b10110:
-			case 0b10111:    return { .type = Type::Stack, .readable = true, .writeable = true };
+			case 0b10111:	return { .type = Type::Stack, .readable = true, .writeable = true };
 
 			case 0b11000:
-			case 0b11001:    return { .type = Type::Code, .readable = false, .writeable = false, .conforming = false };
+			case 0b11001:	return { .type = Type::Code, .readable = false, .writeable = false, .conforming = false };
 			case 0b11010:
-			case 0b11011:    return { .type = Type::Code, .readable = true, .writeable = false, .conforming = false };
+			case 0b11011:	return { .type = Type::Code, .readable = true, .writeable = false, .conforming = false };
 			case 0b11100:
-			case 0b11101:    return { .type = Type::Code, .readable = false, .writeable = false, .conforming = true };
+			case 0b11101:	return { .type = Type::Code, .readable = false, .writeable = false, .conforming = true };
 			case 0b11110:
-			case 0b11111:    return { .type = Type::Code, .readable = true, .writeable = false, .conforming = true };
+			case 0b11111:	return { .type = Type::Code, .readable = true, .writeable = false, .conforming = true };
 		}
 	}
 
