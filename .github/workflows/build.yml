@@ -138,3 +138,25 @@ jobs:
 
         jobs=$(nproc --all)
         cmake --build build -v -j"$jobs"
+
+
+  cmake-tests:
+    name: Cross-platform Tests ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+    - name: Install dependencies
+      shell: bash
+      run: |
+        sudo apt-get --allow-releaseinfo-change update
+        sudo apt-get --fix-missing install cmake gcc-10
+    - name: Make
+      shell: bash
+      run: |
+        cmake -S Experiments/M68kRightShift -B build/m68k-right-shift
+        cmake --build build/m68k-right-shift --config Release
+        ctest --test-dir build/m68k-right-shift -C Release --output-on-failure
