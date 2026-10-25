@@ -266,7 +266,7 @@ void CRT::advance_cycles(
 	const Scan::Type type,
 	const int number_of_samples
 ) {
-	std::lock_guard guard(scan_target_lock_);
+	std::unique_lock guard(scan_target_lock_);
 	number_of_cycles *= time_multiplier_;
 
 	const bool is_output_run = type == Scan::Type::Level || type == Scan::Type::Data;
@@ -426,11 +426,13 @@ void CRT::advance_cycles(
 			if(delegate_) {
 				++frames_since_last_delegate_call_;
 				if(frames_since_last_delegate_call_ == 20) {
+					guard.unlock();
 					delegate_->crt_did_end_batch_of_frames(
 						*this,
 						frames_since_last_delegate_call_,
 						vertical_flywheel_.get_and_reset_number_of_surprises()
 					);
+					guard.lock();
 					frames_since_last_delegate_call_ = 0;
 				}
 			}
