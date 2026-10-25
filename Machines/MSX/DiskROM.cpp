@@ -44,7 +44,7 @@ uint8_t DiskROM::read(uint16_t address) {
 		return WD::WD1770::read(address);
 	}
 	if(address == 0x7fff) {
-		return (get_data_request_line() ? 0x00 : 0x80) | (get_interrupt_request_line() ? 0x00 : 0x40);
+		return (data_request() ? 0x00 : 0x80) | (interrupt_request() ? 0x00 : 0x40);
 	}
 	return rom_[address & 0x3fff];
 }

@@ -57,7 +57,7 @@ uint8_t BD500::read(int address) {
 		case 0x0320: case 0x0321: case 0x0322: case 0x0323:
 		return WD::WD1770::read(address);
 
-		case 0x312:	return (get_data_request_line() ? 0x80 : 0x00) | (get_interrupt_request_line() ? 0x40 : 0x00);
+		case 0x312:	return (data_request() ? 0x80 : 0x00) | (interrupt_request() ? 0x40 : 0x00);
 	}
 }
 

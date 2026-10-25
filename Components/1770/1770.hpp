@@ -63,10 +63,10 @@ public:
 	};
 
 	/// @returns The current value of the IRQ line output.
-	inline bool get_interrupt_request_line() const		{	return status_.interrupt_request;	}
+	inline bool interrupt_request() const		{	return status_.interrupt_request;	}
 
 	/// @returns The current value of the DRQ line output.
-	inline bool get_data_request_line() const			{	return status_.data_request;		}
+	inline bool data_request() const			{	return status_.data_request;		}
 
 	struct Delegate {
 		virtual void wd1770_did_change_output(WD1770 &) = 0;

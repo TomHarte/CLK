@@ -93,9 +93,9 @@ void Microdisc::set_control_register(const uint8_t control, const uint8_t change
 	}
 
 	if(irq_enable(changes)) {
-		const bool had_irq = interrupt_request_line();
+		const bool had_irq = interrupt_request();
 		irq_enable_ = irq_enable(control);
-		const bool has_irq = interrupt_request_line();
+		const bool has_irq = interrupt_request();
 		if(has_irq != had_irq && delegate_) {
 			delegate_->wd1770_did_change_output(*this);
 		}
@@ -106,16 +106,16 @@ void Microdisc::set_control_register(const uint8_t control, const uint8_t change
 	}
 }
 
-bool Microdisc::interrupt_request_line() const {
-	return irq_enable_ && WD1770::get_interrupt_request_line();
+bool Microdisc::interrupt_request() const {
+	return irq_enable_ && WD1770::interrupt_request();
 }
 
 uint8_t Microdisc::interrupt_request_register() const {
-	return 0x7f | (WD1770::get_interrupt_request_line() ? 0x00 : 0x80);
+	return 0x7f | (WD1770::interrupt_request() ? 0x00 : 0x80);
 }
 
 uint8_t Microdisc::data_request_register() const {
-	return 0x7f | (get_data_request_line() ? 0x00 : 0x80);
+	return 0x7f | (data_request() ? 0x00 : 0x80);
 }
 
 void Microdisc::set_head_load_request(const bool head_load) {

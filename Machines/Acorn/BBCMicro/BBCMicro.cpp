@@ -1286,7 +1286,7 @@ private:
 	Acorn::Floppy::Floppy1770 wd1770_;
 	void wd1770_did_change_output(WD::WD1770 &) override {
 		m6502_.template set<CPU::MOS6502Mk2::Line::NMI>(
-			wd1770_.get_interrupt_request_line() || wd1770_.get_data_request_line()
+			wd1770_.interrupt_request() || wd1770_.data_request()
 		);
 	}
 

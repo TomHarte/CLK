@@ -22,7 +22,7 @@ public:
 
 	uint8_t interrupt_request_register() const;
 	uint8_t data_request_register() const;
-	bool interrupt_request_line() const;
+	bool interrupt_request() const;
 
 	void run_for(const Cycles);
 
