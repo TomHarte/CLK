@@ -781,12 +781,12 @@ private:
 
 		// The Microdisc directly provides an interrupt line.
 		if constexpr (disk_interface == DiskInterface::Microdisc) {
-			irq_line |= microdisc_.get_interrupt_request_line();
+			irq_line |= microdisc_.interrupt_request();
 		}
 
 		// The Jasmin reroutes its data request line to the processor's interrupt line.
 		if constexpr (disk_interface == DiskInterface::Jasmin) {
-			irq_line |= jasmin_.get_data_request_line();
+			irq_line |= jasmin_.data_request();
 		}
 
 		m6502_.set_irq_line(irq_line);

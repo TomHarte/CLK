@@ -59,9 +59,9 @@ void EXDos::set_control_register(const uint8_t control) {
 
 uint8_t EXDos::get_control_register() {
 	const uint8_t status =
-		(get_data_request_line() ? 0x80 : 0x00) |
+		(data_request() ? 0x80 : 0x00) |
 		(disk_did_change_ ? 0x40 : 0x00) |
-		(get_interrupt_request_line() ? 0x02 : 0x00) |
+		(interrupt_request() ? 0x02 : 0x00) |
 		(get_drive().get_is_ready() ? 0x01 : 0x00);
 
 	return status;

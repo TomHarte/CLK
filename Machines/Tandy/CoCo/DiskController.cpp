@@ -60,8 +60,8 @@ void DiskController::wd1770_did_change_output(WD::WD1770 &) {
 }
 
 void DiskController::update_halt_nmi() {
-	enable_halt_ &= !get_interrupt_request_line();
+	enable_halt_ &= !interrupt_request();
 
-	nmi_ = get_interrupt_request_line() && double_density_;
-	halt_ = !get_data_request_line() && enable_halt_;
+	nmi_ = interrupt_request() && double_density_;
+	halt_ = !data_request() && enable_halt_;
 }

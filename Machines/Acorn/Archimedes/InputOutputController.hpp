@@ -491,8 +491,8 @@ struct InputOutputController: public ClockingHint::Observer {
 		};
 
 		set(irq_b_, IRQB::SoundBufferPointerUsed, sound_.interrupt());
-		set(fiq_, FIQ::FloppyDiscInterrupt, floppy_.get_interrupt_request_line());
-		set(fiq_, FIQ::FloppyDiscData, floppy_.get_data_request_line());
+		set(fiq_, FIQ::FloppyDiscInterrupt, floppy_.interrupt_request());
+		set(fiq_, FIQ::FloppyDiscData, floppy_.data_request());
 
 		if(video_.interrupt()) {
 			irq_a_.set(IRQA::VerticalFlyback);

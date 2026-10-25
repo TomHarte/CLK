@@ -54,7 +54,7 @@ uint16_t DMAController::read(int address) {
 		// DMA status.
 		case 3:
 		// TODO: should DRQ come from the HDC if that mode is selected?
-		return 0xfff8 | (error_ ? 0 : 1) | (byte_count_ ? 2 : 0) | (fdc_.get_data_request_line() ? 4 : 0);
+		return 0xfff8 | (error_ ? 0 : 1) | (byte_count_ ? 2 : 0) | (fdc_.data_request() ? 4 : 0);
 
 		// DMA addressing.
 		case 4:	return uint16_t(0xff00 | ((address_ >> 16) & 0xff));
@@ -138,13 +138,13 @@ void DMAController::run_for(HalfCycles duration) {
 void DMAController::wd1770_did_change_output(WD::WD1770 &) {
 	// Check for a change in interrupt state.
 	const bool old_interrupt_line = interrupt_line_;
-	interrupt_line_ = fdc_.get_interrupt_request_line();
+	interrupt_line_ = fdc_.interrupt_request();
 	if(delegate_ && interrupt_line_ != old_interrupt_line) {
 		delegate_->dma_controller_did_change_output(*this);
 	}
 
 	// Check for a change in DRQ state, if it's the FDC that is currently being watched.
-	if(byte_count_ && fdc_.get_data_request_line() && (control_ & Control::DRQSource)) {
+	if(byte_count_ && fdc_.data_request() && (control_ & Control::DRQSource)) {
 		--byte_count_;
 
 		if(control_ & Control::Direction) {
