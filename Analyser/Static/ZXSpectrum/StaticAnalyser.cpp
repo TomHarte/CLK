@@ -20,6 +20,7 @@
 namespace {
 
 enum class KnownGame {
+	Alien8,
 	Aquaplane,
 	AticAtac,
 	BCsQuestForTyres,		// The real game is spelt the American way, but I can't bring myself to type it.
@@ -28,12 +29,20 @@ enum class KnownGame {
 	FantasyWorldDizzy,
 	JetPac,
 	KnightLore,
+	LunarJetman,
 	MatchDayII,
+	Nightshade,
 	SabreWulf,
+	TranzAm,
 	Underwurlde,
 };
 
 namespace Signatures {
+
+constexpr std::string_view alien8 = "COPYRIGHT 1984 A.C.G.";
+
+// Text used on Aquaplane's title screen.
+constexpr std::string_view aquaplane = "A Q U A P L A N E";
 
 // Spritework.
 constexpr std::array atic_atac{
@@ -44,9 +53,6 @@ constexpr std::array atic_atac{
 	0x28, 0x0d, 0x28, 0x0d, 0x28, 0x0d, 0x28, 0x0d, 0x28, 0x0d, 0x28, 0x0d,
 	0x28, 0x0d, 0x28,
 };
-
-// Text used on Aquaplane's title screen.
-constexpr std::string_view aquaplane = "A Q U A P L A N E";
 
 // The status line.
 constexpr std::string_view bcs_quest_for_tyres = "WHEELS SPEED  SCORE  HIGH SCOREP1  00P2  00GAMEOVER";
@@ -95,6 +101,12 @@ constexpr std::array knight_lore{
 	0x4f, 0x4f, 0x4f, 0x4f, 0x4f, 0x4f, 0x4f, 0x4f, 0x4f, 0x4a, 0x5a, 0x58,
 };
 
+constexpr std::array lunar_jetman{
+	0x60, 0xfc, 0x93, 0xaa, 0x45, 0xef, 0xef, 0xf2, 0x0e, 0xaa, 0xf1, 0x8e,
+	0x7c, 0xd0, 0x68, 0x50, 0x60, 0x33, 0xe4, 0x47, 0x72, 0x31, 0x0f, 0xcc,
+	0x90,
+};
+
 // Text (with specialised control characters) including the author's names and some football-related words.
 constexpr std::array match_day_ii{
 	0x82, 0x86, 0x1a, 0x00, 0x42, 0x45, 0x52, 0x4e, 0x49, 0x45, 0x06, 0x18,
@@ -103,6 +115,11 @@ constexpr std::array match_day_ii{
 	0xff, 0x20, 0x48, 0x41, 0x4c, 0x46, 0xff, 0x54, 0x49, 0x4d, 0x45, 0xff,
 	0x20, 0x45, 0x58, 0x54, 0x52, 0x41, 0x20, 0xff, 0x46, 0x49, 0x52, 0x53,
 	0x54, 0xa3, 0xff, 0x53, 0x45, 0x43, 0x4f, 0x4e, 0x44,
+};
+
+constexpr std::array nightshade{
+	0x46, 0xf5, 0x42, 0x5d, 0x40, 0x55, 0x42, 0x55, 0x45, 0x34, 0x44, 0xe5,
+	0x47, 0x14, 0x40, 0x52, 0x46, 0xf4, 0x27,
 };
 
 // Likely to be part of the graphics.
@@ -116,6 +133,8 @@ constexpr std::array sabre_wulf{
 	0x52, 0x2f, 0x52, 0x2f, 0x52, 0x2f, 0x52, 0x2f, 0x52, 0x2f, 0x52, 0x2f,
 	0x52, 0x2f, 0x52, 0x2f, 0x52, 0x2f, 0x52, 0x2f,
 };
+
+constexpr std::string_view tranz_am = "COPYRIGHT 1983 A.C.G.";
 
 // Congratulations text.
 constexpr std::array underwurlde{
@@ -132,16 +151,20 @@ std::optional<KnownGame> known_game(const std::vector<uint8_t> &code) {
 		return std::search(code.begin(), code.end(), signature.begin(), signature.end()) != code.end();
 	};
 
-	if(contains(Signatures::atic_atac))				return KnownGame::AticAtac;
+	if(contains(Signatures::alien8))				return KnownGame::Alien8;
 	if(contains(Signatures::aquaplane))				return KnownGame::Aquaplane;
+	if(contains(Signatures::atic_atac))				return KnownGame::AticAtac;
 	if(contains(Signatures::bcs_quest_for_tyres))	return KnownGame::BCsQuestForTyres;
 	if(contains(Signatures::dark_star))				return KnownGame::DarkStar;
 	if(contains(Signatures::deathchase))			return KnownGame::Deathchase;
 	if(contains(Signatures::fantasy_world_dizzy))	return KnownGame::FantasyWorldDizzy;
 	if(contains(Signatures::jet_pac))				return KnownGame::JetPac;
 	if(contains(Signatures::knight_lore))			return KnownGame::KnightLore;
+	if(contains(Signatures::lunar_jetman))			return KnownGame::LunarJetman;
 	if(contains(Signatures::match_day_ii))			return KnownGame::MatchDayII;
+	if(contains(Signatures::nightshade))			return KnownGame::Nightshade;
 	if(contains(Signatures::sabre_wulf))			return KnownGame::SabreWulf;
+	if(contains(Signatures::tranz_am))				return KnownGame::TranzAm;
 	if(contains(Signatures::underwurlde))			return KnownGame::Underwurlde;
 
 	return std::nullopt;
@@ -286,16 +309,8 @@ Analyser::Static::TargetList Analyser::Static::ZXSpectrum::GetTargets(
 			if(game) {
 				switch(*game) {
 					using enum KnownGame;
-					case Aquaplane:
-					case AticAtac:
-					case BCsQuestForTyres:
-					case DarkStar:
-					case Deathchase:
-					case JetPac:
-					case KnightLore:
-					case MatchDayII:
-					case SabreWulf:
-					case Underwurlde:
+
+					default:
 						target->model = Target::Model::FortyEightK;
 					break;
 
