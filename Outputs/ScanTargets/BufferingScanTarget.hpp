@@ -273,7 +273,7 @@ private:
 	bool frame_is_complete_ = true;
 	bool previous_frame_was_complete_ = true;
 
-	Concurrency::SpinLock<Concurrency::Barrier::AcquireRelease> is_updating_;
+	Concurrency::SpinLock is_updating_;
 
 	/// A lock for gettng access to anything the producer modifies — i.e. the write_pointers_,
 	/// data_type_size_ and write_area_texture_, and all other state to do with capturing
@@ -281,7 +281,7 @@ private:
 	///
 	/// This is almost never contended. The main collision is a user-prompted change of modals while the
 	/// emulation thread is running.
-	Concurrency::SpinLock<Concurrency::Barrier::Relaxed> producer_lock_;
+	Concurrency::SpinLock producer_lock_;
 
 	// The owner-supplied scan buffer and size.
 	Scan *scan_buffer_ = nullptr;

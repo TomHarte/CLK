@@ -391,7 +391,7 @@ private:
 
 	int cycles_per_line_ = 1;
 
-	Concurrency::SpinLock<Concurrency::Barrier::AcquireRelease> scan_target_lock_;
+	Concurrency::SpinLock scan_target_lock_;
 	Outputs::Display::ScanTarget *scan_target_ = &Outputs::Display::NullScanTarget::singleton;
 	Outputs::Display::ScanTarget::Modals scan_target_modals_;
 

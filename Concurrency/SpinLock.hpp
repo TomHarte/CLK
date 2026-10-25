@@ -12,35 +12,25 @@
 
 namespace Concurrency {
 
-enum class Barrier {
-	Relaxed,
-	AcquireRelease,
-};
-
 /*!
-	A basic spin lock. Applies a memory barrier as per the template.
+	A basic spin lock. Applies a release/acquire memory barrier.
 
 	Standard warnings apply: having revealed nothing to the scheduler, a holder of this lock might sleep
 	and block other eligble work.
 */
-template <Barrier type>
 class SpinLock {
 public:
 	void lock() {
-		while(flag_.test_and_set(LockMemoryOrder));
+		while(flag_.test_and_set(std::memory_order::acquire)) {
+			while(flag_.test(std::memory_order::relaxed));
+		}
 	}
 
 	void unlock() {
-		flag_.clear(UnlockMemoryOrder);
+		flag_.clear(std::memory_order::release);
 	}
 
 private:
-	static constexpr auto LockMemoryOrder =
-		type == Barrier::Relaxed ? std::memory_order::relaxed : std::memory_order::acquire;
-	static constexpr auto UnlockMemoryOrder =
-		type == Barrier::Relaxed ? std::memory_order::relaxed : std::memory_order::release;
-
-	// Note to self: this is guaranteed to construct in a clear state since C++20.
 	std::atomic_flag flag_;
 };
 
