@@ -127,8 +127,9 @@ public:
 	/// The queue cannot be restarted; this is a destructive action.
 	void stop() {
 		if(thread_.joinable()) {
-			should_quit_.test_and_set();
-			enqueue([] {});
+			enqueue([this] {
+				should_quit_.test_and_set();
+			});
 			if constexpr (!perform_automatically) {
 				perform();
 			}
