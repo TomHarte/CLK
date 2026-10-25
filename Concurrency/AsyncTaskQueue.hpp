@@ -9,6 +9,7 @@
 #pragma once
 
 #include <atomic>
+#include <cassert>
 #include <concepts>
 #include <condition_variable>
 #include <functional>
@@ -93,8 +94,10 @@ public:
 	template <typename FuncT>
 	requires std::invocable<FuncT>
 	void enqueue(FuncT &&action) {
-		const std::lock_guard guard(condition_mutex_);
-		actions_.emplace_back(std::forward<FuncT>(action));
+		{
+			const std::lock_guard guard(condition_mutex_);
+			actions_.emplace_back(std::forward<FuncT>(action));
+		}
 
 		if constexpr (perform_automatically) {
 			condition_.notify_one();
@@ -113,6 +116,8 @@ public:
 
 	/// Causes any enqueued actions that are not yet scheduled to be scheduled.
 	void perform() {
+		assert(std::this_thread::get_id() != thread_.get_id());
+
 		const std::lock_guard guard(condition_mutex_);
 		static_assert(!perform_automatically);
 		if(actions_.empty()) {
@@ -126,6 +131,8 @@ public:
 	///
 	/// The queue cannot be restarted; this is a destructive action.
 	void stop() {
+		assert(std::this_thread::get_id() != thread_.get_id());
+
 		if(thread_.joinable()) {
 			enqueue([this] {
 				should_quit_.test_and_set();
@@ -148,6 +155,7 @@ public:
 	/// Schedules any remaining unscheduled work, then blocks synchronously
 	/// until all scheduled work has been performed.
 	void lock_flush() {
+		assert(std::this_thread::get_id() != thread_.get_id());
 		std::atomic_flag flushed = false;
 
 		enqueue([&flushed] () {
@@ -166,6 +174,7 @@ public:
 	/// until all scheduled work has been performed, placing a memory barrier
 	/// in between.
 	void spin_flush() {
+		assert(std::this_thread::get_id() != thread_.get_id());
 		std::atomic_flag has_run{};
 
 		enqueue([&has_run] () {
