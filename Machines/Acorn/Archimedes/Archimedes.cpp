@@ -381,8 +381,21 @@ private:
 	int video_divider_ = 1;
 	void run_for(Cycles cycles) override {
 		const auto run = [&](Cycles cycles) {
-			if(use_original_speed()) run_for<true>(cycles);
-			else run_for<false>(cycles);
+			const auto run_for = [&]<bool original_speed>(const Cycles cycles) {
+				macro_counter_ += cycles.as<int>();
+
+				while(macro_counter_ > 0) {
+					switch(video_divider_) {
+						default:	macro_tick<2, original_speed>();	break;
+						case 3:		macro_tick<3, original_speed>();	break;
+						case 4:		macro_tick<4, original_speed>();	break;
+						case 6:		macro_tick<6, original_speed>();	break;
+					}
+				}
+			};
+
+			if(use_original_speed()) run_for.template operator()<true>(cycles);
+			else run_for.template operator()<false>(cycles);
 		};
 
 		//
@@ -469,20 +482,6 @@ private:
 		// Discharge residue.
 		//
 		run(cycles);
-	}
-
-	template <bool original_speed>
-	void run_for(const Cycles cycles) {
-		macro_counter_ += cycles.as<int>();
-
-		while(macro_counter_ > 0) {
-			switch(video_divider_) {
-				default:	macro_tick<2, original_speed>();	break;
-				case 3:		macro_tick<3, original_speed>();	break;
-				case 4:		macro_tick<4, original_speed>();	break;
-				case 6:		macro_tick<6, original_speed>();	break;
-			}
-		}
 	}
 
 	void tick_cpu() {
