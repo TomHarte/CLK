@@ -36,7 +36,7 @@ jobs:
         case $RUNNER_OS in
           Linux)
             sudo apt-get --allow-releaseinfo-change update
-            sudo apt-get --fix-missing install cmake gcc-10 libsdl2-dev
+            sudo apt-get --fix-missing install cmake gcc-16 libsdl2-dev
             ;;
           macOS)
             brew uninstall cmake
@@ -74,7 +74,7 @@ jobs:
         case $RUNNER_OS in
           Linux)
             sudo apt-get --allow-releaseinfo-change update
-            sudo apt-get --fix-missing install gcc-10 libsdl2-dev scons
+            sudo apt-get --fix-missing install gcc-16 libsdl2-dev scons
             ;;
           macOS)
             brew install scons sdl2
@@ -130,7 +130,7 @@ jobs:
       shell: bash
       run: |
         sudo apt-get --allow-releaseinfo-change update
-        sudo apt-get --fix-missing install cmake gcc-10 qt6-base-dev qt6-multimedia-dev
+        sudo apt-get --fix-missing install cmake gcc-16 qt6-base-dev qt6-multimedia-dev
     - name: Make
       shell: bash
       run: |
@@ -153,7 +153,7 @@ jobs:
       shell: bash
       run: |
         sudo apt-get --allow-releaseinfo-change update
-        sudo apt-get --fix-missing install cmake gcc-10
+        sudo apt-get --fix-missing install cmake gcc-16
     - name: Make
       shell: bash
       run: |
