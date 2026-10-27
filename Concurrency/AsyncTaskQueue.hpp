@@ -135,7 +135,7 @@ public:
 
 		if(thread_.joinable()) {
 			enqueue([this] {
-				should_quit_.test_and_set();
+				should_quit_ = true;
 			});
 			if constexpr (!perform_automatically) {
 				perform();
@@ -201,11 +201,11 @@ private:
 				ActionVector actions;
 
 				// Continue until told to quit.
-				while(!should_quit_.test(std::memory_order::relaxed)) {
+				while(!should_quit_) {
 					// Wait for new actions to be signalled, and grab them.
 					std::unique_lock lock(condition_mutex_);
 					condition_.wait(lock, [&] {
-						return !actions_.empty() || should_quit_.test(std::memory_order::relaxed);
+						return !actions_.empty() || should_quit_;
 					});
 					std::swap(actions, actions_);
 					lock.unlock();
@@ -229,7 +229,7 @@ private:
 	ActionVector actions_;
 
 	// Necessary synchronisation parts.
-	std::atomic_flag should_quit_;
+	bool should_quit_ = false;
 	mutable std::mutex condition_mutex_;
 	std::condition_variable condition_;
 
