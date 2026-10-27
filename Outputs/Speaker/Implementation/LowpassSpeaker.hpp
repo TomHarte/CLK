@@ -78,7 +78,10 @@ private:
 	// Implemented as per Speaker.
 	void set_computed_output_rate(const float cycles_per_second, const int buffer_size, bool) final {
 		std::lock_guard lock_guard(filter_parameters_mutex_);
-		if(filter_parameters_.output_cycles_per_second == cycles_per_second && size_t(buffer_size) == output_buffer_.size()) {
+		if(
+			filter_parameters_.output_cycles_per_second == cycles_per_second &&
+			size_t(buffer_size) == output_buffer_.size()
+		) {
 			return;
 		}
 
@@ -135,9 +138,14 @@ private:
 			// If input and output rates exactly match, and no additional cut-off has been specified,
 			// just accumulate results and pass on.
 			conversion_ = Conversion::Copy;
-		} else if(	filter_parameters.input_cycles_per_second > filter_parameters.output_cycles_per_second ||
-			(filter_parameters.input_cycles_per_second == filter_parameters.output_cycles_per_second && filter_parameters.high_frequency_cutoff >= 0.0)) {
-			// If the output rate is less than the input rate, or an additional cut-off has been specified, use the filter.
+		} else if(
+			filter_parameters.input_cycles_per_second > filter_parameters.output_cycles_per_second ||
+			(
+				filter_parameters.input_cycles_per_second == filter_parameters.output_cycles_per_second &&
+				filter_parameters.high_frequency_cutoff >= 0.0
+			)
+		) {
+			// If the output rate is less than the input rate, or an additional cut-off has been specified, filter.
 			conversion_ = Conversion::ResampleSmaller;
 		} else {
 			conversion_ = Conversion::ResampleLarger;
@@ -183,14 +191,16 @@ private:
 
 		// Apply scale, if supplied, clamping appropriately.
 		if(scale != 65536) {
-			#define SCALE(x) x = int16_t(std::clamp((int(x) * scale) >> 16, -32768, 32767))
+			const auto scale_clamp = [&](int16_t &x) {
+				x = int16_t(std::clamp((int(x) * scale) >> 16, -32768, 32767));
+			};
+
 			if constexpr (is_stereo) {
-				SCALE(output_buffer_[output_buffer_pointer_ - 2]);
-				SCALE(output_buffer_[output_buffer_pointer_ - 1]);
+				scale_clamp(output_buffer_[output_buffer_pointer_ - 2]);
+				scale_clamp(output_buffer_[output_buffer_pointer_ - 1]);
 			} else {
-				SCALE(output_buffer_[output_buffer_pointer_ - 1]);
+				scale_clamp(output_buffer_[output_buffer_pointer_ - 1]);
 			}
-			#undef SCALE
 		}
 
 		// Announce to delegate if full.
@@ -251,8 +261,12 @@ protected:
 		switch(conversion_) {
 			case Conversion::Copy:
 				while(length) {
-					const auto samples_to_read = std::min((output_buffer_.size() - output_buffer_pointer_) / (1 + is_stereo), length);
-					static_cast<ConcreteT *>(this)->get_samples(samples_to_read, &output_buffer_[output_buffer_pointer_ ]);
+					const auto samples_to_read =
+						std::min((output_buffer_.size() - output_buffer_pointer_) / (1 + is_stereo), length);
+					static_cast<ConcreteT *>(this)->get_samples(
+						samples_to_read,
+						&output_buffer_[output_buffer_pointer_]
+					);
 					output_buffer_pointer_ += samples_to_read * (1 + is_stereo);
 
 					// TODO: apply scale.
@@ -269,7 +283,8 @@ protected:
 
 			case Conversion::ResampleSmaller:
 				while(length) {
-					const auto cycles_to_read = std::min((input_buffer_.size() - input_buffer_depth_) / (1 + is_stereo), length);
+					const auto cycles_to_read =
+						std::min((input_buffer_.size() - input_buffer_depth_) / (1 + is_stereo), length);
 					static_cast<ConcreteT *>(this)->get_samples(cycles_to_read, &input_buffer_[input_buffer_depth_]);
 					input_buffer_depth_ += cycles_to_read * (1 + is_stereo);
 
@@ -293,7 +308,8 @@ protected:
 /*!
 	Provides a low-pass speaker to which blocks of samples are pushed.
 */
-template <bool is_stereo> class PushLowpass: public LowpassBase<PushLowpass<is_stereo>, is_stereo> {
+template <bool is_stereo>
+class PushLowpass: public LowpassBase<PushLowpass<is_stereo>, is_stereo> {
 private:
 	using BaseT = LowpassBase<PushLowpass<is_stereo>, is_stereo>;
 	friend BaseT;
@@ -343,13 +359,68 @@ public:
 	}
 };
 
+template <bool is_stereo>
+class AsyncPushLowpass {
+public:
+	/*!
+		@returns The underlying speaker.
+	*/
+	PushLowpass<is_stereo> &speaker() {
+		return speaker_;
+	}
+
+	/*!
+		@c std::swap's the contents of @c buffer with whatever buffer was previously posted,
+		asynchronously enqueues the new data for processing and clears @c buffer. Blocks on completion of
+		processing the previous samples if required.
+
+		This is intentionally safe for a single caller only. This cannot be called simultaneously from multiple threads.
+	*/
+	void push_swap(std::vector<int16_t> &buffer) {
+		enqueued_.busy.wait(true, std::memory_order::acquire);
+		std::swap(enqueued_.data, buffer);
+
+		enqueued_.busy.test_and_set(std::memory_order::relaxed);	// The enqueue below provides a suitable
+																	// memory barrier; no need for two.
+
+		queue_.enqueue([this] {
+			speaker_.push(enqueued_.data.data(), enqueued_.data.size() / (1 + is_stereo));
+			enqueued_.busy.clear(std::memory_order::release);
+			enqueued_.busy.notify_one();
+		});
+		buffer.clear();
+	}
+
+	/*!
+		Performs @c function asynchronously, giving it a reference to the embedded speaker.
+		This function returns immediately; it does not wait for the function to complete.
+	*/
+	template <typename FuncT>
+	void push(FuncT &&function) {
+		queue_.enqueue([&] {
+			function(speaker_);
+		});
+	}
+
+private:
+	struct {
+		std::vector<int16_t> data;
+		std::atomic_flag busy{};
+	} enqueued_;
+	PushLowpass<is_stereo> speaker_;
+
+	// Ensure the queue destructs first; tasks posted to it depend on the state above.
+	Concurrency::AsyncTaskQueue<true> queue_;
+};
+
 /*!
 	The low-pass speaker expects an Outputs::Speaker::SampleSource-derived
 	template class, and uses the instance supplied to its constructor as the
 	source of a high-frequency stream of audio which it filters down to a
 	lower-frequency output.
 */
-template <typename SampleSource> class PullLowpass: public LowpassBase<PullLowpass<SampleSource>, SampleSource::is_stereo> {
+template <typename SampleSource>
+class PullLowpass: public LowpassBase<PullLowpass<SampleSource>, SampleSource::is_stereo> {
 public:
 	PullLowpass(SampleSource &sample_source) : sample_source_(sample_source) {
 		// Propagate an initial volume level.
