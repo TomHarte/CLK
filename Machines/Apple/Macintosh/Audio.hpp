@@ -8,14 +8,11 @@
 
 #pragma once
 
-#include "Concurrency/AsyncTaskQueue.hpp"
-#include "ClockReceiver/ClockReceiver.hpp"
-#include "Outputs/Speaker/Implementation/BufferSource.hpp"
-
-#include <array>
-#include <atomic>
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 namespace Apple::Macintosh {
+
+constexpr HalfCycles MasterClockDivider = 2;
 
 /*!
 	Implements the Macintosh's audio output hardware.
@@ -23,10 +20,8 @@ namespace Apple::Macintosh {
 	Designed to be clocked at half the rate of the real hardware — i.e.
 	a shade less than 4Mhz.
 */
-class Audio: public ::Outputs::Speaker::BufferSource<Audio, false> {
+class Audio {
 public:
-	Audio(Concurrency::AsyncTaskQueue<false> &task_queue);
-
 	/*!
 		Macintosh audio is (partly) sourced by the same scanning
 		hardware as the video; each line it collects an additional
@@ -34,7 +29,7 @@ public:
 
 		Use this method to add a newly-collected sample to the queue.
 	*/
-	void post_sample(uint8_t sample);
+	void post_sample(uint8_t);
 
 	/*!
 		Macintosh audio also separately receives an output volume
@@ -42,43 +37,39 @@ public:
 
 		Use this method to set the current output volume.
 	*/
-	void set_volume(int volume);
+	void set_volume(int);
 
 	/*!
 		A further factor in audio output is the on-off toggle.
 	*/
-	void set_enabled(bool on);
+	void set_enabled(bool);
 
-	// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter.
-	template <Outputs::Speaker::Action action>
-	void apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target);
-	bool is_zero_level() const;
-	void set_sample_volume_range(std::int16_t range);
+	/*!
+		TODO: remove this and accept inputs indicating clocking directly.
+	*/
+	auto &speaker() {
+		return speaker_.speaker();
+	}
+
+	void operator += (const HalfCycles);
+
+	void flush();
 
 private:
-	Concurrency::AsyncTaskQueue<false> &task_queue_;
-
-	// A queue of fetched samples; read from by one thread,
-	// written to by another.
-	struct {
-		std::array<std::atomic<uint8_t>, 740> buffer;
-		size_t read_pointer = 0, write_pointer = 0;
-	} sample_queue_;
+	Outputs::Speaker::AsyncPushLowpass<false> speaker_;
+	std::vector<int16_t> samples_;
+	HalfCycles time_;
 
 	// Emulator-thread stateful variables, to avoid work posting
 	// deferral updates if possible.
-	int posted_volume_ = 0;
-	int posted_enable_mask_ = 0;
-
-	// Stateful variables, modified from the audio generation
-	// thread only.
 	int volume_ = 0;
-	int enabled_mask_ = 0;
-	std::int16_t output_volume_ = 0;
+	int enable_mask_ = 0;
 
-	std::int16_t volume_multiplier_ = 0;
-	std::size_t subcycle_offset_ = 0;
+	int volume_multiplier_ = 0;
+	uint8_t sample_ = 0;
 	void set_volume_multiplier();
+
+	void generate();
 };
 
 }

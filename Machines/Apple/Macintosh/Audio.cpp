@@ -13,88 +13,59 @@
 using namespace Apple::Macintosh;
 
 namespace {
-
-// The sample_length is coupled with the clock rate selected within the Macintosh proper;
-// as per the header-declaration a divide-by-two clock is expected to arrive here.
-const std::size_t sample_length = 352 / 2;
-
+constexpr auto MaxBufferSize = 1024;
+constexpr auto MaxBufferDuration = HalfCycles(Cycles(MaxBufferSize)) * MasterClockDivider;
 }
-
-Audio::Audio(Concurrency::AsyncTaskQueue<false> &task_queue) : task_queue_(task_queue) {}
 
 // MARK: - Inputs
 
-void Audio::post_sample(uint8_t sample) {
-	// Store sample directly indexed by current write pointer; this ensures that collected samples
-	// directly map to volume and enabled/disabled states.
-	sample_queue_.buffer[sample_queue_.write_pointer].store(sample, std::memory_order::relaxed);
-	sample_queue_.write_pointer = (sample_queue_.write_pointer + 1) % sample_queue_.buffer.size();
+void Audio::operator += (const HalfCycles duration) {
+	time_ += duration;
+
+	if(time_ >= MaxBufferDuration) {
+		generate();
+	}
 }
 
-void Audio::set_volume(int volume) {
-	// Do nothing if the volume hasn't changed.
-	if(posted_volume_ == volume) return;
-	posted_volume_ = volume;
+void Audio::generate() {
+	const auto samples = time_.divide(MasterClockDivider).as<size_t>();
+	const auto level = int16_t(sample_ * volume_multiplier_);
 
-	// Post the volume change as a deferred event.
-	task_queue_.enqueue([this, volume] () {
-		volume_ = volume;
-		set_volume_multiplier();
-	});
+	std::fill_n(std::back_inserter(samples_), samples, level);
+	if(samples_.size() >= MaxBufferSize) {
+		flush();
+	}
 }
 
-void Audio::set_enabled(bool on) {
-	// Do nothing if the mask hasn't changed.
-	if(posted_enable_mask_ == int(on)) return;
-	posted_enable_mask_ = int(on);
-
-	// Post the enabled mask change as a deferred event.
-	task_queue_.enqueue([this, on] () {
-		enabled_mask_ = int(on);
-		set_volume_multiplier();
-	});
+void Audio::flush() {
+	speaker_.push_swap(samples_);
 }
 
-// MARK: - Output generation
+// MARK: - Setters.
 
-bool Audio::is_zero_level() const {
-	return !volume_ || !enabled_mask_;
+void Audio::post_sample(const uint8_t sample) {
+	if(sample_ == sample) return;
+	generate();
+
+	sample_ = sample;
 }
 
-void Audio::set_sample_volume_range(std::int16_t range) {
-	// Some underflow here doesn't really matter.
-	output_volume_ = range / (7 * 255);
+void Audio::set_volume(const int volume) {
+	if(volume_ == volume) return;
+	generate();
+
+	volume_ = volume;
+	set_volume_multiplier();
+}
+
+void Audio::set_enabled(const bool on) {
+	if(enable_mask_ == int(on)) return;
+	generate();
+
+	enable_mask_ = int(on);
 	set_volume_multiplier();
 }
 
 void Audio::set_volume_multiplier() {
-	volume_multiplier_ = int16_t(output_volume_ * volume_ * enabled_mask_);
+	volume_multiplier_ = int16_t(volume_ * enable_mask_ * (127 / 7));
 }
-
-template <Outputs::Speaker::Action action>
-void Audio::apply_samples(std::size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
-	// TODO: the implementation below acts as if the hardware uses pulse-amplitude modulation;
-	// in fact it uses pulse-width modulation. But the scale for pulses isn't specified, so
-	// that's something to return to.
-
-	while(number_of_samples) {
-		// Determine how many output samples will be at the same level.
-		const auto cycles_left_in_sample = std::min(number_of_samples, sample_length - subcycle_offset_);
-
-		// Determine the output level, and output that many samples.
-		const int16_t output_level = volume_multiplier_ * (int16_t(sample_queue_.buffer[sample_queue_.read_pointer].load(std::memory_order::relaxed)) - 128);
-		Outputs::Speaker::fill<action>(target, target + cycles_left_in_sample, output_level);
-		target += cycles_left_in_sample;
-
-		// Advance the sample pointer.
-		subcycle_offset_ += cycles_left_in_sample;
-		sample_queue_.read_pointer = (sample_queue_.read_pointer + (subcycle_offset_ / sample_length)) % sample_queue_.buffer.size();
-		subcycle_offset_ %= sample_length;
-
-		// Decreate the number of samples left to write.
-		number_of_samples -= cycles_left_in_sample;
-	}
-}
-template void Audio::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, Outputs::Speaker::MonoSample *);
-template void Audio::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, Outputs::Speaker::MonoSample *);
-template void Audio::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, Outputs::Speaker::MonoSample *);

@@ -28,7 +28,7 @@ constexpr uint64_t PixelMask = std::endian::native == std::endian::little ? 0x01
 //	"The visible portion of a full-screen display consists of 342 horizontal scan lines...
 //	During the vertical blanking interval, the turned-off beam ... traces out an additional 28 scan lines,"
 //
-Video::Video(DeferredAudio &audio, DriveSpeedAccumulator &drive_speed_accumulator) :
+Video::Video(Audio &audio, DriveSpeedAccumulator &drive_speed_accumulator) :
 	audio_(audio),
 	drive_speed_accumulator_(drive_speed_accumulator),
 	crt_(704, 1, 370, 6, Outputs::Display::InputDataType::Luminance1) {
@@ -126,7 +126,7 @@ void Video::run_for(HalfCycles duration) {
 			if(final_word == 44) {
 				const uint16_t audio_word = ram_[audio_address_ + audio_base];
 				++audio_address_;
-				audio_.audio.post_sample(audio_word >> 8);
+				audio_.post_sample(audio_word >> 8);
 				drive_speed_accumulator_.post_sample(audio_word & 0xff);
 			}
 		}

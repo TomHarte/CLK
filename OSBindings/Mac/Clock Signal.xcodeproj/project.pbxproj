@@ -2405,7 +2405,6 @@
 		4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CRCTests.mm; sourceTree = "<group>"; };
 		4BB307B9235001C300457D33 /* 6850.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6850.hpp; sourceTree = "<group>"; };
 		4BB307BA235001C300457D33 /* 6850.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6850.cpp; sourceTree = "<group>"; };
-		4BB4BFAA22A300710069048D /* DeferredAudio.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DeferredAudio.hpp; sourceTree = "<group>"; };
 		4BB4BFAB22A33D710069048D /* DriveSpeedAccumulator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DriveSpeedAccumulator.hpp; sourceTree = "<group>"; };
 		4BB4BFAC22A33DE50069048D /* DriveSpeedAccumulator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DriveSpeedAccumulator.cpp; sourceTree = "<group>"; };
 		4BB4BFAE22A42F290069048D /* MacintoshIMG.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MacintoshIMG.cpp; sourceTree = "<group>"; };
@@ -5580,7 +5579,6 @@
 				4BCE0058227CFFCA000CA200 /* Macintosh.cpp */,
 				4BCE005E227D39AB000CA200 /* Video.cpp */,
 				4B9378E322A199C600973513 /* Audio.hpp */,
-				4BB4BFAA22A300710069048D /* DeferredAudio.hpp */,
 				4BB4BFAB22A33D710069048D /* DriveSpeedAccumulator.hpp */,
 				4BDB3D8522833321002D3CEE /* Keyboard.hpp */,
 				4BCE0059227CFFCA000CA200 /* Macintosh.hpp */,

@@ -8,10 +8,11 @@
 
 #pragma once
 
-#include "Outputs/CRT/CRT.hpp"
-#include "ClockReceiver/ClockReceiver.hpp"
-#include "DeferredAudio.hpp"
+#include "Audio.hpp"
 #include "DriveSpeedAccumulator.hpp"
+
+#include "ClockReceiver/ClockReceiver.hpp"
+#include "Outputs/CRT/CRT.hpp"
 
 namespace Apple::Macintosh {
 
@@ -33,7 +34,7 @@ public:
 		Constructs an instance of @c Video sourcing its pixel data from @c ram and
 		providing audio and drive-speed bytes to @c audio and @c drive_speed_accumulator.
 	*/
-	Video(DeferredAudio &audio, DriveSpeedAccumulator &drive_speed_accumulator);
+	Video(Audio &audio, DriveSpeedAccumulator &drive_speed_accumulator);
 
 	/*!
 		Sets the target device for video data.
@@ -82,7 +83,7 @@ public:
 	HalfCycles next_sequence_point();
 
 private:
-	DeferredAudio &audio_;
+	Audio &audio_;
 	DriveSpeedAccumulator &drive_speed_accumulator_;
 
 	Outputs::CRT::CRT crt_;
