@@ -956,9 +956,11 @@ using BufferingScanTarget = Outputs::Display::BufferingScanTarget;
 	}
 
 	[commandBuffer presentDrawable:view.currentDrawable];
+	__weak CSScanTarget *weakSelf = self;
 	[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
-		self->_isDrawing.clear();
-		self->_scanTarget.display_metrics_.announce_draw_status(true);
+		CSScanTarget *strongSelf = weakSelf;
+		strongSelf->_isDrawing.clear();
+		strongSelf->_scanTarget.display_metrics_.announce_draw_status(true);
 	}];
 	[commandBuffer commit];
 }
