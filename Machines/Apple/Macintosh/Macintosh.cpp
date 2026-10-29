@@ -93,7 +93,7 @@ public:
 		}),
 		mc68000_(*this),
 		iwm_(CLOCK_RATE),
-		video_(audio_, drive_speed_accumulator_),
+		audio_(HalfCycles(Cycles(CLOCK_RATE)), video_, drive_speed_accumulator_),
 		via_port_handler_(*this, clock_, keyboard_, audio_, iwm_, mouse_),
 		via_(via_port_handler_),
 		scsi_bus_(CLOCK_RATE * 2),
@@ -133,6 +133,7 @@ public:
 		rom_mask_ = rom_size - 1;
 		ram_.resize(ram_size);
 		video_.set_ram(reinterpret_cast<uint16_t *>(ram_.data()), ram_mask_ >> 1);
+		audio_.set_ram(reinterpret_cast<uint16_t *>(ram_.data()), ram_mask_ >> 1);
 
 		// Grab a copy of the ROM and convert it into big-endian data.
 		ROM::Request request(rom_name);
@@ -164,17 +165,12 @@ public:
 
 		// The Mac runs at 7.8336mHz.
 		set_clock_rate(double(CLOCK_RATE));
-		audio_.speaker().set_input_rate(float(CLOCK_RATE) / 2.0f);
 
 		// Insert any supplied media.
 		insert_media(target.media);
 
 		// Set the immutables of the memory map.
 		setup_memory_map();
-	}
-
-	~ConcreteMachine() {
-//		audio_.queue.lock_flush();
 	}
 
 	void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
@@ -384,16 +380,14 @@ public:
 		return delay;
 	}
 
-	void flush_output(int) {
-		// Flush the video before the audio queue; in a Mac the
-		// video is responsible for providing part of the
-		// audio signal, so the two aren't as distinct as in
-		// most machines.
-		update_video();
+	void flush_output(const int outputs) final {
+		if(outputs & Output::Video) {
+			update_video();
+		}
 
-		// As above: flush audio after video.
-		via_.flush();
-//		audio_.queue.perform();
+		if(outputs & Output::Audio) {
+			audio_.flush();
+		}
 
 		// This avoids deferring IWM costs indefinitely, until
 		// they become artbitrarily large.
@@ -450,9 +444,9 @@ public:
 		return video_.is_outputting(time_since_video_update_);
 	}
 
-	void set_use_alternate_buffers(bool use_alternate_screen_buffer, bool use_alternate_audio_buffer) {
+	void set_use_alternate_video_buffer(const bool use_alternate_buffer) {
 		update_video();
-		video_.set_use_alternate_buffers(use_alternate_screen_buffer, use_alternate_audio_buffer);
+		video_.set_use_alternate_buffer(use_alternate_buffer);
 	}
 
 	bool insert_media(const Analyser::Static::Media &media) final {
@@ -692,10 +686,10 @@ private:
 					*/
 					iwm_->set_select(value & 0x20);
 
-					machine_.set_use_alternate_buffers(!(value & 0x40), !(value&0x08));
+					machine_.set_use_alternate_video_buffer(!(value & 0x40));
 					machine_.set_rom_is_overlay(value & 0x10);
 
-					video_.flush();
+					audio_.set_use_alternate_buffer(!(value&0x08));
 					audio_.set_volume(value & 7);
 				break;
 
@@ -754,14 +748,6 @@ private:
 			else Logger::error().append("Unhandled 6522 control line output: %c%d", port ? 'B' : 'A', int(line));
 		}
 
-//		void run_for(HalfCycles duration) {
-//			// The 6522 enjoys a divide-by-ten, so multiply back up here to make the
-//			// divided-by-two clock the audio works on.
-//		}
-
-//		void flush() {
-//		}
-
 		void set_interrupt_status(bool) {
 			machine_.update_interrupt_input();
 		}
@@ -771,7 +757,6 @@ private:
 		Apple::Clock::SerialClock &clock_;
 		Keyboard &keyboard_;
 		Audio &audio_;
-		Video &video_;
 		IWMActor &iwm_;
 		Inputs::QuadratureMouse &mouse_;
 	};
@@ -781,8 +766,8 @@ private:
 	DriveSpeedAccumulator drive_speed_accumulator_;
 	IWMActor iwm_;
 
-	Audio audio_;
 	Video video_;
+	Audio audio_;
 
 	Apple::Clock::SerialClock clock_;
 	Keyboard keyboard_;

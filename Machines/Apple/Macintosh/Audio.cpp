@@ -13,17 +13,58 @@
 using namespace Apple::Macintosh;
 
 namespace {
-constexpr auto MaxBufferSize = 1024;
-constexpr auto MaxBufferDuration = HalfCycles(Cycles(MaxBufferSize)) * MasterClockDivider;
+constexpr HalfCycles MasterClockDivider = 8;	// Period at which to generate output samples; higher than the sampling
+												// rate to capture VIA activity — volume changes and the enable/disable
+												// toggle — which might occur at higher frequencies.
+
+constexpr auto MaxBufferSize = 1024;			// Maximum number of samples to accumulate on the emulator thread before
+												// pushing to the speaker.
+}
+
+// MARK: - Setup
+Audio::Audio(HalfCycles clock_rate, const Video &video, DriveSpeedAccumulator &drive_speed_accumulator) :
+	phase_(video.audio_phase()),
+	drive_speed_accumulator_(drive_speed_accumulator) {
+
+	speaker_.speaker().set_input_rate(clock_rate.as<float>() / MasterClockDivider.as<float>());
+}
+
+void Audio::set_ram(const uint16_t *const ram, const uint32_t mask) {
+	ram_ = ram;
+	ram_mask_ = mask;
+}
+
+void Audio::set_use_alternate_buffer(const bool use_alternate_buffer) {
+	use_alternate_buffer_ = use_alternate_buffer;
 }
 
 // MARK: - Inputs
 
 void Audio::operator += (const HalfCycles duration) {
-	time_ += duration;
+	HalfCycles remaining = duration;
+	while(remaining > HalfCycles(0)) {
+		const auto next = std::min(remaining.as<unsigned>(), phase_.sample_phase.remaining());
+		remaining -= HalfCycles(next);
+		time_ += HalfCycles(next);
 
-	if(time_ >= MaxBufferDuration) {
-		generate();
+		if(phase_.sample_phase.advance_divide(duration.as<unsigned>())) {
+			const size_t base =
+				use_alternate_buffer_ ? (0xffffa100 >> 1) : (0xfffffd00 >> 1);
+			const uint16_t audio_word = ram_[(address_ + base) & ram_mask_];
+			++address_;
+
+			post_sample(audio_word >> 8);
+			drive_speed_accumulator_.post_sample(audio_word & 0xff);
+
+			if(phase_.buffer_phase.advance_divide(1)) {
+				address_ = 0;
+			}
+		}
+
+		static constexpr auto MaxBufferDuration = HalfCycles(Cycles(MaxBufferSize)) * MasterClockDivider;
+		if(time_ >= MaxBufferDuration) {
+			generate();
+		}
 	}
 }
 

@@ -28,11 +28,7 @@ constexpr uint64_t PixelMask = std::endian::native == std::endian::little ? 0x01
 //	"The visible portion of a full-screen display consists of 342 horizontal scan lines...
 //	During the vertical blanking interval, the turned-off beam ... traces out an additional 28 scan lines,"
 //
-Video::Video(Audio &audio, DriveSpeedAccumulator &drive_speed_accumulator) :
-	audio_(audio),
-	drive_speed_accumulator_(drive_speed_accumulator),
-	crt_(704, 1, 370, 6, Outputs::Display::InputDataType::Luminance1) {
-
+Video::Video() : crt_(704, 1, 370, 6, Outputs::Display::InputDataType::Luminance1) {
 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 	crt_.set_aspect_ratio(1.73f);	// The Mac uses a non-standard scanning area.
 }
@@ -47,8 +43,7 @@ Outputs::Display::ScanStatus Video::get_scaled_scan_status() const {
 
 void Video::run_for(HalfCycles duration) {
 	// Determine the current video and audio bases. These values don't appear to be latched, they apply immediately.
-	const size_t video_base = (use_alternate_screen_buffer_ ? (0xffff2700 >> 1) : (0xffffa700 >> 1)) & ram_mask_;
-	const size_t audio_base = (use_alternate_audio_buffer_ ? (0xffffa100 >> 1) : (0xfffffd00 >> 1)) & ram_mask_;
+	const size_t video_base = (use_alternate_buffer_ ? (0xffff2700 >> 1) : (0xffffa700 >> 1)) & ram_mask_;
 
 	// The number of HalfCycles is literally the number of pixel clocks to move through,
 	// since pixel output occurs at twice the processor clock. So divide by 16 to get
@@ -121,14 +116,6 @@ void Video::run_for(HalfCycles duration) {
 					crt_.output_blank((44 - sync_end) * 16);
 				}
 			}
-
-			// Audio and disk fetches occur "just before video data".
-			if(final_word == 44) {
-				const uint16_t audio_word = ram_[audio_address_ + audio_base];
-				++audio_address_;
-				audio_.post_sample(audio_word >> 8);
-				drive_speed_accumulator_.post_sample(audio_word & 0xff);
-			}
 		}
 
 		duration -= cycles_left_in_line;
@@ -144,7 +131,7 @@ void Video::run_for(HalfCycles duration) {
 				"The main sound buffer is at $1FD00 in a 128K Macintosh, and the alternate buffer is at $1A100;
 				for a 512K Macintosh, add $60000 to these values."
 			*/
-			audio_address_ = 0;
+//			audio_address_ = 0;
 		}
 	}
 }
@@ -170,9 +157,8 @@ HalfCycles Video::next_sequence_point() {
 	}
 }
 
-void Video::set_use_alternate_buffers(bool use_alternate_screen_buffer, bool use_alternate_audio_buffer) {
-	use_alternate_screen_buffer_ = use_alternate_screen_buffer;
-	use_alternate_audio_buffer_ = use_alternate_audio_buffer;
+void Video::set_use_alternate_buffer(const bool use_alternate_buffer) {
+	use_alternate_buffer_ = use_alternate_buffer;
 }
 
 void Video::set_ram(const uint16_t *const ram, const uint32_t mask) {
@@ -183,4 +169,16 @@ void Video::set_ram(const uint16_t *const ram, const uint32_t mask) {
 	crt_.set_fixed_framing([&] {
 		run_for(Cycles(10'000));
 	});
+}
+
+AudioPhase Video::audio_phase() const {
+	AudioPhase phase;
+
+	// Audio and disk fetches occur "just before video data". So put that at cycle 44.
+	const auto relative_frame_position = (frame_position_ + frame_length - 44) % frame_length;
+
+	phase.sample_phase = (relative_frame_position % line_length).as<unsigned>();
+	phase.buffer_phase = (relative_frame_position / line_length).as<unsigned>();
+
+	return phase;
 }

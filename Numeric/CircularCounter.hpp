@@ -18,7 +18,7 @@ constexpr bool is_power_of_two(const IntT value) {
 	return !(value & (value - 1));
 }
 
-template <typename IntT, IntT limit>
+template <std::unsigned_integral IntT, IntT limit>
 class CircularCounter {
 public:
 	constexpr CircularCounter() noexcept = default;
@@ -26,6 +26,33 @@ public:
 		assert(value < limit);
 	}
 
+	/*!
+		Advances the counter by @c step units.
+		@returns The number of times the counter wrapped around.
+	*/
+	int advance_divide(const IntT step) {
+		int result{};
+
+		value_ += step;
+		if constexpr (is_power_of_two(limit)) {
+			result = value_ >> log2(limit);
+			value_ &= limit - 1;
+		} else {
+			while(value_ >= limit) [[unlikely]] {
+				++result;
+				value_ -= limit;
+			}
+		}
+
+		return result;
+	}
+
+	/// @returns The number of ticks remaining until the counter next rolls over.
+	IntT remaining() const {
+		return limit - value_;
+	}
+
+	/// Steps the counter once, possibly rolling over. Cheaper than an @c advance_divide.
 	CircularCounter &operator ++() {
 		++value_;
 

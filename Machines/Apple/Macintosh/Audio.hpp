@@ -8,11 +8,12 @@
 
 #pragma once
 
+#include "DriveSpeedAccumulator.hpp"
+#include "Video.hpp"
+
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 namespace Apple::Macintosh {
-
-constexpr HalfCycles MasterClockDivider = 2;
 
 /*!
 	Implements the Macintosh's audio output hardware.
@@ -22,6 +23,10 @@ constexpr HalfCycles MasterClockDivider = 2;
 */
 class Audio {
 public:
+	Audio(HalfCycles clock_rate, const Video &, DriveSpeedAccumulator &);
+	void set_ram(const uint16_t *ram, uint32_t mask);
+	void set_use_alternate_buffer(bool);
+
 	/*!
 		Macintosh audio is (partly) sourced by the same scanning
 		hardware as the video; each line it collects an additional
@@ -44,10 +49,7 @@ public:
 	*/
 	void set_enabled(bool);
 
-	/*!
-		TODO: remove this and accept inputs indicating clocking directly.
-	*/
-	auto &speaker() {
+	Outputs::Speaker::Speaker &speaker() {
 		return speaker_.speaker();
 	}
 
@@ -59,6 +61,15 @@ private:
 	Outputs::Speaker::AsyncPushLowpass<false> speaker_;
 	std::vector<int16_t> samples_;
 	HalfCycles time_;
+
+	// Fetch state.
+	size_t address_ = 0;
+	bool use_alternate_buffer_ = false;
+
+	AudioPhase phase_;
+	const uint16_t *ram_ = nullptr;
+	uint32_t ram_mask_ = 0;
+	DriveSpeedAccumulator &drive_speed_accumulator_;
 
 	// Emulator-thread stateful variables, to avoid work posting
 	// deferral updates if possible.
