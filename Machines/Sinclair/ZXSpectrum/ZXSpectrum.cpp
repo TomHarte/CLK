@@ -279,7 +279,7 @@ public:
 		}
 	}
 
-	void flush_output(int outputs) override {
+	void flush_output(const int outputs) override {
 		if(outputs & Output::Video) {
 			video_.flush();
 		}

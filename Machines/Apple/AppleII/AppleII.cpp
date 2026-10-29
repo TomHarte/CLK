@@ -70,7 +70,7 @@ struct StretchedAYPair:
 		using AYPair::AYPair;
 
 		template <Outputs::Speaker::Action action>
-		void apply_samples(std::size_t number_of_samples, Outputs::Speaker::StereoSample *target) {
+		void apply_samples(const std::size_t number_of_samples, Outputs::Speaker::StereoSample *const target) {
 
 			// (1) take 64 windows of 7 input cycles followed by one window of 8 input cycles;
 			// (2) after each four windows, advance the underlying AY.
@@ -140,7 +140,8 @@ private:
 	};
 
 	using Processor = CPU::MOS6502::Processor<
-		(model == Analyser::Static::AppleII::Target::Model::EnhancedIIe) ? CPU::MOS6502::Personality::PSynertek65C02 : CPU::MOS6502::Personality::P6502,
+		model == Analyser::Static::AppleII::Target::Model::EnhancedIIe
+			? CPU::MOS6502::Personality::PSynertek65C02 : CPU::MOS6502::Personality::P6502,
 		ConcreteMachine,
 		false>;
 	Processor m6502_;
@@ -173,7 +174,11 @@ private:
 	Audio::Toggle audio_toggle_;
 	StretchedAYPair ays_;
 	using SourceT =
-		std::conditional_t<has_mockingboard, Outputs::Speaker::CompoundSource<StretchedAYPair, Audio::Toggle>, Audio::Toggle>;
+		std::conditional_t<
+			has_mockingboard,
+			Outputs::Speaker::CompoundSource<StretchedAYPair,
+			Audio::Toggle
+		>, Audio::Toggle>;
 	using LowpassT = Outputs::Speaker::PullLowpass<SourceT>;
 
 	Outputs::Speaker::CompoundSource<StretchedAYPair, Audio::Toggle> mixer_;
@@ -199,20 +204,20 @@ private:
 
 	int stretched_cycles_since_card_update_ = 0;
 
-	void install_card(std::size_t slot, Apple::II::Card *card) {
+	void install_card(const std::size_t slot, Apple::II::Card *const card) {
 		assert(slot >= 1 && slot < 8);
 		cards_[slot - 1].reset(card);
 		card->set_delegate(this);
 		pick_card_messaging_group(card);
 	}
 
-	bool is_every_cycle_card(const Apple::II::Card *card) {
+	bool is_every_cycle_card(const Apple::II::Card *const card) {
 		return !card->get_select_constraints();
 	}
 
 	bool card_lists_are_dirty_ = true;
 	bool card_became_just_in_time_ = false;
-	void pick_card_messaging_group(Apple::II::Card *card) {
+	void pick_card_messaging_group(Apple::II::Card *const card) {
 		// Simplify to a card being either just-in-time or realtime.
 		// Don't worry about exactly what it's watching,
 		const bool is_every_cycle = is_every_cycle_card(card);
@@ -367,7 +372,10 @@ private:
 	// MARK: - Keyboard and typing.
 
 	struct Keyboard: public Inputs::Keyboard {
-		Keyboard(Processor &m6502, AuxiliaryMemorySwitches<ConcreteMachine> &switches) : m6502_(m6502), auxiliary_switches_(switches) {}
+		Keyboard(
+			Processor &m6502,
+			AuxiliaryMemorySwitches<ConcreteMachine> &switches
+		) : m6502_(m6502), auxiliary_switches_(switches) {}
 
 		void reset_all_keys() final {
 			open_apple_is_pressed =
@@ -379,7 +387,7 @@ private:
 			character_is_pressed_ = false;
 		}
 
-		bool set_key_pressed(Key key, char value, bool is_pressed, bool is_repeat) final {
+		bool set_key_pressed(const Key key, char value, const bool is_pressed, const bool is_repeat) final {
 			if constexpr (!is_iie(model)) {
 				if(is_repeat && !repeat_is_pressed_) return true;
 			}
@@ -686,7 +694,7 @@ public:
 		audio_queue_.lock_flush();
 	}
 
-	void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
+	void set_scan_target(Outputs::Display::ScanTarget *const scan_target) final {
 		video_.set_scan_target(scan_target);
 	}
 
@@ -695,7 +703,7 @@ public:
 	}
 
 	/// Sets the type of display.
-	void set_display_type(Outputs::Display::DisplayType display_type) final {
+	void set_display_type(const Outputs::Display::DisplayType display_type) final {
 		video_.set_display_type(display_type);
 	}
 
@@ -707,7 +715,11 @@ public:
 		return &speaker_;
 	}
 
-	forceinline Cycles perform_bus_operation(const CPU::MOS6502::BusOperation operation, const uint16_t address, uint8_t *const value) {
+	forceinline Cycles perform_bus_operation(
+		const CPU::MOS6502::BusOperation operation,
+		const uint16_t address,
+		uint8_t *const value
+	) {
 		++ cycles_since_video_update_;
 		++ cycles_since_card_update_;
 		cycles_since_audio_update_ += Cycles(7);
@@ -769,8 +781,10 @@ public:
 							case 0xc000:
 								*value = keyboard_.get_keyboard_input();
 							break;
-							case 0xc001: case 0xc002: case 0xc003: case 0xc004: case 0xc005: case 0xc006: case 0xc007:
-							case 0xc008: case 0xc009: case 0xc00a: case 0xc00b: case 0xc00c: case 0xc00d: case 0xc00e: case 0xc00f:
+							case 0xc001: case 0xc002: case 0xc003: case 0xc004:
+							case 0xc005: case 0xc006: case 0xc007:
+							case 0xc008: case 0xc009: case 0xc00a: case 0xc00b:
+							case 0xc00c: case 0xc00d: case 0xc00e: case 0xc00f:
 								*value = (*value & 0x80) | (keyboard_.get_keyboard_input() & 0x7f);
 							break;
 
@@ -1014,7 +1028,7 @@ public:
 		return Cycles(1);
 	}
 
-	void flush_output(int outputs) final {
+	void flush_output(const int outputs) final {
 		update_just_in_time_cards();
 
 		if(outputs & Output::Video) {
@@ -1077,7 +1091,7 @@ public:
 	}
 
 	// MARK: Activity::Source
-	void set_activity_observer(Activity::Observer *observer) final {
+	void set_activity_observer(Activity::Observer *const observer) final {
 		for(const auto &card: cards_) {
 			if(card) card->set_activity_observer(observer);
 		}

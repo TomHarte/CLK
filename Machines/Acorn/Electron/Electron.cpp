@@ -74,25 +74,27 @@ public:
 		speaker_.set_input_rate(2000000 / SoundGenerator::clock_rate_divider);
 		speaker_.set_high_frequency_cutoff(6000);
 
-		::ROM::Request request = ::ROM::Request(::ROM::Name::AcornBASICII) && ::ROM::Request(::ROM::Name::AcornElectronMOS100);
+		using Request = ::ROM::Request;
+		using Name = ::ROM::Name;
+		auto request = Request(Name::AcornBASICII) && Request(Name::AcornElectronMOS100);
 		if(target.has_pres_adfs) {
-			request = request && ::ROM::Request(::ROM::Name::PRESADFSSlot1) && ::ROM::Request(::ROM::Name::PRESADFSSlot2);
+			request = request && Request(Name::PRESADFSSlot1) && Request(Name::PRESADFSSlot2);
 		}
 		if(target.has_acorn_adfs) {
-			request = request && ::ROM::Request(::ROM::Name::AcornADFS);
+			request = request && Request(Name::AcornADFS);
 		}
 		if(target.has_dfs) {
-			request = request && ::ROM::Request(::ROM::Name::Acorn1770DFS);
+			request = request && Request(Name::Acorn1770DFS);
 		}
 		if(target.has_ap6_rom) {
-			request = request && ::ROM::Request(::ROM::Name::PRESAdvancedPlus6);
+			request = request && Request(Name::PRESAdvancedPlus6);
 		}
 		auto roms = rom_fetcher(request);
 		if(!request.validate(roms)) {
 			throw ROMMachine::Error::MissingROMs;
 		}
-		set_rom(ROM::BASIC, roms.find(::ROM::Name::AcornBASICII)->second, false);
-		set_rom(ROM::OS, roms.find(::ROM::Name::AcornElectronMOS100)->second, false);
+		set_rom(ROM::BASIC, roms.find(Name::AcornBASICII)->second, false);
+		set_rom(ROM::OS, roms.find(Name::AcornElectronMOS100)->second, false);
 
 		/*
 			ROM slot mapping applied:
@@ -108,18 +110,18 @@ public:
 			plus3_ = std::make_unique<Acorn::Floppy::Floppy1770>();
 
 			if(target.has_dfs) {
-				set_rom(ROM::Slot0, roms.find(::ROM::Name::Acorn1770DFS)->second, true);
+				set_rom(ROM::Slot0, roms.find(Name::Acorn1770DFS)->second, true);
 			}
 			if(target.has_pres_adfs) {
-				set_rom(ROM::Slot4, roms.find(::ROM::Name::PRESADFSSlot1)->second, true);
-				set_rom(ROM::Slot5, roms.find(::ROM::Name::PRESADFSSlot2)->second, true);
+				set_rom(ROM::Slot4, roms.find(Name::PRESADFSSlot1)->second, true);
+				set_rom(ROM::Slot5, roms.find(Name::PRESADFSSlot2)->second, true);
 			}
 			if(target.has_acorn_adfs) {
-				set_rom(ROM::Slot6, roms.find(::ROM::Name::AcornADFS)->second, true);
+				set_rom(ROM::Slot6, roms.find(Name::AcornADFS)->second, true);
 			}
 		}
 		if(target.has_ap6_rom) {
-			set_rom(ROM::Slot15, roms.find(::ROM::Name::PRESAdvancedPlus6)->second, true);
+			set_rom(ROM::Slot15, roms.find(Name::PRESAdvancedPlus6)->second, true);
 		}
 
 		if(target.has_sideways_ram) {
@@ -147,23 +149,23 @@ public:
 		audio_queue_.lock_flush();
 	}
 
-	void set_key_state(uint16_t key, bool isPressed) final {
+	void set_key_state(const uint16_t key, const bool is_pressed) final {
 		switch(key) {
 			default:
-				if(isPressed)
-					key_states_[key >> 4] |= key&0xf;
+				if(is_pressed)
+					key_states_[key >> 4] |= key & 0xf;
 				else
-					key_states_[key >> 4] &= ~(key&0xf);
+					key_states_[key >> 4] &= ~(key & 0xf);
 			break;
 
 			case KeyBreak:
-				m6502_.set_reset_line(isPressed);
+				m6502_.set_reset_line(is_pressed);
 			break;
 
 #define FuncShiftedKey(source, dest)	\
 			case source:	\
-				set_key_state(KeyFunc, isPressed);	\
-				set_key_state(dest, isPressed);	\
+				set_key_state(KeyFunc, is_pressed);	\
+				set_key_state(dest, is_pressed);	\
 			break;
 
 			FuncShiftedKey(KeyF1, Key1);
@@ -231,7 +233,11 @@ public:
 		return std::make_pair(Cycles(1), video_.run_for(Cycles(1)));
 	}
 
-	forceinline Cycles perform_bus_operation(const CPU::MOS6502::BusOperation operation, const uint16_t address, uint8_t *const value) {
+	forceinline Cycles perform_bus_operation(
+		const CPU::MOS6502::BusOperation operation,
+		const uint16_t address,
+		uint8_t *const value
+	) {
 		const auto [cycles, video_interrupts] = run_for_access(address);
 		signal_interrupt(video_interrupts);
 
@@ -509,14 +515,14 @@ public:
 		return cycles;
 	}
 
-	void flush_output(int outputs) final {
+	void flush_output(const int outputs) final {
 		if(outputs & Output::Audio) {
 			update_audio();
 			audio_queue_.perform();
 		}
 	}
 
-	void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
+	void set_scan_target(Outputs::Display::ScanTarget *const scan_target) final {
 		video_.set_scan_target(scan_target);
 	}
 
@@ -524,7 +530,7 @@ public:
 		return video_.get_scaled_scan_status();
 	}
 
-	void set_display_type(Outputs::Display::DisplayType display_type) final {
+	void set_display_type(const Outputs::Display::DisplayType display_type) final {
 		video_.set_display_type(display_type);
 	}
 
@@ -558,12 +564,18 @@ public:
 		evaluate_interrupts();
 	}
 
-	void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference preference) final {
+	void set_component_prefers_clocking(ClockingHint::Source *, const ClockingHint::Preference preference) final {
 		scsi_is_clocked_ = preference != ClockingHint::Preference::None;
 	}
 
 	void tape_did_change_interrupt_status(Tape &) final {
-		interrupt_status_ = (interrupt_status_ & ~(Interrupt::TransmitDataEmpty | Interrupt::ReceiveDataFull | Interrupt::HighToneDetect)) | tape_.get_interrupt_status();
+		interrupt_status_ =
+			(interrupt_status_ & ~(
+				Interrupt::TransmitDataEmpty |
+				Interrupt::ReceiveDataFull |
+				Interrupt::HighToneDetect
+			)) |
+			tape_.get_interrupt_status();
 		evaluate_interrupts();
 	}
 
@@ -688,7 +700,7 @@ private:
 		speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(SoundGenerator::clock_rate_divider));
 	}
 
-	inline void signal_interrupt(uint8_t interrupt) {
+	inline void signal_interrupt(const uint8_t interrupt) {
 		if(!interrupt) {
 			return;
 		}
@@ -696,7 +708,7 @@ private:
 		evaluate_interrupts();
 	}
 
-	inline void clear_interrupt(Interrupt interrupt) {
+	inline void clear_interrupt(const Interrupt interrupt) {
 		interrupt_status_ &= ~interrupt;
 		evaluate_interrupts();
 	}
@@ -719,8 +731,8 @@ private:
 
 	// Things that directly constitute the memory map.
 	uint8_t roms_[16][16384];
-	bool rom_inserted_[16] = {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};
-	bool rom_write_masks_[16] = {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};
+	bool rom_inserted_[16]{};
+	bool rom_write_masks_[16]{};
 	uint8_t os_[16384], ram_[32768];
 
 	// Paging
