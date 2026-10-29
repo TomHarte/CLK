@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include "Outputs/CRT/CRT.hpp"
 #include "ClockReceiver/ClockReceiver.hpp"
-#include "DeferredAudio.hpp"
-#include "DriveSpeedAccumulator.hpp"
+#include "Outputs/CRT/CRT.hpp"
+
+#include "Numeric/CircularCounter.hpp"
 
 namespace Apple::Macintosh {
 
@@ -22,6 +22,24 @@ constexpr int sync_start = 36;
 constexpr int sync_end = 38;
 
 /*!
+	In a real Macintosh the video collector is also responsible for audio collection.
+
+	This emulator has opted to decouple video activity from audio collection, which
+	means the audio collector needs to be able to learn about video phase in order to
+	known _when_ to collect audio.
+
+	The struct below captures that information.
+*/
+struct AudioPhase {
+	// A phase of 0 = collect audio now. This should increment with the CPU clock.
+	Numeric::CircularCounter<unsigned, line_length.as<int>()> sample_phase;
+
+	// A phase of 0 = reset audio collection address. This should increment each time
+	// sample phase wraps around.
+	Numeric::CircularCounter<unsigned, number_of_lines> buffer_phase;
+};
+
+/*!
 	Models the 68000-era Macintosh video hardware, producing a 512x348 pixel image,
 	within a total scanning area of 370 lines, at 352 cycles per line.
 
@@ -29,11 +47,7 @@ constexpr int sync_end = 38;
 */
 class Video {
 public:
-	/*!
-		Constructs an instance of @c Video sourcing its pixel data from @c ram and
-		providing audio and drive-speed bytes to @c audio and @c drive_speed_accumulator.
-	*/
-	Video(DeferredAudio &audio, DriveSpeedAccumulator &drive_speed_accumulator);
+	Video();
 
 	/*!
 		Sets the target device for video data.
@@ -46,12 +60,17 @@ public:
 	/*!
 		Produces the next @c duration period of pixels.
 	*/
-	void run_for(HalfCycles duration);
+	void run_for(HalfCycles);
+
+	/*!
+		@returns The current audio phase.
+	*/
+	AudioPhase audio_phase() const;
 
 	/*!
 		Sets whether the alternate screen and/or audio buffers should be used to source data.
 	*/
-	void set_use_alternate_buffers(bool use_alternate_screen_buffer, bool use_alternate_audio_buffer);
+	void set_use_alternate_buffer(bool);
 
 	/*!
 		Provides a base address and a mask indicating which parts of the generated video and audio/drive addresses are
@@ -82,9 +101,6 @@ public:
 	HalfCycles next_sequence_point();
 
 private:
-	DeferredAudio &audio_;
-	DriveSpeedAccumulator &drive_speed_accumulator_;
-
 	Outputs::CRT::CRT crt_;
 	const uint16_t *ram_ = nullptr;
 	uint32_t ram_mask_ = 0;
@@ -92,12 +108,10 @@ private:
 	HalfCycles frame_position_;
 
 	size_t video_address_ = 0;
-	size_t audio_address_ = 0;
 
 	uint64_t *pixel_buffer_ = nullptr;
 
-	bool use_alternate_screen_buffer_ = false;
-	bool use_alternate_audio_buffer_ = false;
+	bool use_alternate_buffer_ = false;
 };
 
 }
