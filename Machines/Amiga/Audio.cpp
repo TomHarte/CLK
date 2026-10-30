@@ -15,16 +15,10 @@
 
 using namespace Amiga;
 
-Audio::Audio(Chipset &chipset, uint16_t *ram, size_t word_size, float output_rate) :
+Audio::Audio(Chipset &chipset, uint16_t *const ram, const size_t word_size, const float output_rate) :
 	DMADevice<4>(chipset, ram, word_size) {
-
-	// Mark all buffers as available.
-	for(auto &flag: buffer_available_) {
-		flag.store(true, std::memory_order::relaxed);
-	}
-
-	speaker_.set_input_rate(output_rate);
-	speaker_.set_high_frequency_cutoff(7000.0f);
+	speaker_.speaker().set_input_rate(output_rate);
+	speaker_.speaker().set_high_frequency_cutoff(7000.0f);
 }
 
 // MARK: - Exposed setters.
@@ -127,42 +121,25 @@ void Audio::output() {
 		}
 	}
 
-	// Spin until the next buffer is available if just entering it for the first time.
-	// Contention here should be essentially non-existent.
-	if(!sample_pointer_) {
-		while(!buffer_available_[buffer_pointer_].load(std::memory_order::relaxed));
-	}
-
 	// Left.
-	static_assert(std::tuple_size<AudioBuffer>::value % 2 == 0);
-	buffer_[buffer_pointer_][sample_pointer_] = int16_t(
+	samples_.push_back(int16_t(
 		(
 			channels_[1].output_level * channels_[1].output_enabled +
 			channels_[2].output_level * channels_[2].output_enabled
 		) << 7
-	);
+	));
 
 	// Right.
-	buffer_[buffer_pointer_][sample_pointer_ + 1] = int16_t(
+	samples_.push_back(int16_t(
 		(
 			channels_[0].output_level * channels_[0].output_enabled +
 			channels_[3].output_level * channels_[3].output_enabled
 		) << 7
-	);
-	sample_pointer_ += 2;
+	));
 
-	if(sample_pointer_ == buffer_[buffer_pointer_].size()) {
-		const auto &buffer = buffer_[buffer_pointer_];
-		auto &flag = buffer_available_[buffer_pointer_];
-
-		flag.store(false, std::memory_order::release);
-		queue_.enqueue([this, &buffer, &flag] {
-			speaker_.push(buffer.data(), buffer.size() >> 1);
-			flag.store(true, std::memory_order::relaxed);
-		});
-
-		buffer_pointer_ = (buffer_pointer_ + 1) % BufferCount;
-		sample_pointer_ = 0;
+	static constexpr size_t MaxBufferedSamples = 20'000;
+	if(samples_.size() == MaxBufferedSamples) {
+		speaker_.push_swap(samples_);
 	}
 }
 

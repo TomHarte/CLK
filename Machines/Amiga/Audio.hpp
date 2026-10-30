@@ -58,7 +58,7 @@ public:
 
 	/// Obtains the output source.
 	Outputs::Speaker::Speaker *get_speaker() {
-		return &speaker_;
+		return &speaker_.speaker();
 	}
 
 private:
@@ -147,14 +147,8 @@ private:
 	} channels_[4];
 
 	// Transient output state, and its destination.
-	Outputs::Speaker::PushLowpass<true> speaker_;
-	Concurrency::AsyncTaskQueue<true> queue_;
-
-	using AudioBuffer = std::array<int16_t, 4096>;
-	static constexpr int BufferCount = 3;
-	AudioBuffer buffer_[BufferCount];
-	std::atomic<bool> buffer_available_[BufferCount];
-	size_t buffer_pointer_ = 0, sample_pointer_ = 0;
+	Outputs::Speaker::AsyncPushLowpass<true> speaker_;
+	std::vector<int16_t> samples_;
 };
 
 }
