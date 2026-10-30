@@ -94,15 +94,20 @@ public:
 	template <typename FuncT>
 	requires std::invocable<FuncT>
 	void enqueue(FuncT &&action) {
+		size_t size;
 		{
 			const std::lock_guard guard(condition_mutex_);
 			actions_.emplace_back(std::forward<FuncT>(action));
+
+			if constexpr (!perform_automatically) {
+				size = actions_.size();
+			}
 		}
 
 		if constexpr (perform_automatically) {
 			condition_.notify_one();
 		} else {
-			if(actions_.size() >= MaximumEnqueueActions) {
+			if(size >= MaximumEnqueueActions) {
 				condition_.notify_one();
 			}
 		}
