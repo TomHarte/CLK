@@ -23,22 +23,22 @@ Audio::Audio(Chipset &chipset, uint16_t *const ram, const size_t word_size, cons
 
 // MARK: - Exposed setters.
 
-void Audio::set_length(int channel, uint16_t length) {
+void Audio::set_length(const int channel, const uint16_t length) {
 	assert(channel >= 0 && channel < 4);
 	channels_[channel].length = length;
 }
 
-void Audio::set_period(int channel, uint16_t period) {
+void Audio::set_period(const int channel, const uint16_t period) {
 	assert(channel >= 0 && channel < 4);
 	channels_[channel].period = period;
 }
 
-void Audio::set_volume(int channel, uint16_t volume) {
+void Audio::set_volume(const int channel, const uint16_t volume) {
 	assert(channel >= 0 && channel < 4);
 	channels_[channel].volume = (volume & 0x40) ? 64 : (volume & 0x3f);
 }
 
-template <bool is_external> void Audio::set_data(int channel, uint16_t data) {
+template <bool is_external> void Audio::set_data(const int channel, const uint16_t data) {
 	assert(channel >= 0 && channel < 4);
 	channels_[channel].wants_data = false;
 	channels_[channel].data = data;
@@ -54,14 +54,14 @@ template <bool is_external> void Audio::set_data(int channel, uint16_t data) {
 template void Audio::set_data<false>(int, uint16_t);
 template void Audio::set_data<true>(int, uint16_t);
 
-void Audio::set_channel_enables(uint16_t enables) {
+void Audio::set_channel_enables(const uint16_t enables) {
 	channels_[0].dma_enabled = enables & 1;
 	channels_[1].dma_enabled = enables & 2;
 	channels_[2].dma_enabled = enables & 4;
 	channels_[3].dma_enabled = enables & 8;
 }
 
-void Audio::set_modulation_flags(uint16_t flags) {
+void Audio::set_modulation_flags(const uint16_t flags) {
 	channels_[3].attach_period = flags & 0x80;
 	channels_[2].attach_period = flags & 0x40;
 	channels_[1].attach_period = flags & 0x20;
@@ -73,7 +73,7 @@ void Audio::set_modulation_flags(uint16_t flags) {
 	channels_[0].attach_volume = flags & 0x01;
 }
 
-void Audio::set_interrupt_requests(uint16_t requests) {
+void Audio::set_interrupt_requests(const uint16_t requests) {
 	channels_[0].interrupt_pending = requests & uint16_t(InterruptFlag::AudioChannel0);
 	channels_[1].interrupt_pending = requests & uint16_t(InterruptFlag::AudioChannel1);
 	channels_[2].interrupt_pending = requests & uint16_t(InterruptFlag::AudioChannel2);
@@ -82,7 +82,7 @@ void Audio::set_interrupt_requests(uint16_t requests) {
 
 // MARK: - DMA and mixing.
 
-bool Audio::advance_dma(int channel) {
+bool Audio::advance_dma(const int channel) {
 	if(!channels_[channel].wants_data) {
 		return false;
 	}
@@ -333,7 +333,7 @@ template <
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::Disabled,
-	Audio::Channel::State::PlayingHigh>(Channel *moduland) {
+	Audio::Channel::State::PlayingHigh>(Channel *const moduland) {
 	begin_state<State::PlayingHigh>(moduland);
 
 	// percntrld
@@ -356,7 +356,7 @@ template <> bool Audio::Channel::transit<
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::Disabled,
-	Audio::Channel::State::WaitingForDummyDMA>(Channel *moduland) {
+	Audio::Channel::State::WaitingForDummyDMA>(Channel *const moduland) {
 	begin_state<State::WaitingForDummyDMA>(moduland);
 
 	// percntrld
@@ -374,7 +374,7 @@ template <> bool Audio::Channel::transit<
 	return false;
 }
 
-template <> bool Audio::Channel::output<Audio::Channel::State::Disabled>(Channel *moduland) {
+template <> bool Audio::Channel::output<Audio::Channel::State::Disabled>(Channel *const moduland) {
 	// if AUDDAT, and not AUDxON, and not AUDxIP.
 	if(!wants_data && !dma_enabled && !interrupt_pending) {
 		return transit<State::Disabled, State::PlayingHigh>(moduland);
@@ -394,7 +394,7 @@ template <> bool Audio::Channel::output<Audio::Channel::State::Disabled>(Channel
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::WaitingForDummyDMA,
-	Audio::Channel::State::WaitingForDMA>(Channel *moduland) {
+	Audio::Channel::State::WaitingForDMA>(Channel *const moduland) {
 	begin_state<State::WaitingForDMA>(moduland);
 
 	// AUDxDR
@@ -409,7 +409,7 @@ template <> bool Audio::Channel::transit<
 	return true;
 }
 
-template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDummyDMA>(Channel *moduland) {
+template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDummyDMA>(Channel *const moduland) {
 	// if not AUDxON
 	if(!dma_enabled) {
 		return transit<State::WaitingForDummyDMA, State::Disabled>(moduland);
@@ -429,7 +429,7 @@ template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDummyDM
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::WaitingForDMA,
-	Audio::Channel::State::PlayingHigh>(Channel *moduland) {
+	Audio::Channel::State::PlayingHigh>(Channel *const moduland) {
 	begin_state<State::PlayingHigh>(moduland);
 
 	// volcntrld
@@ -452,7 +452,7 @@ template <> bool Audio::Channel::transit<
 	return false;
 }
 
-template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDMA>(Channel *moduland) {
+template <> bool Audio::Channel::output<Audio::Channel::State::WaitingForDMA>(Channel *const moduland) {
 	// if: not AUDxON
 	if(!dma_enabled) {
 		return transit<State::WaitingForDummyDMA, State::Disabled>(moduland);
@@ -488,7 +488,7 @@ void Audio::Channel::decrement_length() {
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::PlayingHigh,
-	Audio::Channel::State::PlayingLow>(Channel *moduland) {
+	Audio::Channel::State::PlayingLow>(Channel *const moduland) {
 	begin_state<State::PlayingLow>(moduland);
 
 	bool wants_interrupt = false;
@@ -532,7 +532,7 @@ template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingHigh>
 	output_level = int8_t(data_latch >> 8);
 }
 
-template <> bool Audio::Channel::output<Audio::Channel::State::PlayingHigh>(Channel *moduland) {
+template <> bool Audio::Channel::output<Audio::Channel::State::PlayingHigh>(Channel *const moduland) {
 	// This is a reasonable guess as to the exit condition for this node;
 	// Commodore doesn't document.
 	if(period_counter == 1) {
@@ -551,7 +551,7 @@ template <> bool Audio::Channel::output<Audio::Channel::State::PlayingHigh>(Chan
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::PlayingLow,
-	Audio::Channel::State::Disabled>(Channel *moduland) {
+	Audio::Channel::State::Disabled>(Channel *const moduland) {
 	begin_state<State::Disabled>(moduland);
 
 	// Clear the slightly nebulous 'if intreq2 occurred' state.
@@ -562,7 +562,7 @@ template <> bool Audio::Channel::transit<
 
 template <> bool Audio::Channel::transit<
 	Audio::Channel::State::PlayingLow,
-	Audio::Channel::State::PlayingHigh>(Channel *moduland) {
+	Audio::Channel::State::PlayingHigh>(Channel *const moduland) {
 	begin_state<State::PlayingHigh>(moduland);
 
 	bool wants_interrupt = false;
@@ -608,7 +608,7 @@ template <> void Audio::Channel::begin_state<Audio::Channel::State::PlayingLow>(
 	output_level = int8_t(data_latch & 0xff);
 }
 
-template <> bool Audio::Channel::output<Audio::Channel::State::PlayingLow>(Channel *moduland) {
+template <> bool Audio::Channel::output<Audio::Channel::State::PlayingLow>(Channel *const moduland) {
 	-- period_counter;
 
 	if(!period_counter) {
@@ -627,7 +627,7 @@ template <> bool Audio::Channel::output<Audio::Channel::State::PlayingLow>(Chann
 // Dispatcher
 //
 
-bool Audio::Channel::output(Channel *moduland) {
+bool Audio::Channel::output(Channel *const moduland) {
 	// Update pulse-width modulation.
 	output_phase = output_phase + 1;
 	if(output_phase == 64) {
