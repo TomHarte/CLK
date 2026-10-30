@@ -249,8 +249,6 @@ bool Blitter<record_bus>::advance_dma() {
 		// issue across machines. It would not be acceptable to me to ship this.
 		// (and the printf is another reminder-to-self)
 		if(width_ == 8 && height_ == 32) {
-			printf("Accelerating %d x %d\n", width_, height_);
-
 			while(get_status() & 0x4000) {
 				advance_dma<false>();
 			}
