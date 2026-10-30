@@ -391,17 +391,6 @@ public:
 		buffer.clear();
 	}
 
-	/*!
-		Performs @c function asynchronously, giving it a reference to the embedded speaker.
-		This function returns immediately; it does not wait for the function to complete.
-	*/
-	template <typename FuncT>
-	void push(FuncT &&function) {
-		queue_.enqueue([&] {
-			function(speaker_);
-		});
-	}
-
 private:
 	struct {
 		std::vector<int16_t> data;
