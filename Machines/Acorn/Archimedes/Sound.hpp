@@ -56,16 +56,16 @@ struct SoundLevels {
 /// Models the Archimedes sound output; in a real machine this is a joint efort between the VIDC and the MEMC.
 template <typename InterruptObserverT>
 struct Sound: private SoundLevels {
-	Sound(InterruptObserverT &observer, const uint8_t *ram) : ram_(ram), observer_(observer) {
-		speaker_.set_input_rate(1'000'000);
-		speaker_.set_high_frequency_cutoff(2'200.0f);
+	Sound(InterruptObserverT &observer, const uint8_t *const ram) : ram_(ram), observer_(observer) {
+		speaker_.speaker().set_input_rate(1'000'000);
+		speaker_.speaker().set_high_frequency_cutoff(2'200.0f);
 	}
 
-	void set_next_end(uint32_t value) {
+	void set_next_end(const uint32_t value) {
 		next_.end = value;
 	}
 
-	void set_next_start(uint32_t value) {
+	void set_next_start(const uint32_t value) {
 		next_.start = value;
 		set_buffer_valid(true);	// My guess: this is triggered on next buffer start write.
 
@@ -84,11 +84,11 @@ struct Sound: private SoundLevels {
 		set_halted(false);
 	}
 
-	void set_frequency(uint8_t frequency) {
+	void set_frequency(const uint8_t frequency) {
 		divider_ = reload_ = frequency;
 	}
 
-	void set_stereo_image(uint8_t channel, uint8_t value) {
+	void set_stereo_image(const uint8_t channel, const uint8_t value) {
 		if(!value) {
 			positions_[channel].left =
 			positions_[channel].right = 0;
@@ -99,7 +99,7 @@ struct Sound: private SoundLevels {
 		positions_[channel].left = 6 - positions_[channel].right;
 	}
 
-	void set_dma_enabled(bool enabled) {
+	void set_dma_enabled(const bool enabled) {
 		dma_enabled_ = enabled;
 	}
 
@@ -141,11 +141,7 @@ struct Sound: private SoundLevels {
 	}
 
 	Outputs::Speaker::Speaker *speaker() {
-		return &speaker_;
-	}
-
-	~Sound() {
-		while(is_posting_.test_and_set());
+		return &speaker_.speaker();
 	}
 
 private:
@@ -154,12 +150,12 @@ private:
 	uint8_t divider_ = 0, reload_ = 0;
 	int byte_ = 0;
 
-	void set_buffer_valid(bool valid) {
+	void set_buffer_valid(const bool valid) {
 		next_buffer_valid_ = valid;
 		observer_.update_interrupts();
 	}
 
-	void set_halted(bool halted) {
+	void set_halted(const bool halted) {
 		if(halted_ != halted && !halted) {
 			byte_ = 0;
 			divider_ = reload_;
@@ -182,30 +178,19 @@ private:
 	} positions_[8];
 
 	InterruptObserverT &observer_;
-	Outputs::Speaker::PushLowpass<true> speaker_;
-	Concurrency::AsyncTaskQueue<true> queue_;
+	Outputs::Speaker::AsyncPushLowpass<true> speaker_;
 
-	void post_sample(Outputs::Speaker::StereoSample sample) {
-		samples_[sample_target_][sample_pointer_++] = sample;
-		if(sample_pointer_ == samples_[0].size()) {
-			while(is_posting_.test_and_set());
+	void post_sample(const Outputs::Speaker::StereoSample sample) {
+		samples_.push_back(sample.left);
+		samples_.push_back(sample.right);
 
-			const auto post_source = sample_target_;
-			sample_target_ ^= 1;
-			sample_pointer_ = 0;
-			queue_.enqueue([this, post_source]() {
-				speaker_.push(reinterpret_cast<int16_t *>(samples_[post_source].data()), samples_[post_source].size());
-				is_posting_.clear();
-			});
+		static constexpr size_t MaxBufferSize = 8192;
+		if(samples_.size() == MaxBufferSize) {
+			speaker_.push_swap(samples_);
 		}
 	}
-	std::size_t sample_pointer_ = 0;
-	std::size_t sample_target_ = 0;
 	Outputs::Speaker::StereoSample sample_;
-
-	using SampleBuffer = std::array<Outputs::Speaker::StereoSample, 4096>;
-	std::array<SampleBuffer, 2> samples_;
-	std::atomic_flag is_posting_;
+	std::vector<int16_t> samples_;
 };
 
 }
