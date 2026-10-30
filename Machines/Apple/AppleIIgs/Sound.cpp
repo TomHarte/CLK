@@ -37,7 +37,7 @@ void GLU::set_data(uint8_t data) {
 		write.time = pending_store_write_time_;
 		pending_stores_[pending_store_write_].store(write, std::memory_order::release);
 
-		pending_store_write_ = (pending_store_write_ + 1) % (StoreBufferSize - 1);
+		pending_store_write_ = (pending_store_write_ + 1) & (StoreBufferSize - 1);
 	} else {
 		// Register access.
 		const auto address = address_;	// To make sure I don't inadvertently 'capture' address_.

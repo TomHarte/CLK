@@ -5795,6 +5795,7 @@
 			children = (
 				4B8DF503254E3C9D00F3433C /* ADB.cpp */,
 				4BE21214253FCE9C00435408 /* AppleIIgs.cpp */,
+				42EB812C2B47008D00429AF4 /* MemoryMap.cpp */,
 				4B1EC714255398B000A1F44B /* Sound.cpp */,
 				4B8DF4F7254E36AD00F3433C /* Video.cpp */,
 				4B8DF504254E3C9D00F3433C /* ADB.hpp */,
@@ -5802,7 +5803,6 @@
 				4B8DF4D62546561300F3433C /* MemoryMap.hpp */,
 				4B1EC715255398B000A1F44B /* Sound.hpp */,
 				4B8DF4F8254E36AD00F3433C /* Video.hpp */,
-				42EB812C2B47008D00429AF4 /* MemoryMap.cpp */,
 			);
 			path = AppleIIgs;
 			sourceTree = "<group>";
