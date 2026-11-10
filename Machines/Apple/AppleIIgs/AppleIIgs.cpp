@@ -100,14 +100,15 @@ public:
 		drives525_{
 			{CLOCK_RATE / 2},
 			{CLOCK_RATE / 2}
-		},
-		sound_glu_(audio_queue_),
-		audio_toggle_(audio_queue_),
-		mixer_(sound_glu_, audio_toggle_),
-		speaker_(mixer_) {
+		}
+//		sound_glu_(audio_queue_),
+//		audio_toggle_(audio_queue_),
+//		mixer_(sound_glu_, audio_toggle_),
+//		speaker_(mixer_)
+		{
 
 		set_clock_rate(double(CLOCK_RATE));
-		speaker_.set_input_rate(float(CLOCK_RATE) / float(audio_divider));
+//		speaker_.set_input_rate(float(CLOCK_RATE) / float(audio_divider));
 		clock_.ClockStorage::set_data(std::begin(default_bram), std::end(default_bram));
 
 		using Target = Analyser::Static::AppleIIgs::Target;
@@ -209,10 +210,6 @@ public:
 		insert_media(target.media);
 	}
 
-	~ConcreteMachine() {
-		audio_queue_.lock_flush();
-	}
-
 	void run_for(const Cycles cycles) override {
 		m65816_.run_for(cycles);
 	}
@@ -226,7 +223,6 @@ public:
 		}
 		if(outputs & Output::Audio) {
 			AudioUpdater updater(this);
-			audio_queue_.perform();
 		}
 	}
 
@@ -247,7 +243,8 @@ public:
 	}
 
 	Outputs::Speaker::Speaker *get_speaker() final {
-		return &speaker_;
+		return nullptr;
+//		return &speaker_;
 	}
 
 	// MARK: MediaTarget.
@@ -504,38 +501,14 @@ public:
 				break;
 
 				// The audio GLU.
-				case Read(0xc03c): {
-					AudioUpdater updater(this);
-					*value = sound_glu_.get_control();
-				} break;
-				case Write(0xc03c): {
-					AudioUpdater updater(this);
-					sound_glu_.set_control(*value);
-				} break;
-				case Read(0xc03d): {
-					AudioUpdater updater(this);
-					*value = sound_glu_.get_data();
-				} break;
-				case Write(0xc03d): {
-					AudioUpdater updater(this);
-					sound_glu_.set_data(*value);
-				} break;
-				case Read(0xc03e): {
-					AudioUpdater updater(this);
-					*value = sound_glu_.get_address_low();
-				} break;
-				case Write(0xc03e): {
-					AudioUpdater updater(this);
-					sound_glu_.set_address_low(*value);
-				} break;
-				case Read(0xc03f): {
-					AudioUpdater updater(this);
-					*value = sound_glu_.get_address_high();
-				} break;
-				case Write(0xc03f): {
-					AudioUpdater updater(this);
-					sound_glu_.set_address_high(*value);
-				} break;
+				case Read(0xc03c):		*value = AudioUpdater(this)->control();			break;
+				case Write(0xc03c):		AudioUpdater(this)->set_control(*value);		break;
+				case Read(0xc03d):		*value = AudioUpdater(this)->data();			break;
+				case Write(0xc03d):		AudioUpdater(this)->set_data(*value);			break;
+				case Read(0xc03e):		*value = AudioUpdater(this)->address_low();		break;
+				case Write(0xc03e):		AudioUpdater(this)->set_address_low(*value);	break;
+				case Read(0xc03f):		*value = AudioUpdater(this)->address_high();	break;
+				case Write(0xc03f):		AudioUpdater(this)->set_address_high(*value);	break;
 
 
 				// These were all dealt with by the call to memory_.access.
@@ -675,8 +648,9 @@ public:
 				break;
 
 				case Read(0xc030): case Write(0xc030): {
-					AudioUpdater updater(this);
-					audio_toggle_.set_output(!audio_toggle_.get_output());
+					// TODO: restore audio toggle.
+//					AudioUpdater updater(this);
+//					audio_toggle_.set_output(!audio_toggle_.get_output());
 				} break;
 
 				// 'Test Mode', whatever that is (?)
@@ -908,7 +882,7 @@ public:
 	void update_interrupts() {
 		// Update the interrupt line.
 		// TODO: add ADB controller as event source.
-		m65816_.set_irq_line(video_.get()->get_interrupt_line() || sound_glu_.get_interrupt_line());
+		m65816_.set_irq_line(video_.get()->get_interrupt_line() || sound_glu_.interrupt());
 	}
 
 	// MARK: - Input.
@@ -962,28 +936,35 @@ private:
 	Apple::Disk::DiskIIDrive drives525_[2];
 
 	// The audio parts.
-	Concurrency::AsyncTaskQueue<false> audio_queue_;
+//	Concurrency::AsyncTaskQueue<false> audio_queue_;
 	Apple::IIgs::Sound::GLU sound_glu_;
-	Audio::Toggle audio_toggle_;
-	using AudioSource = Outputs::Speaker::CompoundSource<Apple::IIgs::Sound::GLU, Audio::Toggle>;
-	AudioSource mixer_;
-	Outputs::Speaker::PullLowpass<AudioSource> speaker_;
+//	Audio::Toggle audio_toggle_;
+//	using AudioSource = Outputs::Speaker::CompoundSource<Apple::IIgs::Sound::GLU, Audio::Toggle>;
+//	AudioSource mixer_;
+//	Outputs::Speaker::PullLowpass<AudioSource> speaker_;
+
 	Cycles cycles_since_audio_update_;
 	Cycles cycles_until_audio_event_;
 	static constexpr int audio_divider = 16;
 	void update_audio() {
 		const auto divided_cycles = cycles_since_audio_update_.divide(audio_divider);
 		sound_glu_.run_for(divided_cycles);
-		speaker_.run_for(audio_queue_, divided_cycles);
+//		speaker_.run_for(audio_queue_, divided_cycles);
 	}
 	class AudioUpdater {
 	public:
-		AudioUpdater(ConcreteMachine *machine) : machine_(machine) {
+		AudioUpdater(ConcreteMachine *const machine) : machine_(machine) {
 			machine_->update_audio();
 		}
 		~AudioUpdater() {
 			machine_->cycles_until_audio_event_ = machine_->sound_glu_.next_sequence_point();
 		}
+		Apple::IIgs::Sound::GLU *operator ->() const {
+			return &machine_->sound_glu_;
+		}
+//		Audio::Toggle &toggle() const {
+//			return machine_->audio_toggle_;
+//		}
 	private:
 		ConcreteMachine *machine_;
 	};

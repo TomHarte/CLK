@@ -18,20 +18,21 @@ namespace Apple::IIgs::Sound {
 
 class GLU: public Outputs::Speaker::BufferSource<GLU, false> {	// TODO: isn't this stereo?
 public:
-	GLU(Concurrency::AsyncTaskQueue<false> &audio_queue);
-
 	void set_control(uint8_t);
-	uint8_t get_control();
+	uint8_t control();
+
 	void set_data(uint8_t);
-	uint8_t get_data();
+	uint8_t data();
+
 	void set_address_low(uint8_t);
-	uint8_t get_address_low();
+	uint8_t address_low();
 	void set_address_high(uint8_t);
-	uint8_t get_address_high();
+	uint8_t address_high();
 
 	void run_for(Cycles);
+
 	Cycles next_sequence_point() const;
-	bool get_interrupt_line();
+	bool interrupt();
 
 	// SampleSource.
 	template <Outputs::Speaker::Action action>
@@ -40,32 +41,10 @@ public:
 	bool is_zero_level() const { return false; }	// TODO.
 
 private:
-	Concurrency::AsyncTaskQueue<false> &audio_queue_;
-
 	uint16_t address_ = 0;
 
-	// Use a circular buffer for piping memory alterations onto the audio
-	// thread; it would be prohibitive to defer every write individually.
-	//
-	// Assumed: on most modern architectures, an atomic 64-bit read or
-	// write can be achieved locklessly.
-	struct MemoryWrite {
-		uint32_t time;
-		uint16_t address;
-		uint8_t value;
-		bool enabled;
-	};
-	static_assert(sizeof(MemoryWrite) == 8);
-	static constexpr int StoreBufferSize = 16384;
-
-	std::atomic<MemoryWrite> pending_stores_[StoreBufferSize];
-	uint32_t pending_store_read_ = 0, pending_store_read_time_ = 0;
-	uint32_t pending_store_write_ = 0, pending_store_write_time_ = 0;
-
-	// Maintain state both 'locally' (i.e. on the emulation thread) and
-	// 'remotely' (i.e. on the audio thread).
-	struct EnsoniqState {
-		uint8_t ram_[65536];
+	struct State {
+		uint8_t ram[65536];
 		struct Oscillator {
 			uint32_t position;
 
@@ -82,8 +61,8 @@ private:
 			bool interrupt_request = false;	// Will be non-zero if this channel would request an interrupt, were
 											// it currently enabled to do so.
 
-			uint8_t sample(uint8_t *ram);
-			int16_t output(uint8_t *ram);
+			uint8_t sample(const uint8_t *ram);
+			int16_t output(const uint8_t *ram);
 		} oscillators[32];
 
 		// Some of these aren't actually needed on both threads.
@@ -91,13 +70,13 @@ private:
 		int oscillator_count = 1;
 
 		void set_register(uint16_t address, uint8_t value);
-	} local_, remote_;
+	} state_;
 
 	// Functions to update an EnsoniqState; these don't belong to the state itself
 	// because they also access the pending stores (inter alia).
 	template <Outputs::Speaker::Action action>
 	void generate_audio(size_t number_of_samples, Outputs::Speaker::MonoSample *target);
-	void skip_audio(EnsoniqState &state, size_t number_of_samples);
+//	void skip_audio(EnsoniqState &state, size_t number_of_samples);
 
 	// Audio-thread state.
 	int16_t output_range_ = 0;
