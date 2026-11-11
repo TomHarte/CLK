@@ -12,57 +12,68 @@
 #include <cstdio>
 #include <numeric>
 
-// TODO: is it safe not to check for back-pressure in pending_stores_?
+namespace {
+
+enum GLUControl: uint8_t {
+	Volume					= 0b0000'1111,
+	Reserved				= 0b0001'0000,
+	AddressAutoIncrement	= 0b0010'0000,
+	AccessRAM				= 0b0100'0000,	// Access DOC if clear.
+	DOCBusy					= 0b1000'0000,
+};
+
+void load_high(uint16_t &target, const uint8_t source) {
+	target &= 0x00ff;
+	target |= uint16_t(source << 8);
+}
+
+void load_low(uint16_t &target, const uint8_t source) {
+	target &= 0xff00;
+	target |= source;
+}
+
+}
 
 using namespace Apple::IIgs::Sound;
 
 void GLU::set_data(const uint8_t data) {
-	if(state_.control & 0x40) {
-		// RAM access.
-		state_.ram[address_] = data;
+	data_ = data;
+	if(control_ & GLUControl::AccessRAM) {
+		ram_[address_] = data;
 	} else {
-		// Register access.
-		const auto address = address_;	// To make sure I don't inadvertently 'capture' address_.
-		state_.set_register(address, data);
+		set_register(address_, data);
 	}
 
-	if(state_.control & 0x20) {
+	if(control_ & GLUControl::AddressAutoIncrement) {
 		++address_;
 	}
 }
 
-void GLU::State::set_register(const uint16_t address, const uint8_t value) {
+void GLU::set_register(const uint16_t address, const uint8_t value) {
+	auto &oscillator = oscillators_[address & 0x1f];
+
 	switch(address & 0xe0) {
-		case 0x00:
-			oscillators[address & 0x1f].velocity =
-				uint16_t((oscillators[address & 0x1f].velocity & 0xff00) | (value << 0));
-		break;
-		case 0x20:
-			oscillators[address & 0x1f].velocity =
-				uint16_t((oscillators[address & 0x1f].velocity & 0x00ff) | (value << 8));
-		break;
-		case 0x40:
-			oscillators[address & 0x1f].volume = value;
-		break;
+		case 0x00:	load_low(oscillator.velocity, value);		break;
+		case 0x20:	load_high(oscillator.velocity, value);		break;
+		case 0x40:	oscillator.volume = value;					break;
+		case 0x80:	oscillator.address = value;					break;
+
 		case 0x60:
 			/* Does setting the last sample make any sense? */
 		break;
-		case 0x80:
-			oscillators[address & 0x1f].address = value;
-		break;
 		case 0xa0: {
-			oscillators[address & 0x1f].control = value;
+			oscillator.control = value;
 
 			// Halt + M0 => reset position.
-			if((oscillators[address & 0x1f].control & 0x3) == 3) {
-				oscillators[address & 0x1f].control |= 1;
+			if((oscillator.control & 0x3) == 3) {
+				oscillator.control |= 1;
 			}
 		} break;
 		case 0xc0:
-			oscillators[address & 0x1f].table_size = value;
+			oscillator.table_size = value;
 
 			// The most-significant bit that should be used is 16 + (value & 7).
-			oscillators[address & 0x1f].overflow_mask = uint32_t(~(0xffffff >> (7 - (value & 7))));
+			oscillator.overflow_mask = uint32_t(~(0xffffff >> (7 - (value & 7))));
 		break;
 
 		default:
@@ -71,7 +82,7 @@ void GLU::State::set_register(const uint16_t address, const uint8_t value) {
 					/* Does setting the interrupt register really make any sense? */
 				break;
 				case 0xe1:
-					oscillator_count = 1 + ((value >> 1) & 31);
+					oscillator_count_ = 1 + ((value >> 1) & 31);
 				break;
 				case 0xe2:
 					/* Writing to the analogue to digital input definitely makes no sense. */
@@ -82,48 +93,62 @@ void GLU::State::set_register(const uint16_t address, const uint8_t value) {
 }
 
 uint8_t GLU::data() {
-	const auto address = address_;
-	if(state_.control & 0x20) {
+	// Per the Apple IIgs Hardware Reference, page 101:
+	//
+	//	"The sound RAM read operation is the same as the write operation with one exception: reading from the data
+	//	register lags by one read cycle. For example, if you want to read 10 bytes from the sound RAM, select the RAM by
+	//	setting the Sound Control register bit and enabling auto-incrementing. Then set the Address Pointer register to
+	//	the startig address and read the data register 11 times, discarding the first byte read."
+	//
+	// Hence the code below returns whatever is currently in data_ but enqueues the proper value for it for next
+	// time around.
+	const auto data = data_;
+
+	if(control_ & GLUControl::AccessRAM) {
+		data_ = ram_[address_];
+	} else {
+		auto &oscillator = oscillators_[address_ & 0x1f];
+		switch(address_ & 0xe0) {
+			case 0x00:	data_ = oscillator.velocity & 0xff;		break;
+			case 0x20:	data_ = oscillator.velocity >> 8;		break;
+			case 0x40:	data_ = oscillator.volume;				break;
+			case 0x60:	data_ = oscillator.sample(ram_);		break;
+			case 0x80:	data_ = oscillator.address;				break;
+			case 0xa0:	data_ = oscillator.control;				break;
+			case 0xc0:	data_ = oscillator.table_size;			break;
+
+			default:
+				switch(address_ & 0xff) {
+					case 0xe0:
+						data_ = 0xc1;	// No interrupt found.
+
+						// Find the first enabled oscillator that is signalling an interrupt and has interrupts enabled.
+						for(int c = 0; c < oscillator_count_; c++) {
+							if(oscillators_[c].interrupt_request && (oscillators_[c].control & 0x08)) {
+								oscillators_[c].interrupt_request = false;
+								data_ = uint8_t(0x41 | (c << 1));
+								break;
+							}
+						}
+					break;
+					case 0xe1:	data_ = uint8_t((oscillator_count_ - 1) << 1); break;	// TODO: should other bits be 0 or 1?
+					case 0xe2:	data_ = 128;	break;									// Input audio.
+				}
+			break;
+		}
+	}
+
+	if(control_ & GLUControl::AddressAutoIncrement) {
 		++address_;
 	}
-
-	switch(address & 0xe0) {
-		case 0x00:	return state_.oscillators[address & 0x1f].velocity & 0xff;
-		case 0x20:	return state_.oscillators[address & 0x1f].velocity >> 8;
-		case 0x40:	return state_.oscillators[address & 0x1f].volume;
-		case 0x60:	return state_.oscillators[address & 0x1f].sample(state_.ram);
-		case 0x80:	return state_.oscillators[address & 0x1f].address;
-		case 0xa0:	return state_.oscillators[address & 0x1f].control;
-		case 0xc0:	return state_.oscillators[address & 0x1f].table_size;
-
-		default:
-			switch(address & 0xff) {
-				case 0xe0: {
-					// Find the first enabled oscillator that is signalling an interrupt and has interrupts enabled.
-					for(int c = 0; c < state_.oscillator_count; c++) {
-						if(state_.oscillators[c].interrupt_request && (state_.oscillators[c].control & 0x08)) {
-							state_.oscillators[c].interrupt_request = false;
-							return uint8_t(0x41 | (c << 1));
-						}
-					}
-
-					// No interrupt found.
-					return 0xc1;
-				} break;
-				case 0xe1:	return uint8_t((state_.oscillator_count - 1) << 1);	// TODO: should other bits be 0 or 1?
-				case 0xe2:	return 128;											// Input audio. Unimplemented!
-			}
-		break;
-	}
-
-	return 0;
+	return data;
 }
 
 bool GLU::interrupt() {
 	// Return @c true if any oscillator currently has its interrupt request
 	// set, and has interrupts enabled.
-	for(int c = 0; c < state_.oscillator_count; c++) {
-		if(state_.oscillators[c].interrupt_request && (state_.oscillators[c].control & 0x08)) {
+	for(int c = 0; c < oscillator_count_; c++) {
+		if(oscillators_[c].interrupt_request && (oscillators_[c].control & 0x08)) {
 			return true;
 		}
 	}
@@ -135,126 +160,56 @@ bool GLU::interrupt() {
 void GLU::run_for(const Cycles duration) {
 	const auto cycles = duration.as<uint32_t>();
 
-	for(int c = 0; c < state_.oscillator_count; c++) {
+	for(int c = 0; c < oscillator_count_; c++) {
 		// Don't do anything for halted oscillators.
-		if(state_.oscillators[c].control & 1) continue;
+		if(oscillators_[c].control & 1) continue;
 
 		// Update phase.
-		state_.oscillators[c].position += state_.oscillators[c].velocity * cycles;
+		oscillators_[c].position += oscillators_[c].velocity * cycles;
 
 		// Check for stops, and any interrupts that therefore flow.
-		if((state_.oscillators[c].control & 2) && (state_.oscillators[c].position & state_.oscillators[c].overflow_mask)) {
+		if((oscillators_[c].control & 2) && (oscillators_[c].position & oscillators_[c].overflow_mask)) {
 			// Apply halt, set interrupt request flag.
-			state_.oscillators[c].position = 0;
-			state_.oscillators[c].control |= 1;
-			state_.oscillators[c].interrupt_request = true;
+			oscillators_[c].position = 0;
+			oscillators_[c].control |= 1;
+			oscillators_[c].interrupt_request = true;
 		}
 	}
 }
 
-template <Outputs::Speaker::Action action>
-void GLU::apply_samples(std::size_t, Outputs::Speaker::MonoSample *) {
-	// Update remote state, generating audio.
-//	generate_audio<action>(number_of_samples, target);
-}
-template void GLU::apply_samples<Outputs::Speaker::Action::Mix>(std::size_t, Outputs::Speaker::MonoSample *);
-template void GLU::apply_samples<Outputs::Speaker::Action::Store>(std::size_t, Outputs::Speaker::MonoSample *);
-template void GLU::apply_samples<Outputs::Speaker::Action::Ignore>(std::size_t, Outputs::Speaker::MonoSample *);
-
-
-//void GLU::skip_samples(const std::size_t number_of_samples) {
-//	// Update remote state, without generating audio.
-//	skip_audio(remote_, number_of_samples);
-//
-//	// Apply any pending stores.
-//	std::atomic_thread_fence(std::memory_order::acquire);
-//	const uint32_t final_time = pending_store_read_time_ + uint32_t(number_of_samples);
-//	while(true) {
-//		auto next_store = pending_stores_[pending_store_read_].load(std::memory_order::acquire);
-//		if(!next_store.enabled) break;
-//		if(next_store.time >= final_time) break;
-//		remote_.ram_[next_store.address] = next_store.value;
-//		next_store.enabled = false;
-//		pending_stores_[pending_store_read_].store(next_store, std::memory_order::relaxed);
-//
-//		pending_store_read_ = (pending_store_read_ + 1) & (StoreBufferSize - 1);
-//	}
-//}
-
-void GLU::set_sample_volume_range(std::int16_t range) {
-	output_range_ = range;
-}
-
 // MARK: - Interface boilerplate.
 
-void GLU::set_control(uint8_t control) {
-	state_.control = control;
-}
-
-uint8_t GLU::control() {
-	return state_.control;
-}
-
-void GLU::set_address_low(uint8_t low) {
-	address_ = uint16_t((address_ & 0xff00) | low);
-}
-
-uint8_t GLU::address_low() {
-	return address_ & 0xff;
-}
-
-void GLU::set_address_high(uint8_t high) {
-	address_ = uint16_t((high << 8) | (address_ & 0x00ff));
-}
-
-uint8_t GLU::address_high() {
-	return address_ >> 8;
-}
+void GLU::set_control(const uint8_t control)	{	control_ = control;			}
+uint8_t GLU::control() const					{	return control_;			}
+void GLU::set_address_low(const uint8_t low)	{	load_low(address_, low);	}
+uint8_t GLU::address_low() const				{	return address_ & 0xff;		}
+void GLU::set_address_high(const uint8_t high)	{	load_high(address_, high);	}
+uint8_t GLU::address_high() const				{	return address_ >> 8;		}
 
 // MARK: - Update logic.
 
 Cycles GLU::next_sequence_point() const {
 	uint32_t result = std::numeric_limits<decltype(result)>::max();
 
-	for(int c = 0; c < state_.oscillator_count; c++) {
+	for(int c = 0; c < oscillator_count_; c++) {
 		// Don't do anything for halted oscillators, or for oscillators that can't hit stops.
-		if((state_.oscillators[c].control&3) != 2) {
+		if((oscillators_[c].control&3) != 2) {
 			continue;
 		}
 
 		// Determine how many cycles until a stop is hit and update the pending result
 		// if this is the new soonest-to-expire oscillator.
-		const auto first_overflow_value = (state_.oscillators[c].overflow_mask - 1) << 1;
+		const auto first_overflow_value = (oscillators_[c].overflow_mask - 1) << 1;
 		const auto time_until_stop =
-			(first_overflow_value - state_.oscillators[c].position + state_.oscillators[c].velocity - 1)
-				/ state_.oscillators[c].velocity;
+			(first_overflow_value - oscillators_[c].position + oscillators_[c].velocity - 1)
+				/ oscillators_[c].velocity;
 		result = std::min(result, time_until_stop);
 	}
 	return Cycles(result);
 }
 
-//void GLU::skip_audio(State &state, size_t number_of_samples) {
-//	// Just advance all oscillator pointers and check for interrupts.
-//	// If a read occurs to the current-output level, generate it then.
-//	for(int c = 0; c < state.oscillator_count; c++) {
-//		// Don't do anything for halted oscillators.
-//		if(state.oscillators[c].control&1) continue;
-//
-//		// Update phase.
-//		state.oscillators[c].position += state.oscillators[c].velocity * number_of_samples;
-//
-//		// Check for stops, and any interrupts that therefore flow.
-//		if((state.oscillators[c].control & 2) && (state.oscillators[c].position & state.oscillators[c].overflow_mask)) {
-//			// Apply halt, set interrupt request flag.
-//			state.oscillators[c].position = 0;
-//			state.oscillators[c].control |= 1;
-//			state.oscillators[c].interrupt_request = true;
-//		}
-//	}
-//}
-
-template <Outputs::Speaker::Action action>
-void GLU::generate_audio(size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
+//template <Outputs::Speaker::Action action>
+//void GLU::generate_audio(size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
 //	auto next_store = pending_stores_[pending_store_read_].load(std::memory_order::acquire);
 //	uint8_t next_amplitude = 255;
 //	for(size_t sample = 0; sample < number_of_samples; sample++) {
@@ -339,9 +294,9 @@ void GLU::generate_audio(size_t number_of_samples, Outputs::Speaker::MonoSample 
 //		pending_stores_[pending_store_read_].store(next_store, std::memory_order::relaxed);
 //		pending_store_read_ = (pending_store_read_ + 1) & (StoreBufferSize - 1);
 //	}
-}
+//}
 
-uint8_t GLU::State::Oscillator::sample(const uint8_t *const ram) {
+uint8_t GLU::Oscillator::sample(const uint8_t *const ram) {
 	// Determines how many you'd have to shift a 16-bit pointer to the right for,
 	// in order to hit only the position-supplied bits.
 	const int pointer_shift = 8 - ((table_size >> 3) & 7);
@@ -363,7 +318,7 @@ uint8_t GLU::State::Oscillator::sample(const uint8_t *const ram) {
 	return ram[sample_address];
 }
 
-int16_t GLU::State::Oscillator::output(const uint8_t *const ram) {
+int16_t GLU::Oscillator::output(const uint8_t *const ram) {
 	const auto level = sample(ram);
 
 	// "An oscillator will halt when a zero is encountered in its waveform table."
