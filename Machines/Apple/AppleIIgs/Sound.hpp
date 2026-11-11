@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include <atomic>
-
 #include "ClockReceiver/ClockReceiver.hpp"
 #include "Concurrency/AsyncTaskQueue.hpp"
 #include "Outputs/Speaker/Implementation/BufferSource.hpp"
+
+#include <cstdint>
 
 namespace Apple::IIgs::Sound {
 

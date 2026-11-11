@@ -14,12 +14,44 @@
 
 namespace {
 
-enum GLUControl: uint8_t {
-	Volume					= 0b0000'1111,
-	Reserved				= 0b0001'0000,
-	AddressAutoIncrement	= 0b0010'0000,
-	AccessRAM				= 0b0100'0000,	// Access DOC if clear.
-	DOCBusy					= 0b1000'0000,
+struct GLUControl {
+	static constexpr uint8_t Volume					= 0b0000'1111;
+	static constexpr uint8_t Reserved				= 0b0001'0000;
+	static constexpr uint8_t AddressAutoIncrement	= 0b0010'0000;
+	static constexpr uint8_t AccessRAM				= 0b0100'0000;
+	static constexpr uint8_t DOCBusy				= 0b1000'0000;
+};
+
+struct DOCInterrupt {
+	static constexpr uint8_t NoInterrupt			= 0b1000'0000;
+	static constexpr uint8_t Reserved				= 0b0100'0001;
+	static constexpr uint8_t Oscillator				= 0b0011'1110;
+
+	static constexpr uint8_t interrupt(const uint8_t oscillator) {
+		return uint8_t((oscillator << 1) | Reserved);
+	}
+	static constexpr uint8_t no_interrupt() {
+		return NoInterrupt | Reserved;
+	}
+};
+
+struct OscillatorControl {
+	static constexpr uint8_t Halted					= 0b0000'0001;
+	static constexpr uint8_t InterruptEnabled		= 0b0000'1000;
+	static constexpr uint8_t ChannelAddress			= 0b1111'0000;
+
+	enum class Mode {
+		FreeRun = 0b00,
+		OneShot = 0b01,
+		Sync = 0b10,
+		Swap = 0b11,
+	};
+	static constexpr Mode mode(const uint8_t control) {
+		return Mode((control >> 1) & 3);
+	}
+	static constexpr uint8_t channel_address(const uint8_t control) {
+		return control >> 4;
+	}
 };
 
 void load_high(uint16_t &target, const uint8_t source) {
@@ -50,16 +82,15 @@ void GLU::set_data(const uint8_t data) {
 }
 
 void GLU::set_register(const uint16_t address, const uint8_t value) {
-	auto &oscillator = oscillators_[address & 0x1f];
-
-	switch(address & 0xe0) {
+	auto &oscillator = oscillators_[address_ & 0b0001'1111];
+	switch(address_ & 0b1110'0000) {
 		case 0x00:	load_low(oscillator.velocity, value);		break;
 		case 0x20:	load_high(oscillator.velocity, value);		break;
 		case 0x40:	oscillator.volume = value;					break;
 		case 0x80:	oscillator.address = value;					break;
 
 		case 0x60:
-			/* Does setting the last sample make any sense? */
+			/* This register is read-only. */
 		break;
 		case 0xa0: {
 			oscillator.control = value;
@@ -82,7 +113,7 @@ void GLU::set_register(const uint16_t address, const uint8_t value) {
 					/* Does setting the interrupt register really make any sense? */
 				break;
 				case 0xe1:
-					oscillator_count_ = 1 + ((value >> 1) & 31);
+					oscillator_count_ = 1 | ((value >> 1) & 31);
 				break;
 				case 0xe2:
 					/* Writing to the analogue to digital input definitely makes no sense. */
@@ -107,8 +138,8 @@ uint8_t GLU::data() {
 	if(control_ & GLUControl::AccessRAM) {
 		data_ = ram_[address_];
 	} else {
-		auto &oscillator = oscillators_[address_ & 0x1f];
-		switch(address_ & 0xe0) {
+		auto &oscillator = oscillators_[address_ & 0b0001'1111];
+		switch(address_ & 0b1110'0000) {
 			case 0x00:	data_ = oscillator.velocity & 0xff;		break;
 			case 0x20:	data_ = oscillator.velocity >> 8;		break;
 			case 0x40:	data_ = oscillator.volume;				break;
@@ -120,19 +151,19 @@ uint8_t GLU::data() {
 			default:
 				switch(address_ & 0xff) {
 					case 0xe0:
-						data_ = 0xc1;	// No interrupt found.
+						data_ = DOCInterrupt::no_interrupt();
 
 						// Find the first enabled oscillator that is signalling an interrupt and has interrupts enabled.
 						for(int c = 0; c < oscillator_count_; c++) {
 							if(oscillators_[c].interrupt_request && (oscillators_[c].control & 0x08)) {
 								oscillators_[c].interrupt_request = false;
-								data_ = uint8_t(0x41 | (c << 1));
+								data_ = DOCInterrupt::interrupt(uint8_t(c));
 								break;
 							}
 						}
 					break;
-					case 0xe1:	data_ = uint8_t((oscillator_count_ - 1) << 1); break;	// TODO: should other bits be 0 or 1?
-					case 0xe2:	data_ = 128;	break;									// Input audio.
+					case 0xe1:	data_ = uint8_t(oscillator_count_ << 1); 	break;
+					case 0xe2:	data_ = 128;								break;	// Input audio.
 				}
 			break;
 		}
