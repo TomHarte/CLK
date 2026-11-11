@@ -221,9 +221,9 @@ public:
 		if(outputs & Output::Video) {
 			video_.flush();
 		}
-		if(outputs & Output::Audio) {
+//		if(outputs & Output::Audio) {
 			AudioUpdater updater(this);
-		}
+//		}
 	}
 
 	void set_scan_target(Outputs::Display::ScanTarget *target) override {
