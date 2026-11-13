@@ -49,6 +49,7 @@
 namespace {
 
 constexpr int CLOCK_RATE = 14'318'180;
+constexpr int AUDIO_DIVIDER = 16;		// DOC clock rate is CLOCK_RATE / AUDIO_DIVIDER ~= 895 kHz.
 
 // This is the first result that came up when searching for valid Apple IIgs BRAM states;
 // I'm unclear on its provenance.
@@ -100,12 +101,8 @@ public:
 		drives525_{
 			{CLOCK_RATE / 2},
 			{CLOCK_RATE / 2}
-		}
-//		sound_glu_(audio_queue_),
-//		audio_toggle_(audio_queue_),
-//		mixer_(sound_glu_, audio_toggle_),
-//		speaker_(mixer_)
-		{
+		},
+		sound_glu_(float(CLOCK_RATE) / float(AUDIO_DIVIDER)) {
 
 		set_clock_rate(double(CLOCK_RATE));
 //		speaker_.set_input_rate(float(CLOCK_RATE) / float(audio_divider));
@@ -860,7 +857,7 @@ public:
 		adb_glu_ += duration;
 
 		sound_cycles_ += duration;
-		const auto divided_sound_cycles = sound_cycles_.divide<Cycles>(AudioDivider);
+		const auto divided_sound_cycles = sound_cycles_.divide<Cycles>(AUDIO_DIVIDER);
 		if(divided_sound_cycles > Cycles(0)) {
 			sound_glu_.run_for(divided_sound_cycles);
 			update_interrupts();
@@ -938,7 +935,6 @@ private:
 	// The audio parts.
 	Apple::IIgs::Sound::GLU sound_glu_;
 	Cycles sound_cycles_;
-	static constexpr int AudioDivider = 16;
 	Apple::IIgs::Sound::GLU *sound_glu() {
 		return &sound_glu_;
 	}

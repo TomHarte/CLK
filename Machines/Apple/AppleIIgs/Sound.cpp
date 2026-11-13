@@ -54,6 +54,16 @@ struct OscillatorControl {
 	}
 };
 
+struct WavetableSize {
+	static constexpr uint8_t address_bus_resolution(const uint8_t size) {
+		return size & 0b000'111;
+	}
+	static constexpr uint16_t table_size(const uint8_t size) {
+		const auto size_field = (size & 0b111'000) >> 3;
+		return uint16_t(256 << size_field);
+	}
+};
+
 void load_high(uint16_t &target, const uint8_t source) {
 	target &= 0x00ff;
 	target |= uint16_t(source << 8);
@@ -67,6 +77,8 @@ void load_low(uint16_t &target, const uint8_t source) {
 }
 
 using namespace Apple::IIgs::Sound;
+
+GLU::GLU([[maybe_unused]] float clock_rate) noexcept {}
 
 void GLU::set_data(const uint8_t data) {
 	data_ = data;
@@ -188,6 +200,13 @@ void GLU::run_for(const Cycles duration) {
 
 		// Update phase.
 		oscillators_[c].position += oscillators_[c].velocity * cycles;
+
+		//
+		// TODO:
+		//
+		//	scan rate = [clock rate] / [enabled oscillators + 2]
+		//	output frequency = (scan rate  / 2 ^ (17 + channel resolution)) * programmed frequency
+		//
 
 		// Check for stops, and any interrupts that therefore flow.
 		if((oscillators_[c].control & 2) && (oscillators_[c].position & oscillators_[c].overflow_mask)) {
