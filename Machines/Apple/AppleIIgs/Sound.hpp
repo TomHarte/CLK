@@ -18,6 +18,8 @@ namespace Apple::IIgs::Sound {
 
 class GLU {
 public:
+	GLU(float clock_rate) noexcept;
+
 	void set_control(uint8_t);
 	uint8_t control() const;
 
