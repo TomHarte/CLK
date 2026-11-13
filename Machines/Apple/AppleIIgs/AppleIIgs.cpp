@@ -49,6 +49,7 @@
 namespace {
 
 constexpr int CLOCK_RATE = 14'318'180;
+constexpr int AUDIO_DIVIDER = 16;		// DOC clock rate is CLOCK_RATE / AUDIO_DIVIDER ~= 895 kHz.
 
 // This is the first result that came up when searching for valid Apple IIgs BRAM states;
 // I'm unclear on its provenance.
@@ -101,13 +102,10 @@ public:
 			{CLOCK_RATE / 2},
 			{CLOCK_RATE / 2}
 		},
-		sound_glu_(audio_queue_),
-		audio_toggle_(audio_queue_),
-		mixer_(sound_glu_, audio_toggle_),
-		speaker_(mixer_) {
+		sound_glu_(float(CLOCK_RATE) / float(AUDIO_DIVIDER)) {
 
 		set_clock_rate(double(CLOCK_RATE));
-		speaker_.set_input_rate(float(CLOCK_RATE) / float(audio_divider));
+//		speaker_.set_input_rate(float(CLOCK_RATE) / float(audio_divider));
 		clock_.ClockStorage::set_data(std::begin(default_bram), std::end(default_bram));
 
 		using Target = Analyser::Static::AppleIIgs::Target;
@@ -209,24 +207,18 @@ public:
 		insert_media(target.media);
 	}
 
-	~ConcreteMachine() {
-		audio_queue_.lock_flush();
-	}
-
 	void run_for(const Cycles cycles) override {
 		m65816_.run_for(cycles);
 	}
 
 	void flush_output(int outputs) final {
 		iwm_.flush();
-		adb_glu_.flush();
 
 		if(outputs & Output::Video) {
 			video_.flush();
 		}
 		if(outputs & Output::Audio) {
-			AudioUpdater updater(this);
-			audio_queue_.perform();
+			adb_glu_.flush();
 		}
 	}
 
@@ -247,7 +239,8 @@ public:
 	}
 
 	Outputs::Speaker::Speaker *get_speaker() final {
-		return &speaker_;
+		return nullptr;
+//		return &speaker_;
 	}
 
 	// MARK: MediaTarget.
@@ -504,38 +497,14 @@ public:
 				break;
 
 				// The audio GLU.
-				case Read(0xc03c): {
-					AudioUpdater updater(this);
-					*value = sound_glu_.get_control();
-				} break;
-				case Write(0xc03c): {
-					AudioUpdater updater(this);
-					sound_glu_.set_control(*value);
-				} break;
-				case Read(0xc03d): {
-					AudioUpdater updater(this);
-					*value = sound_glu_.get_data();
-				} break;
-				case Write(0xc03d): {
-					AudioUpdater updater(this);
-					sound_glu_.set_data(*value);
-				} break;
-				case Read(0xc03e): {
-					AudioUpdater updater(this);
-					*value = sound_glu_.get_address_low();
-				} break;
-				case Write(0xc03e): {
-					AudioUpdater updater(this);
-					sound_glu_.set_address_low(*value);
-				} break;
-				case Read(0xc03f): {
-					AudioUpdater updater(this);
-					*value = sound_glu_.get_address_high();
-				} break;
-				case Write(0xc03f): {
-					AudioUpdater updater(this);
-					sound_glu_.set_address_high(*value);
-				} break;
+				case Read(0xc03c):		*value = sound_glu()->control();			break;
+				case Write(0xc03c):		sound_glu()->set_control(*value);			break;
+				case Read(0xc03d):		*value = sound_glu()->data();				break;
+				case Write(0xc03d):		sound_glu()->set_data(*value);				break;
+				case Read(0xc03e):		*value = sound_glu()->address_low();		break;
+				case Write(0xc03e):		sound_glu()->set_address_low(*value);		break;
+				case Read(0xc03f):		*value = sound_glu()->address_high();		break;
+				case Write(0xc03f):		sound_glu()->set_address_high(*value);		break;
 
 
 				// These were all dealt with by the call to memory_.access.
@@ -675,8 +644,9 @@ public:
 				break;
 
 				case Read(0xc030): case Write(0xc030): {
-					AudioUpdater updater(this);
-					audio_toggle_.set_output(!audio_toggle_.get_output());
+					// TODO: restore audio toggle.
+//					AudioUpdater updater(this);
+//					audio_toggle_.set_output(!audio_toggle_.get_output());
 				} break;
 
 				// 'Test Mode', whatever that is (?)
@@ -877,18 +847,19 @@ public:
 		while(ticks--) {
 			clock_.update();
 			video_.get()->notify_clock_tick();	// The video controller marshalls the one-second interrupt.
-														// TODO: I think I may have made a false assumption here; does
-														// the VGC have an independent 1-second interrupt?
+												// TODO: I think I may have made a false assumption here; does
+												// the VGC have an independent 1-second interrupt?
 			update_interrupts();
 		}
 
 		video_ += duration;
 		iwm_ += duration;
-		cycles_since_audio_update_ += duration;
 		adb_glu_ += duration;
 
-		if(cycles_since_audio_update_ >= cycles_until_audio_event_) {
-			AudioUpdater updater(this);
+		sound_cycles_ += duration;
+		const auto divided_sound_cycles = sound_cycles_.divide<Cycles>(AUDIO_DIVIDER);
+		if(divided_sound_cycles > Cycles(0)) {
+			sound_glu_.run_for(divided_sound_cycles);
 			update_interrupts();
 		}
 		if(video_.did_flush()) {
@@ -908,7 +879,7 @@ public:
 	void update_interrupts() {
 		// Update the interrupt line.
 		// TODO: add ADB controller as event source.
-		m65816_.set_irq_line(video_.get()->get_interrupt_line() || sound_glu_.get_interrupt_line());
+		m65816_.set_irq_line(video_.get()->get_interrupt_line() || sound_glu_.interrupt());
 	}
 
 	// MARK: - Input.
@@ -962,32 +933,11 @@ private:
 	Apple::Disk::DiskIIDrive drives525_[2];
 
 	// The audio parts.
-	Concurrency::AsyncTaskQueue<false> audio_queue_;
 	Apple::IIgs::Sound::GLU sound_glu_;
-	Audio::Toggle audio_toggle_;
-	using AudioSource = Outputs::Speaker::CompoundSource<Apple::IIgs::Sound::GLU, Audio::Toggle>;
-	AudioSource mixer_;
-	Outputs::Speaker::PullLowpass<AudioSource> speaker_;
-	Cycles cycles_since_audio_update_;
-	Cycles cycles_until_audio_event_;
-	static constexpr int audio_divider = 16;
-	void update_audio() {
-		const auto divided_cycles = cycles_since_audio_update_.divide(audio_divider);
-		sound_glu_.run_for(divided_cycles);
-		speaker_.run_for(audio_queue_, divided_cycles);
+	Cycles sound_cycles_;
+	Apple::IIgs::Sound::GLU *sound_glu() {
+		return &sound_glu_;
 	}
-	class AudioUpdater {
-	public:
-		AudioUpdater(ConcreteMachine *machine) : machine_(machine) {
-			machine_->update_audio();
-		}
-		~AudioUpdater() {
-			machine_->cycles_until_audio_event_ = machine_->sound_glu_.next_sequence_point();
-		}
-	private:
-		ConcreteMachine *machine_;
-	};
-	friend AudioUpdater;
 
 	// MARK: - Keyboard and joystick.
 	Apple::ADB::KeyboardMapper keyboard_mapper_;
