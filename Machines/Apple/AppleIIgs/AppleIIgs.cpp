@@ -216,14 +216,13 @@ public:
 
 	void flush_output(int outputs) final {
 		iwm_.flush();
-		adb_glu_.flush();
 
 		if(outputs & Output::Video) {
 			video_.flush();
 		}
-//		if(outputs & Output::Audio) {
-			AudioUpdater updater(this);
-//		}
+		if(outputs & Output::Audio) {
+			adb_glu_.flush();
+		}
 	}
 
 	void set_scan_target(Outputs::Display::ScanTarget *target) override {
@@ -501,14 +500,14 @@ public:
 				break;
 
 				// The audio GLU.
-				case Read(0xc03c):		*value = AudioUpdater(this)->control();			break;
-				case Write(0xc03c):		AudioUpdater(this)->set_control(*value);		break;
-				case Read(0xc03d):		*value = AudioUpdater(this)->data();			break;
-				case Write(0xc03d):		AudioUpdater(this)->set_data(*value);			break;
-				case Read(0xc03e):		*value = AudioUpdater(this)->address_low();		break;
-				case Write(0xc03e):		AudioUpdater(this)->set_address_low(*value);	break;
-				case Read(0xc03f):		*value = AudioUpdater(this)->address_high();	break;
-				case Write(0xc03f):		AudioUpdater(this)->set_address_high(*value);	break;
+				case Read(0xc03c):		*value = sound_glu()->control();			break;
+				case Write(0xc03c):		sound_glu()->set_control(*value);			break;
+				case Read(0xc03d):		*value = sound_glu()->data();				break;
+				case Write(0xc03d):		sound_glu()->set_data(*value);				break;
+				case Read(0xc03e):		*value = sound_glu()->address_low();		break;
+				case Write(0xc03e):		sound_glu()->set_address_low(*value);		break;
+				case Read(0xc03f):		*value = sound_glu()->address_high();		break;
+				case Write(0xc03f):		sound_glu()->set_address_high(*value);		break;
 
 
 				// These were all dealt with by the call to memory_.access.
@@ -851,18 +850,19 @@ public:
 		while(ticks--) {
 			clock_.update();
 			video_.get()->notify_clock_tick();	// The video controller marshalls the one-second interrupt.
-														// TODO: I think I may have made a false assumption here; does
-														// the VGC have an independent 1-second interrupt?
+												// TODO: I think I may have made a false assumption here; does
+												// the VGC have an independent 1-second interrupt?
 			update_interrupts();
 		}
 
 		video_ += duration;
 		iwm_ += duration;
-		cycles_since_audio_update_ += duration;
 		adb_glu_ += duration;
 
-		if(cycles_since_audio_update_ >= cycles_until_audio_event_) {
-			AudioUpdater updater(this);
+		sound_cycles_ += duration;
+		const auto divided_sound_cycles = sound_cycles_.divide<Cycles>(AudioDivider);
+		if(divided_sound_cycles > Cycles(0)) {
+			sound_glu_.run_for(divided_sound_cycles);
 			update_interrupts();
 		}
 		if(video_.did_flush()) {
@@ -936,39 +936,12 @@ private:
 	Apple::Disk::DiskIIDrive drives525_[2];
 
 	// The audio parts.
-//	Concurrency::AsyncTaskQueue<false> audio_queue_;
 	Apple::IIgs::Sound::GLU sound_glu_;
-//	Audio::Toggle audio_toggle_;
-//	using AudioSource = Outputs::Speaker::CompoundSource<Apple::IIgs::Sound::GLU, Audio::Toggle>;
-//	AudioSource mixer_;
-//	Outputs::Speaker::PullLowpass<AudioSource> speaker_;
-
-	Cycles cycles_since_audio_update_;
-	Cycles cycles_until_audio_event_;
-	static constexpr int audio_divider = 16;
-	void update_audio() {
-		const auto divided_cycles = cycles_since_audio_update_.divide(audio_divider);
-		sound_glu_.run_for(divided_cycles);
-//		speaker_.run_for(audio_queue_, divided_cycles);
+	Cycles sound_cycles_;
+	static constexpr int AudioDivider = 16;
+	Apple::IIgs::Sound::GLU *sound_glu() {
+		return &sound_glu_;
 	}
-	class AudioUpdater {
-	public:
-		AudioUpdater(ConcreteMachine *const machine) : machine_(machine) {
-			machine_->update_audio();
-		}
-		~AudioUpdater() {
-			machine_->cycles_until_audio_event_ = machine_->sound_glu_.next_sequence_point();
-		}
-		Apple::IIgs::Sound::GLU *operator ->() const {
-			return &machine_->sound_glu_;
-		}
-//		Audio::Toggle &toggle() const {
-//			return machine_->audio_toggle_;
-//		}
-	private:
-		ConcreteMachine *machine_;
-	};
-	friend AudioUpdater;
 
 	// MARK: - Keyboard and joystick.
 	Apple::ADB::KeyboardMapper keyboard_mapper_;

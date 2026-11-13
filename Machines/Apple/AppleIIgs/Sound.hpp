@@ -30,9 +30,7 @@ public:
 	uint8_t address_high() const;
 
 	void run_for(Cycles);
-
-	Cycles next_sequence_point() const;
-	bool interrupt();
+	bool interrupt() const;
 
 private:
 	uint16_t address_ = 0;

@@ -175,22 +175,13 @@ uint8_t GLU::data() {
 	return data;
 }
 
-bool GLU::interrupt() {
-	// Return @c true if any oscillator currently has its interrupt request
-	// set, and has interrupts enabled.
-	for(int c = 0; c < oscillator_count_; c++) {
-		if(oscillators_[c].interrupt_request && (oscillators_[c].control & 0x08)) {
-			return true;
-		}
-	}
-	return false;
-}
-
 // MARK: - Time entry points.
 
 void GLU::run_for(const Cycles duration) {
 	const auto cycles = duration.as<uint32_t>();
 
+	// TODO: my current reading is that not every oscillator is updated on every tick; there's a maxmimum
+	// quantity per cycle. Check on that.
 	for(int c = 0; c < oscillator_count_; c++) {
 		// Don't do anything for halted oscillators.
 		if(oscillators_[c].control & 1) continue;
@@ -208,6 +199,19 @@ void GLU::run_for(const Cycles duration) {
 	}
 }
 
+bool GLU::interrupt() const {
+	// TODO: don't loop through and check every oscillator every time.
+
+	// Return @c true if any oscillator currently has its interrupt request
+	// set, and has interrupts enabled.
+	for(int c = 0; c < oscillator_count_; c++) {
+		if(oscillators_[c].interrupt_request && (oscillators_[c].control & 0x08)) {
+			return true;
+		}
+	}
+	return false;
+}
+
 // MARK: - Interface boilerplate.
 
 void GLU::set_control(const uint8_t control)	{	control_ = control;			}
@@ -219,25 +223,25 @@ uint8_t GLU::address_high() const				{	return address_ >> 8;		}
 
 // MARK: - Update logic.
 
-Cycles GLU::next_sequence_point() const {
-	uint32_t result = std::numeric_limits<decltype(result)>::max();
-
-	for(int c = 0; c < oscillator_count_; c++) {
-		// Don't do anything for halted oscillators, or for oscillators that can't hit stops.
-		if((oscillators_[c].control&3) != 2) {
-			continue;
-		}
-
-		// Determine how many cycles until a stop is hit and update the pending result
-		// if this is the new soonest-to-expire oscillator.
-		const auto first_overflow_value = (oscillators_[c].overflow_mask - 1) << 1;
-		const auto time_until_stop =
-			(first_overflow_value - oscillators_[c].position + oscillators_[c].velocity - 1)
-				/ oscillators_[c].velocity;
-		result = std::min(result, time_until_stop);
-	}
-	return Cycles(result);
-}
+//Cycles GLU::next_sequence_point() const {
+//	uint32_t result = std::numeric_limits<decltype(result)>::max();
+//
+//	for(int c = 0; c < oscillator_count_; c++) {
+//		// Don't do anything for halted oscillators, or for oscillators that can't hit stops.
+//		if((oscillators_[c].control&3) != 2) {
+//			continue;
+//		}
+//
+//		// Determine how many cycles until a stop is hit and update the pending result
+//		// if this is the new soonest-to-expire oscillator.
+//		const auto first_overflow_value = (oscillators_[c].overflow_mask - 1) << 1;
+//		const auto time_until_stop =
+//			(first_overflow_value - oscillators_[c].position + oscillators_[c].velocity - 1)
+//				/ oscillators_[c].velocity;
+//		result = std::min(result, time_until_stop);
+//	}
+//	return Cycles(result);
+//}
 
 //template <Outputs::Speaker::Action action>
 //void GLU::generate_audio(size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
