@@ -41,6 +41,7 @@ private:
 	uint8_t ram_[65536];
 
 	int oscillator_count_ = 1;
+	int next_oscillator_ = 0;
 
 	struct Oscillator {
 		uint32_t position;
@@ -53,13 +54,11 @@ private:
 		uint8_t table_size;
 
 		// Derived state.
-		uint32_t overflow_mask;			// If a non-zero bit gets anywhere into the overflow mask, this channel
-										// has wrapped around. It's a function of table_size.
-		bool interrupt_request = false;	// Will be non-zero if this channel would request an interrupt, were
-										// it currently enabled to do so.
+		bool interrupt = false;	// @c true if this channel would request an interrupt were it enabled.
 
-		uint8_t sample(const uint8_t *ram);
-		int16_t output(const uint8_t *ram);
+		uint8_t sample(const uint8_t *ram) const;
+		int16_t output(const uint8_t *ram) const;
+		bool interrupt_active() const;
 	} oscillators_[32];
 
 	void set_register(uint16_t address, uint8_t value);

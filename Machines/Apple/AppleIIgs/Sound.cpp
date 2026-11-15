@@ -55,12 +55,33 @@ struct OscillatorControl {
 };
 
 struct WavetableSize {
-	static constexpr uint8_t address_bus_resolution(const uint8_t size) {
-		return size & 0b000'111;
-	}
-	static constexpr uint16_t table_size(const uint8_t size) {
-		const auto size_field = (size & 0b111'000) >> 3;
-		return uint16_t(256 << size_field);
+	static constexpr uint16_t address(const uint8_t size, const uint32_t accumulator, const uint8_t pointer) {
+		// At least 8 bits of the output address always come from the accumulator, and possibly as many as 15.
+		// The 'extra' bits is the number of bits greater than 8.
+		//
+		// i.e.
+		//	extra_accumulator_bits = 0 => 8 bits of address from the accumulator;
+		//	extra_accumulator_bits = 1 => 9 bits of address from the accumulator;
+		//	etc.
+		const auto extra_accumulator_bits = (size & 0b111'000) >> 3;
+
+		// High bits of the pointer are always used; lower bits are used only if they haven't
+		// been replaced by the accumulator.
+		const auto pointer_mask = 0xff00 << extra_accumulator_bits;
+
+		// The accumulator is naturally 24 bits, so a right shift of 16 would put its highest order bits
+		// into the low 8 bits of the address.
+		//
+		// From there, it's one less shift for each fewer bit fo the accumulator being used — one less for each
+		// "extra" accumulator bit.
+		//
+		// A 'resolution' of 7 implies to make no further adjustments from there. A 'resolution' of 0 would
+		// mean to discard the high 7 bits of the accumulator. So it effects a left shift.
+		const auto accumulator_shift = 16 - extra_accumulator_bits - (7 - (size & 0b000'111));
+
+		return
+			(uint16_t(pointer << 8) & pointer_mask) |
+			(uint16_t(accumulator >> accumulator_shift) & ~pointer_mask);
 	}
 };
 
@@ -100,6 +121,7 @@ void GLU::set_register(const uint16_t address, const uint8_t value) {
 		case 0x20:	load_high(oscillator.velocity, value);		break;
 		case 0x40:	oscillator.volume = value;					break;
 		case 0x80:	oscillator.address = value;					break;
+		case 0xc0:	oscillator.table_size = value;				break;
 
 		case 0x60:
 			/* This register is read-only. */
@@ -112,12 +134,6 @@ void GLU::set_register(const uint16_t address, const uint8_t value) {
 				oscillator.control |= 1;
 			}
 		} break;
-		case 0xc0:
-			oscillator.table_size = value;
-
-			// The most-significant bit that should be used is 16 + (value & 7).
-			oscillator.overflow_mask = uint32_t(~(0xffffff >> (7 - (value & 7))));
-		break;
 
 		default:
 			switch(address & 0xff) {
@@ -167,8 +183,8 @@ uint8_t GLU::data() {
 
 						// Find the first enabled oscillator that is signalling an interrupt and has interrupts enabled.
 						for(int c = 0; c < oscillator_count_; c++) {
-							if(oscillators_[c].interrupt_request && (oscillators_[c].control & 0x08)) {
-								oscillators_[c].interrupt_request = false;
+							if(oscillator.interrupt_active()) {
+								oscillators_[c].interrupt = false;
 								data_ = DOCInterrupt::interrupt(uint8_t(c));
 								break;
 							}
@@ -190,31 +206,69 @@ uint8_t GLU::data() {
 // MARK: - Time entry points.
 
 void GLU::run_for(const Cycles duration) {
-	const auto cycles = duration.as<uint32_t>();
+	const auto cycles = duration.as<int>();
 
-	// TODO: my current reading is that not every oscillator is updated on every tick; there's a maxmimum
-	// quantity per cycle. Check on that.
-	for(int c = 0; c < oscillator_count_; c++) {
-		// Don't do anything for halted oscillators.
-		if(oscillators_[c].control & 1) continue;
-
-		// Update phase.
-		oscillators_[c].position += oscillators_[c].velocity * cycles;
+	for(int c = 0; c < cycles; c++) {
 
 		//
-		// TODO:
+		// Apple's documentation provides a frequency formula of:
 		//
 		//	scan rate = [clock rate] / [enabled oscillators + 2]
 		//	output frequency = (scan rate  / 2 ^ (17 + channel resolution)) * programmed frequency
 		//
+		// My guess is therefore that at most one oscillator is updated per clock cycle.
+		//
+
+		if(next_oscillator_ >= oscillator_count_) {
+			next_oscillator_ = -2;
+		}
+		++next_oscillator_;
+		if(next_oscillator_ < 0) {
+			continue;
+		}
+
+		auto &oscillator = oscillators_[next_oscillator_];
+
+		// Don't do anything for halted oscillators.
+		if(oscillator.control & OscillatorControl::Halted) continue;
+
+		// Update phase.
+		oscillator.position += oscillator.velocity;
+
+		switch(OscillatorControl::mode(oscillator.control)) {
+			using enum OscillatorControl::Mode;
+
+			case FreeRun:
+				// "The oscillator begins at the beginning of the wavetable and repeats the same wavetable. The
+				// oscillator will halt when the halt bit is set or when a 0 is encountered in the table data."
+			break;
+
+			case OneShot:
+				// "The oscillator begins at the beginning of the wavetable, stepping through it only once,
+				// and stopping at the end of the table."
+			break;
+
+			case Sync:
+				// "Enable sync mode by selecting even/odd pairs of oscillators (a lower even-numbered oscillator
+				// paired with an adjacent higher-numbered oscillator). When the even-numbered oscillator begins its
+				// wavetable, the odd-mate oscillator will synchronise and begin its wavetable simultaneously."
+			break;
+
+			case Swap:
+				// "Uses even/odd pairs of oscillators (a lower even-numbered oscillator paired with an adjacent
+				// higher odd-numbered oscillator). The enabled oscillator pair runs in one-shot mode. When it reaches
+				// the end of its wavetable, it resets its accumulator to 0, sets its halt bit, and clears the halt
+				// bit of its mate."
+			break;
+		}
 
 		// Check for stops, and any interrupts that therefore flow.
-		if((oscillators_[c].control & 2) && (oscillators_[c].position & oscillators_[c].overflow_mask)) {
-			// Apply halt, set interrupt request flag.
-			oscillators_[c].position = 0;
-			oscillators_[c].control |= 1;
-			oscillators_[c].interrupt_request = true;
-		}
+//		if((oscillators_[c].control & 2) && (oscillators_[c].position & oscillators_[c].overflow_mask)) {
+//			// Apply halt, set interrupt request flag.
+//			oscillators_[c].position = 0;
+//			oscillators_[c].control |= 1;
+//			oscillators_[c].interrupt_request = true;
+//		}
 	}
 }
 
@@ -224,7 +278,7 @@ bool GLU::interrupt() const {
 	// Return @c true if any oscillator currently has its interrupt request
 	// set, and has interrupts enabled.
 	for(int c = 0; c < oscillator_count_; c++) {
-		if(oscillators_[c].interrupt_request && (oscillators_[c].control & 0x08)) {
+		if(oscillators_[c].interrupt_active()) {
 			return true;
 		}
 	}
@@ -241,26 +295,6 @@ void GLU::set_address_high(const uint8_t high)	{	load_high(address_, high);	}
 uint8_t GLU::address_high() const				{	return address_ >> 8;		}
 
 // MARK: - Update logic.
-
-//Cycles GLU::next_sequence_point() const {
-//	uint32_t result = std::numeric_limits<decltype(result)>::max();
-//
-//	for(int c = 0; c < oscillator_count_; c++) {
-//		// Don't do anything for halted oscillators, or for oscillators that can't hit stops.
-//		if((oscillators_[c].control&3) != 2) {
-//			continue;
-//		}
-//
-//		// Determine how many cycles until a stop is hit and update the pending result
-//		// if this is the new soonest-to-expire oscillator.
-//		const auto first_overflow_value = (oscillators_[c].overflow_mask - 1) << 1;
-//		const auto time_until_stop =
-//			(first_overflow_value - oscillators_[c].position + oscillators_[c].velocity - 1)
-//				/ oscillators_[c].velocity;
-//		result = std::min(result, time_until_stop);
-//	}
-//	return Cycles(result);
-//}
 
 //template <Outputs::Speaker::Action action>
 //void GLU::generate_audio(size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
@@ -350,38 +384,17 @@ uint8_t GLU::address_high() const				{	return address_ >> 8;		}
 //	}
 //}
 
-uint8_t GLU::Oscillator::sample(const uint8_t *const ram) {
-	// Determines how many you'd have to shift a 16-bit pointer to the right for,
-	// in order to hit only the position-supplied bits.
-	const int pointer_shift = 8 - ((table_size >> 3) & 7);
-
-	// Table size mask should be 0x8000 for the largest table size, and 0xff00 for
-	// the smallest.
-	const uint16_t table_size_mask = 0xffff >> pointer_shift;
-
-	// The pointer should use (at most) 15 bits; starting with bit 1 for resolution 0
-	// and starting at bit 8 for resolution 7.
-	const uint16_t table_pointer = uint16_t(position >> ((table_size&7) + pointer_shift));
-
-	// The full pointer is composed of the bits of the programmed address not touched by
-	// the table pointer, plus the table pointer.
-	const auto sample_address = uint16_t(((address << 8) & ~table_size_mask) | (table_pointer & table_size_mask));
-
-	// Ignored here: bit 6 should select between RAM banks. But for now this is IIgs-centric,
-	// and that has only one bank of RAM.
-	return ram[sample_address];
+bool GLU::Oscillator::interrupt_active() const {
+	return interrupt && (control & OscillatorControl::InterruptEnabled);
 }
 
-int16_t GLU::Oscillator::output(const uint8_t *const ram) {
+uint8_t GLU::Oscillator::sample(const uint8_t *const ram) const {
+	return ram[WavetableSize::address(table_size, position, address)];
+}
+
+int16_t GLU::Oscillator::output(const uint8_t *const ram) const {
 	const auto level = sample(ram);
 
-	// "An oscillator will halt when a zero is encountered in its waveform table."
-	// TODO: only if in free-run mode, I think? Or?
-	if(!level) {
-		control |= 1;
-		return 0;
-	}
-
-	// Samples are unsigned 8-bit; do the proper work to make volume work correctly.
-	return int8_t(level ^ 128) * volume;
+	// Samples are unsigned 8-bit; scale to signed 16-bit.
+	return (level * volume) ^ 0x8000;
 }
