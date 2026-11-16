@@ -56,8 +56,9 @@ struct SoundLevels {
 /// Models the Archimedes sound output; in a real machine this is a joint efort between the VIDC and the MEMC.
 template <typename InterruptObserverT>
 struct Sound: private SoundLevels {
-	Sound(InterruptObserverT &observer, const uint8_t *const ram) : ram_(ram), observer_(observer) {
-		speaker_.speaker().set_input_rate(1'000'000);
+	Sound(InterruptObserverT &observer, const uint8_t *const ram) :
+		ram_(ram), observer_(observer), speaker_(1'000'000)
+	{
 		speaker_.speaker().set_high_frequency_cutoff(2'200.0f);
 	}
 
@@ -181,16 +182,10 @@ private:
 	Outputs::Speaker::AsyncPushLowpass<true> speaker_;
 
 	void post_sample(const Outputs::Speaker::StereoSample sample) {
-		samples_.push_back(sample.left);
-		samples_.push_back(sample.right);
-
-		static constexpr size_t MaxBufferSize = 8192;
-		if(samples_.size() == MaxBufferSize) {
-			speaker_.push_swap(samples_);
-		}
+		speaker_.push_back(sample.left);
+		speaker_.push_back(sample.right);
 	}
 	Outputs::Speaker::StereoSample sample_;
-	std::vector<int16_t> samples_;
 };
 
 }

@@ -362,12 +362,47 @@ public:
 template <bool is_stereo>
 class AsyncPushLowpass {
 public:
+	AsyncPushLowpass(const float sampling_rate) {
+		// Push in 1ms increments.
+		sample_size_threshold_ = size_t(sampling_rate / 1000.0f);
+		speaker_.set_input_rate(sampling_rate);
+	}
+
 	/*!
 		@returns The underlying speaker.
 	*/
 	PushLowpass<is_stereo> &speaker() {
 		return speaker_;
 	}
+
+	std::vector<int16_t> &buffer() {
+		return samples_;
+	}
+
+	void push_back(const int16_t sample) {
+		samples_.push_back(sample);
+		flush_maybe();
+	}
+
+	void flush_maybe() {
+		if(samples_.size() >= sample_size_threshold_) {
+			flush();
+		}
+	}
+
+	void flush() {
+		push_swap(samples_);
+	}
+
+private:
+	struct {
+		std::vector<int16_t> data;
+		std::atomic_flag busy{};
+	} enqueued_;
+	PushLowpass<is_stereo> speaker_;
+
+	// Ensure the queue destructs first; tasks posted to it depend on the state above.
+	Concurrency::AsyncTaskQueue<true> queue_;
 
 	/*!
 		@c std::swap's the contents of @c buffer with whatever buffer was previously posted,
@@ -391,15 +426,8 @@ public:
 		buffer.clear();
 	}
 
-private:
-	struct {
-		std::vector<int16_t> data;
-		std::atomic_flag busy{};
-	} enqueued_;
-	PushLowpass<is_stereo> speaker_;
-
-	// Ensure the queue destructs first; tasks posted to it depend on the state above.
-	Concurrency::AsyncTaskQueue<true> queue_;
+	size_t sample_size_threshold_ = 0;
+	std::vector<int16_t> samples_;
 };
 
 /*!

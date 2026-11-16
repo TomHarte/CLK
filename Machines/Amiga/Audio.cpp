@@ -16,8 +16,8 @@
 using namespace Amiga;
 
 Audio::Audio(Chipset &chipset, uint16_t *const ram, const size_t word_size, const float output_rate) :
-	DMADevice<4>(chipset, ram, word_size) {
-	speaker_.speaker().set_input_rate(output_rate);
+	DMADevice<4>(chipset, ram, word_size),
+	speaker_(output_rate) {
 	speaker_.speaker().set_high_frequency_cutoff(7000.0f);
 }
 
@@ -122,7 +122,7 @@ void Audio::output() {
 	}
 
 	// Left.
-	samples_.push_back(int16_t(
+	speaker_.push_back(int16_t(
 		(
 			channels_[1].output_level * channels_[1].output_enabled +
 			channels_[2].output_level * channels_[2].output_enabled
@@ -130,17 +130,12 @@ void Audio::output() {
 	));
 
 	// Right.
-	samples_.push_back(int16_t(
+	speaker_.push_back(int16_t(
 		(
 			channels_[0].output_level * channels_[0].output_enabled +
 			channels_[3].output_level * channels_[3].output_enabled
 		) << 7
 	));
-
-	static constexpr size_t MaxBufferedSamples = 20'000;
-	if(samples_.size() == MaxBufferedSamples) {
-		speaker_.push_swap(samples_);
-	}
 }
 
 // MARK: - Per-channel logic.

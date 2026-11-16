@@ -148,7 +148,6 @@ private:
 
 	// Transient output state, and its destination.
 	Outputs::Speaker::AsyncPushLowpass<true> speaker_;
-	std::vector<int16_t> samples_;
 };
 
 }
