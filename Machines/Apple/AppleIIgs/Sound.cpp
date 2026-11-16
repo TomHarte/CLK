@@ -19,13 +19,13 @@ struct GLUControl {
 	static constexpr uint8_t Reserved [[maybe_unused]] 			= 0b0001'0000;
 	static constexpr uint8_t AddressAutoIncrement				= 0b0010'0000;
 	static constexpr uint8_t AccessRAM							= 0b0100'0000;
-	static constexpr uint8_t DOCBusy							= 0b1000'0000;
+	static constexpr uint8_t DOCBusy [[maybe_unused]]			= 0b1000'0000;
 };
 
 struct DOCInterrupt {
 	static constexpr uint8_t NoInterrupt						= 0b1000'0000;
-	static constexpr uint8_t Reserved							= 0b0100'0001;
-	static constexpr uint8_t Oscillator							= 0b0011'1110;
+	static constexpr uint8_t Reserved [[maybe_unused]]			= 0b0100'0001;
+	static constexpr uint8_t Oscillator	[[maybe_unused]]		= 0b0011'1110;
 
 	static constexpr uint8_t interrupt(const uint8_t oscillator) {
 		return uint8_t((oscillator << 1) | Reserved);
@@ -130,7 +130,7 @@ void GLU::set_data(const uint8_t data) {
 
 void GLU::set_register(const uint16_t address, const uint8_t value) {
 	const auto oscillator_id = address_ & 0b0001'1111;
-	auto &oscillator = oscillators_[oscillator_id];
+	auto &oscillator = oscillators_[size_t(oscillator_id)];
 	switch(address_ & 0b1110'0000) {
 		case 0x00:	load_low(oscillator.velocity, value);		break;
 		case 0x20:	load_high(oscillator.velocity, value);		break;
@@ -160,7 +160,7 @@ void GLU::set_register(const uint16_t address, const uint8_t value) {
 
 					output_ = 0;
 					for(int c = 0; c < oscillator_count_; c++) {
-						output_ += oscillators_[c].posted_output_;
+						output_ += oscillators_[size_t(c)].posted_output_;
 					}
 				break;
 				case 0xe2:
@@ -208,7 +208,7 @@ uint8_t GLU::data() {
 						// Find the first enabled oscillator that is signalling an interrupt and has interrupts enabled.
 						for(int c = 0; c < oscillator_count_; c++) {
 							if(oscillator.interrupt_active()) {
-								oscillators_[c].interrupt = false;
+								oscillators_[size_t(c)].interrupt = false;
 								data_ = DOCInterrupt::interrupt(uint8_t(c));
 								break;
 							}
@@ -230,16 +230,17 @@ uint8_t GLU::data() {
 // MARK: - Time entry points.
 
 void GLU::toggle() {
-	output_ -= toggle_;
 	toggle_ ^= 0xffff;
-	output_ += toggle_;
 }
 
 void GLU::run_for(const Cycles duration) {
 	const auto cycles = duration.as<int>();
 
 	for(int c = 0; c < cycles; c++) {
-		speaker_.push_back(int16_t(output_ / 33));
+		speaker_.push_back(int16_t(
+			(toggle_ + (output_ * (control_ & GLUControl::Volume)) / 15)
+				/ int32_t(oscillators_.size() + 1))
+		);
 
 		//
 		// Apple's documentation provides a frequency formula of:
@@ -258,7 +259,7 @@ void GLU::run_for(const Cycles duration) {
 			continue;
 		}
 
-		auto &oscillator = oscillators_[next_oscillator_];
+		auto &oscillator = oscillators_[size_t(next_oscillator_)];
 
 		// Don't do anything for halted oscillators.
 		if(oscillator.control & OscillatorControl::Halted) continue;
@@ -273,7 +274,7 @@ void GLU::run_for(const Cycles duration) {
 		oscillator.interrupt |= overflow && (oscillator.control & OscillatorControl::InterruptEnabled);
 
 		const auto pair = [&]() -> Oscillator & {
-			return oscillators_[next_oscillator_ ^ 1];
+			return oscillators_[size_t(next_oscillator_ ^ 1)];
 		};
 
 		switch(OscillatorControl::mode(oscillator.control)) {
@@ -332,7 +333,7 @@ bool GLU::interrupt() const {
 	// Return @c true if any oscillator currently has its interrupt request
 	// set, and has interrupts enabled.
 	for(int c = 0; c < oscillator_count_; c++) {
-		if(oscillators_[c].interrupt_active()) {
+		if(oscillators_[size_t(c)].interrupt_active()) {
 			return true;
 		}
 	}

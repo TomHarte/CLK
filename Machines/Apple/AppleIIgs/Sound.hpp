@@ -12,6 +12,7 @@
 
 #include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
+#include <array>
 #include <cstdint>
 
 namespace Apple::IIgs::Sound {
@@ -70,7 +71,8 @@ private:
 		uint8_t sample(const uint8_t *ram) const;
 		int16_t output(const uint8_t *ram) const;
 		bool interrupt_active() const;
-	} oscillators_[32];
+	};
+	std::array<Oscillator, 32> oscillators_;
 
 	void set_register(uint16_t address, uint8_t value);
 	void update_output(Oscillator &);

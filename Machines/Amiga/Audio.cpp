@@ -17,9 +17,7 @@ using namespace Amiga;
 
 Audio::Audio(Chipset &chipset, uint16_t *const ram, const size_t word_size, const float output_rate) :
 	DMADevice<4>(chipset, ram, word_size),
-	speaker_(output_rate) {
-	speaker_.speaker().set_high_frequency_cutoff(7000.0f);
-}
+	speaker_(output_rate, 7000.0f) {}
 
 // MARK: - Exposed setters.
 

@@ -57,10 +57,7 @@ struct SoundLevels {
 template <typename InterruptObserverT>
 struct Sound: private SoundLevels {
 	Sound(InterruptObserverT &observer, const uint8_t *const ram) :
-		ram_(ram), observer_(observer), speaker_(1'000'000)
-	{
-		speaker_.speaker().set_high_frequency_cutoff(2'200.0f);
-	}
+		ram_(ram), observer_(observer), speaker_(1'000'000, 2'200.0f) {}
 
 	void set_next_end(const uint32_t value) {
 		next_.end = value;
