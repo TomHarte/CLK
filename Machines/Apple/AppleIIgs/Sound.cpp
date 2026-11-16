@@ -129,7 +129,8 @@ void GLU::set_data(const uint8_t data) {
 }
 
 void GLU::set_register(const uint16_t address, const uint8_t value) {
-	auto &oscillator = oscillators_[address_ & 0b0001'1111];
+	const auto oscillator_id = address_ & 0b0001'1111;
+	auto &oscillator = oscillators_[oscillator_id];
 	switch(address_ & 0b1110'0000) {
 		case 0x00:	load_low(oscillator.velocity, value);		break;
 		case 0x20:	load_high(oscillator.velocity, value);		break;
@@ -156,12 +157,21 @@ void GLU::set_register(const uint16_t address, const uint8_t value) {
 				break;
 				case 0xe1:
 					oscillator_count_ = 1 | ((value >> 1) & 31);
+
+					output_ = 0;
+					for(int c = 0; c < oscillator_count_; c++) {
+						output_ += oscillators_[c].posted_output_;
+					}
 				break;
 				case 0xe2:
 					/* Writing to the analogue to digital input definitely makes no sense. */
 				break;
 			}
 		break;
+	}
+
+	if(oscillator_id < oscillator_count_) {
+		update_output(oscillator);
 	}
 }
 
@@ -223,12 +233,7 @@ void GLU::run_for(const Cycles duration) {
 	const auto cycles = duration.as<int>();
 
 	for(int c = 0; c < cycles; c++) {
-		// TODO: a lot better than this.
-		int32_t sample = 0;
-		for(int x = 0; x < oscillator_count_; x++) {
-			sample += oscillators_[x].output(ram_);
-		}
-		speaker_.push_back(int16_t(sample / 32));
+		speaker_.push_back(int16_t(output_ / 32));
 
 		//
 		// Apple's documentation provides a frequency formula of:
@@ -287,6 +292,7 @@ void GLU::run_for(const Cycles duration) {
 
 				if(overflow) {
 					pair().position = 0;
+					update_output(pair());
 				}
 			break;
 
@@ -299,10 +305,19 @@ void GLU::run_for(const Cycles duration) {
 					oscillator.position = 0;
 					oscillator.control |= OscillatorControl::Halted;
 					pair().control &= ~OscillatorControl::Halted;
+					update_output(pair());
 				}
 			break;
 		}
+
+		update_output(oscillator);
 	}
+}
+
+void GLU::update_output(Oscillator &oscillator) {
+	output_ -= oscillator.posted_output_;
+	oscillator.posted_output_ = oscillator.output(ram_);
+	output_ += oscillator.posted_output_;
 }
 
 bool GLU::interrupt() const {
