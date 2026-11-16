@@ -9,8 +9,8 @@
 #pragma once
 
 #include "ClockReceiver/ClockReceiver.hpp"
-#include "Concurrency/AsyncTaskQueue.hpp"
-#include "Outputs/Speaker/Implementation/BufferSource.hpp"
+
+#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include <cstdint>
 
@@ -19,6 +19,9 @@ namespace Apple::IIgs::Sound {
 class GLU {
 public:
 	GLU(float clock_rate) noexcept;
+	auto &speaker() {
+		return speaker_.speaker();
+	}
 
 	void set_control(uint8_t);
 	uint8_t control() const;
@@ -35,6 +38,8 @@ public:
 	bool interrupt() const;
 
 private:
+	Outputs::Speaker::AsyncPushLowpass<false> speaker_;
+
 	uint16_t address_ = 0;
 	uint8_t data_ = 0;
 	uint8_t control_ = 0;

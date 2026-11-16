@@ -15,17 +15,17 @@
 namespace {
 
 struct GLUControl {
-	static constexpr uint8_t Volume					= 0b0000'1111;
-	static constexpr uint8_t Reserved				= 0b0001'0000;
-	static constexpr uint8_t AddressAutoIncrement	= 0b0010'0000;
-	static constexpr uint8_t AccessRAM				= 0b0100'0000;
-	static constexpr uint8_t DOCBusy				= 0b1000'0000;
+	static constexpr uint8_t Volume								= 0b0000'1111;
+	static constexpr uint8_t Reserved [[maybe_unused]] 			= 0b0001'0000;
+	static constexpr uint8_t AddressAutoIncrement				= 0b0010'0000;
+	static constexpr uint8_t AccessRAM							= 0b0100'0000;
+	static constexpr uint8_t DOCBusy							= 0b1000'0000;
 };
 
 struct DOCInterrupt {
-	static constexpr uint8_t NoInterrupt			= 0b1000'0000;
-	static constexpr uint8_t Reserved				= 0b0100'0001;
-	static constexpr uint8_t Oscillator				= 0b0011'1110;
+	static constexpr uint8_t NoInterrupt						= 0b1000'0000;
+	static constexpr uint8_t Reserved							= 0b0100'0001;
+	static constexpr uint8_t Oscillator							= 0b0011'1110;
 
 	static constexpr uint8_t interrupt(const uint8_t oscillator) {
 		return uint8_t((oscillator << 1) | Reserved);
@@ -36,9 +36,9 @@ struct DOCInterrupt {
 };
 
 struct OscillatorControl {
-	static constexpr uint8_t Halted					= 0b0000'0001;
-	static constexpr uint8_t InterruptEnabled		= 0b0000'1000;
-	static constexpr uint8_t ChannelAddress			= 0b1111'0000;
+	static constexpr uint8_t Halted								= 0b0000'0001;
+	static constexpr uint8_t InterruptEnabled					= 0b0000'1000;
+	static constexpr uint8_t ChannelAddress [[maybe_unused]]	= 0b1111'0000;
 
 	enum class Mode {
 		FreeRun = 0b00,
@@ -113,7 +113,7 @@ void load_low(uint16_t &target, const uint8_t source) {
 
 using namespace Apple::IIgs::Sound;
 
-GLU::GLU([[maybe_unused]] float clock_rate) noexcept {}
+GLU::GLU(float clock_rate) noexcept : speaker_(clock_rate) {}
 
 void GLU::set_data(const uint8_t data) {
 	data_ = data;
@@ -223,6 +223,12 @@ void GLU::run_for(const Cycles duration) {
 	const auto cycles = duration.as<int>();
 
 	for(int c = 0; c < cycles; c++) {
+		// TODO: a lot better than this.
+		int32_t sample = 0;
+		for(int x = 0; x < oscillator_count_; x++) {
+			sample += oscillators_[x].output(ram_);
+		}
+		speaker_.push_back(int16_t(sample / 32));
 
 		//
 		// Apple's documentation provides a frequency formula of:

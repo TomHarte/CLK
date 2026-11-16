@@ -105,7 +105,6 @@ public:
 		sound_glu_(float(CLOCK_RATE) / float(AUDIO_DIVIDER)) {
 
 		set_clock_rate(double(CLOCK_RATE));
-//		speaker_.set_input_rate(float(CLOCK_RATE) / float(audio_divider));
 		clock_.ClockStorage::set_data(std::begin(default_bram), std::end(default_bram));
 
 		using Target = Analyser::Static::AppleIIgs::Target;
@@ -218,7 +217,8 @@ public:
 			video_.flush();
 		}
 		if(outputs & Output::Audio) {
-			adb_glu_.flush();
+//			adb_glu_.flush();
+//			sound_glu_.flush();
 		}
 	}
 
@@ -239,8 +239,7 @@ public:
 	}
 
 	Outputs::Speaker::Speaker *get_speaker() final {
-		return nullptr;
-//		return &speaker_;
+		return &sound_glu_.speaker();
 	}
 
 	// MARK: MediaTarget.
