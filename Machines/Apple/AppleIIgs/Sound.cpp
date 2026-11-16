@@ -55,6 +55,14 @@ struct OscillatorControl {
 };
 
 struct WavetableSize {
+	static constexpr uint32_t accumulator_mask(const uint8_t size) {
+		return uint32_t(~(0xff'ffff >> resolution(size)));
+	}
+
+	static constexpr bool overflow(const uint8_t size, const uint32_t accumulator) {
+		return accumulator & accumulator_mask(size);
+	}
+
 	static constexpr uint16_t address(const uint8_t size, const uint32_t accumulator, const uint8_t pointer) {
 		// At least 8 bits of the output address always come from the accumulator, and possibly as many as 15.
 		// The 'extra' bits is the number of bits greater than 8.
@@ -77,11 +85,17 @@ struct WavetableSize {
 		//
 		// A 'resolution' of 7 implies to make no further adjustments from there. A 'resolution' of 0 would
 		// mean to discard the high 7 bits of the accumulator. So it effects a left shift.
-		const auto accumulator_shift = 16 - extra_accumulator_bits - (7 - (size & 0b000'111));
+		const auto accumulator_shift = 16 - extra_accumulator_bits - (7 - resolution(size));
 
 		return
 			(uint16_t(pointer << 8) & pointer_mask) |
 			(uint16_t(accumulator >> accumulator_shift) & ~pointer_mask);
+	}
+
+private:
+
+	static constexpr uint8_t resolution(const uint8_t size) {
+		return size & 0b000'111;
 	}
 };
 
@@ -234,6 +248,16 @@ void GLU::run_for(const Cycles duration) {
 
 		// Update phase.
 		oscillator.position += oscillator.velocity;
+		const bool overflow = WavetableSize::overflow(oscillator.table_size, oscillator.position);
+		oscillator.position &= WavetableSize::accumulator_mask(oscillator.table_size);
+
+		// "When an oscillator reaches the end of a wavetable and the enable interrupt (EI) bit for that oscillator has
+		// previously been set, the IRQ line and bit 7 of the Oscillator Interrupt register are then set"
+		oscillator.interrupt |= overflow && (oscillator.control & OscillatorControl::InterruptEnabled);
+
+		const auto pair = [&]() -> Oscillator & {
+			return oscillators_[next_oscillator_ ^ 1];
+		};
 
 		switch(OscillatorControl::mode(oscillator.control)) {
 			using enum OscillatorControl::Mode;
@@ -241,17 +265,23 @@ void GLU::run_for(const Cycles duration) {
 			case FreeRun:
 				// "The oscillator begins at the beginning of the wavetable and repeats the same wavetable. The
 				// oscillator will halt when the halt bit is set or when a 0 is encountered in the table data."
+				oscillator.control |= oscillator.sample(ram_) ? 0 : OscillatorControl::Halted;
 			break;
 
 			case OneShot:
 				// "The oscillator begins at the beginning of the wavetable, stepping through it only once,
 				// and stopping at the end of the table."
+				oscillator.control |= overflow ? OscillatorControl::Halted : 0;
 			break;
 
 			case Sync:
 				// "Enable sync mode by selecting even/odd pairs of oscillators (a lower even-numbered oscillator
 				// paired with an adjacent higher-numbered oscillator). When the even-numbered oscillator begins its
 				// wavetable, the odd-mate oscillator will synchronise and begin its wavetable simultaneously."
+
+				if(overflow) {
+					pair().position = 0;
+				}
 			break;
 
 			case Swap:
@@ -259,16 +289,13 @@ void GLU::run_for(const Cycles duration) {
 				// higher odd-numbered oscillator). The enabled oscillator pair runs in one-shot mode. When it reaches
 				// the end of its wavetable, it resets its accumulator to 0, sets its halt bit, and clears the halt
 				// bit of its mate."
+				if(overflow) {
+					oscillator.position = 0;
+					oscillator.control |= OscillatorControl::Halted;
+					pair().control &= ~OscillatorControl::Halted;
+				}
 			break;
 		}
-
-		// Check for stops, and any interrupts that therefore flow.
-//		if((oscillators_[c].control & 2) && (oscillators_[c].position & oscillators_[c].overflow_mask)) {
-//			// Apply halt, set interrupt request flag.
-//			oscillators_[c].position = 0;
-//			oscillators_[c].control |= 1;
-//			oscillators_[c].interrupt_request = true;
-//		}
 	}
 }
 
