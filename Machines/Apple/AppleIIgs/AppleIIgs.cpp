@@ -23,7 +23,6 @@
 #include "Processors/65816/65816.hpp"
 #include "Components/8530/z8530.hpp"
 #include "Components/AppleClock/AppleClock.hpp"
-#include "Components/AudioToggle/AudioToggle.hpp"
 #include "Components/DiskII/IWM.hpp"
 #include "Components/DiskII/MacintoshDoubleDensityDrive.hpp"
 #include "Components/DiskII/DiskIIDrive.hpp"
@@ -642,11 +641,9 @@ public:
 					card_mask_ = *value;
 				break;
 
-				case Read(0xc030): case Write(0xc030): {
-					// TODO: restore audio toggle.
-//					AudioUpdater updater(this);
-//					audio_toggle_.set_output(!audio_toggle_.get_output());
-				} break;
+				case Read(0xc030): case Write(0xc030):
+					sound_glu()->toggle();
+				break;
 
 				// 'Test Mode', whatever that is (?)
 				case Read(0xc06e): case Read(0xc06f):

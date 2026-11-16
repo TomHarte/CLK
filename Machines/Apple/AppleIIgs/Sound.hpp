@@ -34,6 +34,8 @@ public:
 	void set_address_high(uint8_t);
 	uint8_t address_high() const;
 
+	void toggle();
+
 	void run_for(Cycles);
 	bool interrupt() const;
 
@@ -49,16 +51,17 @@ private:
 	int next_oscillator_ = 0;
 
 	int32_t output_ = 0;
+	int16_t toggle_ = 0;
 
 	struct Oscillator {
-		uint32_t position;
+		uint32_t position = 0;
 
 		// Programmer-set values.
-		uint16_t velocity;
-		uint8_t volume;
-		uint8_t address;
-		uint8_t control;
-		uint8_t table_size;
+		uint16_t velocity = 0;
+		uint8_t volume = 0;
+		uint8_t address = 0;
+		uint8_t control = 1;		// Halt set; interrupt disabled.
+		uint8_t table_size = 0;
 
 		// Derived state.
 		bool interrupt = false;	// @c true if this channel would request an interrupt were it enabled.

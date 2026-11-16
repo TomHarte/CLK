@@ -229,11 +229,17 @@ uint8_t GLU::data() {
 
 // MARK: - Time entry points.
 
+void GLU::toggle() {
+	output_ -= toggle_;
+	toggle_ ^= 0xffff;
+	output_ += toggle_;
+}
+
 void GLU::run_for(const Cycles duration) {
 	const auto cycles = duration.as<int>();
 
 	for(int c = 0; c < cycles; c++) {
-		speaker_.push_back(int16_t(output_ / 32));
+		speaker_.push_back(int16_t(output_ / 33));
 
 		//
 		// Apple's documentation provides a frequency formula of:
