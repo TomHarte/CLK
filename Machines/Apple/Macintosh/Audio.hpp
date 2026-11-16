@@ -59,7 +59,6 @@ public:
 
 private:
 	Outputs::Speaker::AsyncPushLowpass<false> speaker_;
-	std::vector<int16_t> samples_;
 	HalfCycles time_;
 
 	// Fetch state.

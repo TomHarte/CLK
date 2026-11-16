@@ -23,11 +23,9 @@ constexpr auto MaxBufferSize = 1024;			// Maximum number of samples to accumulat
 
 // MARK: - Setup
 Audio::Audio(HalfCycles clock_rate, const Video &video, DriveSpeedAccumulator &drive_speed_accumulator) :
+	speaker_(clock_rate.as<float>() / MasterClockDivider.as<float>()),
 	phase_(video.audio_phase()),
-	drive_speed_accumulator_(drive_speed_accumulator) {
-
-	speaker_.speaker().set_input_rate(clock_rate.as<float>() / MasterClockDivider.as<float>());
-}
+	drive_speed_accumulator_(drive_speed_accumulator) {}
 
 void Audio::set_ram(const uint16_t *const ram, const uint32_t mask) {
 	ram_ = ram;
@@ -72,14 +70,12 @@ void Audio::generate() {
 	const auto samples = time_.divide(MasterClockDivider).as<size_t>();
 	const auto level = int16_t(sample_ * volume_multiplier_);
 
-	std::fill_n(std::back_inserter(samples_), samples, level);
-	if(samples_.size() >= MaxBufferSize) {
-		flush();
-	}
+	std::fill_n(std::back_inserter(speaker_.buffer()), samples, level);
+	speaker_.flush_maybe();
 }
 
 void Audio::flush() {
-	speaker_.push_swap(samples_);
+	speaker_.flush();
 }
 
 // MARK: - Setters.
