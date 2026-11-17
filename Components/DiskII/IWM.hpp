@@ -104,7 +104,7 @@ private:
 
 	void propose_shift(uint8_t bit);
 	Cycles cycles_since_shift_;
-	Cycles bit_length_ = Cycles(16);
+	Cycles bit_length_ = Cycles(28);
 
 	void push_drive_state();
 
@@ -112,7 +112,7 @@ private:
 		Reading,
 		Writing,
 		CheckingWriteProtect
-	} shift_mode_;
+	} shift_mode_ = ShiftMode::Reading;
 
 	uint8_t sense();
 	void select_shift_mode();

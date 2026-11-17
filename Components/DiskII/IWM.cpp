@@ -177,6 +177,7 @@ void IWM::access(int address) {
 
 			case ENABLE:
 				if(address & 1) {
+					cycles_until_disable_ = Cycles(0);
 					if(drives_[active_drive_]) drives_[active_drive_]->set_enabled(true);
 				} else {
 					// If the 1-second delay is enabled, set up a timer for that.
