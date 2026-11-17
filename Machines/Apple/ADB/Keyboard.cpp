@@ -146,13 +146,16 @@ bool Keyboard::set_key_pressed(Key key, bool is_pressed) {
 void Keyboard::clear_all_keys() {
 	// For all keys currently marked as down, enqueue key-up actions.
 	std::lock_guard lock_guard(keys_mutex_);
+	const auto events_before = pending_events_.size();
 	for(size_t key = 0; key < pressed_keys_.size(); key++) {
 		if(pressed_keys_[key]) {
 			pending_events_.push_back(0x80 | uint8_t(key));
 			pressed_keys_[key] = false;
 		}
 	}
-	if(!pending_events_.empty()) post_service_request();
+	if(pending_events_.size() != events_before) {
+		post_service_request();
+	}
 
 	// Mark all modifiers as released.
 	modifiers_ |= 0xfff8;
