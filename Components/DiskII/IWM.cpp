@@ -86,7 +86,9 @@ uint8_t IWM::read(const int address) {
 
 			return uint8_t(
 				(mode_&0x1f) |
-				((state_ & ENABLE) ? 0x20 : 0x00) |
+				(
+					((state_ & ENABLE) || (cycles_until_disable_ > Cycles(0))) ? 0x20 : 0x00
+				) |
 				(sense() & 0x80)
 			);
 		} break;
