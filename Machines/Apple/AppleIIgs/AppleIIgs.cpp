@@ -848,7 +848,9 @@ public:
 			update_interrupts();
 		}
 
-		video_ += duration;
+		if(video_ += duration) {
+			update_interrupts();
+		}
 		iwm_ += duration;
 		adb_glu_ += duration;
 

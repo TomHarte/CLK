@@ -810,10 +810,10 @@ inline void Executor::subtract_duration(const int duration) {
 
 	timer_divider_ += duration;
 	const int clock_ticks = timer_divider_ / t12_divider;
-	timer_divider_ &= (t12_divider-1);
+	timer_divider_ &= t12_divider - 1;
 
 	// Update timers 1 and 2.
-	const int t12_ticks = update_timer(prescalers_[0], timer_divider_ / t12_divider);
+	const int t12_ticks = update_timer(prescalers_[0], clock_ticks);
 	if(update_timer(timers_[0], t12_ticks)) {
 		set_interrupt_request(interrupt_control_, 0x20, 0x1ff8);
 	}
