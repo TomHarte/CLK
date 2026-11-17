@@ -237,10 +237,11 @@ void GLU::run_for(const Cycles duration) {
 	const auto cycles = duration.as<int>();
 
 	for(int c = 0; c < cycles; c++) {
-		speaker_.push_back(int16_t(
+		const auto unsigned_sample = uint16_t(
 			(toggle_ + (output_ * (control_ & GLUControl::Volume)) / 15)
-				/ int32_t(oscillators_.size() + 1))
+				/ uint32_t(oscillators_.size() + 1)
 		);
+		speaker_.push_back(int16_t(unsigned_sample ^ 0x8000));
 
 		//
 		// Apple's documentation provides a frequency formula of:
@@ -447,9 +448,9 @@ uint8_t GLU::Oscillator::sample(const uint8_t *const ram) const {
 	return ram[WavetableSize::address(table_size, position, address)];
 }
 
-int16_t GLU::Oscillator::output(const uint8_t *const ram) const {
+uint16_t GLU::Oscillator::output(const uint8_t *const ram) const {
 	const auto level = sample(ram);
 
-	// Samples are unsigned 8-bit; scale to signed 16-bit.
-	return (level * volume) ^ 0x8000;
+	// Samples are unsigned 8-bit; scale to 16-bit.
+	return level * volume;
 }

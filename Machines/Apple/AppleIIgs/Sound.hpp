@@ -51,8 +51,8 @@ private:
 	int oscillator_count_ = 1;
 	int next_oscillator_ = 0;
 
-	int32_t output_ = 0;
-	int16_t toggle_ = 0;
+	uint32_t output_ = 0;
+	uint16_t toggle_ = 0;
 
 	struct Oscillator {
 		uint32_t position = 0;
@@ -66,10 +66,10 @@ private:
 
 		// Derived state.
 		bool interrupt = false;	// @c true if this channel would request an interrupt were it enabled.
-		int16_t posted_output_ = 0;
+		uint16_t posted_output_ = 0;
 
 		uint8_t sample(const uint8_t *ram) const;
-		int16_t output(const uint8_t *ram) const;
+		uint16_t output(const uint8_t *ram) const;
 		bool interrupt_active() const;
 	};
 	std::array<Oscillator, 32> oscillators_;
