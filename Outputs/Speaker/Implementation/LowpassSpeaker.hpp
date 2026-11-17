@@ -19,6 +19,7 @@
 #include <cmath>
 #include <cstring>
 #include <mutex>
+#include <optional>
 
 namespace Outputs::Speaker {
 
@@ -362,10 +363,16 @@ public:
 template <bool is_stereo>
 class AsyncPushLowpass {
 public:
-	AsyncPushLowpass(const float sampling_rate) {
-		// Push in 1ms increments.
+	AsyncPushLowpass(const float sampling_rate, const std::optional<float> cutoff = {}) {
+		// Push in 1ms increments, mostly rounded down, but then pushed up to a multiple of two
+		// if necessary to keep things simple in case of stereo sound.
 		sample_size_threshold_ = size_t(sampling_rate / 1000.0f);
+		sample_size_threshold_ += (sample_size_threshold_ & 1);
+
 		speaker_.set_input_rate(sampling_rate);
+		if(cutoff.has_value()) {
+			speaker_.set_high_frequency_cutoff(*cutoff);
+		}
 	}
 
 	/*!
