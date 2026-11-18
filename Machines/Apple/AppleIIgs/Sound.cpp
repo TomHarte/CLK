@@ -145,6 +145,7 @@ void GLU::set_register(const uint16_t address, const uint8_t value) {
 		break;
 		case 0xa0: {
 			oscillator.control = value;
+			oscillator.interrupt = false;
 
 			// Halt + M0 => reset position.
 			if((oscillator.control & 0x3) == 3) {
@@ -210,7 +211,7 @@ uint8_t GLU::data() {
 						// Find the first enabled oscillator that is signalling an interrupt and has interrupts enabled.
 						for(int c = 0; c < oscillator_count_; c++) {
 							auto &source = oscillators_[size_t(c)];
-							if(source.interrupt_active()) {
+							if(source.interrupt) {
 								source.interrupt = false;
 								data_ = DOCInterrupt::interrupt(uint8_t(c));
 								break;
@@ -276,9 +277,7 @@ void GLU::run_for(const Cycles duration) {
 
 		// "When an oscillator reaches the end of a wavetable and the enable interrupt (EI) bit for that oscillator has
 		// previously been set, the IRQ line and bit 7 of the Oscillator Interrupt register are then set"
-		//
-		// (But I think this likely means that the internal interrupt flag is set, just not surfaced while interrupts are disabled?)
-		oscillator.interrupt |= overflow;
+		oscillator.interrupt |= overflow && (oscillator.control & OscillatorControl::InterruptEnabled);
 
 		const auto pair = [&]() -> Oscillator & {
 			return oscillators_[size_t(next_oscillator_ ^ 1)];
@@ -344,7 +343,7 @@ bool GLU::interrupt() const {
 	// Return @c true if any oscillator currently has its interrupt request
 	// set, and has interrupts enabled.
 	for(int c = 0; c < oscillator_count_; c++) {
-		if(oscillators_[size_t(c)].interrupt_active()) {
+		if(oscillators_[size_t(c)].interrupt) {
 			return true;
 		}
 	}
@@ -449,10 +448,6 @@ uint8_t GLU::address_high() const				{	return address_ >> 8;		}
 //		pending_store_read_ = (pending_store_read_ + 1) & (StoreBufferSize - 1);
 //	}
 //}
-
-bool GLU::Oscillator::interrupt_active() const {
-	return interrupt && (control & OscillatorControl::InterruptEnabled);
-}
 
 uint8_t GLU::Oscillator::sample(const uint8_t *const ram) const {
 	return ram[WavetableSize::address(table_size, position, address)];

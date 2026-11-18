@@ -70,7 +70,6 @@ private:
 
 		uint8_t sample(const uint8_t *ram) const;
 		uint16_t output(const uint8_t *ram) const;
-		bool interrupt_active() const;
 	};
 	std::array<Oscillator, 32> oscillators_;
 
