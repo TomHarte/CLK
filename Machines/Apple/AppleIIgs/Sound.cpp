@@ -8,6 +8,8 @@
 
 #include "Sound.hpp"
 
+#include "Machines/Utility/MemoryFuzzer.hpp"
+
 #include <algorithm>
 #include <bit>
 #include <cassert>
@@ -116,8 +118,11 @@ void load_low(uint16_t &target, const uint8_t source) {
 
 using namespace Apple::IIgs::Sound;
 
-GLU::GLU(float clock_rate) noexcept : speaker_(clock_rate, 10'000) {}	// Per "Cortland Sound ERS" a 10 kHz lowpass
-																		// filter applies.
+GLU::GLU(float clock_rate) noexcept : speaker_(clock_rate, 10'000) {
+	// Per "Cortland Sound ERS" a 10 kHz lowpass filter applies.
+
+	Memory::Fuzz(ram_);
+}
 
 void GLU::set_data(const uint8_t data) {
 	data_ = data;
