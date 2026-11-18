@@ -66,8 +66,6 @@ private:
 		uint8_t table_size = 0;
 
 		// Transient state.
-		bool interrupt = false;		// @c true if this channel is requesting an interrupt.
-
 		int16_t posted_output = 0;
 		uint8_t sample = 0;
 
@@ -75,6 +73,10 @@ private:
 		void latch_sample(const uint8_t *ram);
 	};
 	std::array<Oscillator, 32> oscillators_;
+
+	uint32_t interrupts_ = 0;
+	void set_interrupt(int);
+	void clear_interrupt(int);
 
 	void set_register(uint16_t address, uint8_t value);
 	void update_output(Oscillator &);

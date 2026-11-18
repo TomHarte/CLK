@@ -9,6 +9,7 @@
 #include "Sound.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <cassert>
 #include <cstdio>
 #include <numeric>
@@ -145,7 +146,7 @@ void GLU::set_register(const uint16_t address, const uint8_t value) {
 		break;
 		case 0xa0: {
 			oscillator.control = value;
-			oscillator.interrupt = false;
+			clear_interrupt(oscillator_id);
 
 			// Halt + M0 => reset position.
 			if((oscillator.control & 0x3) == 3) {
@@ -210,13 +211,10 @@ uint8_t GLU::data() {
 							data_ = DOCInterrupt::no_interrupt();
 
 							// Find the first enabled oscillator signalling an interrupt.
-							for(int c = 0; c < oscillator_count_; c++) {
-								auto &source = oscillators_[size_t(c)];
-								if(source.interrupt) {
-									source.interrupt = false;
-									data_ = DOCInterrupt::interrupt(uint8_t(c));
-									break;
-								}
+							if(interrupts_) {
+								const auto id = std::countr_zero(interrupts_);
+								data_ = DOCInterrupt::interrupt(uint8_t(id));
+								clear_interrupt(id);
 							}
 						break;
 						case 0xe1:	data_ = 0b11'00000'1 | uint8_t((oscillator_count_ - 1) << 1); 	break;
@@ -274,22 +272,26 @@ void GLU::run_for(const Cycles duration) {
 
 		// Update phase.
 		oscillator.position += oscillator.velocity;
+
+		// "The oscillator will halt when the halt bit is set or when a 0 is encountered in the table data."
+		// Apple documented this as being free-run behaviour only, but online commentary suggests it affects
+		// all oscillator modes. It also counts as end of sample.
+		oscillator.latch_sample(ram_);
+
+		oscillator.control |= oscillator.sample ? 0 : OscillatorControl::Halted;
 		const bool overflow = WavetableSize::overflow(oscillator.table_size, oscillator.position);
+		const bool ended = overflow || !oscillator.sample;
 		oscillator.position &= WavetableSize::accumulator_mask(oscillator.table_size);
 
 		// "When an oscillator reaches the end of a wavetable and the enable interrupt (EI) bit for that oscillator has
 		// previously been set, the IRQ line and bit 7 of the Oscillator Interrupt register are then set"
-		oscillator.interrupt |= overflow && (oscillator.control & OscillatorControl::InterruptEnabled);
+		if(ended && (oscillator.control & OscillatorControl::InterruptEnabled)) {
+			set_interrupt(next_oscillator_);
+		}
 
 		const auto pair = [&]() -> Oscillator & {
 			return oscillators_[size_t(next_oscillator_ ^ 1)];
 		};
-
-		// "The oscillator will halt when the halt bit is set or when a 0 is encountered in the table data."
-		// Apple documented this as being free-run behaviour only, but online commentary suggests it affects
-		// all oscillator modes.
-		oscillator.latch_sample(ram_);
-		oscillator.control |= oscillator.sample ? 0 : OscillatorControl::Halted;
 
 		switch(OscillatorControl::mode(oscillator.control)) {
 			using enum OscillatorControl::Mode;
@@ -352,13 +354,15 @@ void GLU::update_output(Oscillator &oscillator) {
 }
 
 bool GLU::interrupt() const {
-	// TODO: don't loop through and check every oscillator every time.
-	for(int c = 0; c < oscillator_count_; c++) {
-		if(oscillators_[size_t(c)].interrupt) {
-			return true;
-		}
-	}
-	return false;
+	return bool(interrupts_);
+}
+
+void GLU::set_interrupt(const int id) {
+	interrupts_ |= 1u << id;
+}
+
+void GLU::clear_interrupt(const int id) {
+	interrupts_ &= ~(1u << id);
 }
 
 // MARK: - Interface boilerplate.
@@ -378,5 +382,9 @@ void GLU::Oscillator::latch_sample(const uint8_t *const ram) {
 
 int16_t GLU::Oscillator::scaled_output() const {
 	// Samples are unsigned 8-bit; scale to signed 16-bit.
+	//
+	// Halted channels do not contribute to the output.
+	// TODO: and neither do channels that are merely acting as an amplitude modulator.
+	if(control & OscillatorControl::Halted) return 0;
 	return int8_t(sample ^ 0x80) * volume;
 }
