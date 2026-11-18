@@ -158,7 +158,7 @@ void GLU::set_register(const uint16_t address, const uint8_t value) {
 					/* Does setting the interrupt register really make any sense? */
 				break;
 				case 0xe1:
-					oscillator_count_ = std::clamp(value >> 1, 1, 32);
+					oscillator_count_ = 1 + ((value >> 1) & 31);
 
 					output_ = 0;
 					for(int c = 0; c < oscillator_count_; c++) {
@@ -217,8 +217,8 @@ uint8_t GLU::data() {
 							}
 						}
 					break;
-					case 0xe1:	data_ = uint8_t(oscillator_count_ << 1); 	break;
-					case 0xe2:	data_ = 128;								break;	// Input audio.
+					case 0xe1:	data_ = uint8_t((oscillator_count_ - 1) << 1); 	break;
+					case 0xe2:	data_ = 128;									break;	// Input audio.
 				}
 			break;
 		}
