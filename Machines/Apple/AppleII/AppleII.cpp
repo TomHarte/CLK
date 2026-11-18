@@ -607,9 +607,9 @@ public:
 		// something to review in the future.
 		speaker_.set_high_frequency_cutoff(6000);
 
-		// Also, start with randomised memory contents.
-		Memory::Fuzz(ram_, sizeof(ram_));
-		Memory::Fuzz(aux_ram_, sizeof(aux_ram_));
+		// Start with randomised memory contents.
+		Memory::Fuzz(ram_);
+		Memory::Fuzz(aux_ram_);
 
 		// Pick the required ROMs.
 		using Target = Analyser::Static::AppleII::Target;
