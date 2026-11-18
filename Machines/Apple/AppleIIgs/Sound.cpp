@@ -286,13 +286,16 @@ void GLU::run_for(const Cycles duration) {
 			return oscillators_[size_t(next_oscillator_ ^ 1)];
 		};
 
+		// "The oscillator will halt when the halt bit is set or when a 0 is encountered in the table data."
+		// Apple documented this as being free-run behaviour only, but online commentary suggests it affects
+		// all oscillator modes.
+		oscillator.control |= oscillator.sample(ram_) ? 0 : OscillatorControl::Halted;
+
 		switch(OscillatorControl::mode(oscillator.control)) {
 			using enum OscillatorControl::Mode;
 
 			case FreeRun:
-				// "The oscillator begins at the beginning of the wavetable and repeats the same wavetable. The
-				// oscillator will halt when the halt bit is set or when a 0 is encountered in the table data."
-				oscillator.control |= oscillator.sample(ram_) ? 0 : OscillatorControl::Halted;
+				// "The oscillator begins at the beginning of the wavetable and repeats the same wavetable."
 			break;
 
 			case OneShot:
