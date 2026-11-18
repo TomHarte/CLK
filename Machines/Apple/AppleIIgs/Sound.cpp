@@ -239,6 +239,10 @@ void GLU::toggle() {
 	toggle_ ^= 0xffff;
 }
 
+void GLU::flush() {
+	speaker_.flush();
+}
+
 void GLU::run_for(const Cycles duration) {
 	const auto cycles = duration.as<int>();
 

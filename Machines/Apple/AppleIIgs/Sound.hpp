@@ -41,6 +41,8 @@ public:
 	void run_for(Cycles);
 	bool interrupt() const;
 
+	void flush();
+
 private:
 	Outputs::Speaker::AsyncPushLowpass<false> speaker_;
 

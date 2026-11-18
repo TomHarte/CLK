@@ -207,6 +207,7 @@ public:
 
 	void run_for(const Cycles cycles) override {
 		m65816_.run_for(cycles);
+		adb_glu_.flush();
 	}
 
 	void flush_output(int outputs) final {
@@ -216,8 +217,7 @@ public:
 			video_.flush();
 		}
 		if(outputs & Output::Audio) {
-//			adb_glu_.flush();
-//			sound_glu_.flush();
+			sound_glu_.flush();
 		}
 	}
 
