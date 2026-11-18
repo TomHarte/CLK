@@ -219,8 +219,9 @@ uint8_t GLU::data() {
 								}
 							}
 						break;
-						case 0xe1:	data_ = 0xff & uint8_t((oscillator_count_ - 1) << 1); 	break;
-						case 0xe2:	data_ = 128;											break;	// Input audio.
+						case 0xe1:	data_ = 0b11'00000'1 | uint8_t((oscillator_count_ - 1) << 1); 	break;
+						case 0xe2:	data_ = 128; 													break;
+							// Input audio is fixed at '128'.
 					}
 				break;
 			}
