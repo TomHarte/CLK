@@ -82,7 +82,7 @@ struct WavetableSize {
 		// The accumulator is naturally 24 bits, so a right shift of 16 would put its highest order bits
 		// into the low 8 bits of the address.
 		//
-		// From there, it's one less shift for each fewer bit fo the accumulator being used — one less for each
+		// From there, it's one less shift for each fewer bit of the accumulator being used — one less for each
 		// "extra" accumulator bit.
 		//
 		// A 'resolution' of 7 implies to make no further adjustments from there. A 'resolution' of 0 would
@@ -245,11 +245,10 @@ void GLU::run_for(const Cycles duration) {
 	const auto cycles = duration.as<int>();
 
 	for(int c = 0; c < cycles; c++) {
-		const auto unsigned_sample = uint16_t(
+		speaker_.push_back(int16_t(
 			(toggle_ + (output_ * (control_ & GLUControl::Volume)) / 15)
-				/ uint32_t(oscillators_.size() + 1)
-		);
-		speaker_.push_back(int16_t(unsigned_sample ^ 0x8000));
+				/ int32_t(oscillators_.size() + 1)
+		));
 
 		//
 		// Apple's documentation provides a frequency formula of:
@@ -353,9 +352,6 @@ void GLU::update_output(Oscillator &oscillator) {
 
 bool GLU::interrupt() const {
 	// TODO: don't loop through and check every oscillator every time.
-
-	// Return @c true if any oscillator currently has its interrupt request
-	// set, and has interrupts enabled.
 	for(int c = 0; c < oscillator_count_; c++) {
 		if(oscillators_[size_t(c)].interrupt) {
 			return true;
@@ -379,9 +375,9 @@ uint8_t GLU::Oscillator::sample(const uint8_t *const ram) const {
 	return ram[WavetableSize::address(table_size, position, address)];
 }
 
-uint16_t GLU::Oscillator::output(const uint8_t *const ram) const {
+int16_t GLU::Oscillator::output(const uint8_t *const ram) const {
 	const auto level = sample(ram);
 
-	// Samples are unsigned 8-bit; scale to 16-bit.
-	return level * volume;
+	// Samples are unsigned 8-bit; scale to signed 16-bit.
+	return int8_t(level ^ 0x80) * volume;
 }
