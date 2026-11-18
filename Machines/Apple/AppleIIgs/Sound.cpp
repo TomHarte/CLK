@@ -308,11 +308,19 @@ void GLU::run_for(const Cycles duration) {
 				// "Enable sync mode by selecting even/odd pairs of oscillators (a lower even-numbered oscillator
 				// paired with an adjacent higher-numbered oscillator). When the even-numbered oscillator begins its
 				// wavetable, the odd-mate oscillator will synchronise and begin its wavetable simultaneously."
+				//
+				// Ensoniq documentation reports this as being amplitude modulation in the other direction, i.e. if
+				// enabled on an odd-numbered oscillator. So implement that also.
 
-				if(overflow && !(next_oscillator_ & 1)) {
-					pair().position = 0;
-					pair().control &= ~OscillatorControl::Halted;
+				if(next_oscillator_ & 1) {
+					pair().volume = oscillator.sample(ram_);
 					update_output(pair());
+				} else {
+					if(overflow) {
+						pair().position = 0;
+						pair().control &= ~OscillatorControl::Halted;
+						update_output(pair());
+					}
 				}
 			break;
 
@@ -363,94 +371,6 @@ void GLU::set_address_high(const uint8_t high)	{	load_high(address_, high);					
 uint8_t GLU::address_high() const				{	return address_ >> 8;						}
 
 // MARK: - Update logic.
-
-//template <Outputs::Speaker::Action action>
-//void GLU::generate_audio(size_t number_of_samples, Outputs::Speaker::MonoSample *target) {
-//	auto next_store = pending_stores_[pending_store_read_].load(std::memory_order::acquire);
-//	uint8_t next_amplitude = 255;
-//	for(size_t sample = 0; sample < number_of_samples; sample++) {
-//
-//		// TODO: there's a bit of a hack here where it is assumed that the input clock has been
-//		// divided in advance. Real hardware divides by 8, I think?
-//
-//		// Seed output as 0.
-//		int output = 0;
-//
-//		// Apply phase updates to all enabled oscillators.
-//		for(int c = 0; c < remote_.oscillator_count; c++) {
-//			// Don't do anything for halted oscillators.
-//			if(remote_.oscillators[c].control&1) continue;
-//
-//			remote_.oscillators[c].position += remote_.oscillators[c].velocity;
-//
-//			// Test for a new halting event.
-//			switch(remote_.oscillators[c].control & 6) {
-//				case 0:	// Free-run mode; don't truncate the position at all, in case the
-//						// accumulator bits in use changes.
-//					output += remote_.oscillators[c].output(remote_.ram_);
-//				break;
-//
-//				case 2:	// One-shot mode; check for end of run. Otherwise update sample.
-//					if(remote_.oscillators[c].position & remote_.oscillators[c].overflow_mask) {
-//						remote_.oscillators[c].position = 0;
-//						remote_.oscillators[c].control |= 1;
-//					}
-//				break;
-//
-//				case 4:	// Sync/AM mode.
-//					if(c&1) {
-//						// Oscillator is odd-numbered; it will amplitude-modulate the next voice.
-//						next_amplitude = remote_.oscillators[c].sample(remote_.ram_);
-//						continue;
-//					} else {
-//						// Oscillator is even-numbered; it will 'sync' to the even voice, i.e. any
-//						// time it wraps around, it will reset the next oscillator.
-//						if(remote_.oscillators[c].position & remote_.oscillators[c].overflow_mask) {
-//							remote_.oscillators[c].position &= remote_.oscillators[c].overflow_mask;
-//							remote_.oscillators[c+1].position = 0;
-//						}
-//					}
-//				break;
-//
-//				case 6:	// Swap mode; possibly trigger partner, and update sample.
-//						// Per tech note #11: "Whenever a swap occurs from a higher-numbered
-//						// oscillator to a lower-numbered one, the output signal from the corresponding
-//						// generator temporarily falls to the zero-crossing level (silence)"
-//					if(remote_.oscillators[c].position & remote_.oscillators[c].overflow_mask) {
-//						remote_.oscillators[c].control |= 1;
-//						remote_.oscillators[c].position = 0;
-//						remote_.oscillators[c^1].control &= ~1;
-//					}
-//				break;
-//			}
-//
-//			// Don't add output for newly-halted oscillators.
-//			if(remote_.oscillators[c].control&1) continue;
-//
-//			// Append new output.
-//			output += (remote_.oscillators[c].output(remote_.ram_) * next_amplitude) / 255;
-//			next_amplitude = 255;
-//		}
-//
-//		// Maximum total output was 32 channels times a 16-bit range. Map that down.
-//		// TODO: dynamic total volume?
-//		Outputs::Speaker::apply<action>(
-//			target[sample],
-//			Outputs::Speaker::MonoSample(
-//				(output * output_range_) >> 20
-//			)
-//		);
-//
-//		// Apply any RAM writes that interleave here.
-//		++pending_store_read_time_;
-//		if(!next_store.enabled) continue;
-//		if(next_store.time != pending_store_read_time_) continue;
-//		remote_.ram_[next_store.address] = next_store.value;
-//		next_store.enabled = false;
-//		pending_stores_[pending_store_read_].store(next_store, std::memory_order::relaxed);
-//		pending_store_read_ = (pending_store_read_ + 1) & (StoreBufferSize - 1);
-//	}
-//}
 
 uint8_t GLU::Oscillator::sample(const uint8_t *const ram) const {
 	return ram[WavetableSize::address(table_size, position, address)];
