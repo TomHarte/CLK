@@ -67,11 +67,11 @@ struct WavetableSize {
 
 	static constexpr uint16_t address(const uint8_t size, const uint32_t accumulator, const uint8_t pointer) {
 		// At least 8 bits of the output address always come from the accumulator, and possibly as many as 15.
-		// The 'extra' bits is the number of bits greater than 8.
+		// The table size is the number of bits greater than 8.
 		//
 		// i.e.
-		//	extra_accumulator_bits = 0 => 8 bits of address from the accumulator;
-		//	extra_accumulator_bits = 1 => 9 bits of address from the accumulator;
+		//	table_size = 0 => 8 bits of address from the accumulator;
+		//	table_size = 1 => 9 bits of address from the accumulator;
 		//	etc.
 		const auto table_size = (size & 0b111'000) >> 3;
 
