@@ -8,6 +8,7 @@
 
 #include "Sound.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdio>
 #include <numeric>
@@ -56,11 +57,12 @@ struct OscillatorControl {
 
 struct WavetableSize {
 	static constexpr uint32_t accumulator_mask(const uint8_t size) {
-		return uint32_t(~(0xff'ffff >> resolution(size)));
+		// Resolution 0 => A16 is the highest bit selected; resolution 1 => A17; etc.
+		return uint32_t((1 << (17 + resolution(size))) - 1);
 	}
 
 	static constexpr bool overflow(const uint8_t size, const uint32_t accumulator) {
-		return accumulator & accumulator_mask(size);
+		return accumulator > accumulator_mask(size);
 	}
 
 	static constexpr uint16_t address(const uint8_t size, const uint32_t accumulator, const uint8_t pointer) {
@@ -156,7 +158,7 @@ void GLU::set_register(const uint16_t address, const uint8_t value) {
 					/* Does setting the interrupt register really make any sense? */
 				break;
 				case 0xe1:
-					oscillator_count_ = 1 | ((value >> 1) & 31);
+					oscillator_count_ = std::clamp(value >> 1, 1, 32);
 
 					output_ = 0;
 					for(int c = 0; c < oscillator_count_; c++) {
@@ -207,8 +209,9 @@ uint8_t GLU::data() {
 
 						// Find the first enabled oscillator that is signalling an interrupt and has interrupts enabled.
 						for(int c = 0; c < oscillator_count_; c++) {
-							if(oscillator.interrupt_active()) {
-								oscillators_[size_t(c)].interrupt = false;
+							auto &source = oscillators_[size_t(c)];
+							if(source.interrupt_active()) {
+								source.interrupt = false;
 								data_ = DOCInterrupt::interrupt(uint8_t(c));
 								break;
 							}
@@ -254,8 +257,9 @@ void GLU::run_for(const Cycles duration) {
 
 		if(next_oscillator_ >= oscillator_count_) {
 			next_oscillator_ = -2;
+		} else {
+			++next_oscillator_;
 		}
-		++next_oscillator_;
 		if(next_oscillator_ < 0) {
 			continue;
 		}
@@ -272,7 +276,9 @@ void GLU::run_for(const Cycles duration) {
 
 		// "When an oscillator reaches the end of a wavetable and the enable interrupt (EI) bit for that oscillator has
 		// previously been set, the IRQ line and bit 7 of the Oscillator Interrupt register are then set"
-		oscillator.interrupt |= overflow && (oscillator.control & OscillatorControl::InterruptEnabled);
+		//
+		// (But I think this likely means that the internal interrupt flag is set, just not surfaced while interrupts are disabled?)
+		oscillator.interrupt |= overflow;
 
 		const auto pair = [&]() -> Oscillator & {
 			return oscillators_[size_t(next_oscillator_ ^ 1)];
@@ -290,7 +296,10 @@ void GLU::run_for(const Cycles duration) {
 			case OneShot:
 				// "The oscillator begins at the beginning of the wavetable, stepping through it only once,
 				// and stopping at the end of the table."
-				oscillator.control |= overflow ? OscillatorControl::Halted : 0;
+				if(overflow) {
+					oscillator.control |= OscillatorControl::Halted;
+					oscillator.position = 0;
+				}
 			break;
 
 			case Sync:
@@ -298,8 +307,9 @@ void GLU::run_for(const Cycles duration) {
 				// paired with an adjacent higher-numbered oscillator). When the even-numbered oscillator begins its
 				// wavetable, the odd-mate oscillator will synchronise and begin its wavetable simultaneously."
 
-				if(overflow) {
+				if(overflow && !(next_oscillator_ & 1)) {
 					pair().position = 0;
+					pair().control &= ~OscillatorControl::Halted;
 					update_output(pair());
 				}
 			break;
