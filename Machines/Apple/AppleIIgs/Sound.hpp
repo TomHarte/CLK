@@ -55,7 +55,10 @@ private:
 	int next_oscillator_ = 0;
 
 	int32_t output_ = 0;
-	int16_t toggle_ = std::numeric_limits<int16_t>::max();
+
+	bool toggle_state_ = false;
+	static constexpr int16_t ToggleRange = 0x3ff;
+	int16_t toggle_ = -ToggleRange;
 
 	struct Oscillator {
 		uint32_t position = 0;

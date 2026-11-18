@@ -116,7 +116,8 @@ void load_low(uint16_t &target, const uint8_t source) {
 
 using namespace Apple::IIgs::Sound;
 
-GLU::GLU(float clock_rate) noexcept : speaker_(clock_rate) {}
+GLU::GLU(float clock_rate) noexcept : speaker_(clock_rate, 10'000) {}	// Per "Cortland Sound ERS" a 10 kHz lowpass
+																		// filter applies.
 
 void GLU::set_data(const uint8_t data) {
 	data_ = data;
@@ -236,7 +237,8 @@ uint8_t GLU::data() {
 // MARK: - Time entry points.
 
 void GLU::toggle() {
-	toggle_ ^= 0xffff;
+	toggle_state_ ^= true;
+	toggle_ = toggle_state_ ? ToggleRange : -ToggleRange;
 }
 
 void GLU::flush() {
@@ -247,10 +249,14 @@ void GLU::run_for(const Cycles duration) {
 	const auto cycles = duration.as<int>();
 
 	for(int c = 0; c < cycles; c++) {
-		speaker_.push_back(int16_t(
-			(toggle_ + (output_ * (control_ & GLUControl::Volume)) / 15)
-				/ int32_t(oscillators_.size() + 1)
-		));
+		const auto ensoniq = output_ / 8;
+		const auto volume = control_ & GLUControl::Volume;
+		const auto sample = std::clamp<int32_t>(
+			(ensoniq + toggle_) * volume,
+			std::numeric_limits<int16_t>::min(),
+			std::numeric_limits<int16_t>::max()
+		);
+		speaker_.push_back(int16_t(sample));
 
 		//
 		// Apple's documentation provides a frequency formula of:
@@ -390,5 +396,5 @@ int16_t GLU::Oscillator::scaled_output() const {
 	// Halted channels do not contribute to the output.
 	// TODO: and neither do channels that are merely acting as an amplitude modulator.
 	if(control & OscillatorControl::Halted) return 0;
-	return int8_t(sample ^ 0x80) * volume;
+	return int8_t(sample ^ 0x80) * 128;//volume;
 }
