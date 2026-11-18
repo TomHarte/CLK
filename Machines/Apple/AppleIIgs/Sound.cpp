@@ -163,7 +163,7 @@ void GLU::set_register(const uint16_t address, const uint8_t value) {
 
 					output_ = 0;
 					for(int c = 0; c < oscillator_count_; c++) {
-						output_ += oscillators_[size_t(c)].posted_output_;
+						output_ += oscillators_[size_t(c)].posted_output;
 					}
 				break;
 				case 0xe2:
@@ -199,7 +199,7 @@ uint8_t GLU::data() {
 				case 0x00:	data_ = oscillator.velocity & 0xff;		break;
 				case 0x20:	data_ = oscillator.velocity >> 8;		break;
 				case 0x40:	data_ = oscillator.volume;				break;
-				case 0x60:	data_ = oscillator.sample(ram_);		break;
+				case 0x60:	data_ = oscillator.sample;				break;
 				case 0x80:	data_ = oscillator.address;				break;
 				case 0xa0:	data_ = oscillator.control;				break;
 				case 0xc0:	data_ = oscillator.table_size;			break;
@@ -288,7 +288,8 @@ void GLU::run_for(const Cycles duration) {
 		// "The oscillator will halt when the halt bit is set or when a 0 is encountered in the table data."
 		// Apple documented this as being free-run behaviour only, but online commentary suggests it affects
 		// all oscillator modes.
-		oscillator.control |= oscillator.sample(ram_) ? 0 : OscillatorControl::Halted;
+		oscillator.latch_sample(ram_);
+		oscillator.control |= oscillator.sample ? 0 : OscillatorControl::Halted;
 
 		switch(OscillatorControl::mode(oscillator.control)) {
 			using enum OscillatorControl::Mode;
@@ -315,7 +316,7 @@ void GLU::run_for(const Cycles duration) {
 				// enabled on an odd-numbered oscillator. So implement that also.
 
 				if(next_oscillator_ & 1) {
-					pair().volume = oscillator.sample(ram_);
+					pair().volume = oscillator.sample;
 					update_output(pair());
 				} else {
 					if(overflow) {
@@ -345,9 +346,9 @@ void GLU::run_for(const Cycles duration) {
 }
 
 void GLU::update_output(Oscillator &oscillator) {
-	output_ -= oscillator.posted_output_;
-	oscillator.posted_output_ = oscillator.output(ram_);
-	output_ += oscillator.posted_output_;
+	output_ -= oscillator.posted_output;
+	oscillator.posted_output = oscillator.scaled_output();
+	output_ += oscillator.posted_output;
 }
 
 bool GLU::interrupt() const {
@@ -371,13 +372,11 @@ uint8_t GLU::address_high() const				{	return address_ >> 8;						}
 
 // MARK: - Update logic.
 
-uint8_t GLU::Oscillator::sample(const uint8_t *const ram) const {
-	return ram[WavetableSize::address(table_size, position, address)];
+void GLU::Oscillator::latch_sample(const uint8_t *const ram) {
+	sample = ram[WavetableSize::address(table_size, position, address)];
 }
 
-int16_t GLU::Oscillator::output(const uint8_t *const ram) const {
-	const auto level = sample(ram);
-
+int16_t GLU::Oscillator::scaled_output() const {
 	// Samples are unsigned 8-bit; scale to signed 16-bit.
-	return int8_t(level ^ 0x80) * volume;
+	return int8_t(sample ^ 0x80) * volume;
 }

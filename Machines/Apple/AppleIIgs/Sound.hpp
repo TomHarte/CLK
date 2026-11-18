@@ -65,12 +65,14 @@ private:
 		uint8_t control = 1;		// Halt set; interrupt disabled.
 		uint8_t table_size = 0;
 
-		// Derived state.
+		// Transient state.
 		bool interrupt = false;		// @c true if this channel is requesting an interrupt.
-		int16_t posted_output_ = 0;
 
-		uint8_t sample(const uint8_t *ram) const;
-		int16_t output(const uint8_t *ram) const;
+		int16_t posted_output = 0;
+		uint8_t sample = 0;
+
+		int16_t scaled_output() const;
+		void latch_sample(const uint8_t *ram);
 	};
 	std::array<Oscillator, 32> oscillators_;
 
