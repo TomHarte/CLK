@@ -317,7 +317,7 @@ void GLU::run_for(const Cycles duration) {
 					update_output(pair());
 				} else {
 					if(overflow) {
-						pair().position = 0;
+						oscillator.position = pair().position = 0;
 						pair().control &= ~OscillatorControl::Halted;
 						update_output(pair());
 					}
