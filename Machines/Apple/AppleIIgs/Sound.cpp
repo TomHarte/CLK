@@ -259,10 +259,9 @@ void GLU::run_for(const Cycles duration) {
 		// My guess is therefore that at most one oscillator is updated per clock cycle.
 		//
 
+		++next_oscillator_;
 		if(next_oscillator_ >= oscillator_count_) {
 			next_oscillator_ = -2;
-		} else {
-			++next_oscillator_;
 		}
 		if(next_oscillator_ < 0) {
 			continue;
