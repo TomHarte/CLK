@@ -876,7 +876,6 @@ public:
 
 	void update_interrupts() {
 		// Update the interrupt line.
-		// TODO: add ADB controller as event source.
 		m65816_.set_irq_line(video_.get()->get_interrupt_line() || sound_glu_.interrupt());
 	}
 

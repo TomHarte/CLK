@@ -86,7 +86,9 @@ uint8_t IWM::read(const int address) {
 
 			return uint8_t(
 				(mode_&0x1f) |
-				((state_ & ENABLE) ? 0x20 : 0x00) |
+				(
+					((state_ & ENABLE) || (cycles_until_disable_ > Cycles(0))) ? 0x20 : 0x00
+				) |
 				(sense() & 0x80)
 			);
 		} break;
@@ -177,6 +179,7 @@ void IWM::access(int address) {
 
 			case ENABLE:
 				if(address & 1) {
+					cycles_until_disable_ = Cycles(0);
 					if(drives_[active_drive_]) drives_[active_drive_]->set_enabled(true);
 				} else {
 					// If the 1-second delay is enabled, set up a timer for that.
@@ -407,12 +410,17 @@ void IWM::propose_shift(const uint8_t bit) {
 }
 
 void IWM::set_drive(const int slot, IWMDrive *const drive) {
+	if(drives_[slot]) {
+		drives_[slot]->set_event_delegate(nullptr);
+		drives_[slot]->set_clocking_hint_observer(nullptr);
+	}
+
+	drive_is_rotating_[slot] = false;
 	drives_[slot] = drive;
+
 	if(drive) {
 		drive->set_event_delegate(this);
 		drive->set_clocking_hint_observer(this);
-	} else {
-		drive_is_rotating_[slot] = false;
 	}
 }
 
