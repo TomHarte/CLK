@@ -396,5 +396,5 @@ int16_t GLU::Oscillator::scaled_output() const {
 	// Halted channels do not contribute to the output.
 	// TODO: and neither do channels that are merely acting as an amplitude modulator.
 	if(control & OscillatorControl::Halted) return 0;
-	return int8_t(sample ^ 0x80) * 128;//volume;
+	return int8_t(sample ^ 0x80) * volume;
 }
