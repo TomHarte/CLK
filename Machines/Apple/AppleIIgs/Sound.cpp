@@ -187,43 +187,46 @@ uint8_t GLU::data() {
 	//	the startig address and read the data register 11 times, discarding the first byte read."
 	//
 	// Hence the code below returns whatever is currently in data_ but enqueues the proper value for it for next
-	// time around.
-	const auto data = data_;
+	// time around if accessing RAM.
+	const auto data = [&] {
+		if(control_ & GLUControl::AccessRAM) {
+			const auto result = data_;
+			data_ = ram_[address_];
+			return result;
+		} else {
+			auto &oscillator = oscillators_[address_ & 0b0001'1111];
+			switch(address_ & 0b1110'0000) {
+				case 0x00:	data_ = oscillator.velocity & 0xff;		break;
+				case 0x20:	data_ = oscillator.velocity >> 8;		break;
+				case 0x40:	data_ = oscillator.volume;				break;
+				case 0x60:	data_ = oscillator.sample(ram_);		break;
+				case 0x80:	data_ = oscillator.address;				break;
+				case 0xa0:	data_ = oscillator.control;				break;
+				case 0xc0:	data_ = oscillator.table_size;			break;
 
-	if(control_ & GLUControl::AccessRAM) {
-		data_ = ram_[address_];
-	} else {
-		auto &oscillator = oscillators_[address_ & 0b0001'1111];
-		switch(address_ & 0b1110'0000) {
-			case 0x00:	data_ = oscillator.velocity & 0xff;		break;
-			case 0x20:	data_ = oscillator.velocity >> 8;		break;
-			case 0x40:	data_ = oscillator.volume;				break;
-			case 0x60:	data_ = oscillator.sample(ram_);		break;
-			case 0x80:	data_ = oscillator.address;				break;
-			case 0xa0:	data_ = oscillator.control;				break;
-			case 0xc0:	data_ = oscillator.table_size;			break;
+				default:
+					switch(address_ & 0xff) {
+						case 0xe0:
+							data_ = DOCInterrupt::no_interrupt();
 
-			default:
-				switch(address_ & 0xff) {
-					case 0xe0:
-						data_ = DOCInterrupt::no_interrupt();
-
-						// Find the first enabled oscillator that is signalling an interrupt and has interrupts enabled.
-						for(int c = 0; c < oscillator_count_; c++) {
-							auto &source = oscillators_[size_t(c)];
-							if(source.interrupt) {
-								source.interrupt = false;
-								data_ = DOCInterrupt::interrupt(uint8_t(c));
-								break;
+							// Find the first enabled oscillator that is signalling an interrupt and has interrupts enabled.
+							for(int c = 0; c < oscillator_count_; c++) {
+								auto &source = oscillators_[size_t(c)];
+								if(source.interrupt) {
+									source.interrupt = false;
+									data_ = DOCInterrupt::interrupt(uint8_t(c));
+									break;
+								}
 							}
-						}
-					break;
-					case 0xe1:	data_ = uint8_t((oscillator_count_ - 1) << 1); 	break;
-					case 0xe2:	data_ = 128;									break;	// Input audio.
-				}
-			break;
+						break;
+						case 0xe1:	data_ = uint8_t((oscillator_count_ - 1) << 1); 	break;
+						case 0xe2:	data_ = 128;									break;	// Input audio.
+					}
+				break;
+			}
+			return data_;
 		}
-	}
+	} ();
 
 	if(control_ & GLUControl::AddressAutoIncrement) {
 		++address_;
