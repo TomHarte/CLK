@@ -209,7 +209,7 @@ uint8_t GLU::data() {
 						case 0xe0:
 							data_ = DOCInterrupt::no_interrupt();
 
-							// Find the first enabled oscillator that is signalling an interrupt and has interrupts enabled.
+							// Find the first enabled oscillator signalling an interrupt.
 							for(int c = 0; c < oscillator_count_; c++) {
 								auto &source = oscillators_[size_t(c)];
 								if(source.interrupt) {

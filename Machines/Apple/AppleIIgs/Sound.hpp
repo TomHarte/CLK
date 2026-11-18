@@ -65,7 +65,7 @@ private:
 		uint8_t table_size = 0;
 
 		// Derived state.
-		bool interrupt = false;	// @c true if this channel would request an interrupt were it enabled.
+		bool interrupt = false;		// @c true if this channel is requesting an interrupt.
 		uint16_t posted_output_ = 0;
 
 		uint8_t sample(const uint8_t *ram) const;
