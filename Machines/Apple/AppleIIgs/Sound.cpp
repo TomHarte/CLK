@@ -73,11 +73,11 @@ struct WavetableSize {
 		//	extra_accumulator_bits = 0 => 8 bits of address from the accumulator;
 		//	extra_accumulator_bits = 1 => 9 bits of address from the accumulator;
 		//	etc.
-		const auto extra_accumulator_bits = (size & 0b111'000) >> 3;
+		const auto table_size = (size & 0b111'000) >> 3;
 
 		// High bits of the pointer are always used; lower bits are used only if they haven't
 		// been replaced by the accumulator.
-		const auto pointer_mask = 0xff00 << extra_accumulator_bits;
+		const auto pointer_mask = 0xff00 << table_size;
 
 		// The accumulator is naturally 24 bits, so a right shift of 16 would put its highest order bits
 		// into the low 8 bits of the address.
@@ -87,7 +87,7 @@ struct WavetableSize {
 		//
 		// A 'resolution' of 7 implies to make no further adjustments from there. A 'resolution' of 0 would
 		// mean to discard the high 7 bits of the accumulator. So it effects a left shift.
-		const auto accumulator_shift = 16 - extra_accumulator_bits - (7 - resolution(size));
+		const auto accumulator_shift = 16 - table_size - (7 - resolution(size));
 
 		return
 			(uint16_t(pointer << 8) & pointer_mask) |
@@ -352,12 +352,12 @@ bool GLU::interrupt() const {
 
 // MARK: - Interface boilerplate.
 
-void GLU::set_control(const uint8_t control)	{	control_ = control;			}
-uint8_t GLU::control() const					{	return control_;			}
-void GLU::set_address_low(const uint8_t low)	{	load_low(address_, low);	}
-uint8_t GLU::address_low() const				{	return address_ & 0xff;		}
-void GLU::set_address_high(const uint8_t high)	{	load_high(address_, high);	}
-uint8_t GLU::address_high() const				{	return address_ >> 8;		}
+void GLU::set_control(const uint8_t control)	{	control_ = control & ~GLUControl::DOCBusy;	}
+uint8_t GLU::control() const					{	return control_;							}
+void GLU::set_address_low(const uint8_t low)	{	load_low(address_, low);					}
+uint8_t GLU::address_low() const				{	return address_ & 0xff;						}
+void GLU::set_address_high(const uint8_t high)	{	load_high(address_, high);					}
+uint8_t GLU::address_high() const				{	return address_ >> 8;						}
 
 // MARK: - Update logic.
 
