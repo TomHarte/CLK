@@ -148,7 +148,7 @@ void GLU::set_register(const uint16_t address, const uint8_t value) {
 
 			// Halt + M0 => reset position.
 			if((oscillator.control & 0x3) == 3) {
-				oscillator.control |= 1;
+				oscillator.position = 0;
 			}
 		} break;
 
