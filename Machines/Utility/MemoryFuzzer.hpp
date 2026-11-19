@@ -21,8 +21,14 @@ void Fuzz(uint8_t *buffer, std::size_t size);
 void Fuzz(uint16_t *buffer, std::size_t size);
 
 /// Replaces all existing vector or array contents with random bytes.
+// TODO: come up with appropriate requires clause.
 template <typename T> void Fuzz(T &buffer) {
 	Fuzz(reinterpret_cast<uint8_t *>(buffer.data()), buffer.size() * sizeof(typename T::value_type));
+}
+
+/// Fills a C-style array with random bytes.
+template <typename IntT, size_t n> void Fuzz(IntT (& array)[n]) {
+	Fuzz(reinterpret_cast<uint8_t *>(array), n * sizeof(IntT));
 }
 
 }
