@@ -285,15 +285,18 @@ void GLU::run_for(const Cycles duration) {
 		// Don't do anything for halted oscillators.
 		if(oscillator.control & OscillatorControl::Halted) continue;
 
+		// Sample before updating phase to ensure that straight after reset the first thing fetched really
+		// is the start of the sample.
+		oscillator.latch_sample(ram_);
+
 		// Update phase.
 		oscillator.position += oscillator.velocity;
 
 		// "The oscillator will halt when the halt bit is set or when a 0 is encountered in the table data."
 		// Apple documented this as being free-run behaviour only, but online commentary suggests it affects
 		// all oscillator modes. It also counts as end of sample.
-		oscillator.latch_sample(ram_);
-
 		oscillator.control |= oscillator.sample ? 0 : OscillatorControl::Halted;
+
 		const bool overflow = WavetableSize::overflow(oscillator.table_size, oscillator.position);
 		const bool ended = overflow || !oscillator.sample;
 		oscillator.position &= WavetableSize::accumulator_mask(oscillator.table_size);
@@ -333,12 +336,14 @@ void GLU::run_for(const Cycles duration) {
 				// enabled on an odd-numbered oscillator. So implement that also.
 
 				if(next_oscillator_ & 1) {
-					pair().volume = oscillator.sample;
-					update_output(pair());
+					const auto am_oscillator = size_t(next_oscillator_ + 1);
+					if(am_oscillator < oscillators_.size()) {
+						oscillators_[am_oscillator].volume = oscillator.sample;
+						update_output(oscillators_[am_oscillator]);
+					}
 				} else {
 					if(overflow) {
 						oscillator.position = pair().position = 0;
-						pair().control &= ~OscillatorControl::Halted;
 						update_output(pair());
 					}
 				}
@@ -364,7 +369,7 @@ void GLU::run_for(const Cycles duration) {
 
 void GLU::update_output(Oscillator &oscillator) {
 	output_ -= oscillator.posted_output;
-	oscillator.posted_output = oscillator.scaled_output();
+	oscillator.posted_output = oscillator.scaled_output(int(&oscillator - &oscillators_[0]));
 	output_ += oscillator.posted_output;
 }
 
@@ -395,11 +400,13 @@ void GLU::Oscillator::latch_sample(const uint8_t *const ram) {
 	sample = ram[WavetableSize::address(table_size, position, address)];
 }
 
-int16_t GLU::Oscillator::scaled_output() const {
-	// Samples are unsigned 8-bit; scale to signed 16-bit.
-	//
+int16_t GLU::Oscillator::scaled_output(const int id) const {
 	// Halted channels do not contribute to the output.
-	// TODO: and neither do channels that are merely acting as an amplitude modulator.
 	if(control & OscillatorControl::Halted) return 0;
+
+	// AM sources also do not contribute.
+	if((id & 1) && OscillatorControl::mode(control) == OscillatorControl::Mode::Sync) return 0;
+
+	// Samples are unsigned 8-bit; scale to signed 16-bit.
 	return int8_t(sample ^ 0x80) * volume;
 }
