@@ -281,12 +281,12 @@ void GLU::run_for(const Cycles duration) {
 
 		auto &oscillator = oscillators_[size_t(next_oscillator_)];
 
-		// Don't do anything for halted oscillators.
-		if(oscillator.control & OscillatorControl::Halted) continue;
-
 		// Sample before updating phase to ensure that straight after reset the first thing fetched really
 		// is the start of the sample.
 		oscillator.latch_sample(ram_);
+
+		// Don't do anything for halted oscillators.
+		if(oscillator.control & OscillatorControl::Halted) continue;
 
 		// Update phase.
 		oscillator.position += oscillator.velocity;
