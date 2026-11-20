@@ -257,7 +257,7 @@ void GLU::run_for(const Cycles duration) {
 		const auto ensoniq = output_ / 8;
 		const auto volume = control_ & GLUControl::Volume;
 		const auto sample = std::clamp<int32_t>(
-			(ensoniq + toggle_) * volume,
+			((ensoniq + toggle_) * volume) / 15,
 			std::numeric_limits<int16_t>::min(),
 			std::numeric_limits<int16_t>::max()
 		);
