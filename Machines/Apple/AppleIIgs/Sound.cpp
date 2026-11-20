@@ -125,7 +125,6 @@ GLU::GLU(float clock_rate) noexcept : speaker_(clock_rate, 10'000) {
 }
 
 void GLU::set_data(const uint8_t data) {
-	data_ = data;
 	if(control_ & GLUControl::AccessRAM) {
 		ram_[address_] = data;
 	} else {
@@ -195,48 +194,48 @@ uint8_t GLU::data() {
 	//
 	// Hence the code below returns whatever is currently in data_ but enqueues the proper value for it for next
 	// time around if accessing RAM.
-	const auto data = [&] {
+	const auto result = data_;
+	data_ = [&]() -> uint8_t {
 		if(control_ & GLUControl::AccessRAM) {
-			const auto result = data_;
-			data_ = ram_[address_];
-			return result;
+			return ram_[address_];
 		} else {
 			auto &oscillator = oscillators_[address_ & 0b0001'1111];
 			switch(address_ & 0b1110'0000) {
-				case 0x00:	data_ = oscillator.velocity & 0xff;		break;
-				case 0x20:	data_ = oscillator.velocity >> 8;		break;
-				case 0x40:	data_ = oscillator.volume;				break;
-				case 0x60:	data_ = oscillator.sample;				break;
-				case 0x80:	data_ = oscillator.address;				break;
-				case 0xa0:	data_ = oscillator.control;				break;
-				case 0xc0:	data_ = oscillator.table_size;			break;
+				case 0x00:	return oscillator.velocity & 0xff;
+				case 0x20:	return oscillator.velocity >> 8;
+				case 0x40:	return oscillator.volume;
+				case 0x60:	return oscillator.sample;
+				case 0x80:	return oscillator.address;
+				case 0xa0:	return oscillator.control;
+				case 0xc0:	return oscillator.table_size;
 
 				default:
 					switch(address_ & 0xff) {
 						case 0xe0:
-							data_ = DOCInterrupt::no_interrupt();
-
 							// Find the first enabled oscillator signalling an interrupt.
 							if(interrupts_) {
 								const auto id = std::countr_zero(interrupts_);
-								data_ = DOCInterrupt::interrupt(uint8_t(id));
 								clear_interrupt(id);
+								return DOCInterrupt::interrupt(uint8_t(id));
+							} else {
+								return DOCInterrupt::no_interrupt();
 							}
-						break;
-						case 0xe1:	data_ = 0b11'00000'1 | uint8_t((oscillator_count_ - 1) << 1); 	break;
-						case 0xe2:	data_ = 128; 													break;
+
+						case 0xe1:	return 0b11'00000'1 | uint8_t((oscillator_count_ - 1) << 1);
+						case 0xe2:	return 128;
 							// Input audio is fixed at '128'.
+
+						default: return 0xff;
 					}
 				break;
 			}
-			return data_;
 		}
 	} ();
 
 	if(control_ & GLUControl::AddressAutoIncrement) {
 		++address_;
 	}
-	return data;
+	return result;
 }
 
 // MARK: - Time entry points.
