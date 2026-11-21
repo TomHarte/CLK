@@ -153,6 +153,11 @@ Outputs::Display::DisplayType Video::get_display_type() const {
 
 void Video::set_internal_ram(const uint8_t *const ram) {
 	ram_ = ram;
+
+	crt_.set_dynamic_framing(
+		Outputs::Display::Rect(0.148968011f, 0.119230509f, 0.722391367f, 0.768705844f),
+		0.0f, 0.1f
+	);
 }
 
 // MARK: - Primary loop.
