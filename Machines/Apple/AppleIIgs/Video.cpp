@@ -8,13 +8,14 @@
 
 #include "Video.hpp"
 
+#include <algorithm>
 #include <bit>
 
 using namespace Apple::IIgs::Video;
 
 namespace {
 
-constexpr int CyclesPerTick = 7;	// One 'tick' being the non-stretched length of a cycle on the old Apple II 1Mhz clock.
+constexpr int CyclesPerTick = 7;	// One 'tick' is the non-stretched length of a cycle on the old Apple II 1Mhz clock.
 constexpr int CyclesPerLine = 456;	// Each of the Mega II's cycles lasts 7 cycles, making 455/line except for the
 									// final on on a line which lasts an additional 1 (i.e. is 1/7th longer).
 constexpr int Lines = 262;
@@ -90,7 +91,7 @@ constexpr int megaii_interrupt_point = 192*CyclesPerLine + (start_of_pixels - 28
 
 
 // A table to map from 7-bit integers to 14-bit versions with all bits doubled.
-constexpr uint16_t double_bytes[128] = {
+static constexpr uint16_t double_bytes[128] = {
 	0x0000, 0x0003, 0x000c, 0x000f, 0x0030, 0x0033, 0x003c, 0x003f,
 	0x00c0, 0x00c3, 0x00cc, 0x00cf, 0x00f0, 0x00f3, 0x00fc, 0x00ff,
 	0x0300, 0x0303, 0x030c, 0x030f, 0x0330, 0x0333, 0x033c, 0x033f,
@@ -111,8 +112,10 @@ constexpr uint16_t double_bytes[128] = {
 
 }
 
+// MARK: - Lifecycle.
+
 Video::Video() :
-	VideoSwitches<Cycles>(true, Cycles(2), [this] (Cycles cycles) { advance(cycles); }),
+	VideoSwitches<Cycles>(true, Cycles(2), [this] (const Cycles cycles) { advance(cycles); }),
 	crt_(CyclesPerLine - 1, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red4Green4Blue4) {
 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 
@@ -127,12 +130,12 @@ Video::Video() :
 		} else {
 			ntsc_delay_lookup_[c] = (c&1) == ((c >> 1)&1) ? 4 : 3;
 		}
-
-		ntsc_delay_lookup_[c] = 4;
 	}
 }
 
-void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+// MARK: - Configuration boilerplate.
+
+void Video::set_scan_target(Outputs::Display::ScanTarget *const scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
@@ -140,7 +143,7 @@ Outputs::Display::ScanStatus Video::get_scaled_scan_status() const {
 	return crt_.get_scaled_scan_status();
 }
 
-void Video::set_display_type(Outputs::Display::DisplayType display_type) {
+void Video::set_display_type(const Outputs::Display::DisplayType display_type) {
 	crt_.set_display_type(display_type);
 }
 
@@ -150,12 +153,11 @@ Outputs::Display::DisplayType Video::get_display_type() const {
 
 void Video::set_internal_ram(const uint8_t *const ram) {
 	ram_ = ram;
-//	crt_.set_automatic_fixed_framing([&] {
-//		run_for(Cycles(10'000));
-//	});
 }
 
-void Video::advance(Cycles cycles) {
+// MARK: - Primary loop.
+
+void Video::advance(const Cycles cycles) {
 	const int next_cycles_into_frame = cycles_into_frame_ + cycles.as<int>();
 
 	// Check for Mega II-style interrupt sources, prior to updating cycles_into_frame_.
@@ -167,7 +169,7 @@ void Video::advance(Cycles cycles) {
 		// So trigger it every 16 frames.
 	}
 
-	// Update video output.
+	// Get bounds of video update.
 	const int column_start = (cycles_into_frame_ % CyclesPerLine) / CyclesPerTick;
 	const int row_start = cycles_into_frame_ / CyclesPerLine;
 
@@ -176,19 +178,20 @@ void Video::advance(Cycles cycles) {
 	const int column_end = (cycles_into_frame_ % CyclesPerLine) / CyclesPerTick;
 	const int row_end = cycles_into_frame_ / CyclesPerLine;
 
+	// Break down into partial and complete rows.
 	if(row_end == row_start) {
 		if(column_end != column_start) {
-			output_row(row_start, column_start, column_end);
+			output_row<true>(row_start, column_start, column_end);
 		}
 	} else {
 		if(column_start != FinalColumn) {
-			output_row(row_start, column_start, FinalColumn);
+			output_row<true>(row_start, column_start, FinalColumn);
 		}
 		for(int row = row_start+1; row != row_end; row = (row + 1)%Lines) {
-			output_row(row, 0, FinalColumn);
+			output_row<false>(row, 0, FinalColumn);
 		}
 		if(column_end) {
-			output_row(row_end, 0, column_end);
+			output_row<true>(row_end, 0, column_end);
 		}
 	}
 }
@@ -203,6 +206,7 @@ Cycles Video::next_sequence_point() const {
 	int result = CyclesPerLine + sequence_point_offset - cycles_into_row + (Lines - row - 1)*CyclesPerLine;
 
 	// Replace with the start of the next line, if closer.
+	// TODO: could check whether that line actually has an interrupt on it?
 	if(row <= 200) {
 		if(cycles_into_row < sequence_point_offset) return Cycles(sequence_point_offset - cycles_into_row);
 		if(row < 200) result = CyclesPerLine + sequence_point_offset - cycles_into_row;
@@ -219,20 +223,24 @@ Cycles Video::next_sequence_point() const {
 	return Cycles(result);
 }
 
-void Video::output_row(int row, int start, int end) {
+template <bool partialfdhj>
+void Video::output_row(const int row, int start, const int end) {
 
-	// Deal with vertical sync.
+	//
+	// Handle vertical snyc region.
+	//
 	if(row >= first_sync_line && row < first_sync_line + 3) {
 		// Simplification: just output the whole line at line's end.
 		if(end == FinalColumn) {
 			crt_.output_sync(CyclesPerLine - sync_period);
 			crt_.output_blank(sync_period);
 		}
-
 		return;
 	}
+	//
+	// End vertical sync considerations. If execution continues past here, this line is not vertical sync..
+	//
 
-	// Pixel or pure border => blank as usual.
 
 	// Output blank only at the end of its window.
 	if(start < blank_ticks && end >= blank_ticks) {
@@ -241,23 +249,22 @@ void Video::output_row(int row, int start, int end) {
 		if(start == end) return;
 	}
 
-	// The pixel buffer will actually be allocated a column early, to allow double high/low res to start
-	// half a column before everything else.
+	// Allocated the pixel buffer a column early to allow double high/low res
+	// to start half a column before everything else.
 	static constexpr int pixel_buffer_allocation = start_of_pixels - 1;
 
 	// Possibly output border, pixels, border, if this is a pixel line.
 	if(row < 192 + ((new_video_&0x80) >> 4)) {	// i.e. 192 lines for classic Apple II video, 200 for IIgs video.
 
-		// Output left border as far as currently known.
+		// Left border.
 		if(start >= start_of_left_border && start < pixel_buffer_allocation) {
 			const int end_of_period = std::min(pixel_buffer_allocation, end);
 
+			const auto duration = (end_of_period - start) * CyclesPerTick;
 			if(border_colour_) {
-				uint16_t *const pixel = reinterpret_cast<uint16_t *>(crt_.begin_data(2, 2));
-				if(pixel) *pixel = border_colour_;
-				crt_.output_data((end_of_period - start) * CyclesPerTick, 1);
+				crt_.output_level<uint16_t>(duration, border_colour_);
 			} else {
-				crt_.output_blank((end_of_period - start) * CyclesPerTick);
+				crt_.output_blank(duration);
 			}
 
 			start = end_of_period;
@@ -266,7 +273,7 @@ void Video::output_row(int row, int start, int end) {
 
 		assert(end > start);
 
-		// Fetch and output such pixels as it is time for.
+		// Pixels.
 		if(start >= pixel_buffer_allocation && start < start_of_right_border) {
 			const int end_of_period = std::min(start_of_right_border, end);
 			const auto mode = graphics_mode(row);
@@ -306,7 +313,10 @@ void Video::output_row(int row, int start, int end) {
 			if(!next_pixel_ || pixels_format_ != format_for_mode(mode)) {
 				// Flush anything already in a buffer.
 				if(pixels_start_column_ < start) {
-					crt_.output_data((start - pixels_start_column_) * CyclesPerTick, next_pixel_ ? size_t(next_pixel_ - pixels_) : 1);
+					crt_.output_data(
+						(start - pixels_start_column_) * CyclesPerTick,
+						next_pixel_ ? size_t(next_pixel_ - pixels_) : 1
+					);
 					next_pixel_ = pixels_ = nullptr;
 				}
 
@@ -324,30 +334,28 @@ void Video::output_row(int row, int start, int end) {
 				// Fill in border colour if this is the first column.
 				if(window_start == -1) {
 					if(next_pixel_) {
-						int extra_border_length;
-						switch(mode) {
-							case GraphicsMode::DoubleText:
-							case GraphicsMode::Text:
-							case GraphicsMode::DoubleHighRes:
-							case GraphicsMode::DoubleLowRes:
-							case GraphicsMode::DoubleHighResMono:
-								extra_border_length = 7;
-							break;
-							case GraphicsMode::HighRes:
-							case GraphicsMode::LowRes:
-							case GraphicsMode::FatLowRes:
-								extra_border_length = 14;
-							break;
-							case GraphicsMode::SuperHighRes:
-								extra_border_length = (line_control_ & 0x80) ? 16 : 8;
-							break;
-							default:	// Unreachable.
-								extra_border_length = 0;
-							break;
-						}
-						for(int c = 0; c < extra_border_length; c++) {
-							next_pixel_[c] = border_colour_;
-						}
+						const int extra_border_length = [&] {
+							switch(mode) {
+								case GraphicsMode::DoubleText:
+								case GraphicsMode::Text:
+								case GraphicsMode::DoubleHighRes:
+								case GraphicsMode::DoubleLowRes:
+								case GraphicsMode::DoubleHighResMono:
+									return 7;
+								break;
+								case GraphicsMode::HighRes:
+								case GraphicsMode::LowRes:
+								case GraphicsMode::FatLowRes:
+									return 14;
+								break;
+								case GraphicsMode::SuperHighRes:
+									return (line_control_ & 0x80) ? 16 : 8;
+								break;
+								default:	// Unreachable.
+									__builtin_unreachable();
+							}
+						} ();
+						std::fill_n(next_pixel_, extra_border_length, border_colour_);
 						next_pixel_ += extra_border_length;
 					}
 					++window_start;
@@ -387,19 +395,21 @@ void Video::output_row(int row, int start, int end) {
 					break;
 
 					default:
-						assert(false);	// i.e. other modes yet to do.
+						__builtin_unreachable();
 				}
 			}
 
 			if(end_of_period == start_of_right_border) {
 				// Flush what remains in the NTSC queue, if applicable.
-				// TODO: with real NTSC test, why not?
 				if(next_pixel_ && is_colour_ntsc(mode)) {
 					ntsc_shift_ >>= 14;
 					next_pixel_ = output_shift(next_pixel_, 81);
 				}
 
-				crt_.output_data((start_of_right_border - pixels_start_column_) * CyclesPerTick, next_pixel_ ? size_t(next_pixel_ - pixels_) : 1);
+				crt_.output_data(
+					(start_of_right_border - pixels_start_column_) * CyclesPerTick,
+					next_pixel_ ? size_t(next_pixel_ - pixels_) : 1
+				);
 				next_pixel_ = pixels_ = nullptr;
 			}
 
@@ -432,14 +442,16 @@ void Video::output_row(int row, int start, int end) {
 	}
 }
 
-bool Video::get_is_vertical_blank(Cycles offset) {
+// MARK: - Other programmer-facing state.
+
+bool Video::get_is_vertical_blank(const Cycles offset) const {
 	// Cf. http://www.1000bit.it/support/manuali/apple/technotes/iigs/tn.iigs.040.html ;
 	// this bit covers the entire vertical border area, not just the NTSC-sense vertical blank,
 	// and considers the border to begin at 192 even though Super High-res mode is 200 lines.
 	return (cycles_into_frame_ + offset.as<int>())%(Lines * CyclesPerLine) >= FinalPixelLine * CyclesPerLine;
 }
 
-Video::Counters Video::get_counters(Cycles offset) {
+Video::Counters Video::get_counters(const Cycles offset) const {
 	// Tech note #39:
 	//
 	// "The seven-bit horizontal counter starts at $00 and counts from $40 to $7F (the sequence
@@ -468,45 +480,45 @@ Video::Counters Video::get_counters(Cycles offset) {
 		cycles_into_line + bool(cycles_into_line) * 0x40);
 }
 
-uint8_t Video::get_horizontal_counter(Cycles offset) {
+uint8_t Video::get_horizontal_counter(const Cycles offset) const {
 	const auto counters = get_counters(offset);
 	return uint8_t(counters.horizontal | (counters.vertical << 7));
 }
 
-uint8_t Video::get_vertical_counter(Cycles offset) {
+uint8_t Video::get_vertical_counter(const Cycles offset) const {
 	const auto counters = get_counters(offset);
 	return uint8_t(counters.vertical >> 1);
 }
 
-void Video::set_new_video(uint8_t new_video) {
+void Video::set_new_video(const uint8_t new_video) {
 	new_video_ = new_video;
 }
 
-uint8_t Video::get_new_video() {
+uint8_t Video::get_new_video() const {
 	return new_video_;
 }
 
-void Video::clear_interrupts(uint8_t mask) {
+void Video::clear_interrupts(const uint8_t mask) {
 	interrupts_.clear(mask);
 }
 
-void Video::set_interrupt_register(uint8_t mask) {
+void Video::set_interrupt_register(const uint8_t mask) {
 	interrupts_.set_control(mask);
 }
 
-uint8_t Video::get_interrupt_register() {
+uint8_t Video::get_interrupt_register() const {
 	return interrupts_.status();
 }
 
-bool Video::get_interrupt_line() {
+bool Video::get_interrupt_line() const {
 	return interrupts_.active() || (megaii_interrupt_mask_ & megaii_interrupt_state_);
 }
 
-void Video::set_megaii_interrupts_enabled(uint8_t mask) {
+void Video::set_megaii_interrupts_enabled(const uint8_t mask) {
 	megaii_interrupt_mask_ = mask;
 }
 
-uint8_t Video::get_megaii_interrupt_status() {
+uint8_t Video::get_megaii_interrupt_status() const {
 	return megaii_interrupt_state_ | (get_annunciator_3() ? 0x20 : 0x00);
 }
 
@@ -518,22 +530,22 @@ void Video::notify_clock_tick() {
 	interrupts_.add(0x40);
 }
 
-void Video::set_border_colour(uint8_t colour) {
+void Video::set_border_colour(const uint8_t colour) {
 	border_colour_entry_ = colour & 0x0f;
 	border_colour_ = appleii_palette[border_colour_entry_];
 }
 
-uint8_t Video::get_border_colour() {
+uint8_t Video::get_border_colour() const {
 	return border_colour_entry_;
 }
 
-void Video::set_text_colour(uint8_t colour) {
+void Video::set_text_colour(const uint8_t colour) {
 	text_colour_entry_ = colour;
 	text_colour_ = appleii_palette[colour >> 4];
 	background_colour_ = appleii_palette[colour & 0xf];
 }
 
-uint8_t Video::get_text_colour() {
+uint8_t Video::get_text_colour() const {
 	return text_colour_entry_;
 }
 
@@ -541,16 +553,16 @@ void Video::set_composite_is_colour(bool) {
 	// TODO.
 }
 
-bool Video::get_composite_is_colour() {
+bool Video::get_composite_is_colour() const {
 	return true;
 }
 
 // MARK: - Outputters.
 
-uint16_t *Video::output_char(uint16_t *target, uint8_t source, int row) const {
+uint16_t *Video::output_char(uint16_t *const target, const uint8_t source, const int row) const {
 	const int character = source & character_zones_[source >> 6].address_mask;
 	const uint8_t xor_mask = character_zones_[source >> 6].xor_mask;
-	const std::size_t character_address = size_t(character << 3) + (row & 7);
+	const auto character_address = size_t(character << 3) + (row & 7);
 	const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
 	const uint16_t colours[2] = {background_colour_, text_colour_};
 
@@ -564,7 +576,7 @@ uint16_t *Video::output_char(uint16_t *target, uint8_t source, int row) const {
 	return target + 7;
 }
 
-uint16_t *Video::output_text(uint16_t *target, int start, int end, int row) const {
+uint16_t *Video::output_text(uint16_t *target, const int start, const int end, const int row) const {
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
 		target = output_char(target, ram_[row_address + c], row);
@@ -573,7 +585,7 @@ uint16_t *Video::output_text(uint16_t *target, int start, int end, int row) cons
 	return target;
 }
 
-uint16_t *Video::output_double_text(uint16_t *target, int start, int end, int row) const {
+uint16_t *Video::output_double_text(uint16_t *target, const int start, const int end, const int row) const {
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
 		target = output_char(target, ram_[0x10000 + row_address + c], row);
@@ -583,7 +595,7 @@ uint16_t *Video::output_double_text(uint16_t *target, int start, int end, int ro
 	return target;
 }
 
-uint16_t *Video::output_super_high_res(uint16_t *target, int start, int end, int row) const {
+uint16_t *Video::output_super_high_res(uint16_t *target, const int start, const int end, const int row) const {
 	const int row_address = row * 160 + 0x12000;
 
 	// The palette_zero_ writes ensure that palette colour 0 is replaced by whatever was last output,
@@ -609,7 +621,7 @@ uint16_t *Video::output_super_high_res(uint16_t *target, int start, int end, int
 	return target;
 }
 
-uint16_t *Video::output_double_high_resolution_mono(uint16_t *target, int start, int end, int row) {
+uint16_t *Video::output_double_high_resolution_mono(uint16_t *target, const int start, const int end, const int row) {
 	const uint16_t row_address = get_row_address(row);
 	static constexpr uint16_t colours[] = {0, 0xffff};
 	for(int c = start; c < end; c++) {
@@ -641,19 +653,17 @@ uint16_t *Video::output_double_high_resolution_mono(uint16_t *target, int start,
 }
 
 
-uint16_t *Video::output_low_resolution(uint16_t *target, int start, int end, int row) {
+uint16_t *Video::output_low_resolution(uint16_t *target, const int start, const int end, const int row) {
 	const int row_shift = row&4;
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
 		const uint8_t source = (ram_[row_address + c] >> row_shift) & 0xf;
 
 		// Convolve input as a function of odd/even row.
-		uint32_t long_source;
-		if(c&1) {
-			long_source = uint32_t((source >> 2) | (source << 2) | (source << 6) | (source << 10));
-		} else {
-			long_source = uint32_t((source | (source << 4) | (source << 8) | (source << 12)) & 0x3fff);
-		}
+		const uint32_t long_source =
+			c & 1 ?
+				uint32_t((source >> 2) | (source << 2) | (source << 6) | (source << 10)) :
+				uint32_t((source | (source << 4) | (source << 8) | (source << 12)) & 0x3fff);
 
 		ntsc_shift_ = (long_source << 18) | (ntsc_shift_ >> 14);
 		target = output_shift(target, 1 + c*2);
@@ -662,7 +672,7 @@ uint16_t *Video::output_low_resolution(uint16_t *target, int start, int end, int
 	return target;
 }
 
-uint16_t *Video::output_fat_low_resolution(uint16_t *target, int start, int end, int row) {
+uint16_t *Video::output_fat_low_resolution(uint16_t *target, const int start, const int end, const int row) {
 	const int row_shift = row&4;
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
@@ -677,7 +687,7 @@ uint16_t *Video::output_fat_low_resolution(uint16_t *target, int start, int end,
 	return target;
 }
 
-uint16_t *Video::output_double_low_resolution(uint16_t *target, int start, int end, int row) {
+uint16_t *Video::output_double_low_resolution(uint16_t *target, const int start, const int end, const int row) {
 	const int row_shift = row&4;
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
@@ -691,12 +701,22 @@ uint16_t *Video::output_double_low_resolution(uint16_t *target, int start, int e
 		// source[1] and the next 7 from source[0]. Also shifting is offset by
 		// half a window compared to regular low resolution, so the conditional
 		// works the other way around.
-		uint32_t long_source;
-		if(c&1) {
-			long_source = uint32_t((source[1] | ((source[1] << 4) & 0x70) | ((source[0] << 4) & 0x80) | (source[0] << 8) | (source[0] << 12)) & 0x3fff);
-		} else {
-			long_source = uint32_t((source[1] >> 2) | (source[1] << 2) | ((source[1] << 6) & 0x40) | ((source[0] << 6) & 0x380) | (source[0] << 10));
-		}
+		const uint32_t long_source =
+			c & 1 ?
+				uint32_t((
+					source[1] |
+					((source[1] << 4) & 0x70) |
+					((source[0] << 4) & 0x80) |
+					(source[0] << 8) |
+					(source[0] << 12)
+				) & 0x3fff) :
+				uint32_t(
+					(source[1] >> 2) |
+					(source[1] << 2) |
+					((source[1] << 6) & 0x40) |
+					((source[0] << 6) & 0x380) |
+					(source[0] << 10)
+				);
 
 		ntsc_shift_ = (long_source << 18) | (ntsc_shift_ >> 14);
 		target = output_shift(target, c*2);
@@ -705,10 +725,10 @@ uint16_t *Video::output_double_low_resolution(uint16_t *target, int start, int e
 	return target;
 }
 
-uint16_t *Video::output_high_resolution(uint16_t *target, int start, int end, int row) {
+uint16_t *Video::output_high_resolution(uint16_t *target, const int start, const int end, const int row) {
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
-		uint8_t source = ram_[row_address + c];
+		const uint8_t source = ram_[row_address + c];
 		const uint32_t doubled_source = uint32_t(double_bytes[source & 0x7f]);
 
 		// Just append new bits, doubled up (and possibly delayed).
@@ -725,7 +745,7 @@ uint16_t *Video::output_high_resolution(uint16_t *target, int start, int end, in
 	return target;
 }
 
-uint16_t *Video::output_double_high_resolution(uint16_t *target, int start, int end, int row) {
+uint16_t *Video::output_double_high_resolution(uint16_t *target, const int start, const int end, const int row) {
 	const uint16_t row_address = get_row_address(row);
 	for(int c = start; c < end; c++) {
 		const uint8_t source[2] = {
@@ -740,7 +760,7 @@ uint16_t *Video::output_double_high_resolution(uint16_t *target, int start, int 
 	return target;
 }
 
-uint16_t *Video::output_shift(uint16_t *target, int column) {
+uint16_t *Video::output_shift(uint16_t *target, const int column) {
 	// Make sure that at least two columns are enqueued before output begins;
 	// the top bits can't be understood without reference to bits that come afterwards.
 	if(!column) {
@@ -770,28 +790,31 @@ uint16_t *Video::output_shift(uint16_t *target, int column) {
 		},
 	};
 
-#define OutputPixel(offset)	{\
-	ntsc_delay_ = ntsc_delay_lookup_[unsigned(ntsc_delay_ << 2) | ((ntsc_shift_ >> offset)&1) | ((ntsc_shift_ >> (offset + 3))&2)];	\
-	const auto raw_bits = (ntsc_shift_ >> (offset + ntsc_delay_)) & 0x0f; \
-	target[offset] = appleii_palette[rolls[(phase + offset + ntsc_delay_)&3][raw_bits]];	\
-}
+	const auto output_pixel = [&](const int offset) {
+		ntsc_delay_ =
+			ntsc_delay_lookup_[
+				unsigned(ntsc_delay_ << 2) |
+				((ntsc_shift_ >> offset) & 1) |
+				((ntsc_shift_ >> (offset + 3))& 2)
+			];
+		const auto raw_bits = (ntsc_shift_ >> (offset + ntsc_delay_)) & 0x0f;
+		target[offset] = appleii_palette[rolls[(phase + offset + ntsc_delay_)&3][raw_bits]];
+	};
 
-	OutputPixel(0);
-	OutputPixel(1);
-	OutputPixel(2);
-	OutputPixel(3);
-	OutputPixel(4);
-	OutputPixel(5);
-	OutputPixel(6);
-	OutputPixel(7);
-	OutputPixel(8);
-	OutputPixel(9);
-	OutputPixel(10);
-	OutputPixel(11);
-	OutputPixel(12);
-	OutputPixel(13);
-
-#undef OutputPixel
+	output_pixel(0);
+	output_pixel(1);
+	output_pixel(2);
+	output_pixel(3);
+	output_pixel(4);
+	output_pixel(5);
+	output_pixel(6);
+	output_pixel(7);
+	output_pixel(8);
+	output_pixel(9);
+	output_pixel(10);
+	output_pixel(11);
+	output_pixel(12);
+	output_pixel(13);
 
 	return target + 14;
 }

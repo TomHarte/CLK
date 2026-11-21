@@ -37,7 +37,11 @@ public:
 		If @c is_iie is true, these switches will set up the character zones for an IIe-esque
 		set of potential flashing characters and alternate video modes.
 	*/
-	VideoSwitches(bool is_iie, TimeUnit delay, std::function<void(TimeUnit)> &&target) : delay_(delay), deferrer_(std::move(target)) {
+	VideoSwitches(
+		const bool is_iie,
+		const TimeUnit delay,
+		std::function<void(TimeUnit)> &&target
+	) : delay_(delay), deferrer_(std::move(target)) {
 		character_zones_[0].xor_mask = 0xff;
 		character_zones_[0].address_mask = 0x3f;
 		character_zones_[1].xor_mask = 0;

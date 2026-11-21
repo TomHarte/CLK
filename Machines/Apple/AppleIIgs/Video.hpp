@@ -24,27 +24,27 @@ public:
 	Video();
 	void set_internal_ram(const uint8_t *);
 
-	bool get_is_vertical_blank(Cycles offset);
-	uint8_t get_horizontal_counter(Cycles offset);
-	uint8_t get_vertical_counter(Cycles offset);
+	bool get_is_vertical_blank(Cycles offset) const;
+	uint8_t get_horizontal_counter(Cycles offset) const;
+	uint8_t get_vertical_counter(Cycles offset) const;
 
 	void set_new_video(uint8_t);
-	uint8_t get_new_video();
+	uint8_t get_new_video() const;
 
 	void clear_interrupts(uint8_t);
-	uint8_t get_interrupt_register();
+	uint8_t get_interrupt_register() const;
 	void set_interrupt_register(uint8_t);
-	bool get_interrupt_line();
+	bool get_interrupt_line() const;
 
 	void notify_clock_tick();
 
 	void set_border_colour(uint8_t);
 	void set_text_colour(uint8_t);
-	uint8_t get_text_colour();
-	uint8_t get_border_colour();
+	uint8_t get_text_colour() const;
+	uint8_t get_border_colour() const;
 
 	void set_composite_is_colour(bool);
-	bool get_composite_is_colour();
+	bool get_composite_is_colour() const;
 
 	/// Sets the scan target.
 	void set_scan_target(Outputs::Display::ScanTarget *scan_target);
@@ -65,7 +65,7 @@ public:
 	/// generated here.
 	void set_megaii_interrupts_enabled(uint8_t);
 
-	uint8_t get_megaii_interrupt_status();
+	uint8_t get_megaii_interrupt_status() const;
 
 	void clear_megaii_interrupts();
 
@@ -190,6 +190,7 @@ private:
 	uint16_t *pixels_ = nullptr, *next_pixel_ = nullptr;
 	int pixels_start_column_;
 
+	template <bool partial>
 	void output_row(int row, int start, int end);
 
 	uint16_t *output_super_high_res(uint16_t *target, int start, int end, int row) const;
@@ -244,7 +245,7 @@ private:
 		Counters(int v, int h) : vertical(v), horizontal(h) {}
 		const int vertical, horizontal;
 	};
-	Counters get_counters(Cycles offset);
+	Counters get_counters(Cycles offset) const;
 
 	// Marshalls the Mega II-style interrupt state.
 	uint8_t megaii_interrupt_mask_ = 0;
