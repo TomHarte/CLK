@@ -187,7 +187,7 @@ void Video::advance(const Cycles cycles) {
 		if(column_start != FinalColumn) {
 			output_row<true>(row_start, column_start, FinalColumn);
 		}
-		for(int row = row_start+1; row != row_end; row = (row + 1)%Lines) {
+		for(int row = (row_start+1)%Lines; row != row_end; row = (row + 1)%Lines) {
 			output_row<false>(row, 0, FinalColumn);
 		}
 		if(column_end) {
@@ -225,7 +225,6 @@ Cycles Video::next_sequence_point() const {
 
 template <bool partialfdhj>
 void Video::output_row(const int row, int start, const int end) {
-
 	//
 	// Handle vertical snyc region.
 	//
@@ -253,9 +252,11 @@ void Video::output_row(const int row, int start, const int end) {
 	// to start half a column before everything else.
 	static constexpr int pixel_buffer_allocation = start_of_pixels - 1;
 
-	// Possibly output border, pixels, border, if this is a pixel line.
-	if(row < 192 + ((new_video_&0x80) >> 4)) {	// i.e. 192 lines for classic Apple II video, 200 for IIgs video.
+	// i.e. 192 lines for classic Apple II video, 200 for IIgs video.
+	const auto pixel_rows_in_mode = 192 + ((new_video_&0x80) >> 4);
 
+	// Possibly output border, pixels, border, if this is a pixel line.
+	if(row < pixel_rows_in_mode) {
 		// Left border.
 		if(start >= start_of_left_border && start < pixel_buffer_allocation) {
 			const int end_of_period = std::min(pixel_buffer_allocation, end);
