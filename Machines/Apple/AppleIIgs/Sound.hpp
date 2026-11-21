@@ -74,7 +74,7 @@ private:
 		int16_t posted_output = 0;
 		uint8_t sample = 0;
 
-		int16_t scaled_output() const;
+		int16_t scaled_output(int id) const;
 		void latch_sample(const uint8_t *ram);
 	};
 	std::array<Oscillator, 32> oscillators_;
