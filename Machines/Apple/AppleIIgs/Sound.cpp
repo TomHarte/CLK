@@ -244,7 +244,21 @@ void GLU::run_for(const Cycles duration) {
 	const auto cycles = duration.as<int>();
 
 	for(int c = 0; c < cycles; c++) {
-		const int16_t mix = (toggle_ + output_) * (control_ & GLUControl::Volume) / (2 * 15);
+		// Set the proportion of total available volume that is used by the DOC (as opposed to the toggle).
+		static constexpr int DocVolumeNumerator = 8;
+		static constexpr int DocVolumeDenominator = 9;
+		static_assert(DocVolumeDenominator > DocVolumeNumerator);
+
+		// ... implies the toggle numerator.
+		static constexpr int ToggleNumerator = DocVolumeDenominator - DocVolumeNumerator;
+
+		// Total divide will be the denominator * 15 to account for the GLU's volume control.
+		static constexpr int Denominator = DocVolumeDenominator * 15;
+
+		const int glu_volume = control_ & GLUControl::Volume;
+		const int numerator = ((toggle_ * ToggleNumerator) + (output_ * DocVolumeNumerator)) * glu_volume;
+		const auto mix = int16_t(numerator / Denominator);
+
 		speaker_.push_back(mix);
 
 		//
