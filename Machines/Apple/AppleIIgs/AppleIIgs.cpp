@@ -49,6 +49,7 @@ namespace {
 
 constexpr int CLOCK_RATE = 14'318'180;
 constexpr int AUDIO_DIVIDER = 16;		// DOC clock rate is CLOCK_RATE / AUDIO_DIVIDER ~= 895 kHz.
+constexpr int ADB_DIVIDER = 4;			// ADB microcontroller clock rate is CLOCK_RATE / ADB_DIVIDER = 3,579,545 Hz.
 
 // This is the first result that came up when searching for valid Apple IIgs BRAM states;
 // I'm unclear on its provenance.
@@ -123,7 +124,7 @@ public:
 		}
 		rom_ = roms.find(system)->second;
 		video_->set_character_rom(roms.find(characters)->second);
-		adb_glu_->set_microcontroller_rom(roms.find(microcontroller)->second);
+		adb_glu_.set_microcontroller_rom(roms.find(microcontroller)->second);
 
 		const auto ram_size = [&]() -> size_t {
 			switch(target.memory_model) {
@@ -158,7 +159,6 @@ public:
 
 	void run_for(const Cycles cycles) override {
 		m65816_.run_for(cycles);
-		adb_glu_.flush();
 	}
 
 	void flush_output(const int outputs) final {
@@ -414,32 +414,36 @@ public:
 
 				// ADB and keyboard.
 				case Read(0xc000):
-					*value = adb_glu_->get_keyboard_data();
+					*value = adb_glu_.get_keyboard_data();
+					update_interrupts();
 				break;
 				case Read(0xc010):
-					*value = adb_glu_->get_any_key_down() ? 0x80 : 0x00;
+					*value = adb_glu_.get_any_key_down() ? 0x80 : 0x00;
 					[[fallthrough]];
 				case Write(0xc010):
-					adb_glu_->clear_key_strobe();
+					adb_glu_.clear_key_strobe();
 				break;
 
 				case Read(0xc024):
-					*value = adb_glu_->get_mouse_data();
+					*value = adb_glu_.get_mouse_data();
+					update_interrupts();
 				break;
 				case Read(0xc025):
-					*value = adb_glu_->get_modifier_status();
+					*value = adb_glu_.get_modifier_status();
 				break;
 				case Read(0xc026):
-					*value = adb_glu_->get_data();
+					*value = adb_glu_.get_data();
+					update_interrupts();
 				break;
 				case Write(0xc026):
-					adb_glu_->set_command(*value);
+					adb_glu_.set_command(*value);
 				break;
 				case Read(0xc027):
-					*value = adb_glu_->get_status();
+					*value = adb_glu_.get_status();
 				break;
 				case Write(0xc027):
-					adb_glu_->set_status(*value);
+					adb_glu_.set_status(*value);
+					update_interrupts();
 				break;
 
 				// The SCC.
@@ -483,12 +487,12 @@ public:
 
 				// Analogue inputs.
 				case Read(0xc061):
-					*value = (adb_glu_->get_command_button() || joysticks_.button(0)) ? 0x80 : 0x00;
+					*value = (adb_glu_.get_command_button() || joysticks_.button(0)) ? 0x80 : 0x00;
 					is_1Mhz = true;
 				break;
 
 				case Read(0xc062):
-					*value = (adb_glu_->get_option_button() || joysticks_.button(1)) ? 0x80 : 0x00;
+					*value = (adb_glu_.get_option_button() || joysticks_.button(1)) ? 0x80 : 0x00;
 					is_1Mhz = true;
 				break;
 
@@ -815,20 +819,28 @@ public:
 			update_interrupts();
 		}
 		iwm_ += duration;
-		adb_glu_ += duration;
 
+		// TODO: a template, like JustInTimeActor, that merely maps a clock.
 		sound_cycles_ += duration;
 		const auto divided_sound_cycles = sound_cycles_.divide<Cycles>(AUDIO_DIVIDER);
 		if(divided_sound_cycles > Cycles(0)) {
 			sound_glu_.run_for(divided_sound_cycles);
 			update_interrupts();
 		}
+
+		adb_cycles_ += duration;
+		const auto divided_adb_cycles = adb_cycles_.divide<Cycles>(ADB_DIVIDER);
+		if(divided_adb_cycles > Cycles(0)) {
+			adb_glu_.run_for(divided_adb_cycles);
+			update_interrupts();
+		}
+
 		if(video_.did_flush()) {
 			update_interrupts();
 
 			const bool is_vertical_blank = video_.get()->get_is_vertical_blank(video_.time_since_flush());
-			if(is_vertical_blank != adb_glu_.get()->get_vertical_blank()) {
-				adb_glu_->set_vertical_blank(is_vertical_blank);
+			if(is_vertical_blank != adb_glu_.get_vertical_blank()) {
+				adb_glu_.set_vertical_blank(is_vertical_blank);
 			}
 		}
 
@@ -838,8 +850,11 @@ public:
 	}
 
 	void update_interrupts() {
-		// Update the interrupt line.
-		m65816_.set_irq_line(video_.get()->get_interrupt_line() || sound_glu_.interrupt());
+		m65816_.set_irq_line(
+			video_.get()->get_interrupt_line() ||
+			sound_glu_.interrupt() ||
+			adb_glu_.interrupt()
+		);
 	}
 
 	// MARK: - Input.
@@ -848,15 +863,15 @@ public:
 	}
 
 	void set_key_state(const uint16_t key, const bool is_pressed) final {
-		adb_glu_.get()->keyboard().set_key_pressed(Apple::ADB::Key(key), is_pressed);
+		adb_glu_.keyboard().set_key_pressed(Apple::ADB::Key(key), is_pressed);
 	}
 
 	void clear_all_keys() final {
-		adb_glu_.get()->keyboard().clear_all_keys();
+		adb_glu_.keyboard().clear_all_keys();
 	}
 
 	Inputs::Mouse &get_mouse() final {
-		return adb_glu_.get()->get_mouse();
+		return adb_glu_.get_mouse();
 	}
 
 	const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
@@ -883,16 +898,26 @@ private:
 
 	// MARK: - Other components.
 
+	// RTC.
 	Apple::Clock::ParallelClock clock_;
-	JustInTimeActor<Apple::IIgs::Video::Video, Cycles, 1, 2> video_;	// i.e. run video at 7Mhz.
-	JustInTimeActor<Apple::IIgs::ADB::GLU, Cycles, 1, 4> adb_glu_;		// i.e. 3,579,545Mhz.
-	Zilog::SCC::z8530 scc_;
-	JustInTimeActor<Apple::IWM, Cycles, 1, 2> iwm_;
 	Cycles cycles_since_clock_tick_;
+
+	// Video output.
+	JustInTimeActor<Apple::IIgs::Video::Video, Cycles, 1, 2> video_;	// i.e. run video at 7Mhz.
+
+	// SCC.
+	Zilog::SCC::z8530 scc_;
+
+	// Floppy disks.
+	JustInTimeActor<Apple::IWM, Cycles, 1, 2> iwm_;
 	Apple::Macintosh::DoubleDensityDrive drives35_[2];
 	Apple::Disk::DiskIIDrive drives525_[2];
 
-	// The audio parts.
+	// ADB.
+	Apple::IIgs::ADB::GLU adb_glu_;
+	Cycles adb_cycles_;
+
+	// Audio.
 	Apple::IIgs::Sound::GLU sound_glu_;
 	Cycles sound_cycles_;
 	Apple::IIgs::Sound::GLU *sound_glu() {
