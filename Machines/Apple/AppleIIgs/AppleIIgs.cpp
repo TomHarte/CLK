@@ -125,63 +125,14 @@ public:
 		video_->set_character_rom(roms.find(characters)->second);
 		adb_glu_->set_microcontroller_rom(roms.find(microcontroller)->second);
 
-		// Run only the currently-interesting self test.
-//		rom_[0x36402] = 2;
-//		rom_[0x36403] = 0x7c;	// ROM_CHECKSUM	[working, when hacks like this are removed]
-//		rom_[0x36404] = 0x6c;
-//
-//		rom_[0x36403] = 0x82;	// MOVIRAM		[working]
-//		rom_[0x36404] = 0x67;
-//
-//		rom_[0x36403] = 0x2c;	// SOFT_SW		[working]
-//		rom_[0x36404] = 0x6a;
-//
-//		rom_[0x36403] = 0xe8;	// RAM_ADDR		[working]
-//		rom_[0x36404] = 0x6f;
-//
-//		rom_[0x36403] = 0xc7;	// FPI_SPEED	[working]
-//		rom_[0x36404] = 0x6a;
-//
-//		rom_[0x36403] = 0xd7;	// SER_TST		[broken]
-//		rom_[0x36404] = 0x68;
-//
-//		rom_[0x36403] = 0xdc;	// CLOCK		[broken]
-//		rom_[0x36404] = 0x6c;
-//
-//		rom_[0x36403] = 0x1b;	// BAT_RAM		[broken]
-//		rom_[0x36404] = 0x6e;
-//
-//		rom_[0x36403] = 0x11;	// FDB (/ADB?)	[broken]
-//		rom_[0x36404] = 0x6f;
-//
-//		rom_[0x36403] = 0x41;	// SHADOW_TST	[working]
-//		rom_[0x36404] = 0x6d;
-//
-//		rom_[0x36403] = 0x09;	// CUSTOM_IRQ	[broken?]
-//		rom_[0x36404] = 0x6b;
-//
-//		rom_[0x36403] = 0xf4;	// DOC_EXEC
-//		rom_[0x36404] = 0x70;
-//
-//		rom_[0x36403] = 0xab;	// ECT_SEQ
-//		rom_[0x36404] = 0x64;
-//
-//		rom_[0xfc146f] = rom_[0xfc1470] = 0xea;
-
-		size_t ram_size = 0;
-		switch(target.memory_model) {
-			case Target::MemoryModel::TwoHundredAndFiftySixKB:
-				ram_size = 256;
-			break;
-
-			case Target::MemoryModel::OneMB:
-				ram_size = 128 + 1024;
-			break;
-
-			case Target::MemoryModel::EightMB:
-				ram_size = 128 + 8 * 1024;
-			break;
-		}
+		const auto ram_size = [&]() -> size_t {
+			switch(target.memory_model) {
+				using enum Target::MemoryModel;
+				case TwoHundredAndFiftySixKB:	return 256;
+				case OneMB:						return 128 + 1024;
+				case EightMB:					return 128 + 8 * 1024;
+			}
+		} ();
 		ram_.resize(ram_size * 1024);
 
 		memory_.set_storage(ram_, rom_);
@@ -210,7 +161,7 @@ public:
 		adb_glu_.flush();
 	}
 
-	void flush_output(int outputs) final {
+	void flush_output(const int outputs) final {
 		iwm_.flush();
 
 		if(outputs & Output::Video) {
@@ -221,15 +172,16 @@ public:
 		}
 	}
 
-	void set_scan_target(Outputs::Display::ScanTarget *target) override {
+	void set_scan_target(Outputs::Display::ScanTarget *const target) override {
 		video_.get()->set_scan_target(target);
 	}
 
 	Outputs::Display::ScanStatus get_scaled_scan_status() const override {
-		return video_.get()->get_scaled_scan_status() * 2.0f;	// TODO: expose multiplier and divider via the JustInTime template?
+		// TODO: expose multiplier and divider via the JustInTime template?
+		return video_.get()->get_scaled_scan_status() * 2.0f;
 	}
 
-	void set_display_type(Outputs::Display::DisplayType display_type) final {
+	void set_display_type(const Outputs::Display::DisplayType display_type) final {
 		video_->set_display_type(display_type);
 	}
 
@@ -255,7 +207,7 @@ public:
 	}
 
 	// MARK: Activity::Source
-	void set_activity_observer(Activity::Observer *observer) final {
+	void set_activity_observer(Activity::Observer *const observer) final {
 		drives35_[0].set_activity_observer(observer, "First 3.5\" Drive", true);
 		drives35_[1].set_activity_observer(observer, "Second 3.5\" Drive", true);
 		drives525_[0].set_activity_observer(observer, "First 5.25\" Drive", true);
@@ -263,7 +215,11 @@ public:
 	}
 
 	// MARK: BusHandler.
-	forceinline Cycles perform_bus_operation(const CPU::WDC65816::BusOperation operation, const uint32_t address, uint8_t *const value) {
+	forceinline Cycles perform_bus_operation(
+		const CPU::WDC65816::BusOperation operation,
+		const uint32_t address,
+		uint8_t *const value
+	) {
 		const auto &region = memory_.region(address);
 		bool is_1Mhz = false;
 
@@ -508,11 +464,13 @@ public:
 				// These were all dealt with by the call to memory_.access.
 				// TODO: subject to read data? Does vapour lock apply?
 				case Read(0xc002): case Read(0xc003): case Read(0xc004): case Read(0xc005):
-				case Read(0xc006): case Read(0xc007): case Read(0xc008): case Read(0xc009): case Read(0xc00a): case Read(0xc00b):
+				case Read(0xc006): case Read(0xc007): case Read(0xc008): case Read(0xc009):
+				case Read(0xc00a): case Read(0xc00b):
 					*value = 0xff;
 				break;
 				case Write(0xc002): case Write(0xc003): case Write(0xc004): case Write(0xc005):
-				case Write(0xc006): case Write(0xc007): case Write(0xc008): case Write(0xc009): case Write(0xc00a): case Write(0xc00b):
+				case Write(0xc006): case Write(0xc007): case Write(0xc008): case Write(0xc009):
+				case Write(0xc00a): case Write(0xc00b):
 				break;
 
 				// Interrupt ROM addresses; Cf. P25 of the Hardware Reference.
@@ -739,7 +697,10 @@ public:
 							switch(address_suffix) {
 								default:
 									// Temporary: log _potential_ mistakes.
-									if((address_suffix < 0xc100 && address_suffix >= 0xc090) || (address_suffix < 0xc080)) {
+									if(
+										(address_suffix < 0xc100 && address_suffix >= 0xc090) ||
+										(address_suffix < 0xc080)
+									) {
 										printf("Internal card-area access: %04x\n", address_suffix);
 									}
 									if(is_read) {
@@ -812,7 +773,8 @@ public:
 		// In preparation for this test: the top bit of speed_register_ has been inverted,
 		// so 1 => 1Mhz, 0 => 2.8Mhz, and motor_flags_ always has that bit set.
 		if(is_1Mhz || (speed_register_ & motor_flags_)) {
-			// TODO: this is very implicitly linked to the video timing; make that overt somehow. Even if it's just with a redundant video setter at construction.
+			// TODO: this is very implicitly linked to the video timing; make that overt somehow.
+			// Even if it's just with a redundant video setter at construction.
 			const int current_length = 14 + 2*(slow_access_phase_ / 896);						// Length of cycle currently ongoing.
 			const int phase_adjust = (current_length - slow_access_phase_%14)%current_length;	// Amount of time to expand waiting until end of cycle, if not actually at start.
 			const int access_phase = (slow_access_phase_ + phase_adjust)%912;					// Phase at which access will begin.
@@ -833,7 +795,8 @@ public:
 			const int refresh = (fast_access_phase_ / 45) * bool(region.write) * 5;
 			duration = Cycles(5 + phase_adjust + refresh);
 		}
-		// TODO: lookup tables to avoid the above? LCM of the two phases is 22,800 so probably 912+50 bytes plus two counters.
+		// TODO: lookup tables to avoid the above? LCM of the two phases
+		// is 22,800 so probably 912+50 bytes plus two counters.
 		fast_access_phase_ = (fast_access_phase_ + duration.as<int>()) % 50;
 		slow_access_phase_ = (slow_access_phase_ + duration.as<int>()) % 912;
 
@@ -884,7 +847,7 @@ public:
 		return &keyboard_mapper_;
 	}
 
-	void set_key_state(uint16_t key, bool is_pressed) final {
+	void set_key_state(const uint16_t key, const bool is_pressed) final {
 		adb_glu_.get()->keyboard().set_key_pressed(Apple::ADB::Key(key), is_pressed);
 	}
 
