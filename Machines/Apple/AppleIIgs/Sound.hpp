@@ -62,6 +62,7 @@ private:
 
 	struct Oscillator {
 		uint32_t position = 0;
+		bool reset_next = false;
 
 		// Programmer-set values.
 		uint16_t velocity = 0;
