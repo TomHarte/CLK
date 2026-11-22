@@ -11,7 +11,6 @@
 #include "Machines/Utility/MemoryFuzzer.hpp"
 
 #include <algorithm>
-#include <bit>
 #include <cassert>
 #include <cstdio>
 #include <numeric>
@@ -203,10 +202,10 @@ uint8_t GLU::data() {
 				default:
 					switch(address_ & 0xff) {
 						case 0xe0:
-							// Find the first enabled oscillator signalling an interrupt.
-							if(interrupts_) {
-								const auto id = std::countr_zero(interrupts_);
+							if(interrupter_) {
+								const auto id = *interrupter_;
 								clear_interrupt(id);
+								interrupter_ = std::nullopt;
 								return DOCInterrupt::interrupt(uint8_t(id));
 							} else {
 								return DOCInterrupt::no_interrupt();
@@ -289,6 +288,10 @@ void GLU::run_for(const Cycles duration) {
 		output_ = oscillator.scaled_output(next_oscillator_, sample);
 		if(!sample && (oscillator.control & OscillatorControl::InterruptEnabled)) {
 			set_interrupt(next_oscillator_);
+		} else {
+			// Try to bump the interrupt flag from this oscillator if already set.
+			// Only needed if the above test fails, since fresh sets are tested at that moment.
+			try_claim_interrupt(next_oscillator_);
 		}
 
 		// Don't do anything for halted oscillators.
@@ -374,10 +377,23 @@ bool GLU::interrupt() const {
 
 void GLU::set_interrupt(const int id) {
 	interrupts_ |= 1u << id;
+	if(!interrupter_.has_value()) {
+		interrupter_ = id;
+	}
 }
 
 void GLU::clear_interrupt(const int id) {
 	interrupts_ &= ~(1u << id);
+}
+
+void GLU::try_claim_interrupt(const int id) {
+	if(interrupter_.has_value()) {
+		return;
+	}
+	if(!(interrupts_ & (1u << id))) {
+		return;
+	}
+	interrupter_ = id;
 }
 
 // MARK: - Interface boilerplate.

@@ -14,6 +14,7 @@
 
 #include <array>
 #include <limits>
+#include <optional>
 #include <cstdint>
 
 namespace Apple::IIgs::Sound {
@@ -80,8 +81,10 @@ private:
 	std::array<Oscillator, 32> oscillators_;
 
 	uint32_t interrupts_ = 0;
+	std::optional<int> interrupter_;
 	void set_interrupt(int);
 	void clear_interrupt(int);
+	void try_claim_interrupt(int);
 
 	void set_register(uint16_t address, uint8_t value);
 };
