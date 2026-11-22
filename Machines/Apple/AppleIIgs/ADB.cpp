@@ -124,6 +124,10 @@ uint8_t GLU::get_status() {
 	return status_ | ((visible_mouse_register_ == 2) ? 0 : uint8_t(CPUFlags::MouseXIsAvailable));
 }
 
+bool GLU::interrupt() const {
+	return (status_ & (status_ >> 1)) & 0b01010100;
+}
+
 void GLU::set_status(const uint8_t status) {
 	// This permits only the interrupt flags to be set.
 	static constexpr uint8_t interrupt_flags =

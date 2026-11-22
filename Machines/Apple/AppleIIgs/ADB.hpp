@@ -53,6 +53,8 @@ public:
 		return mouse_;
 	}
 
+	bool interrupt() const;
+
 private:
 	InstructionSet::M50740::Executor executor_;
 

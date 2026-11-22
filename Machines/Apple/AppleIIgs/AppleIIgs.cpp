@@ -415,6 +415,7 @@ public:
 				// ADB and keyboard.
 				case Read(0xc000):
 					*value = adb_glu_.get_keyboard_data();
+					update_interrupts();
 				break;
 				case Read(0xc010):
 					*value = adb_glu_.get_any_key_down() ? 0x80 : 0x00;
@@ -425,12 +426,14 @@ public:
 
 				case Read(0xc024):
 					*value = adb_glu_.get_mouse_data();
+					update_interrupts();
 				break;
 				case Read(0xc025):
 					*value = adb_glu_.get_modifier_status();
 				break;
 				case Read(0xc026):
 					*value = adb_glu_.get_data();
+					update_interrupts();
 				break;
 				case Write(0xc026):
 					adb_glu_.set_command(*value);
@@ -847,8 +850,11 @@ public:
 	}
 
 	void update_interrupts() {
-		// Update the interrupt line.
-		m65816_.set_irq_line(video_.get()->get_interrupt_line() || sound_glu_.interrupt());
+		m65816_.set_irq_line(
+			video_.get()->get_interrupt_line() ||
+			sound_glu_.interrupt() ||
+			adb_glu_.interrupt()
+		);
 	}
 
 	// MARK: - Input.
