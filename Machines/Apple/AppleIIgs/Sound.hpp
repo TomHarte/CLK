@@ -54,11 +54,11 @@ private:
 	int oscillator_count_ = 1;
 	int next_oscillator_ = 0;
 
-	int32_t output_ = 0;
-
+	static constexpr int16_t ToggleRange = 0x7fff;
 	bool toggle_state_ = false;
-	static constexpr int16_t ToggleRange = 0x3ff;
 	int16_t toggle_ = -ToggleRange;
+
+	int16_t output_;
 
 	struct Oscillator {
 		uint32_t position = 0;
@@ -71,11 +71,10 @@ private:
 		uint8_t table_size = 0;
 
 		// Transient state.
-		int16_t posted_output = 0;
 		uint8_t sample = 0;
 
-		int16_t scaled_output(int id) const;
-		void latch_sample(const uint8_t *ram);
+		int16_t scaled_output(int id, uint8_t contribution) const;
+		uint8_t latch_sample(const uint8_t *ram);
 	};
 	std::array<Oscillator, 32> oscillators_;
 
@@ -84,7 +83,6 @@ private:
 	void clear_interrupt(int);
 
 	void set_register(uint16_t address, uint8_t value);
-	void update_output(Oscillator &);
 };
 
 }
