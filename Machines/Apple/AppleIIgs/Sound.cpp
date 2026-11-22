@@ -278,11 +278,18 @@ void GLU::run_for(const Cycles duration) {
 		}
 
 		auto &oscillator = oscillators_[size_t(next_oscillator_)];
+		if(oscillator.reset_next) {
+			oscillator.position = 0;
+			oscillator.reset_next = false;
+		}
 
 		// Sample before updating phase to ensure that straight after reset the first thing fetched really
 		// is the start of the sample.
 		const uint8_t sample = oscillator.latch_sample(ram_);
 		output_ = oscillator.scaled_output(next_oscillator_, sample);
+		if(!sample && (oscillator.control & OscillatorControl::InterruptEnabled)) {
+			set_interrupt(next_oscillator_);
+		}
 
 		// Don't do anything for halted oscillators.
 		if(oscillator.control & OscillatorControl::Halted) continue;
@@ -296,12 +303,11 @@ void GLU::run_for(const Cycles duration) {
 		oscillator.control |= sample ? 0 : OscillatorControl::Halted;
 
 		const bool overflow = WavetableSize::overflow(oscillator.table_size, oscillator.position);
-		const bool ended = overflow || !sample;
 		oscillator.position &= WavetableSize::accumulator_mask(oscillator.table_size);
 
 		// "When an oscillator reaches the end of a wavetable and the enable interrupt (EI) bit for that oscillator has
 		// previously been set, the IRQ line and bit 7 of the Oscillator Interrupt register are then set"
-		if(ended && (oscillator.control & OscillatorControl::InterruptEnabled)) {
+		if(overflow && (oscillator.control & OscillatorControl::InterruptEnabled)) {
 			set_interrupt(next_oscillator_);
 		}
 
@@ -334,11 +340,13 @@ void GLU::run_for(const Cycles duration) {
 				// enabled on an odd-numbered oscillator. So implement that also.
 
 				if(next_oscillator_ & 1) {
+					// Amplitude modulation.
 					const auto am_oscillator = size_t(next_oscillator_ + 1);
 					if(am_oscillator < oscillators_.size()) {
 						oscillators_[am_oscillator].volume = sample;
 					}
 				} else {
+					// Synchronised playback.
 					if(overflow) {
 						oscillator.position = pair().position = 0;
 					}
@@ -351,7 +359,7 @@ void GLU::run_for(const Cycles duration) {
 				// the end of its wavetable, it resets its accumulator to 0, sets its halt bit, and clears the halt
 				// bit of its mate."
 				if(overflow) {
-					oscillator.position = 0;
+					oscillator.reset_next = true;
 					oscillator.control |= OscillatorControl::Halted;
 					pair().control &= ~OscillatorControl::Halted;
 				}
