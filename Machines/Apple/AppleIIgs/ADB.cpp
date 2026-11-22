@@ -147,25 +147,6 @@ void GLU::set_command(const uint8_t command) {
 
 void GLU::set_microcontroller_rom(const std::vector<uint8_t> &rom) {
 	executor_.set_rom(rom);
-
-	// TEST invocation.
-/*	InstructionSet::Disassembler<InstructionSet::M50740::Parser, 0x1fff, InstructionSet::M50740::Instruction, uint8_t, uint16_t> disassembler;
-	disassembler.disassemble(rom.data(), 0x1000, uint16_t(rom.size()), 0x1000);
-
-	const auto instructions = disassembler.instructions();
-	const auto entry_points = disassembler.entry_points();
-	for(const auto &pair : instructions) {
-		std::cout << std::hex << pair.first << "\t\t";
-		if(entry_points.find(pair.first) != entry_points.end()) {
-			std::cout << "L" << pair.first << "\t";
-		} else {
-			std::cout << "\t\t";
-		}
-		std::cout << operation_name(pair.second.operation) << " ";
-		std::cout << address(pair.second.addressing_mode, &rom[pair.first - 0x1000], pair.first);
-
-		std::cout << std::endl;
-	}*/
 }
 
 void GLU::run_for(Cycles cycles) {
@@ -174,7 +155,7 @@ void GLU::run_for(Cycles cycles) {
 
 // MARK: - M50470 port handler
 
-void GLU::set_port_output(int port, uint8_t value) {
+void GLU::set_port_output(const int port, const uint8_t value) {
 	switch(port) {
 		case 0:
 			register_latch_ = value;
@@ -271,7 +252,7 @@ bool GLU::get_option_button() const {
 	return modifier_state_ & 0x10;
 }
 
-uint8_t GLU::get_port_input(int port) {
+uint8_t GLU::get_port_input(const int port) {
 	switch(port) {
 		case 0:	return register_latch_;
 		case 1:
@@ -289,11 +270,11 @@ uint8_t GLU::get_port_input(int port) {
 	return 0xff;
 }
 
-void GLU::run_ports_for(Cycles cycles) {
+void GLU::run_ports_for(const Cycles cycles) {
 	bus_.run_for(cycles);
 }
 
-void GLU::set_vertical_blank(bool is_blank) {
+void GLU::set_vertical_blank(const bool is_blank) {
 	vertical_blank_ = is_blank;
 	executor_.set_interrupt_line(is_blank);
 }
