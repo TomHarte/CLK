@@ -90,12 +90,10 @@ public:
 		// Write once.
 		region.write[address] = value;
 
-		// TODO: obey shadow_to_e0_.
-
 		// Write again, either to the same place (if unshadowed) or to the shadow destination.
-		static constexpr std::size_t shadow_mask[2] = {0xff'ffff, 0x01'ffff};
 		const bool shadowed = is_shadowed(region, address);
-		shadow_base_[shadowed][physical_address(region, address) & shadow_mask[shadowed]] = value;
+		const size_t shadow_mask = shadowed ? (shadow_to_e0_ ? 0x00'ffff : 0x01'ffff) : 0xff'ffff;
+		shadow_base_[shadowed][physical_address(region, address) & shadow_mask] = value;
 	}
 
 	// The objective is to support shadowing:
