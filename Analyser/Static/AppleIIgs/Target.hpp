@@ -26,7 +26,7 @@ struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Ta
 		EightMB
 	);
 
-	Model model = Model::ROM01;
+	Model model = Model::ROM03;
 	MemoryModel memory_model = MemoryModel::EightMB;
 
 	Target() : Analyser::Static::Target(Machine::AppleIIgs) {}
