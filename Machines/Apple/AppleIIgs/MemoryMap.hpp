@@ -23,7 +23,7 @@ class MemoryMap {
 public:
 	// MARK: - Initial construction and configuration.
 
-	MemoryMap(bool is_rom03) : auxiliary_switches_(*this), language_card_(*this) {
+	MemoryMap(const bool is_rom03) : auxiliary_switches_(*this), language_card_(*this) {
 		setup_shadow_maps(is_rom03);
 	}
 
@@ -67,12 +67,12 @@ public:
 		};
 	};
 
-	const Region &region(uint32_t address) const {	return regions_[region_map_[address >> 8]];	}
-	uint8_t read(const Region &region, uint32_t address) const {
+	const Region &region(const uint32_t address) const {	return regions_[region_map_[address >> 8]];	}
+	uint8_t read(const Region &region, const uint32_t address) const {
 		return region.read ? region.read[address] : 0xff;
 	}
 
-	bool is_shadowed(const Region &region, uint32_t address) const {
+	bool is_shadowed(const Region &region, const uint32_t address) const {
 		// ROM is never shadowed.
 		if(!region.write) {
 			return false;
@@ -82,7 +82,7 @@ public:
 		assert(physical <= 0xff'ffff);
 		return shadow_pages_[(physical >> 10) & 127] && shadow_banks_[physical >> 17];
 	}
-	void write(const Region &region, uint32_t address, uint8_t value) {
+	void write(const Region &region, const uint32_t address, const uint8_t value) {
 		if(!region.write) {
 			return;
 		}
@@ -137,7 +137,7 @@ private:
 										// doctrinal reason for it to be whatever size it is now, just
 										// adjust as required.
 
-	std::size_t physical_address(const Region &region, uint32_t address) const {
+	std::size_t physical_address(const Region &region, const uint32_t address) const {
 		return std::size_t(&region.write[address] - ram_base_);
 	}
 

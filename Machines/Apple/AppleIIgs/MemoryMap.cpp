@@ -14,17 +14,18 @@ using PagingType = Apple::II::PagingType;
 void MemoryMap::set_storage(std::vector<uint8_t> &ram, std::vector<uint8_t> &rom) {
 	// Keep a pointer for later; also note the proper RAM offset.
 	ram_base_ = ram.data();
-	shadow_base_[0] = ram_base_;					// i.e. all unshadowed writes go to where they've already gone (to make a no-op).
+	shadow_base_[0] = ram_base_;					// i.e. all unshadowed writes go to where they've
+													// already gone (to make a no-op).
 	shadow_base_[1] = &ram[ram.size() - 0x02'0000];	// i.e. all shadowed writes go somewhere in the last
 													// 128bk of RAM.
 
 	// Establish bank mapping.
 	uint8_t next_region = 0;
-	auto region = [&]() -> uint8_t {
+	const auto region = [&]() -> uint8_t {
 		assert(next_region != this->regions_.size());
 		return next_region++;
 	};
-	auto set_region = [this](uint8_t bank, uint16_t start, uint16_t end, uint8_t region) {
+	const auto set_region = [this](const uint8_t bank, const uint16_t start, const uint16_t end, const uint8_t region) {
 		assert((end == 0xffff) || !(end&0xff));
 		assert(!(start&0xff));
 
@@ -35,7 +36,11 @@ void MemoryMap::set_storage(std::vector<uint8_t> &ram, std::vector<uint8_t> &rom
 			++target;
 		}
 	};
-	auto set_regions = [set_region, region](uint8_t bank, std::initializer_list<uint16_t> addresses, std::vector<uint8_t> allocated_regions = {}) {
+	const auto set_regions = [set_region, region](
+		const uint8_t bank,
+		const std::initializer_list<uint16_t> addresses,
+		const std::vector<uint8_t> allocated_regions = {}
+	) {
 		uint16_t previous = 0x0000;
 		auto next_region = allocated_regions.begin();
 		for(uint16_t address: addresses) {
@@ -176,7 +181,7 @@ void MemoryMap::set_new_video_register(const uint8_t value) {
 	}
 }
 
-void MemoryMap::set_shadow_register(uint8_t value) {
+void MemoryMap::set_shadow_register(const uint8_t value) {
 	const uint8_t diff = value ^ shadow_register_;
 	shadow_register_ = value;
 
@@ -193,7 +198,7 @@ uint8_t MemoryMap::get_shadow_register() const {
 	return shadow_register_;
 }
 
-void MemoryMap::set_speed_register(uint8_t value) {
+void MemoryMap::set_speed_register(const uint8_t value) {
 	speed_register_ = value;
 
 	// Enable or disable shadowing from banks 0x02–0x80.
@@ -202,7 +207,7 @@ void MemoryMap::set_speed_register(uint8_t value) {
 	}
 }
 
-void MemoryMap::set_state_register(uint8_t value) {
+void MemoryMap::set_state_register(const uint8_t value) {
 	auxiliary_switches_.set_state(value);
 	language_card_.set_state(value);
 }
@@ -211,12 +216,12 @@ uint8_t MemoryMap::get_state_register() const {
 	return language_card_.get_state() | auxiliary_switches_.get_state();
 }
 
-void MemoryMap::access(uint16_t address, bool is_read) {
+void MemoryMap::access(const uint16_t address, const bool is_read) {
 	auxiliary_switches_.access(address, is_read);
 	if((address & 0xfff0) == 0xc080) language_card_.access(address, is_read);
 }
 
-void MemoryMap::assert_is_region([[maybe_unused]] uint8_t start, [[maybe_unused]] uint8_t end) {
+void MemoryMap::assert_is_region([[maybe_unused]] const uint8_t start, [[maybe_unused]] const uint8_t end) {
 	assert(region_map_[start] == region_map_[start-1]+1);
 	assert(region_map_[end-1] == region_map_[start]);
 	assert(region_map_[end] == region_map_[end-1]+1);
@@ -226,7 +231,7 @@ template <int type> void MemoryMap::set_paging() {
 	// Establish whether main or auxiliary RAM
 	// is exposed in bank $00 for a bunch of regions.
 	if constexpr (type & PagingType::Main) {
-		const auto set = [&](std::size_t page, const auto &flags) {
+		const auto set = [&](const size_t page, const auto &flags) {
 			auto &region = regions_[region_map_[page]];
 			region.read = flags.read ? &ram_base_[0x01'0000] : ram_base_;
 			region.write = flags.write ? &ram_base_[0x01'0000] : ram_base_;
@@ -272,7 +277,7 @@ template <int type> void MemoryMap::set_paging() {
 		const bool inhibit_banks0001 = shadow_register_ & 0x40;
 		const auto state = auxiliary_switches_.card_state();
 
-		auto apply = [&state, this](uint32_t bank_base) {
+		auto apply = [&state, this](const uint32_t bank_base) {
 			auto &c0_region = regions_[region_map_[bank_base | 0xc0]];
 			auto &c1_region = regions_[region_map_[bank_base | 0xc1]];
 			auto &c3_region = regions_[region_map_[bank_base | 0xc3]];
@@ -344,7 +349,7 @@ template <int type> void MemoryMap::set_paging() {
 		const auto main = auxiliary_switches_.main_state();
 		const bool inhibit_banks0001 = shadow_register_ & 0x40;
 
-		auto apply = [&language_state, this](uint32_t bank_base, uint8_t *ram) {
+		const auto apply = [&language_state, this](const uint32_t bank_base, uint8_t *const ram) {
 			// This assumes bank 1 is the one before bank 2 when RAM is linear.
 			uint8_t *const d0_ram_bank = ram - (language_state.bank2 ? 0x0000 : 0x1000);
 
@@ -363,7 +368,7 @@ template <int type> void MemoryMap::set_paging() {
 			assert(region_map_[bank_base | 0xd0] + 1 == region_map_[bank_base | 0xe0]);
 			assert(region_map_[bank_base | 0xe0] == region_map_[bank_base | 0xff]);
 		};
-		auto set_no_card = [this](uint32_t bank_base, uint8_t *read, uint8_t *write) {
+		const auto set_no_card = [this](const uint32_t bank_base, const uint8_t *const read, uint8_t *const write) {
 			auto &d0_region = regions_[region_map_[bank_base | 0xd0]];
 			d0_region.read = read;
 			d0_region.write = write;
@@ -509,7 +514,7 @@ void MemoryMap::set_shadowing() {
 	}
 }
 
-void MemoryMap::setup_shadow_maps(bool is_rom03) {
+void MemoryMap::setup_shadow_maps(const bool is_rom03) {
 	static constexpr int shadow_shift = 10;
 	static constexpr int auxiliary_offset = 0x1'0000 >> shadow_shift;
 
