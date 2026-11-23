@@ -169,15 +169,16 @@ void MemoryMap::set_storage(std::vector<uint8_t> &ram, std::vector<uint8_t> &rom
 
 	// TODO: set 1Mhz flags.
 
-	// Apply initial language/auxiliary state.
+	// Apply initial state.
 	set_paging<~0>();
+	set_shadowing();
 }
 
 void MemoryMap::set_new_video_register(const uint8_t value) {
-	const bool diff = bool(value & 1) != shadow_to_e0_;
-	shadow_to_e0_ = !(value & 1);
+	const bool diff = bool(value & 1) != map_e1_to_e0_;
+	map_e1_to_e0_ = !(value & 1);
 	if(diff) {
-		set_shadowing();
+		set_paging<PagingType::Main>();
 	}
 }
 
@@ -396,7 +397,7 @@ template <int type> void MemoryMap::set_paging() {
 		// the 0xe0'0000 addressing offset.
 		uint8_t *const e0_ram = regions_[region_map_[0xe000]].write;
 		apply(0xe000, e0_ram);
-		apply(0xe100, e0_ram);
+		apply(0xe100, map_e1_to_e0_ ? e0_ram - 0x1'0000: e0_ram);
 	}
 }
 

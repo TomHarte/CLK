@@ -92,7 +92,7 @@ public:
 
 		// Write again, either to the same place (if unshadowed) or to the shadow destination.
 		const bool shadowed = is_shadowed(region, address);
-		const size_t shadow_mask = shadowed ? (shadow_to_e0_ ? 0x00'ffff : 0x01'ffff) : 0xff'ffff;
+		const size_t shadow_mask = shadowed ? 0x01'ffff : 0xff'ffff;
 		shadow_base_[shadowed][physical_address(region, address) & shadow_mask] = value;
 	}
 
@@ -114,7 +114,7 @@ private:
 	friend AuxiliaryMemorySwitches;
 	friend LanguageCardSwitches;
 
-	uint8_t shadow_register_ = 0x00;
+	uint8_t shadow_register_ = 0x08;
 	uint8_t speed_register_ = 0x00;
 
 	// MARK: - Banking.
@@ -148,7 +148,7 @@ private:
 	std::bitset<128> shadow_highres1_, shadow_highres1_aux_;
 	std::bitset<128> shadow_highres2_, shadow_highres2_aux_;
 	std::bitset<128> shadow_superhighres_;
-	bool shadow_to_e0_ = false;
+	bool map_e1_to_e0_ = false;
 	void setup_shadow_maps(bool is_rom03);
 	void set_shadowing();
 
