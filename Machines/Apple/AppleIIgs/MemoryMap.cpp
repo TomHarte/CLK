@@ -274,7 +274,7 @@ template <int type> void MemoryMap::set_paging() {
 
 	// Update whether base or auxiliary RAM is visible in: (i) the zero
 	// and stack pages; and (ii) anywhere that the language card is exposing RAM instead of ROM.
-	if constexpr (bool(type & PagingType::ZeroPage)) {
+	if constexpr (type & PagingType::ZeroPage) {
 		// Affects bank $00 only, and should be a single region.
 		auto &region = regions_[region_map_[0]];
 		region.read = region.write = auxiliary_switches_.zero_state() ? &ram_base_[0x01'0000] : ram_base_;
@@ -282,24 +282,29 @@ template <int type> void MemoryMap::set_paging() {
 		assert(region_map_[0x0001]+1 == region_map_[0x0002]);
 	}
 
+	// Determine effect of ROMBANK, if any.
+	// ROMBANK applies only to pre-ROM03 machines. I'm also not entirely sure this is correct logic.
+	const size_t rom_bank_offset_ = (rom_bank_ && !is_rom03_) ? 64 * 1024 : 0;
+
 	// Establish whether ROM or card switches are exposed in the distinct
 	// regions C100–C2FF, C300–C3FF, C400–C7FF and C800–CFFF.
 	//
 	// On the IIgs it intersects with the current shadow register.
-	if constexpr (bool(type & (PagingType::CardArea | PagingType::Main))) {
+	if constexpr (type & (PagingType::CardArea | PagingType::Main)) {
 		const bool inhibit_banks0001 = shadow_register_ & 0x40;
 		const auto state = auxiliary_switches_.card_state();
 
-		auto apply = [&state, this](const uint32_t bank_base) {
+		auto apply = [&](const uint32_t bank_base) {
 			auto &c0_region = regions_[region_map_[bank_base | 0xc0]];
 			auto &c1_region = regions_[region_map_[bank_base | 0xc1]];
 			auto &c3_region = regions_[region_map_[bank_base | 0xc3]];
 			auto &c4_region = regions_[region_map_[bank_base | 0xc4]];
 			auto &c8_region = regions_[region_map_[bank_base | 0xc8]];
 
-			const uint8_t *const rom = &regions_[region_map_[0xffd0]].read[0xffc100] - ((bank_base << 8) + 0xc100);
-
-			// TODO: if not ROM03 then how does rom_bank_ factor in here?
+			const uint8_t *const rom =
+				&regions_[region_map_[0xffd0]].read[0xffc100] -
+				((bank_base << 8) + 0xc100) -
+				rom_bank_offset_;
 
 			// This is applied dynamically as it may be added or lost in banks $00 and $01.
 			c0_region.flags |= Region::IsIO;
@@ -358,18 +363,21 @@ template <int type> void MemoryMap::set_paging() {
 	// $D000 onwards as per the state of the language card flags — there may
 	// end up being ROM or RAM (or auxiliary RAM), and the first 4kb of it
 	// may be drawn from either of two pools.
-	if constexpr (bool(type & (PagingType::LanguageCard | PagingType::ZeroPage | PagingType::Main))) {
+	if constexpr (type & (PagingType::LanguageCard | PagingType::ZeroPage | PagingType::Main)) {
 		const auto language_state = language_card_.state();
 		const auto zero_state = auxiliary_switches_.zero_state();
 		const auto main = auxiliary_switches_.main_state();
 		const bool inhibit_banks0001 = shadow_register_ & 0x40;
 
-		const auto apply = [&language_state, this](const uint32_t bank_base, uint8_t *const ram) {
+		const auto apply = [&](const uint32_t bank_base, uint8_t *const ram) {
 			// This assumes bank 1 is the one before bank 2 when RAM is linear.
 			uint8_t *const d0_ram_bank = ram - (language_state.bank2 ? 0x0000 : 0x1000);
 
 			// Crib the ROM pointer from a page it's always visible on.
-			const uint8_t *const rom = &regions_[region_map_[0xffd0]].read[0xff'd000] - ((bank_base << 8) + 0xd000);
+			const uint8_t *const rom =
+				&regions_[region_map_[0xffd0]].read[0xff'd000] -
+				((bank_base << 8) + 0xd000) -
+				rom_bank_offset_;
 
 			auto &d0_region = regions_[region_map_[bank_base | 0xd0]];
 			d0_region.read = language_state.read ? d0_ram_bank : rom;
@@ -383,7 +391,7 @@ template <int type> void MemoryMap::set_paging() {
 			assert(region_map_[bank_base | 0xd0] + 1 == region_map_[bank_base | 0xe0]);
 			assert(region_map_[bank_base | 0xe0] == region_map_[bank_base | 0xff]);
 		};
-		const auto set_no_card = [this](const uint32_t bank_base, const uint8_t *const read, uint8_t *const write) {
+		const auto set_no_card = [&](const uint32_t bank_base, const uint8_t *const read, uint8_t *const write) {
 			auto &d0_region = regions_[region_map_[bank_base | 0xd0]];
 			d0_region.read = read;
 			d0_region.write = write;
