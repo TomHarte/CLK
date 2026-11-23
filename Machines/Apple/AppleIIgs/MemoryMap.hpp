@@ -23,7 +23,7 @@ class MemoryMap {
 public:
 	// MARK: - Initial construction and configuration.
 
-	MemoryMap(const bool is_rom03) : auxiliary_switches_(*this), language_card_(*this) {
+	MemoryMap(const bool is_rom03) : is_rom03_(is_rom03), auxiliary_switches_(*this), language_card_(*this) {
 		setup_shadow_maps(is_rom03);
 	}
 
@@ -42,7 +42,9 @@ public:
 	void set_state_register(uint8_t);
 	uint8_t get_state_register() const;
 
-	void access(uint16_t address, bool is_read);
+	void toggle_rom_bank();
+
+	void access(uint16_t, bool is_read);
 
 	using AuxiliaryMemorySwitches = Apple::II::AuxiliaryMemorySwitches<MemoryMap>;
 	const AuxiliaryMemorySwitches &auxiliary_switches() const {
@@ -109,6 +111,7 @@ public:
 	// even on that.
 
 private:
+	bool is_rom03_ = false;
 	AuxiliaryMemorySwitches auxiliary_switches_;
 	LanguageCardSwitches language_card_;
 	friend AuxiliaryMemorySwitches;
@@ -149,6 +152,7 @@ private:
 	std::bitset<128> shadow_highres2_, shadow_highres2_aux_;
 	std::bitset<128> shadow_superhighres_;
 	bool map_e1_to_e0_ = false;
+	bool rom_bank_ = false;
 	void setup_shadow_maps(bool is_rom03);
 	void set_shadowing();
 

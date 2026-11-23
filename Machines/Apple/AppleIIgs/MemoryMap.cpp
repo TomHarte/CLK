@@ -208,13 +208,25 @@ void MemoryMap::set_speed_register(const uint8_t value) {
 	}
 }
 
+void MemoryMap::toggle_rom_bank() {
+	rom_bank_ ^= true;
+	if(!is_rom03_) {
+		set_paging<PagingType::CardArea>();
+	}
+}
+
 void MemoryMap::set_state_register(const uint8_t value) {
 	auxiliary_switches_.set_state(value);
 	language_card_.set_state(value);
+
+	rom_bank_ = value & 0x2;
+	if(!is_rom03_) {
+		set_paging<PagingType::CardArea>();
+	}
 }
 
 uint8_t MemoryMap::get_state_register() const {
-	return language_card_.get_state() | auxiliary_switches_.get_state();
+	return language_card_.get_state() | auxiliary_switches_.get_state() | (rom_bank_ ? 0x2 : 0x0);
 }
 
 void MemoryMap::access(const uint16_t address, const bool is_read) {
@@ -287,10 +299,12 @@ template <int type> void MemoryMap::set_paging() {
 
 			const uint8_t *const rom = &regions_[region_map_[0xffd0]].read[0xffc100] - ((bank_base << 8) + 0xc100);
 
+			// TODO: if not ROM03 then how does rom_bank_ factor in here?
+
 			// This is applied dynamically as it may be added or lost in banks $00 and $01.
 			c0_region.flags |= Region::IsIO;
 
-			const auto apply_region = [&](bool flag, auto &region) {
+			const auto apply_region = [&](const bool flag, auto &region) {
 				region.write = nullptr;
 				if(flag) {
 					region.read = rom;

@@ -632,7 +632,6 @@ public:
 
 				// Addresses on other Apple II devices which do nothing on the GS.
 				case Read(0xc020): case Write(0xc020):	// Reserved for future system expansion.
-				case Read(0xc028): case Write(0xc028):	// ROMBANK; "not used in Apple IIGS".
 				case Read(0xc02a): case Write(0xc02a):	// Reserved for future system expansion.
 				case Read(0xc040): case Write(0xc040):	// Reserved for future system expansion.
 				case Read(0xc042): case Write(0xc042):	// Reserved for future system expansion.
@@ -647,6 +646,10 @@ public:
 				case Read(0xc06b): case Write(0xc06b):	// Reserved for future system expansion.
 				case Read(0xc06c): case Write(0xc06c):	// Reserved for future system expansion.
 				case Write(0xc07e):
+				break;
+
+				case Read(0xc028): case Write(0xc028):	// ROMBANK.
+					memory_.toggle_rom_bank();
 				break;
 
 				default:
