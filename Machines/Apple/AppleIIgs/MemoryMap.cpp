@@ -490,11 +490,10 @@ void MemoryMap::set_shadowing() {
 	// Residue of Super Hi-Res — $6000–$a000 (odd pages only).
 	//
 	// Test applied:
-	//	auxiliary high res graphics inhibit and super high-res inhibit
+	//	just super high-res inhibit
 	{
 		const bool should_shadow_superhighres = !(
-			shadow_register_ & Inhibit::SuperHighRes &&
-			shadow_register_ & Inhibit::AuxiliaryHighRes
+			shadow_register_ & Inhibit::SuperHighRes
 		);
 		if(should_shadow_superhighres) {
 			shadow_pages_ |= shadow_superhighres_;
