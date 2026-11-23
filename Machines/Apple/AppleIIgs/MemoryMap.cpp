@@ -168,6 +168,14 @@ void MemoryMap::set_storage(std::vector<uint8_t> &ram, std::vector<uint8_t> &rom
 	set_paging<~0>();
 }
 
+void MemoryMap::set_new_video_register(const uint8_t value) {
+	const bool diff = bool(value & 1) != shadow_to_e0_;
+	shadow_to_e0_ = !(value & 1);
+	if(diff) {
+		set_shadowing();
+	}
+}
+
 void MemoryMap::set_shadow_register(uint8_t value) {
 	const uint8_t diff = value ^ shadow_register_;
 	shadow_register_ = value;

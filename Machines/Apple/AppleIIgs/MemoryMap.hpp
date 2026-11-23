@@ -32,12 +32,14 @@ public:
 
 	// MARK: - Live bus access notifications and register access.
 
-	void set_shadow_register(uint8_t value);
+	void set_shadow_register(uint8_t);
 	uint8_t get_shadow_register() const;
 
-	void set_speed_register(uint8_t value);
+	void set_speed_register(uint8_t);
 
-	void set_state_register(uint8_t value);
+	void set_new_video_register(uint8_t);
+
+	void set_state_register(uint8_t);
 	uint8_t get_state_register() const;
 
 	void access(uint16_t address, bool is_read);
@@ -87,6 +89,8 @@ public:
 
 		// Write once.
 		region.write[address] = value;
+
+		// TODO: obey shadow_to_e0_.
 
 		// Write again, either to the same place (if unshadowed) or to the shadow destination.
 		static constexpr std::size_t shadow_mask[2] = {0xff'ffff, 0x01'ffff};
@@ -146,6 +150,7 @@ private:
 	std::bitset<128> shadow_highres1_, shadow_highres1_aux_;
 	std::bitset<128> shadow_highres2_, shadow_highres2_aux_;
 	std::bitset<128> shadow_superhighres_;
+	bool shadow_to_e0_ = false;
 	void setup_shadow_maps(bool is_rom03);
 	void set_shadowing();
 
