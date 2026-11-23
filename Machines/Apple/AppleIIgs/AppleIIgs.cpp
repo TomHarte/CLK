@@ -245,11 +245,7 @@ public:
 				break;
 				case Write(0xc029):
 					video_->set_new_video(*value);
-					assert(*value & 1);
-
-					// TODO: I think bits 7 and 0 might also affect the memory map.
-					// The descripton isn't especially clear — P.90 of the Hardware Reference.
-					// Revisit if necessary.
+					memory_.set_new_video_register(*value);
 				break;
 
 				// Video [and clock] interrupt register.
