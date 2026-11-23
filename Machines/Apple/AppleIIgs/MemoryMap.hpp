@@ -92,7 +92,7 @@ public:
 
 		// Write again, either to the same place (if unshadowed) or to the shadow destination.
 		const bool shadowed = is_shadowed(region, address);
-		const size_t shadow_mask = shadowed ? 0x01'ffff : 0xff'ffff;
+		const size_t shadow_mask = shadowed ? (map_e1_to_e0_ ? 0x00'ffff : 0x01'ffff) : 0xff'ffff;
 		shadow_base_[shadowed][physical_address(region, address) & shadow_mask] = value;
 	}
 
