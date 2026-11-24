@@ -45,7 +45,7 @@ public:
 	LanguageCardSwitches(Machine &machine) : machine_(machine) {}
 
 	/// Used by an owner to forward any access to $c08x.
-	void access(uint16_t address, bool is_read) {
+	void access(const uint16_t address, const bool is_read) {
 		const auto previous_state = state_;
 
 		// Quotes below taken from Understanding the Apple II, p. 5-28 and 5-29.
@@ -80,7 +80,7 @@ public:
 	}
 
 	/// Provides relevant parts of the IIgs interface.
-	void set_state(uint8_t value) {
+	void set_state(const uint8_t value) {
 		const auto previous_state = state_;
 
 		// Bit 3: 1 => enable ROM, 0 => enable RAM.

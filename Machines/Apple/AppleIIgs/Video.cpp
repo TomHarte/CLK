@@ -228,6 +228,8 @@ Cycles Video::next_sequence_point() const {
 	return Cycles(result);
 }
 
+// TODO: I think there's an issue here where a change in what contributes to pixel_rows_in_mode
+
 template <bool partialfdhj>
 void Video::output_row(const int row, int start, const int end) {
 	//
@@ -433,6 +435,19 @@ void Video::output_row(const int row, int start, const int end) {
 			// through to the end == FinalColumn test.
 		}
 	} else {
+		// Check whether there's an active data buffer, which there might be if graphics mode was changed
+		// from 200 line to 192 line in the middle of one of those 8 lines.
+		if(pixels_) {
+			// Flush anything already in a buffer.
+			if(pixels_start_column_ < start) {
+				crt_.output_data(
+					(start - pixels_start_column_) * CyclesPerTick,
+					next_pixel_ ? size_t(next_pixel_ - pixels_) : 1
+				);
+				next_pixel_ = pixels_ = nullptr;
+			}
+		}
+
 		// This line is all border, all the time.
 		if(start >= start_of_left_border && start < start_of_sync) {
 			const int end_of_period = std::min(start_of_sync, end);

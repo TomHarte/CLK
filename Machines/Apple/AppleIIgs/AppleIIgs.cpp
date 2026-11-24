@@ -224,9 +224,7 @@ public:
 		bool is_1Mhz = false;
 
 		if(operation == CPU::WDC65816::BusOperation::ReadVector && !(memory_.get_shadow_register()&0x40)) {
-			// I think vector pulls always go to ROM?
-			// That's slightly implied in the documentation, and doing so makes GS/OS boot, so...
-			// TODO: but is my guess above re: not doing that if IOLC shadowing is disabled correct?
+			// Vector pulls always go to ROM; GS/OS won't even boot otherwise.
 			assert(address <= 0xffff && address >= 0xffe4);
 			*value = rom_[rom_.size() - 65536 + address];
 		} else if(region.flags & MemoryMap::Region::IsIO) {
@@ -247,11 +245,7 @@ public:
 				break;
 				case Write(0xc029):
 					video_->set_new_video(*value);
-					assert(*value & 1);
-
-					// TODO: I think bits 7 and 0 might also affect the memory map.
-					// The descripton isn't especially clear — P.90 of the Hardware Reference.
-					// Revisit if necessary.
+					memory_.set_new_video_register(*value);
 				break;
 
 				// Video [and clock] interrupt register.
@@ -638,7 +632,6 @@ public:
 
 				// Addresses on other Apple II devices which do nothing on the GS.
 				case Read(0xc020): case Write(0xc020):	// Reserved for future system expansion.
-				case Read(0xc028): case Write(0xc028):	// ROMBANK; "not used in Apple IIGS".
 				case Read(0xc02a): case Write(0xc02a):	// Reserved for future system expansion.
 				case Read(0xc040): case Write(0xc040):	// Reserved for future system expansion.
 				case Read(0xc042): case Write(0xc042):	// Reserved for future system expansion.
@@ -653,6 +646,10 @@ public:
 				case Read(0xc06b): case Write(0xc06b):	// Reserved for future system expansion.
 				case Read(0xc06c): case Write(0xc06c):	// Reserved for future system expansion.
 				case Write(0xc07e):
+				break;
+
+				case Read(0xc028): case Write(0xc028):	// ROMBANK.
+					memory_.toggle_rom_bank();
 				break;
 
 				default:

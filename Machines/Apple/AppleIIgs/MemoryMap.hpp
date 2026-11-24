@@ -23,7 +23,7 @@ class MemoryMap {
 public:
 	// MARK: - Initial construction and configuration.
 
-	MemoryMap(bool is_rom03) : auxiliary_switches_(*this), language_card_(*this) {
+	MemoryMap(const bool is_rom03) : is_rom03_(is_rom03), auxiliary_switches_(*this), language_card_(*this) {
 		setup_shadow_maps(is_rom03);
 	}
 
@@ -32,15 +32,19 @@ public:
 
 	// MARK: - Live bus access notifications and register access.
 
-	void set_shadow_register(uint8_t value);
+	void set_shadow_register(uint8_t);
 	uint8_t get_shadow_register() const;
 
-	void set_speed_register(uint8_t value);
+	void set_speed_register(uint8_t);
 
-	void set_state_register(uint8_t value);
+	void set_new_video_register(uint8_t);
+
+	void set_state_register(uint8_t);
 	uint8_t get_state_register() const;
 
-	void access(uint16_t address, bool is_read);
+	void toggle_rom_bank();
+
+	void access(uint16_t, bool is_read);
 
 	using AuxiliaryMemorySwitches = Apple::II::AuxiliaryMemorySwitches<MemoryMap>;
 	const AuxiliaryMemorySwitches &auxiliary_switches() const {
@@ -65,12 +69,12 @@ public:
 		};
 	};
 
-	const Region &region(uint32_t address) const {	return regions_[region_map_[address >> 8]];	}
-	uint8_t read(const Region &region, uint32_t address) const {
+	const Region &region(const uint32_t address) const {	return regions_[region_map_[address >> 8]];	}
+	uint8_t read(const Region &region, const uint32_t address) const {
 		return region.read ? region.read[address] : 0xff;
 	}
 
-	bool is_shadowed(const Region &region, uint32_t address) const {
+	bool is_shadowed(const Region &region, const uint32_t address) const {
 		// ROM is never shadowed.
 		if(!region.write) {
 			return false;
@@ -80,7 +84,7 @@ public:
 		assert(physical <= 0xff'ffff);
 		return shadow_pages_[(physical >> 10) & 127] && shadow_banks_[physical >> 17];
 	}
-	void write(const Region &region, uint32_t address, uint8_t value) {
+	void write(const Region &region, const uint32_t address, const uint8_t value) {
 		if(!region.write) {
 			return;
 		}
@@ -89,9 +93,9 @@ public:
 		region.write[address] = value;
 
 		// Write again, either to the same place (if unshadowed) or to the shadow destination.
-		static constexpr std::size_t shadow_mask[2] = {0xff'ffff, 0x01'ffff};
 		const bool shadowed = is_shadowed(region, address);
-		shadow_base_[shadowed][physical_address(region, address) & shadow_mask[shadowed]] = value;
+		const size_t shadow_mask = shadowed ? (map_e1_to_e0_ ? 0x00'ffff : 0x01'ffff) : 0xff'ffff;
+		shadow_base_[shadowed][physical_address(region, address) & shadow_mask] = value;
 	}
 
 	// The objective is to support shadowing:
@@ -107,12 +111,13 @@ public:
 	// even on that.
 
 private:
+	bool is_rom03_ = false;
 	AuxiliaryMemorySwitches auxiliary_switches_;
 	LanguageCardSwitches language_card_;
 	friend AuxiliaryMemorySwitches;
 	friend LanguageCardSwitches;
 
-	uint8_t shadow_register_ = 0x00;
+	uint8_t shadow_register_ = 0x08;
 	uint8_t speed_register_ = 0x00;
 
 	// MARK: - Banking.
@@ -133,7 +138,7 @@ private:
 										// doctrinal reason for it to be whatever size it is now, just
 										// adjust as required.
 
-	std::size_t physical_address(const Region &region, uint32_t address) const {
+	std::size_t physical_address(const Region &region, const uint32_t address) const {
 		return std::size_t(&region.write[address] - ram_base_);
 	}
 
@@ -146,6 +151,8 @@ private:
 	std::bitset<128> shadow_highres1_, shadow_highres1_aux_;
 	std::bitset<128> shadow_highres2_, shadow_highres2_aux_;
 	std::bitset<128> shadow_superhighres_;
+	bool map_e1_to_e0_ = false;
+	bool rom_bank_ = false;
 	void setup_shadow_maps(bool is_rom03);
 	void set_shadowing();
 
