@@ -228,8 +228,6 @@ Cycles Video::next_sequence_point() const {
 	return Cycles(result);
 }
 
-// TODO: I think there's an issue here where a change in what contributes to pixel_rows_in_mode
-
 template <bool partialfdhj>
 void Video::output_row(const int row, int start, const int end) {
 	//
@@ -250,7 +248,7 @@ void Video::output_row(const int row, int start, const int end) {
 
 	// Output blank only at the end of its window.
 	if(start < blank_ticks && end >= blank_ticks) {
-		crt_.output_blank(blank_ticks * CyclesPerTick);
+		crt_.output_colour_burst(blank_ticks * CyclesPerTick, 224);
 		start = blank_ticks;
 		if(start == end) return;
 	}
