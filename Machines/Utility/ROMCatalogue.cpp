@@ -378,10 +378,18 @@ const std::vector<Description> &Description::all_roms() {
 	// Apple IIgs.
 	//
 		{
+			AppleIIgsROM00,
+			"AppleIIgs",
+			"the Apple IIgs ROM00",
+			"342-0077-a",
+			128_kb,
+			0xdfbdd97bu
+		},
+		{
 			AppleIIgsROM01,
 			"AppleIIgs",
 			"the Apple IIgs ROM01",
-			"apple2gs.rom",
+			Files{ "apple2gs.rom", "342-0077-b" },
 			128_kb,
 			0x42f124b0u
 		},
