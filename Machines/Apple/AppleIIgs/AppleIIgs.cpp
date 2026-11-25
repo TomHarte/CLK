@@ -27,8 +27,7 @@
 #include "Components/DiskII/MacintoshDoubleDensityDrive.hpp"
 #include "Components/DiskII/DiskIIDrive.hpp"
 
-#include "Outputs/Speaker/Implementation/CompoundSource.hpp"
-#include "Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "Outputs/Log.hpp"
 
 #include "Machines/Utility/MemoryFuzzer.hpp"
 
@@ -46,6 +45,8 @@
 //
 
 namespace {
+
+using Logger = Log::Logger<Log::Source::AppleIIGS>;
 
 constexpr int CLOCK_RATE = 14'318'180;
 constexpr int AUDIO_DIVIDER = 16;		// DOC clock rate is CLOCK_RATE / AUDIO_DIVIDER ~= 895 kHz.
@@ -495,6 +496,11 @@ public:
 					is_1Mhz = true;
 				break;
 
+				case Read(0xc060):
+					*value = joysticks_.button(3) ? 0x80 : 0x00;
+					is_1Mhz = true;
+				break;
+
 				case Read(0xc064):
 				case Read(0xc065):
 				case Read(0xc066):
@@ -702,7 +708,7 @@ public:
 										(address_suffix < 0xc100 && address_suffix >= 0xc090) ||
 										(address_suffix < 0xc080)
 									) {
-										printf("Internal card-area access: %04x\n", address_suffix);
+										Logger::info().append("Internal card-area access: %04x\n", address_suffix);
 									}
 									if(is_read) {
 										*value = rom_[rom_.size() - 65536 + address_suffix];
@@ -735,8 +741,11 @@ public:
 						}
 
 						if(address_suffix < 0xc080) {
-							// TODO: all other IO accesses.
-							printf("Unhandled IO %s: %04x\n", is_read ? "read" : "write", address_suffix);
+							Logger::info().append(
+								"Unhandled IO %s: %04x\n",
+								is_read ? "read" : "write",
+								address_suffix
+							);
 						}
 					}
 			}
