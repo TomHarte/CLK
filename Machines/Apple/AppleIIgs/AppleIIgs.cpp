@@ -696,8 +696,8 @@ public:
 						const uint8_t permitted_card_mask_ = card_mask_ & 0xf6;
 						if(permitted_card_mask_ & (1 << card_number)) {
 							// TODO: Access an actual card.
-							assert(operation != CPU::WDC65816::BusOperation::ReadOpcode);
 							if(is_read) {
+								Logger::info().append("Attempted card read: %04x", address_suffix);
 								*value = 0xff;
 							}
 						} else {
@@ -708,7 +708,7 @@ public:
 										(address_suffix < 0xc100 && address_suffix >= 0xc090) ||
 										(address_suffix < 0xc080)
 									) {
-										Logger::info().append("Internal card-area access: %04x\n", address_suffix);
+										Logger::info().append("Internal card-area access: %04x", address_suffix);
 									}
 									if(is_read) {
 										*value = rom_[rom_.size() - 65536 + address_suffix];
@@ -742,7 +742,7 @@ public:
 
 						if(address_suffix < 0xc080) {
 							Logger::info().append(
-								"Unhandled IO %s: %04x\n",
+								"Unhandled IO %s: %04x",
 								is_read ? "read" : "write",
 								address_suffix
 							);
