@@ -30,12 +30,15 @@ public:
 				Input(Input::Horizontal),
 				Input(Input::Vertical),
 
-				// The Apple II offers three buttons between two joysticks;
-				// this emulator puts three buttons on each joystick and
+				// The Apple II offers three buttons between two joysticks,
+				// and the IIGS offers four.
+				//
+				// This emulator puts four buttons on each joystick and
 				// combines them.
 				Input(Input::Fire, 0),
 				Input(Input::Fire, 1),
 				Input(Input::Fire, 2),
+				Input(Input::Fire, 3),
 			}) {}
 
 			void did_set_input(const Input &input, const float value) final {
@@ -48,24 +51,30 @@ public:
 			}
 
 			void did_set_input(const Input &input, const bool value) final {
-				if(input.type == Input::Type::Fire && input.info.control.index < 3) {
+				if(input.type == Input::Type::Fire && input.info.control.index < std::size(buttons)) {
 					buttons[input.info.control.index] = value;
 				}
 			}
 
-		bool buttons[3] = {false, false, false};
+		bool buttons[4]{};
 		float axes[2] = {0.5f, 0.5f};
 	};
 
-	inline bool button(size_t index) {
+	inline bool button(const size_t index) {
+		if(index == 3) {
+			// The fourth button, if it exists, on both joysticks connects to the same port.
+			return joystick(0)->buttons[3] || joystick(1)->buttons[3];
+		}
+
+		// The other joysticks are laid over each other in reversed order.
 		return joystick(0)->buttons[index] || joystick(1)->buttons[2-index];
 	}
 
-	inline bool analogue_channel_is_discharged(size_t channel) {
+	inline bool analogue_channel_is_discharged(const size_t channel) {
 		return (1.0f - static_cast<Joystick *>(joysticks_[channel >> 1].get())->axes[channel & 1]) < analogue_charge_ + analogue_biases_[channel];
 	}
 
-	inline void update_charge(float one_mhz_cycles = 1.0f) {
+	inline void update_charge(const float one_mhz_cycles = 1.0f) {
 		analogue_charge_ = std::min(analogue_charge_ + one_mhz_cycles * (1.0f / 2820.0f), 1.1f);
 	}
 
@@ -103,7 +112,7 @@ private:
 
 	std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 
-	inline Joystick *joystick(size_t index) {
+	inline Joystick *joystick(const size_t index) {
 		return static_cast<Joystick *>(joysticks_[index].get());
 	}
 };
