@@ -33,6 +33,9 @@
 
 #include "ClockReceiver/JustInTime.hpp"
 
+#include "Storage/Disk/Encodings/AppleGCR/Addressing.hpp"
+#include "Storage/Disk/Encodings/AppleGCR/SegmentParser.hpp"
+
 #include <cassert>
 #include <array>
 
@@ -1013,6 +1016,9 @@ private:
 			destination,
 			include_tags ? "include" : "don't include"
 		);
+
+		const auto address = Storage::Encodings::AppleGCR::address_from_block_35(int(block));
+		printf("Located at track %d, side %d, sector %d\n", address.track, address.side, address.sector);
 
 		return false;
 	}
