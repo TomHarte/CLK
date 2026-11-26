@@ -45,6 +45,7 @@ enum class Source {
 	AmigaCopper,
 	AmigaChipset,
 	AmigaBlitter,
+	AppleIIGS,
 	AppleIISCSICard,
 	Archimedes,
 	ARMIOC,
@@ -139,6 +140,7 @@ constexpr const char *prefix(const Source source) {
 		case Source::AmigaChipset:				return "Chipset";
 		case Source::AmigaCopper:				return "Copper";
 		case Source::AmigaDisk:					return "Disk";
+		case Source::AppleIIGS:					return "IIgs";
 		case Source::AppleIISCSICard:			return "SCSI card";
 		case Source::Archimedes:				return "Archimedes";
 		case Source::ARMIOC:					return "IOC";
