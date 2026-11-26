@@ -978,16 +978,41 @@ private:
 			const auto &region = memory_.region(address);
 			return memory_.read(region, address);
 		};
+		const auto read24 = [&](const uint32_t address) {
+			return uint32_t(read(address) + (read(address + 1) << 8) + (read(address + 2) << 16));
+		};
+
 		const uint8_t command = read(0x45);
 		if(command != 1) return false;
 
 		//
-		// Up to here: have established that this is a read sector command.
+		// It is now established that this is a read sector command.
 		//
-		const uint32_t block = uint32_t(read(0x48) | (read(0x49) << 8) | (read(0x4a) << 16));
+		// Get the address of the source as drive and block, the in-memory address of the destination and
+		// determine whether tags are being requested in addition to the sector body.
+		//
+
+		const auto block = read24(0x48);
 		const int drive = read(0xE10F28) & 1;
 
-		printf("Read block %d from drive %d\n", block, drive);
+		// Only ROM03 actually masks out the top bit.
+		const uint8_t tags_mask = model_ == Analyser::Static::AppleIIgs::Target::Model::ROM03 ? 0x80 : 0xff;
+		const bool include_tags = read(0xe10f51) & tags_mask;
+
+		auto destination = read24(0x42);
+
+		// TODO: calculate on-disk track, sector and side. Move drive to there and load the thing.
+		// Write either 512 or 524 bytes to the destination.
+		//
+		// Update 0xe10f22 + drive with the current cylinder number.
+		// To indicate no error: zero out 0xe10f44 and 0xe10f4b, set A = 0 and clear carry.
+
+		printf("Read block %d from drive %d to address %06x; %s tags\n",
+			block,
+			drive,
+			destination,
+			include_tags ? "include" : "don't include"
+		);
 
 		return false;
 	}
