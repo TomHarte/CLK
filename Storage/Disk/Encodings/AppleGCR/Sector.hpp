@@ -58,14 +58,14 @@ struct Sector {
 
 	Sector() = default;
 
-	Sector(Sector &&rhs) :
+	Sector(Sector &&rhs) noexcept :
 		address(rhs.address),
 		data(std::move(rhs.data)),
 		has_data_checksum_error(rhs.has_data_checksum_error),
 		has_header_checksum_error(rhs.has_header_checksum_error),
 		encoding(rhs.encoding) {}
 
-	Sector(const Sector &rhs) :
+	Sector(const Sector &rhs) noexcept :
 		address(rhs.address),
 		data(rhs.data),
 		has_data_checksum_error(rhs.has_data_checksum_error),
