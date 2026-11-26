@@ -36,14 +36,6 @@
 #include <cassert>
 #include <array>
 
-//
-// HEAVY WARNING: THIS IS INCOMPLETE AND VERY PROVISIONAL.
-//
-// You'll notice lots of random bits of debugging code sitting around but commented out.
-// Most of this will go when this machine is complete. Please look past the gross ugliness
-// of this code's intermediate state if you are able.
-//
-
 namespace {
 
 using Logger = Log::Logger<Log::Source::AppleIIGS>;
@@ -92,6 +84,7 @@ class ConcreteMachine:
 
 public:
 	ConcreteMachine(const Analyser::Static::AppleIIgs::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+		model_(target.model),
 		m65816_(*this),
 		memory_(target.model >= Analyser::Static::AppleIIgs::Target::Model::ROM03),
 		iwm_(CLOCK_RATE / 2),
@@ -111,9 +104,11 @@ public:
 		using Target = Analyser::Static::AppleIIgs::Target;
 		ROM::Name system;
 		switch(target.model) {
-			case Target::Model::ROM00:	system = ROM::Name::AppleIIgsROM00;	break;
-			case Target::Model::ROM01:	system = ROM::Name::AppleIIgsROM01;	break;
-			default:					system = ROM::Name::AppleIIgsROM03;	break;
+			using enum Analyser::Static::AppleIIgs::Target::Model;
+			case ROM00:	system = ROM::Name::AppleIIgsROM00;	break;
+			case ROM01:	system = ROM::Name::AppleIIgsROM01;	break;
+			case ROM03:	system = ROM::Name::AppleIIgsROM03;	break;
+			default: __builtin_unreachable();
 		}
 		static constexpr ROM::Name characters = ROM::Name::AppleIIEnhancedECharacter;
 		static constexpr ROM::Name microcontroller = ROM::Name::AppleIIgsMicrocontrollerROM03;
@@ -757,6 +752,15 @@ public:
 
 			if(is_read(operation)) {
 				*value = memory_.read(region, address);
+
+				// Potentially trap entry into the routine that reads a sector via the IWM, switching to
+				// an instant high-level emulation of that if **and only if** the user opted in.
+				using BusOperation = CPU::WDC65816::BusOperation;
+				if(operation == BusOperation::ReadVector && address == read_sector_address_) [[unlikely]] {
+					if(read_sector()) {
+						*value = 0x60;		// i.e. RTS.
+					}
+				}
 			} else {
 				// Shadowed writes also occur "at 1Mhz".
 				// TODO: this is probably an approximation. I'm assuming that there's the ability asynchronously to post
@@ -885,6 +889,7 @@ public:
 	}
 
 private:
+	Analyser::Static::AppleIIgs::Target::Model model_;
 	CPU::WDC65816::Processor<ConcreteMachine, false> m65816_;
 	MemoryMap memory_;
 
@@ -943,7 +948,61 @@ private:
 	uint8_t language_ = 0;
 	uint8_t disk_select_ = 0;
 
+	// Local copy of the interrupt mask, for returning if read.
 	uint8_t megaii_interrupt_mask_ = 0;
+
+	// MARK: - Accelerated loading.
+
+	static constexpr uint32_t DontLoadFastSentinel = 0xffff'ffff;
+	uint32_t read_sector_address_ = DontLoadFastSentinel;
+
+	/// @returns @c true if everything went successfully; @c false otherwise.
+	bool read_sector() {
+		using Register = CPU::WDC65816::Register;
+
+		// Preconditions: not emulation, with data bank and direct pointing where expected,
+		// and both memory[/register] size and index size flags set to indicate 8-bit operation.
+		if(m65816_.value_of(Register::EmulationFlag) != false) return false;
+		if(m65816_.value_of(Register::DataBank) != 0xe1) return false;
+		if(m65816_.value_of(Register::Direct) != 0) return false;
+
+		static constexpr uint8_t RequiredFlags =
+			CPU::MOS6502Esque::Flag::MemorySize | CPU::MOS6502Esque::Flag::IndexSize;
+		if((m65816_.value_of(Register::Flags) & RequiredFlags) != RequiredFlags) return false;
+
+		// Check also that this is a read command.
+		const auto read = [&](const uint32_t address) {
+			const auto &region = memory_.region(address);
+			return memory_.read(region, address);
+		};
+		const uint8_t command = read(0x45);
+		if(command != 1) return false;
+
+		//
+		// Up to here: have established that this is a read sector command.
+		//
+		const uint32_t block = uint32_t(read(0x48) | (read(0x49) << 8) | (read(0x4a) << 16));
+		const int drive = read(0xE10F28) & 1;
+
+		printf("Read block %d from drive %d\n", block, drive);
+
+		return false;
+	}
+
+	void set_should_fast_load(const bool fast_load) {
+		if(!fast_load) {
+			read_sector_address_ = DontLoadFastSentinel;
+			return;
+		}
+
+		switch(model_) {
+			using enum Analyser::Static::AppleIIgs::Target::Model;
+			case ROM00:	read_sector_address_ = 0xff686e;	break;
+			case ROM01:	read_sector_address_ = 0xff597a;	break;
+			case ROM03:	read_sector_address_ = 0xff3fc7;	break;
+			default: __builtin_unreachable();
+		}
+	}
 };
 
 }
