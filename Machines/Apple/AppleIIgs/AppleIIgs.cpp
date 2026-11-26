@@ -151,6 +151,9 @@ public:
 		memory_.set_speed_register(speed_register_ ^ 0x80);
 
 		insert_media(target.media);
+
+		// TEST. TODO: REMOVE.
+		set_should_fast_load(true);
 	}
 
 	void run_for(const Cycles cycles) override {
@@ -756,7 +759,7 @@ public:
 				// Potentially trap entry into the routine that reads a sector via the IWM, switching to
 				// an instant high-level emulation of that if **and only if** the user opted in.
 				using BusOperation = CPU::WDC65816::BusOperation;
-				if(operation == BusOperation::ReadVector && address == read_sector_address_) [[unlikely]] {
+				if(operation == BusOperation::ReadOpcode && address == read_sector_address_) [[unlikely]] {
 					if(read_sector()) {
 						*value = 0x60;		// i.e. RTS.
 					}
