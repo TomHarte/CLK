@@ -254,7 +254,10 @@ void IWM::run_for(const Cycles cycles) {
 	drives_[0].run_for(cycles);
 	drives_[1].run_for(cycles);
 
-	if(drives_[active_drive_ ^ 1].drive) drives_[active_drive_ ^ 1].drive->run_for(cycles);
+	// TODO: the unselected drive should still be clocked because they take a short while to spin down.
+	// But I've made a huge, structural error elsewhere in that incoming bits from a drive don't reveal their
+	// source. And in some places I have a PLL effectively laundering them. So plenty of work to do.
+//	if(drives_[active_drive_ ^ 1].drive) drives_[active_drive_ ^ 1].drive->run_for(cycles);
 
 	// Activity otherwise depends on mode and motor state.
 	auto integer_cycles = cycles.get();
