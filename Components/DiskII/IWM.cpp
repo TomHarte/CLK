@@ -254,6 +254,8 @@ void IWM::run_for(const Cycles cycles) {
 	drives_[0].run_for(cycles);
 	drives_[1].run_for(cycles);
 
+	if(drives_[active_drive_ ^ 1].drive) drives_[active_drive_ ^ 1].drive->run_for(cycles);
+
 	// Activity otherwise depends on mode and motor state.
 	auto integer_cycles = cycles.get();
 	switch(shift_mode_) {
@@ -463,5 +465,5 @@ void IWM::set_component_prefers_clocking(
 
 void IWM::set_activity_observer(Activity::Observer *const observer) {
 	if(drives_[0].drive) drives_[0].drive->set_activity_observer(observer, "Internal Floppy", true);
-	if(drives_[0].drive) drives_[1].drive->set_activity_observer(observer, "External Floppy", true);
+	if(drives_[1].drive) drives_[1].drive->set_activity_observer(observer, "External Floppy", true);
 }
