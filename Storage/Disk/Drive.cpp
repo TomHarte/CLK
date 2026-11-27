@@ -125,10 +125,10 @@ void Drive::step(const HeadPosition offset) {
 }
 
 std::shared_ptr<Track> Drive::step_to(const HeadPosition offset) {
-	HeadPosition old_head_position = head_position_;
+	const auto old_head_position = head_position_;
 	head_position_ = std::max(offset, HeadPosition(0));
 
-	if(disk_ && head_position_ != old_head_position) {
+	if(!track_ || (disk_ && head_position_ != old_head_position)) {
 		track_ = nullptr;
 		setup_track();
 	}
