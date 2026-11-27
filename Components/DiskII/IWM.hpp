@@ -94,12 +94,19 @@ private:
 	int state_ = 0;
 
 	int active_drive_ = 0;
-	IWMDrive *drives_[2]{};
-	bool drive_is_rotating_[2]{};
+	struct DriveState {
+		IWMDrive *drive = nullptr;
+		bool is_rotating = false;
+		Cycles cycles_until_disable;
+
+		void run_for(const Cycles);
+		bool disable_timer_is_running() const {
+			return cycles_until_disable > Cycles(0);
+		}
+	} drives_[2];
 
 	void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final;
 
-	Cycles cycles_until_disable_;
 	uint8_t write_handshake_ = 0x80;
 
 	void access(int address);
