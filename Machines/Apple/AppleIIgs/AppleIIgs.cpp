@@ -1013,22 +1013,9 @@ private:
 
 		auto destination = read24(0x42);
 
-		// Calculate on-disk track, sector and side. Move drive to there and load the thing.
-
-//		printf("Read block %d from drive %d to address %06x; %s tags\n",
-//			block,
-//			drive_number,
-//			destination,
-//			include_tags ? "include" : "don't include"
-//		);
-
+		// Calculate on-disk track, sector and side.
 		using namespace Storage::Encodings;
 		const auto address = AppleGCR::address_from_block_35(int(block));
-
-//		printf("Track %d / side %d\n",
-//			address.track,
-//			address.side
-//		);
 
 		// Select 3.5" drives.
 		set_disk_select(
@@ -1046,15 +1033,16 @@ private:
 		auto *drive = iwm_.get()->drive();
 		drive->set_head(address.side);
 		const auto track = drive->step_to(Storage::Disk::HeadPosition(address.track));
-		if(!track) {
-			return false;
-		}
 
 		// Update 0xe10f22 [ROM0/1] or 0xe10f3a [ROM3] + drive with the current cylinder number.
 		const auto drive_status = uint32_t(
 			drive_number + (model_ == Analyser::Static::AppleIIgs::Target::Model::ROM03 ? 0xe10f3a : 0xe10f22)
 		);
 		write(drive_status, uint8_t(address.track));
+
+		if(!track) {
+			return false;
+		}
 
 		// Serialise that according to the local data rate and parse for sectors.
 		const auto serialisation = Storage::Disk::track_serialisation(*track, AppleGCR::bit_length_35(address.zone));
