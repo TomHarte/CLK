@@ -17,7 +17,6 @@
 #include "Components/8272/Results.hpp"
 #include "Components/8272/Status.hpp"
 #include "Outputs/Log.hpp"
-#include "Storage/Disk/Track/TrackSerialiser.hpp"
 #include "Storage/Disk/Encodings/MFM/Parser.hpp"
 
 #include <algorithm>
