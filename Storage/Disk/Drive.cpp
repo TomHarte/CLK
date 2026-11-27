@@ -21,7 +21,7 @@ Drive::Drive(
 	const int revolutions_per_minute,
 	const int number_of_heads,
 	const ReadyType rdy_type
-) :
+) noexcept :
 	Storage::TimedEventLoop(input_clock_rate),
 	available_heads_(number_of_heads),
 	ready_type_(rdy_type) {
@@ -46,7 +46,7 @@ Drive::Drive(
 	const int input_clock_rate,
 	const int number_of_heads,
 	const ReadyType rdy_type
-) : Drive(input_clock_rate, 300, number_of_heads, rdy_type) {}
+) noexcept : Drive(input_clock_rate, 300, number_of_heads, rdy_type) {}
 
 void Drive::set_rotation_speed(const float revolutions_per_minute) {
 	// Rationalise the supplied speed so that cycles_per_revolution_ is exact.
@@ -125,10 +125,10 @@ void Drive::step(const HeadPosition offset) {
 }
 
 std::shared_ptr<Track> Drive::step_to(const HeadPosition offset) {
-	HeadPosition old_head_position = head_position_;
+	const auto old_head_position = head_position_;
 	head_position_ = std::max(offset, HeadPosition(0));
 
-	if(disk_ && head_position_ != old_head_position) {
+	if(!track_ || (disk_ && head_position_ != old_head_position)) {
 		track_ = nullptr;
 		setup_track();
 	}

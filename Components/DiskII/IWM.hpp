@@ -27,7 +27,10 @@ namespace Apple {
 	and provide the usual read/write interface for on-disk data.
 */
 struct IWMDrive: public Storage::Disk::Drive {
-	IWMDrive(int input_clock_rate, int number_of_heads) : Storage::Disk::Drive(input_clock_rate, number_of_heads) {}
+	IWMDrive(
+		const int input_clock_rate,
+		const int number_of_heads
+	) : Storage::Disk::Drive(input_clock_rate, number_of_heads) {}
 
 	enum Line: int {
 		CA0		= 1 << 0,
@@ -69,6 +72,9 @@ public:
 	/// Connects a drive to the IWM.
 	void set_drive(int slot, IWMDrive *);
 
+	/// @returns the currently active drive.
+	IWMDrive *drive();
+
 	/// Registers the currently-connected drives as @c Activity::Sources ;
 	/// the first will be declared 'Internal', the second 'External'.
 	void set_activity_observer(Activity::Observer *);
@@ -88,8 +94,8 @@ private:
 	int state_ = 0;
 
 	int active_drive_ = 0;
-	IWMDrive *drives_[2] = {nullptr, nullptr};
-	bool drive_is_rotating_[2] = {false, false};
+	IWMDrive *drives_[2]{};
+	bool drive_is_rotating_[2]{};
 
 	void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final;
 

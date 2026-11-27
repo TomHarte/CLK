@@ -424,6 +424,10 @@ void IWM::set_drive(const int slot, IWMDrive *const drive) {
 	}
 }
 
+IWMDrive *IWM::drive() {
+	return drives_[active_drive_];
+}
+
 void IWM::set_component_prefers_clocking(
 	ClockingHint::Source *const component,
 	const ClockingHint::Preference clocking

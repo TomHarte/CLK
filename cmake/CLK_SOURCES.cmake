@@ -232,6 +232,7 @@ set(CLK_SOURCES
 	Storage/Disk/DiskImage/Formats/Utility/ImplicitSectors.cpp
 	Storage/Disk/DiskImage/Formats/WOZ.cpp
 	Storage/Disk/Drive.cpp
+	Storage/Disk/Encodings/AppleGCR/Addressing.cpp
 	Storage/Disk/Encodings/AppleGCR/Encoder.cpp
 	Storage/Disk/Encodings/AppleGCR/SegmentParser.cpp
 	Storage/Disk/Encodings/CommodoreGCR.cpp

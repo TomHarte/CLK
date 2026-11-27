@@ -440,6 +440,9 @@
 		4B5B37312777C7FC0047F238 /* IPF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5B372F2777C7FC0047F238 /* IPF.cpp */; };
 		4B5B37322777C7FC0047F238 /* IPF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5B372F2777C7FC0047F238 /* IPF.cpp */; };
 		4B5D497C28513F870076E2F9 /* IPF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5B372F2777C7FC0047F238 /* IPF.cpp */; };
+		4B5E560A30B89D5000FFE0F8 /* Addressing.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5E560930B89D5000FFE0F8 /* Addressing.cpp */; };
+		4B5E560B30B89D5000FFE0F8 /* Addressing.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5E560930B89D5000FFE0F8 /* Addressing.cpp */; };
+		4B5E560C30B89D5000FFE0F8 /* Addressing.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5E560930B89D5000FFE0F8 /* Addressing.cpp */; };
 		4B5FADBA1DE3151600AEC565 /* FileHolder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADB81DE3151600AEC565 /* FileHolder.cpp */; };
 		4B5FADC01DE3BF2B00AEC565 /* Microdisc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADBE1DE3BF2B00AEC565 /* Microdisc.cpp */; };
 		4B6208CB2FD0675A003CBD7B /* 1770.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6208C92FD0675A003CBD7B /* 1770.cpp */; };
@@ -1783,6 +1786,8 @@
 		4B596EB02D037E8800FBF4B1 /* Plus4.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Plus4.cpp; sourceTree = "<group>"; };
 		4B5B372F2777C7FC0047F238 /* IPF.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IPF.cpp; sourceTree = "<group>"; };
 		4B5B37302777C7FC0047F238 /* IPF.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = IPF.hpp; sourceTree = "<group>"; };
+		4B5E560830B89D5000FFE0F8 /* Addressing.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Addressing.hpp; sourceTree = "<group>"; };
+		4B5E560930B89D5000FFE0F8 /* Addressing.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Addressing.cpp; sourceTree = "<group>"; };
 		4B5FADB81DE3151600AEC565 /* FileHolder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FileHolder.cpp; sourceTree = "<group>"; };
 		4B5FADB91DE3151600AEC565 /* FileHolder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FileHolder.hpp; sourceTree = "<group>"; };
 		4B5FADBE1DE3BF2B00AEC565 /* Microdisc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Microdisc.cpp; sourceTree = "<group>"; };
@@ -5727,8 +5732,10 @@
 		4BD67DCD209BF27B00AB2146 /* AppleGCR */ = {
 			isa = PBXGroup;
 			children = (
+				4B5E560930B89D5000FFE0F8 /* Addressing.cpp */,
 				4BD67DCE209BF27B00AB2146 /* Encoder.cpp */,
 				4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */,
+				4B5E560830B89D5000FFE0F8 /* Addressing.hpp */,
 				4BD67DCF209BF27B00AB2146 /* Encoder.hpp */,
 				4BF437F0209D112F008CBD6B /* Sector.hpp */,
 				4BF437ED209D0F7E008CBD6B /* SegmentParser.hpp */,
@@ -6573,6 +6580,7 @@
 				4B8DF4FA254E36AE00F3433C /* Video.cpp in Sources */,
 				4B7BA03123C2B19C00B98D9E /* Jasmin.cpp in Sources */,
 				4B7F188F2154825E00388727 /* MasterSystem.cpp in Sources */,
+				4B5E560B30B89D5000FFE0F8 /* Addressing.cpp in Sources */,
 				4B055AA51FAE85EF0060FFFF /* Encoder.cpp in Sources */,
 				4B894529201967B4007DE474 /* Disk.cpp in Sources */,
 				4B055AEA1FAE9B990060FFFF /* 6502Storage.cpp in Sources */,
@@ -6891,6 +6899,7 @@
 				4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */,
 				4BDA00E422E663B900AC3CD0 /* NSData+CRC32.m in Sources */,
 				4B9EC0E626AA4A660060A31F /* Chipset.cpp in Sources */,
+				4B5E560C30B89D5000FFE0F8 /* Addressing.cpp in Sources */,
 				425739382B051EA800B7D1E4 /* PCCompatible.cpp in Sources */,
 				4BB8616E24E22DC500A00E03 /* BufferingScanTarget.cpp in Sources */,
 				4BB4BFB022A42F290069048D /* MacintoshIMG.cpp in Sources */,
@@ -7361,6 +7370,7 @@
 				4B06AADA2C645F650034D014 /* MemorySlotHandler.cpp in Sources */,
 				4B778EF823A5EB6E0000D260 /* NIB.cpp in Sources */,
 				4B9D0C4B22C7D70A00DE1AD3 /* 68000BCDTests.mm in Sources */,
+				4B5E560A30B89D5000FFE0F8 /* Addressing.cpp in Sources */,
 				4B7752B828217F110073E2C5 /* Amiga.cpp in Sources */,
 				4BBFFEF92F5791F9009FAACE /* 6809Tests.mm in Sources */,
 				4B06AAEF2C6460180034D014 /* Keyboard.cpp in Sources */,

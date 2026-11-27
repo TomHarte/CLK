@@ -68,7 +68,6 @@ Disk2MG::DiskOrMassStorageDevice Disk2MG::open(const std::filesystem::path &path
 		throw Error::InvalidFormat;
 	}
 
-	// TODO: based on format, instantiate a suitable disk image.
 	switch(format) {
 		default: throw Error::InvalidFormat;
 		case 0:

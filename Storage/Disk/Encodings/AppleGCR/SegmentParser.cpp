@@ -16,7 +16,7 @@ using namespace Storage::Encodings::AppleGCR;
 
 namespace {
 
-const uint8_t six_and_two_unmapping[] = {
+static constexpr uint8_t six_and_two_unmapping[] = {
 	/* 0x96 */	0x00, 0x01,
 	/* 0x98 */	0xff, 0xff, 0x02, 0x03, 0xff, 0x04, 0x05, 0x06,
 	/* 0xa0 */	0xff, 0xff,	0xff, 0xff, 0xff, 0xff, 0x07, 0x08,
@@ -33,12 +33,12 @@ const uint8_t six_and_two_unmapping[] = {
 	/* 0xf8 */	0xff, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
 };
 
-uint8_t unmap_six_and_two(uint8_t source) {
+constexpr uint8_t unmap_six_and_two(const uint8_t source) {
 	if(source < 0x96) return 0xff;
 	return six_and_two_unmapping[source - 0x96];
 }
 
-const uint8_t five_and_three_unmapping[] = {
+static constexpr uint8_t five_and_three_unmapping[] = {
 	/* 0xab */	0x00, 0xff,	0x01, 0x02, 0x03,
 	/* 0xb0 */	0xff, 0xff, 0xff, 0xff, 0xff, 0x04, 0x05, 0x06,
 	/* 0xb8 */	0xff, 0xff, 0x07, 0x08, 0xff, 0x09, 0x0a, 0x0b,
@@ -52,12 +52,15 @@ const uint8_t five_and_three_unmapping[] = {
 	/* 0xf8 */	0xff, 0xff, 0x1b, 0x1c, 0xff, 0x1d, 0x1e, 0x1f,
 };
 
-uint8_t unmap_five_and_three(uint8_t source) {
+constexpr uint8_t unmap_five_and_three(const uint8_t source) {
 	if(source < 0xab) return 0xff;
 	return five_and_three_unmapping[source - 0xab];
 }
 
-std::unique_ptr<Sector> decode_macintosh_sector(const std::array<uint_fast8_t, 8> *header, const std::unique_ptr<Sector> &original) {
+std::unique_ptr<Sector> decode_macintosh_sector(
+	const std::array<uint_fast8_t, 8> *const header,
+	const std::unique_ptr<Sector> &original
+) {
 	// There must be a header and at least 704 bytes to decode from.
 	if(!header || original->data.size() < 704) return nullptr;
 
@@ -140,7 +143,11 @@ std::unique_ptr<Sector> decode_macintosh_sector(const std::array<uint_fast8_t, 8
 	return sector;
 }
 
-std::unique_ptr<Sector> decode_appleii_sector(const std::array<uint_fast8_t, 8> *header, const std::unique_ptr<Sector> &original, bool is_five_and_three) {
+std::unique_ptr<Sector> decode_appleii_sector(
+	const std::array<uint_fast8_t, 8> *const header,
+	const std::unique_ptr<Sector> &original,
+	const bool is_five_and_three
+) {
 	// There must be at least 411 bytes to decode a five-and-three sector from;
 	// there must be only 343 if this is a six-and-two sector.
 	const size_t data_size = is_five_and_three ? 411 : 343;
@@ -169,7 +176,8 @@ std::unique_ptr<Sector> decode_appleii_sector(const std::array<uint_fast8_t, 8> 
 
 	// Unmap the sector contents.
 	for(size_t index = 0; index < data_size; ++index) {
-		sector->data[index] = is_five_and_three ? unmap_five_and_three(original->data[index]) : unmap_six_and_two(original->data[index]);
+		sector->data[index] =
+			is_five_and_three ? unmap_five_and_three(original->data[index]) : unmap_six_and_two(original->data[index]);
 		if(sector->data[index] == 0xff) {
 			return nullptr;
 		}
@@ -195,8 +203,12 @@ std::unique_ptr<Sector> decode_appleii_sector(const std::array<uint_fast8_t, 8> 
 			buffer[(c * 5) + 0] = uint8_t((base[0x000] << 3) | (base[0x100] >> 2));
 			buffer[(c * 5) + 1] = uint8_t((base[0x033] << 3) | (base[0x133] >> 2));
 			buffer[(c * 5) + 2] = uint8_t((base[0x066] << 3) | (base[0x166] >> 2));
-			buffer[(c * 5) + 3] = uint8_t((base[0x099] << 3) | ((base[0x100] & 2) << 1) | (base[0x133] & 2) | ((base[0x166] & 2) >> 1));
-			buffer[(c * 5) + 4] = uint8_t((base[0x0cc] << 3) | ((base[0x100] & 1) << 2) | ((base[0x133] & 1) << 1) | (base[0x166] & 1));
+			buffer[(c * 5) + 3] = uint8_t(
+				(base[0x099] << 3) | ((base[0x100] & 2) << 1) | (base[0x133] & 2) | ((base[0x166] & 2) >> 1)
+			);
+			buffer[(c * 5) + 4] = uint8_t(
+				(base[0x0cc] << 3) | ((base[0x100] & 1) << 2) | ((base[0x133] & 1) << 1) | (base[0x166] & 1)
+			);
 		}
 		buffer[255] = uint8_t((sector->data[0x0ff] << 3) | (sector->data[0x199] >> 2));
 
@@ -300,7 +312,8 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 			if(new_sector) {
 				// Check whether the value just read is a legal GCR byte, for this sector;
 				// if not, or if
-				const bool is_invalid = is_five_and_three ? (unmap_five_and_three(value) == 0xff) : (unmap_six_and_two(value) == 0xff);
+				const bool is_invalid = is_five_and_three ?
+					(unmap_five_and_three(value) == 0xff) : (unmap_six_and_two(value) == 0xff);
 				if(is_invalid || new_sector->data.size() >= 704) {
 					// The second byte of the standard epilogue is 'illegal', as is the first byte of
 					// all prologues. So either a whole sector has been captured up to now, or it hasn't.
@@ -322,7 +335,8 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 					}
 
 					// Apple II then?
-					auto appleii_sector = decode_appleii_sector(had_header ? &header : nullptr, sector, is_five_and_three);
+					auto appleii_sector =
+						decode_appleii_sector(had_header ? &header : nullptr, sector, is_five_and_three);
 					if(appleii_sector) {
 						result.insert({sector_location, std::move(*appleii_sector)});
 					}

@@ -33,16 +33,12 @@
 
 #include "ClockReceiver/JustInTime.hpp"
 
+#include "Storage/Disk/Encodings/AppleGCR/Addressing.hpp"
+#include "Storage/Disk/Encodings/AppleGCR/SegmentParser.hpp"
+#include "Storage/Disk/Track/TrackSerialiser.hpp"
+
 #include <cassert>
 #include <array>
-
-//
-// HEAVY WARNING: THIS IS INCOMPLETE AND VERY PROVISIONAL.
-//
-// You'll notice lots of random bits of debugging code sitting around but commented out.
-// Most of this will go when this machine is complete. Please look past the gross ugliness
-// of this code's intermediate state if you are able.
-//
 
 namespace {
 
@@ -81,6 +77,7 @@ namespace IIgs {
 class ConcreteMachine:
 	public Activity::Source,
 	public Apple::IIgs::Machine,
+	public Configurable::Device,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
@@ -92,6 +89,7 @@ class ConcreteMachine:
 
 public:
 	ConcreteMachine(const Analyser::Static::AppleIIgs::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+		model_(target.model),
 		m65816_(*this),
 		memory_(target.model >= Analyser::Static::AppleIIgs::Target::Model::ROM03),
 		iwm_(CLOCK_RATE / 2),
@@ -111,9 +109,11 @@ public:
 		using Target = Analyser::Static::AppleIIgs::Target;
 		ROM::Name system;
 		switch(target.model) {
-			case Target::Model::ROM00:	system = ROM::Name::AppleIIgsROM00;	break;
-			case Target::Model::ROM01:	system = ROM::Name::AppleIIgsROM01;	break;
-			default:					system = ROM::Name::AppleIIgsROM03;	break;
+			using enum Analyser::Static::AppleIIgs::Target::Model;
+			case ROM00:	system = ROM::Name::AppleIIgsROM00;	break;
+			case ROM01:	system = ROM::Name::AppleIIgsROM01;	break;
+			case ROM03:	system = ROM::Name::AppleIIgsROM03;	break;
+			default: __builtin_unreachable();
 		}
 		static constexpr ROM::Name characters = ROM::Name::AppleIIEnhancedECharacter;
 		static constexpr ROM::Name microcontroller = ROM::Name::AppleIIgsMicrocontrollerROM03;
@@ -621,19 +621,7 @@ public:
 					*value = disk_select_;
 				break;
 				case Write(0xc031):
-					// b7: 0 = use head 0; 1 = use head 1.
-					// b6: 0 = use 5.25" disks; 1 = use 3.5".
-					disk_select_ = *value;
-					iwm_->set_select(*value & 0x80);
-
-					// Presumably bit 6 selects between two 5.25" drives rather than the two 3.5"?
-					if(*value & 0x40) {
-						iwm_->set_drive(0, &drives35_[0]);
-						iwm_->set_drive(1, &drives35_[1]);
-					} else {
-						iwm_->set_drive(0, &drives525_[0]);
-						iwm_->set_drive(1, &drives525_[1]);
-					}
+					set_disk_select(*value);
 				break;
 
 				// Addresses on other Apple II devices which do nothing on the GS.
@@ -757,6 +745,15 @@ public:
 
 			if(is_read(operation)) {
 				*value = memory_.read(region, address);
+
+				// Potentially trap entry into the routine that reads a sector via the IWM, switching to
+				// an instant high-level emulation of that if **and only if** the user opted in.
+				using BusOperation = CPU::WDC65816::BusOperation;
+				if(operation == BusOperation::ReadOpcode && address == read_sector_address_) [[unlikely]] {
+					if(read_sector()) {
+						*value = 0x60;		// i.e. RTS.
+					}
+				}
 			} else {
 				// Shadowed writes also occur "at 1Mhz".
 				// TODO: this is probably an approximation. I'm assuming that there's the ability asynchronously to post
@@ -885,6 +882,7 @@ public:
 	}
 
 private:
+	Analyser::Static::AppleIIgs::Target::Model model_;
 	CPU::WDC65816::Processor<ConcreteMachine, false> m65816_;
 	MemoryMap memory_;
 
@@ -943,7 +941,175 @@ private:
 	uint8_t language_ = 0;
 	uint8_t disk_select_ = 0;
 
+	// Local copy of the interrupt mask, for returning if read.
 	uint8_t megaii_interrupt_mask_ = 0;
+
+	// MARK: - Disk helpers and accelerated loading.
+
+	void set_disk_select(const uint8_t value) {
+		// b7: 0 = use head 0; 1 = use head 1.
+		// b6: 0 = use 5.25" disks; 1 = use 3.5".
+		disk_select_ = value;
+		iwm_->set_select(value & 0x80);
+
+		// Presumably bit 6 selects between two 5.25" drives rather than the two 3.5"?
+		if(value & 0x40) {
+			iwm_->set_drive(0, &drives35_[0]);
+			iwm_->set_drive(1, &drives35_[1]);
+		} else {
+			iwm_->set_drive(0, &drives525_[0]);
+			iwm_->set_drive(1, &drives525_[1]);
+		}
+	}
+
+	static constexpr uint32_t DontLoadFastSentinel = 0xffff'ffff;
+	uint32_t read_sector_address_ = DontLoadFastSentinel;
+
+	/// @returns @c true if everything went successfully; @c false otherwise.
+	bool read_sector() {
+		using Register = CPU::WDC65816::Register;
+
+		// Preconditions: not emulation, with data bank and direct pointing where expected,
+		// and both memory[/register] size and index size flags set to indicate 8-bit operation.
+		if(m65816_.value_of(Register::EmulationFlag) != false) return false;
+		if(m65816_.value_of(Register::DataBank) != 0xe1) return false;
+		if(m65816_.value_of(Register::Direct) != 0) return false;
+
+		static constexpr uint8_t RequiredFlags =
+			CPU::MOS6502Esque::Flag::MemorySize | CPU::MOS6502Esque::Flag::IndexSize;
+		if((m65816_.value_of(Register::Flags) & RequiredFlags) != RequiredFlags) return false;
+
+		// Check also that this is a read command.
+		const auto read = [&](const uint32_t address) {
+			const auto &region = memory_.region(address);
+			return memory_.read(region, address);
+		};
+		const auto write = [&](const uint32_t address, const uint8_t value) {
+			const auto &region = memory_.region(address);
+			return memory_.write(region, address, value);
+		};
+		const auto read24 = [&](const uint32_t address) {
+			return uint32_t(read(address) + (read(address + 1) << 8) + (read(address + 2) << 16));
+		};
+
+		const uint8_t command = read(0x45);
+		if(command != 1) return false;
+
+		//
+		// It is now established that this is a read sector command.
+		//
+		// Get the address of the source as drive and block, the in-memory address of the destination and
+		// determine whether tags are being requested in addition to the sector body.
+		//
+
+		const auto block = read24(0x48);
+		const int drive_number = read(0xE10F28) & 1;
+
+		// Only ROM03 actually masks out the top bit.
+		const uint8_t tags_mask = model_ == Analyser::Static::AppleIIgs::Target::Model::ROM03 ? 0x80 : 0xff;
+		const bool include_tags = read(0xe10f51) & tags_mask;
+
+		auto destination = read24(0x42);
+
+		// Calculate on-disk track, sector and side.
+		using namespace Storage::Encodings;
+		const auto address = AppleGCR::address_from_block_35(int(block));
+		iwm_.flush();
+		auto *iwm = iwm_.get();
+
+		// Select drive and enable.
+		iwm->read(0xc0ea + drive_number);
+		iwm->read(0xc0e9);		// Enable on.
+
+		// Select 3.5" drives and set side.
+		iwm->read(0xc0e0);		// CA0 off.
+		iwm->read(0xc0e2);		// CA1 off.
+		iwm->read(0xc0e5);		// CA2 on.
+		iwm->read(0xc0e6);		// LSTRB off.
+		set_disk_select(
+			(address.side ? 0x80 : 0x00) |
+			0x40
+		);
+		iwm->read(0xc0ed);		// Q6 on.
+		iwm->read(0xc0ee);		// Q6 off.
+		iwm->read(0xc0ec);		// Read mode.
+
+		// Seek to and grab the track.
+		auto *drive = iwm_.get()->drive();
+		const auto track = drive->step_to(Storage::Disk::HeadPosition(address.track));
+
+		// Update 0xe10f22 [ROM0/1] or 0xe10f3a [ROM3] + drive with the current cylinder number.
+		const auto drive_status = uint32_t(
+			drive_number + (model_ == Analyser::Static::AppleIIgs::Target::Model::ROM03 ? 0xe10f3a : 0xe10f22)
+		);
+		write(drive_status, uint8_t(address.track));
+
+		if(!track) {
+			return false;
+		}
+
+		// Serialise that according to the local data rate and parse for sectors.
+		const auto serialisation = Storage::Disk::track_serialisation(*track, AppleGCR::bit_length_35(address.zone));
+		const auto sectors = AppleGCR::sectors_from_segment(serialisation);
+
+		// Search for sector.
+		for(auto &sector: sectors) {
+			if(sector.second.address.sector == address.sector) {
+				// Write either 512 or 524 bytes to the destination.
+				for(
+					auto data = sector.second.data.begin() + (include_tags ? 0 : 12);
+					data != sector.second.data.end();
+					++data
+				) {
+					write(destination++, *data);
+				}
+
+				// To indicate no error: zero out 0xe10f44 and 0xe10f4b, set A = 0 and clear carry.
+				auto a = m65816_.value_of(Register::A);
+				a &= ~0xff;
+				m65816_.set_value_of(Register::A, a);
+
+				auto flags = uint8_t(m65816_.value_of(Register::Flags));
+				flags &= ~CPU::MOS6502Esque::Flag::Carry;
+				m65816_.set_value_of(Register::Flags, flags);
+
+				write(0xe10f44, 0);
+				write(0xe10f4b, 0);
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	void set_should_fast_load(const bool fast_load) {
+		if(!fast_load) {
+			read_sector_address_ = DontLoadFastSentinel;
+			return;
+		}
+
+		switch(model_) {
+			using enum Analyser::Static::AppleIIgs::Target::Model;
+			case ROM00:	read_sector_address_ = 0xff686e;	break;
+			case ROM01:	read_sector_address_ = 0xff597a;	break;
+			case ROM03:	read_sector_address_ = 0xff3fc7;	break;
+			default: __builtin_unreachable();
+		}
+	}
+
+	// MARK: - Configuration options.
+
+	std::unique_ptr<Reflection::Struct> get_options() const final {
+		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+		options->quick_load = read_sector_address_ != DontLoadFastSentinel;
+		return options;
+	}
+
+	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+		const auto options = dynamic_cast<Options *>(str.get());
+		set_should_fast_load(options->quick_load);
+	}
 };
 
 }

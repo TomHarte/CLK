@@ -32,8 +32,17 @@ public:
 		IBMRDY,
 	};
 
-	Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads, ReadyType rdy_type = ReadyType::ShugartRDY);
-	Drive(int input_clock_rate, int number_of_heads, ReadyType rdy_type = ReadyType::ShugartRDY);
+	Drive(
+		int input_clock_rate,
+		int revolutions_per_minute,
+		int number_of_heads,
+		ReadyType rdy_type = ReadyType::ShugartRDY
+	) noexcept;
+	Drive(
+		int input_clock_rate,
+		int number_of_heads,
+		ReadyType rdy_type = ReadyType::ShugartRDY
+	) noexcept;
 	virtual ~Drive();
 
 	Drive(const Drive &) = delete;
