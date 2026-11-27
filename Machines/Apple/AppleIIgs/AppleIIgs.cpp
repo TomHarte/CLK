@@ -1016,22 +1016,28 @@ private:
 		// Calculate on-disk track, sector and side.
 		using namespace Storage::Encodings;
 		const auto address = AppleGCR::address_from_block_35(int(block));
-
-		// Select 3.5" drives.
-		set_disk_select(
-			(address.side ? 0x80 : 0x00) |
-			0x40
-		);
 		iwm_.flush();
 		auto *iwm = iwm_.get();
 
 		// Select drive and enable.
 		iwm->read(0xc0ea + drive_number);
-		iwm->read(0xc0e9);
+		iwm->read(0xc0e9);		// Enable on.
+
+		// Select 3.5" drives and set side.
+		iwm->read(0xc0e0);		// CA0 off.
+		iwm->read(0xc0e2);		// CA1 off.
+		iwm->read(0xc0e5);		// CA2 on.
+		iwm->read(0xc0e6);		// LSTRB off.
+		set_disk_select(
+			(address.side ? 0x80 : 0x00) |
+			0x40
+		);
+		iwm->read(0xc0ed);		// Q6 on.
+		iwm->read(0xc0ee);		// Q6 off.
+		iwm->read(0xc0ec);		// Read mode.
 
 		// Seek to and grab the track.
 		auto *drive = iwm_.get()->drive();
-		drive->set_head(address.side);
 		const auto track = drive->step_to(Storage::Disk::HeadPosition(address.track));
 
 		// Update 0xe10f22 [ROM0/1] or 0xe10f3a [ROM3] + drive with the current cylinder number.
