@@ -80,6 +80,7 @@ private:
 
 	void scsi_bus_did_change(SCSI::Bus &, SCSI::BusState, double) final;
 	bool phase_matches() const;
+	bool drives_data_bus() const;
 };
 
 }
