@@ -87,7 +87,7 @@ uint8_t IWM::read(const int address) {
 			return uint8_t(
 				(mode_&0x1f) |
 				(
-					((state_ & ENABLE) || (cycles_until_disable_ > Cycles(0))) ? 0x20 : 0x00
+					((state_ & ENABLE) || drives_[active_drive_].disable_timer_is_running()) ? 0x20 : 0x00
 				) |
 				(sense() & 0x80)
 			);
@@ -179,14 +179,14 @@ void IWM::access(int address) {
 
 			case ENABLE:
 				if(address & 1) {
-					cycles_until_disable_ = Cycles(0);
-					if(drives_[active_drive_]) drives_[active_drive_]->set_enabled(true);
+					drives_[active_drive_].cycles_until_disable = Cycles(0);
+					if(drives_[active_drive_].drive) drives_[active_drive_].drive->set_enabled(true);
 				} else {
 					// If the 1-second delay is enabled, set up a timer for that.
 					if(!(mode_ & 4)) {
-						cycles_until_disable_ = Cycles(clock_rate_);
+						drives_[active_drive_].cycles_until_disable = Cycles(clock_rate_);
 					} else {
-						if(drives_[active_drive_]) drives_[active_drive_]->set_enabled(false);
+						if(drives_[active_drive_].drive) drives_[active_drive_].drive->set_enabled(false);
 					}
 				}
 			break;
@@ -194,10 +194,13 @@ void IWM::access(int address) {
 			case DRIVESEL: {
 				const int new_drive = address & 1;
 				if(new_drive != active_drive_) {
-					if(drives_[active_drive_]) drives_[active_drive_]->set_enabled(false);
+					if(drives_[active_drive_].drive) drives_[active_drive_].drive->set_enabled(false);
 					active_drive_ = new_drive;
-					if(drives_[active_drive_]) {
-						drives_[active_drive_]->set_enabled(state_ & ENABLE || (cycles_until_disable_ > Cycles(0)));
+					if(drives_[active_drive_].drive) {
+						drives_[active_drive_].drive->set_enabled(
+							state_ & ENABLE ||
+							drives_[active_drive_].disable_timer_is_running()
+						);
 						push_drive_state();
 					}
 				}
@@ -219,29 +222,42 @@ void IWM::set_select(const bool enabled) {
 }
 
 void IWM::push_drive_state() {
-	if(drives_[active_drive_]) {
+	if(drives_[active_drive_].drive) {
 		const uint8_t drive_control_lines =
 			((state_ & CA0) ? IWMDrive::CA0 : 0) |
 			((state_ & CA1) ? IWMDrive::CA1 : 0) |
 			((state_ & CA2) ? IWMDrive::CA2 : 0) |
 			((state_ & SEL) ? IWMDrive::SEL : 0) |
 			((state_ & LSTRB) ? IWMDrive::LSTRB : 0);
-		drives_[active_drive_]->set_control_lines(drive_control_lines);
+		drives_[active_drive_].drive->set_control_lines(drive_control_lines);
 	}
 }
 
 // MARK: - Active logic
 
-void IWM::run_for(const Cycles cycles) {
+void IWM::DriveState::run_for(const Cycles cycles) {
 	// Check for a timeout of the motor-off timer.
-	if(cycles_until_disable_ > Cycles(0)) {
-		cycles_until_disable_ -= cycles;
-		if(cycles_until_disable_ <= Cycles(0)) {
-			cycles_until_disable_ = Cycles(0);
-			if(drives_[active_drive_])
-				drives_[active_drive_]->set_enabled(false);
-		}
+	if(cycles_until_disable <= Cycles(0)) {
+		return;
 	}
+
+	cycles_until_disable -= cycles;
+	if(cycles_until_disable > Cycles(0)) {
+		return;
+	}
+
+	cycles_until_disable = Cycles(0);
+	if(drive) drive->set_enabled(false);
+}
+
+void IWM::run_for(const Cycles cycles) {
+	drives_[0].run_for(cycles);
+	drives_[1].run_for(cycles);
+
+	// TODO: the unselected drive should still be clocked because they take a short while to spin down.
+	// But I've made a huge, structural error elsewhere in that incoming bits from a drive don't reveal their
+	// source. And in some places I have a PLL effectively laundering them. So plenty of work to do.
+//	if(drives_[active_drive_ ^ 1].drive) drives_[active_drive_ ^ 1].drive->run_for(cycles);
 
 	// Activity otherwise depends on mode and motor state.
 	auto integer_cycles = cycles.get();
@@ -254,9 +270,9 @@ void IWM::run_for(const Cycles cycles) {
 			// here implements the 'after' part of that contract.
 			const auto error_margin = Cycles(bit_length_.get() >> 1);
 
-			if(drive_is_rotating_[active_drive_]) {
+			if(drives_[active_drive_].is_rotating) {
 				while(integer_cycles--) {
-					drives_[active_drive_]->run_for(Cycles(1));
+					drives_[active_drive_].drive->run_for(Cycles(1));
 					++cycles_since_shift_;
 					if(cycles_since_shift_ == bit_length_ + error_margin) {
 //						Logger::info().append("Shifting 0 at %d ", cycles_since_shift_.as<int>());
@@ -277,11 +293,11 @@ void IWM::run_for(const Cycles cycles) {
 		case ShiftMode::Writing:
 			while(cycles_since_shift_ + integer_cycles >= bit_length_) {
 				const auto cycles_until_write = bit_length_ - cycles_since_shift_;
-				if(drives_[active_drive_]) {
-					drives_[active_drive_]->run_for(cycles_until_write);
+				if(drives_[active_drive_].drive) {
+					drives_[active_drive_].drive->run_for(cycles_until_write);
 
 					// Output a flux transition if the top bit is set.
-					drives_[active_drive_]->write_bit(shift_register_ & 0x80);
+					drives_[active_drive_].drive->write_bit(shift_register_ & 0x80);
 				}
 				shift_register_ <<= 1;
 
@@ -296,7 +312,7 @@ void IWM::run_for(const Cycles cycles) {
 //						Logger::info().append("Next byte: %02x", shift_register_);
 					} else {
 						write_handshake_ &= ~0x40;
-						if(drives_[active_drive_]) drives_[active_drive_]->end_writing();
+						if(drives_[active_drive_].drive) drives_[active_drive_].drive->end_writing();
 						Logger::info().append("Overrun; done.");
 						output_bits_remaining_ = 1;
 					}
@@ -312,8 +328,8 @@ void IWM::run_for(const Cycles cycles) {
 			// part should be accumulated.
 			cycles_since_shift_ += integer_cycles;
 
-			if(drives_[active_drive_] && integer_cycles) {
-				drives_[active_drive_]->run_for(cycles_since_shift_);
+			if(drives_[active_drive_].drive && integer_cycles) {
+				drives_[active_drive_].drive->run_for(cycles_since_shift_);
 			}
 		break;
 
@@ -326,14 +342,18 @@ void IWM::run_for(const Cycles cycles) {
 			[[fallthrough]];
 
 		default:
-			if(drive_is_rotating_[active_drive_]) drives_[active_drive_]->run_for(cycles);
+			if(drives_[active_drive_].is_rotating) drives_[active_drive_].drive->run_for(cycles);
 		break;
 	}
 }
 
 void IWM::select_shift_mode() {
 	// Don't allow an ongoing write to be interrupted.
-	if(shift_mode_ == ShiftMode::Writing && drives_[active_drive_] && drives_[active_drive_]->is_writing()) return;
+	if(
+		shift_mode_ == ShiftMode::Writing &&
+		drives_[active_drive_].drive &&
+		drives_[active_drive_].drive->is_writing()
+	) return;
 
 	const auto old_shift_mode = shift_mode_;
 
@@ -349,8 +369,8 @@ void IWM::select_shift_mode() {
 
 	// If writing mode just began, set the drive into write mode and cue up the first output byte.
 	if(old_shift_mode != ShiftMode::Writing && shift_mode_ == ShiftMode::Writing) {
-		if(drives_[active_drive_]) {
-			drives_[active_drive_]->begin_writing(
+		if(drives_[active_drive_].drive) {
+			drives_[active_drive_].drive->begin_writing(
 				Storage::Time(1, clock_rate_ / bit_length_.as<int>()),
 				false,
 				false
@@ -364,7 +384,7 @@ void IWM::select_shift_mode() {
 }
 
 uint8_t IWM::sense() {
-	return drives_[active_drive_] ? (drives_[active_drive_]->read() ? 0xff : 0x00) : 0xff;
+	return drives_[active_drive_].drive ? (drives_[active_drive_].drive->read() ? 0xff : 0x00) : 0xff;
 }
 
 void IWM::process_event(const Storage::Disk::Drive::Event &event) {
@@ -410,13 +430,18 @@ void IWM::propose_shift(const uint8_t bit) {
 }
 
 void IWM::set_drive(const int slot, IWMDrive *const drive) {
-	if(drives_[slot]) {
-		drives_[slot]->set_event_delegate(nullptr);
-		drives_[slot]->set_clocking_hint_observer(nullptr);
+	if(drives_[slot].drive == drive) {
+		return;
 	}
 
-	drive_is_rotating_[slot] = false;
-	drives_[slot] = drive;
+	if(drives_[slot].drive) {
+		drives_[slot].drive->set_event_delegate(nullptr);
+		drives_[slot].drive->set_clocking_hint_observer(nullptr);
+		drives_[slot].drive->set_enabled(false);
+	}
+
+	drives_[slot].is_rotating = drive->get_motor_on();
+	drives_[slot].drive = drive;
 
 	if(drive) {
 		drive->set_event_delegate(this);
@@ -425,7 +450,7 @@ void IWM::set_drive(const int slot, IWMDrive *const drive) {
 }
 
 IWMDrive *IWM::drive() {
-	return drives_[active_drive_];
+	return drives_[active_drive_].drive;
 }
 
 void IWM::set_component_prefers_clocking(
@@ -434,14 +459,14 @@ void IWM::set_component_prefers_clocking(
 ) {
 	const bool is_rotating = clocking != ClockingHint::Preference::None;
 
-	if(drives_[0] && component == static_cast<ClockingHint::Source *>(drives_[0])) {
-		drive_is_rotating_[0] = is_rotating;
-	} else if(drives_[1] && component == static_cast<ClockingHint::Source *>(drives_[1])) {
-		drive_is_rotating_[1] = is_rotating;
+	if(drives_[0].drive && component == static_cast<ClockingHint::Source *>(drives_[0].drive)) {
+		drives_[0].is_rotating = is_rotating;
+	} else if(drives_[1].drive && component == static_cast<ClockingHint::Source *>(drives_[1].drive)) {
+		drives_[1].is_rotating = is_rotating;
 	}
 }
 
 void IWM::set_activity_observer(Activity::Observer *const observer) {
-	if(drives_[0]) drives_[0]->set_activity_observer(observer, "Internal Floppy", true);
-	if(drives_[1]) drives_[1]->set_activity_observer(observer, "External Floppy", true);
+	if(drives_[0].drive) drives_[0].drive->set_activity_observer(observer, "Internal Floppy", true);
+	if(drives_[1].drive) drives_[1].drive->set_activity_observer(observer, "External Floppy", true);
 }

@@ -160,11 +160,10 @@ public:
 
 	void run_for(const Cycles cycles) override {
 		m65816_.run_for(cycles);
+		iwm_.flush();
 	}
 
 	void flush_output(const int outputs) final {
-		iwm_.flush();
-
 		if(outputs & Output::Video) {
 			video_.flush();
 		}
