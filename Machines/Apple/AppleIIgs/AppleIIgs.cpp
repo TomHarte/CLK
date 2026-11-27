@@ -77,6 +77,7 @@ namespace IIgs {
 class ConcreteMachine:
 	public Activity::Source,
 	public Apple::IIgs::Machine,
+	public Configurable::Device,
 	public MachineTypes::AudioProducer,
 	public MachineTypes::JoystickMachine,
 	public MachineTypes::MappedKeyboardMachine,
@@ -155,9 +156,6 @@ public:
 		memory_.set_speed_register(speed_register_ ^ 0x80);
 
 		insert_media(target.media);
-
-		// TEST. TODO: REMOVE.
-		set_should_fast_load(true);
 	}
 
 	void run_for(const Cycles cycles) override {
@@ -1098,6 +1096,19 @@ private:
 			case ROM03:	read_sector_address_ = 0xff3fc7;	break;
 			default: __builtin_unreachable();
 		}
+	}
+
+	// MARK: - Configuration options.
+
+	std::unique_ptr<Reflection::Struct> get_options() const final {
+		auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+		options->quick_load = read_sector_address_ != DontLoadFastSentinel;
+		return options;
+	}
+
+	void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+		const auto options = dynamic_cast<Options *>(str.get());
+		set_should_fast_load(options->quick_load);
 	}
 };
 
