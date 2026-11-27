@@ -410,12 +410,17 @@ void IWM::propose_shift(const uint8_t bit) {
 }
 
 void IWM::set_drive(const int slot, IWMDrive *const drive) {
+	if(drives_[slot] == drive) {
+		return;
+	}
+
 	if(drives_[slot]) {
 		drives_[slot]->set_event_delegate(nullptr);
 		drives_[slot]->set_clocking_hint_observer(nullptr);
+		drives_[slot]->set_enabled(false);
 	}
 
-	drive_is_rotating_[slot] = false;
+	drive_is_rotating_[slot] = drive->get_motor_on();
 	drives_[slot] = drive;
 
 	if(drive) {
