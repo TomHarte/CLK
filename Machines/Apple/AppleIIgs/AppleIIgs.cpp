@@ -35,6 +35,7 @@
 
 #include "Storage/Disk/Encodings/AppleGCR/Addressing.hpp"
 #include "Storage/Disk/Encodings/AppleGCR/SegmentParser.hpp"
+#include "Storage/Disk/Track/TrackSerialiser.hpp"
 
 #include <cassert>
 #include <array>
@@ -622,19 +623,7 @@ public:
 					*value = disk_select_;
 				break;
 				case Write(0xc031):
-					// b7: 0 = use head 0; 1 = use head 1.
-					// b6: 0 = use 5.25" disks; 1 = use 3.5".
-					disk_select_ = *value;
-					iwm_->set_select(*value & 0x80);
-
-					// Presumably bit 6 selects between two 5.25" drives rather than the two 3.5"?
-					if(*value & 0x40) {
-						iwm_->set_drive(0, &drives35_[0]);
-						iwm_->set_drive(1, &drives35_[1]);
-					} else {
-						iwm_->set_drive(0, &drives525_[0]);
-						iwm_->set_drive(1, &drives525_[1]);
-					}
+					set_disk_select(*value);
 				break;
 
 				// Addresses on other Apple II devices which do nothing on the GS.
@@ -957,7 +946,23 @@ private:
 	// Local copy of the interrupt mask, for returning if read.
 	uint8_t megaii_interrupt_mask_ = 0;
 
-	// MARK: - Accelerated loading.
+	// MARK: - Disk helpers and accelerated loading.
+
+	void set_disk_select(const uint8_t value) {
+		// b7: 0 = use head 0; 1 = use head 1.
+		// b6: 0 = use 5.25" disks; 1 = use 3.5".
+		disk_select_ = value;
+		iwm_->set_select(value & 0x80);
+
+		// Presumably bit 6 selects between two 5.25" drives rather than the two 3.5"?
+		if(value & 0x40) {
+			iwm_->set_drive(0, &drives35_[0]);
+			iwm_->set_drive(1, &drives35_[1]);
+		} else {
+			iwm_->set_drive(0, &drives525_[0]);
+			iwm_->set_drive(1, &drives525_[1]);
+		}
+	}
 
 	static constexpr uint32_t DontLoadFastSentinel = 0xffff'ffff;
 	uint32_t read_sector_address_ = DontLoadFastSentinel;
@@ -981,6 +986,10 @@ private:
 			const auto &region = memory_.region(address);
 			return memory_.read(region, address);
 		};
+		const auto write = [&](const uint32_t address, const uint8_t value) {
+			const auto &region = memory_.region(address);
+			return memory_.write(region, address, value);
+		};
 		const auto read24 = [&](const uint32_t address) {
 			return uint32_t(read(address) + (read(address + 1) << 8) + (read(address + 2) << 16));
 		};
@@ -996,7 +1005,7 @@ private:
 		//
 
 		const auto block = read24(0x48);
-		const int drive = read(0xE10F28) & 1;
+		const int drive_number = read(0xE10F28) & 1;
 
 		// Only ROM03 actually masks out the top bit.
 		const uint8_t tags_mask = model_ == Analyser::Static::AppleIIgs::Target::Model::ROM03 ? 0x80 : 0xff;
@@ -1004,23 +1013,71 @@ private:
 
 		auto destination = read24(0x42);
 
-		// TODO: calculate on-disk track, sector and side. Move drive to there and load the thing.
-		// Write either 512 or 524 bytes to the destination.
-		//
-		// Update 0xe10f22 + drive with the current cylinder number.
-		// To indicate no error: zero out 0xe10f44 and 0xe10f4b, set A = 0 and clear carry.
+		// Calculate on-disk track, sector and side. Move drive to there and load the thing.
 
-		printf("Read block %d from drive %d to address %06x; %s tags\n",
-			block,
-			drive,
-			destination,
-			include_tags ? "include" : "don't include"
+//		printf("Read block %d from drive %d to address %06x; %s tags\n",
+//			block,
+//			drive_number,
+//			destination,
+//			include_tags ? "include" : "don't include"
+//		);
+
+		using namespace Storage::Encodings;
+		const auto address = AppleGCR::address_from_block_35(int(block));
+
+		// Select head and 3.5" drives.
+		set_disk_select(
+			(address.side ? 0x80 : 0x00) |
+			0x40
 		);
+		iwm_.flush();
+		auto *iwm = iwm_.get();
 
-		const auto address = Storage::Encodings::AppleGCR::address_from_block_35(int(block));
-		printf("Located at track %d, side %d, sector %d\n", address.track, address.side, address.sector);
+		// Select drive and enable.
+		iwm->read(0xc0ea + drive_number);
+		iwm->read(0xc0e9);
 
-		return false;
+		// Seek to and grab the track.
+		auto *drive = iwm_.get()->drive();
+		const auto track = drive->step_to(Storage::Disk::HeadPosition(address.track));
+
+		// Update 0xe10f22 [ROM0/1] or 0xe10f3a [ROM3] + drive with the current cylinder number.
+		const auto drive_status = uint32_t(
+			drive_number + (model_ == Analyser::Static::AppleIIgs::Target::Model::ROM03 ? 0xe10f3a : 0xe10f22)
+		);
+		write(drive_status, uint8_t(address.track));
+
+		// Serialise that according to the local data rate and parse for sectors.
+		const auto serialisation = Storage::Disk::track_serialisation(*track, AppleGCR::bit_length_35(address.zone));
+		const auto sectors = AppleGCR::sectors_from_segment(serialisation);
+
+		// Search for sector.
+		bool did_write = false;
+		for(auto &sector: sectors) {
+			if(sector.second.address.sector == address.sector) {
+				did_write = true;
+
+				// Write either 512 or 524 bytes to the destination.
+				for(
+					auto data = sector.second.data.begin() + (include_tags ? 0 : 12);
+					data != sector.second.data.end();
+					++data
+				) {
+					write(destination++, *data);
+				}
+
+				m65816_.set_value_of(Register::A, 0);
+
+				// To indicate no error: zero out 0xe10f44 and 0xe10f4b, set A = 0 and clear carry.
+				auto flags = uint8_t(m65816_.value_of(Register::Flags));
+				flags &= ~1;
+				m65816_.set_value_of(Register::Flags, flags);
+				write(0xe10f44, 0);
+				write(0xe10f4b, 0);
+			}
+		}
+
+		return did_write;
 	}
 
 	void set_should_fast_load(const bool fast_load) {

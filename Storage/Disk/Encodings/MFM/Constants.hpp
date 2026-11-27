@@ -37,9 +37,9 @@ const uint16_t MFMPostSyncCRCValue		= 0xcdb4;	// the value the CRC generator sho
 const uint8_t MFMIndexSyncByteValue		= 0xc2;
 const uint8_t MFMSyncByteValue			= 0xa1;
 
-const Time HDMFMBitLength				= Time(1, 200000);
-const Time MFMBitLength					= Time(1, 100000);
-const Time FMBitLength					= Time(1, 50000);
+const Time HDMFMBitLength				= Time(1, 200'000);
+const Time MFMBitLength					= Time(1, 100'000);
+const Time FMBitLength					= Time(1, 50'000);
 
 constexpr Time bit_length(Density density) {
 	switch(density) {
