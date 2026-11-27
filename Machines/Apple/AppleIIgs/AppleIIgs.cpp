@@ -1025,7 +1025,12 @@ private:
 		using namespace Storage::Encodings;
 		const auto address = AppleGCR::address_from_block_35(int(block));
 
-		// Select head and 3.5" drives.
+//		printf("Track %d / side %d\n",
+//			address.track,
+//			address.side
+//		);
+
+		// Select 3.5" drives.
 		set_disk_select(
 			(address.side ? 0x80 : 0x00) |
 			0x40
@@ -1039,7 +1044,11 @@ private:
 
 		// Seek to and grab the track.
 		auto *drive = iwm_.get()->drive();
+		drive->set_head(address.side);
 		const auto track = drive->step_to(Storage::Disk::HeadPosition(address.track));
+		if(!track) {
+			return false;
+		}
 
 		// Update 0xe10f22 [ROM0/1] or 0xe10f3a [ROM3] + drive with the current cylinder number.
 		const auto drive_status = uint32_t(
@@ -1052,11 +1061,8 @@ private:
 		const auto sectors = AppleGCR::sectors_from_segment(serialisation);
 
 		// Search for sector.
-		bool did_write = false;
 		for(auto &sector: sectors) {
 			if(sector.second.address.sector == address.sector) {
-				did_write = true;
-
 				// Write either 512 or 524 bytes to the destination.
 				for(
 					auto data = sector.second.data.begin() + (include_tags ? 0 : 12);
@@ -1066,18 +1072,23 @@ private:
 					write(destination++, *data);
 				}
 
-				m65816_.set_value_of(Register::A, 0);
-
 				// To indicate no error: zero out 0xe10f44 and 0xe10f4b, set A = 0 and clear carry.
+				auto a = m65816_.value_of(Register::A);
+				a &= ~0xff;
+				m65816_.set_value_of(Register::A, a);
+
 				auto flags = uint8_t(m65816_.value_of(Register::Flags));
-				flags &= ~1;
+				flags &= ~CPU::MOS6502Esque::Flag::Carry;
 				m65816_.set_value_of(Register::Flags, flags);
+
 				write(0xe10f44, 0);
 				write(0xe10f4b, 0);
+
+				return true;
 			}
 		}
 
-		return did_write;
+		return false;
 	}
 
 	void set_should_fast_load(const bool fast_load) {
